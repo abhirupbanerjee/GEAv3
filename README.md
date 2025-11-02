@@ -337,20 +337,13 @@ docker-compose restart freescout_db freescout
 
 ---
 
-## 📚 Further Documentation
-
-- **[DEPLOYMENT-CHECKLIST.md](DEPLOYMENT-CHECKLIST.md)** - Step-by-step deployment guide
-- **[QUICK-REFERENCE.md](QUICK-REFERENCE.md)** - Command cheat sheet
-- **[frontend/README.md](frontend/README.md)** - Frontend development guide
-- **[index.md](index.md)** - Complete file index
-
----
-
 ## 🆘 Support
 
 ### Contact
 - **Email:** eservices@gov.gd
 - **Portal:** https://gea.abhirup.app
+- **Ticket:** https://services.gea.abhirup.app
+
 
 ### Resources
 - [Next.js Documentation](https://nextjs.org/docs)
