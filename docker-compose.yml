@@ -1,0 +1,284 @@
+# ============================================
+# GRENADA EA PORTAL - DOCKER COMPOSE
+# ============================================
+# 
+# Services:
+# - Traefik: Reverse proxy with SSL
+# - Frontend: Next.js portal (Nginx)
+# - Wiki.js: Knowledge base
+# - Paperless-NGX: Document management
+#
+# Usage:
+#   docker-compose up -d          # Start all services
+#   docker-compose down           # Stop all services
+#   docker-compose logs -f        # View logs
+#   docker-compose restart <svc>  # Restart specific service
+#
+# ============================================
+
+version: '3.8'
+
+# ============================================
+# NETWORKS
+# ============================================
+networks:
+  gog_network:
+    driver: bridge
+    name: gogeaportal_gog_network
+
+# ============================================
+# VOLUMES
+# ============================================
+volumes:
+  # Traefik SSL certificates and logs
+  traefik_acme:
+    name: gogeaportal_traefik_acme
+  traefik_logs:
+    name: gogeaportal_traefik_logs
+
+  # Wiki.js database and data
+  wiki_db_data:
+    name: gogeaportal_wiki_db_data
+  wiki_data:
+    name: gogeaportal_wiki_data
+
+  # Paperless-NGX data and cache
+  paperless_redis_data:
+    name: gogeaportal_paperless_redis_data
+  paperless_data:
+    name: gogeaportal_paperless_data
+  paperless_media:
+    name: gogeaportal_paperless_media
+
+# ============================================
+# SERVICES
+# ============================================
+services:
+
+  # ==========================================
+  # TRAEFIK - Reverse Proxy & SSL Manager
+  # ==========================================
+  traefik:
+    image: traefik:v3.0
+    container_name: traefik
+    restart: unless-stopped
+    
+    security_opt:
+      - no-new-privileges:true
+    
+    networks:
+      - gog_network
+    
+    ports:
+      - "80:80"      # HTTP (redirects to HTTPS)
+      - "443:443"    # HTTPS
+    
+    environment:
+      - LETS_ENCRYPT_EMAIL=${LETS_ENCRYPT_EMAIL}
+    
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./traefik.yml:/traefik.yml:ro
+      - traefik_acme:/acme
+      - traefik_logs:/var/log/traefik
+    
+    labels:
+      - "traefik.enable=true"
+      
+      # Dashboard routing
+      - "traefik.http.routers.dashboard.rule=Host(`${TRAEFIK_DOMAIN}`)"
+      - "traefik.http.routers.dashboard.service=api@internal"
+      - "traefik.http.routers.dashboard.entrypoints=websecure"
+      - "traefik.http.routers.dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.dashboard.middlewares=dashboard-auth"
+      
+      # Basic authentication middleware
+      - "traefik.http.middlewares.dashboard-auth.basicauth.users=${TRAEFIK_DASHBOARD_USER}:${TRAEFIK_DASHBOARD_PASSWORD}"
+    
+    healthcheck:
+      test: ["CMD", "traefik", "healthcheck", "--ping"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # ==========================================
+  # FRONTEND - Next.js Portal with Nginx
+  # ==========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        # Build-time arguments for config generation
+        - WIKI_URL=${WIKI_URL}
+        - DMS_URL=${DMS_URL}
+        - SERVICES_URL=${SERVICES_URL}
+        - CHATBOT_URL=${CHATBOT_URL}
+        - GOG_URL=${GOG_URL}
+        - ESERVICES_URL=${ESERVICES_URL}
+        - CONSTITUTION_URL=${CONSTITUTION_URL}
+        - SITE_NAME=${SITE_NAME}
+        - CONTACT_EMAIL=${CONTACT_EMAIL}
+        - COPYRIGHT_YEAR=${COPYRIGHT_YEAR}
+    
+    container_name: frontend
+    restart: unless-stopped
+    
+    networks:
+      - gog_network
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${FRONTEND_DOMAIN}`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+    
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  # ==========================================
+  # WIKI.JS - Knowledge Base Database
+  # ==========================================
+  wiki_db:
+    image: postgres:15-alpine
+    container_name: wiki_db
+    restart: unless-stopped
+    
+    networks:
+      - gog_network
+    
+    environment:
+      POSTGRES_DB: ${WIKI_DB_NAME}
+      POSTGRES_USER: ${WIKI_DB_USER}
+      POSTGRES_PASSWORD: ${WIKI_DB_PASSWORD}
+    
+    volumes:
+      - wiki_db_data:/var/lib/postgresql/data
+    
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${WIKI_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 25s
+
+  # ==========================================
+  # WIKI.JS - Knowledge Base Application
+  # ==========================================
+  wiki:
+    image: requarks/wiki:2
+    container_name: wiki
+    restart: unless-stopped
+    
+    networks:
+      - gog_network
+    
+    environment:
+      DB_TYPE: postgres
+      DB_HOST: wiki_db
+      DB_PORT: 5432
+      DB_USER: ${WIKI_DB_USER}
+      DB_PASS: ${WIKI_DB_PASSWORD}
+      DB_NAME: ${WIKI_DB_NAME}
+    
+    depends_on:
+      wiki_db:
+        condition: service_healthy
+    
+    volumes:
+      - wiki_data:/wiki/data
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.wiki.rule=Host(`${WIKI_DOMAIN}`)"
+      - "traefik.http.routers.wiki.entrypoints=websecure"
+      - "traefik.http.routers.wiki.tls.certresolver=letsencrypt"
+      - "traefik.http.services.wiki.loadbalancer.server.port=3000"
+
+  # ==========================================
+  # PAPERLESS-NGX - Redis Cache
+  # ==========================================
+  paperless_redis:
+    image: redis:8-alpine
+    container_name: paperless_redis
+    restart: unless-stopped
+    
+    networks:
+      - gog_network
+    
+    volumes:
+      - paperless_redis_data:/data
+    
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+  # ==========================================
+  # PAPERLESS-NGX - Document Management
+  # ==========================================
+  paperless:
+    image: ghcr.io/paperless-ngx/paperless-ngx:latest
+    container_name: paperless
+    restart: unless-stopped
+    
+    networks:
+      - gog_network
+    
+    depends_on:
+      paperless_redis:
+        condition: service_healthy
+    
+    volumes:
+      - paperless_data:/usr/src/paperless/data
+      - paperless_media:/usr/src/paperless/media
+      - ./paperless/export:/usr/src/paperless/export
+      - ./paperless/consume:/usr/src/paperless/consume
+    
+    environment:
+      # Database configuration
+      PAPERLESS_DBENGINE: sqlite
+      
+      # Redis configuration
+      PAPERLESS_REDIS: redis://paperless_redis:6379
+      
+      # Admin user
+      PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER}
+      PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
+      PAPERLESS_ADMIN_EMAIL: ${PAPERLESS_ADMIN_EMAIL}
+      
+      # Application settings
+      PAPERLESS_TIME_ZONE: America/Grenada
+      PAPERLESS_URL: https://${PAPERLESS_DOMAIN}
+      PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
+      
+      # OCR settings
+      PAPERLESS_OCR_LANGUAGE: eng
+      PAPERLESS_OCR_MODE: skip
+      PAPERLESS_TIKA_ENABLED: false
+      
+      # Performance tuning
+      PAPERLESS_CONSUMER_POLLING: 30
+      PAPERLESS_TASK_WORKERS: 1
+      PAPERLESS_THREADS_PER_WORKER: 1
+    
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.paperless.rule=Host(`${PAPERLESS_DOMAIN}`)"
+      - "traefik.http.routers.paperless.entrypoints=websecure"
+      - "traefik.http.routers.paperless.tls.certresolver=letsencrypt"
+      - "traefik.http.services.paperless.loadbalancer.server.port=8000"
+
+# ============================================
+# END OF DOCKER COMPOSE FILE
+# ============================================
