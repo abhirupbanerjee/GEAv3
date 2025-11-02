@@ -23,7 +23,7 @@ export const config = {
   
   // Site Information
   SITE_NAME: 'Government of Grenada - EA Portal',
-  CONTACT_EMAIL: 'eservices@gov.gd',
+  CONTACT_EMAIL: 'gogdta2025@gmail.com',
   COPYRIGHT_YEAR: '2025',
 };
 
