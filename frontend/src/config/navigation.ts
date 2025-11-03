@@ -31,6 +31,11 @@ export const navigationItems: NavItem[] = [
     type: 'external'
   },
   {
+    label: 'Git',                   
+    href: config.GIT_URL,          
+    type: 'external'                
+  },
+  {
     label: 'Services',
     href: config.SERVICES_URL,
     type: 'external'

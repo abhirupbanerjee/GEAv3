@@ -11,6 +11,8 @@ volumes:
   paperless_redis_data:
   paperless_data:
   paperless_media:
+  forgejo_db_data:
+  forgejo_data: 
   freescout_db_data:
   freescout_data:
 
@@ -35,6 +37,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - WIKI_URL=${WIKI_URL}
+        - DMS_URL=${DMS_URL}
+        - SERVICES_URL=${SERVICES_URL}
+        - GIT_URL=${GIT_URL}
+        - CHATBOT_URL=${CHATBOT_URL}
+        - GOG_URL=${GOG_URL}
+        - ESERVICES_URL=${ESERVICES_URL}
+        - CONSTITUTION_URL=${CONSTITUTION_URL}
+        - SITE_NAME=${SITE_NAME}
+        - CONTACT_EMAIL=${CONTACT_EMAIL}
+        - ABOUT_CONTACT_EMAIL=${ABOUT_CONTACT_EMAIL}
+        - COPYRIGHT_YEAR=${COPYRIGHT_YEAR}
     container_name: frontend
     restart: unless-stopped
     networks:
@@ -163,3 +178,44 @@ services:
       - "traefik.http.routers.freescout.entrypoints=websecure"
       - "traefik.http.routers.freescout.tls.certresolver=letsencrypt"
       - "traefik.http.services.freescout.loadbalancer.server.port=80"
+
+
+  forgejo_db:
+    image: postgres:15-alpine
+    container_name: forgejo_db
+    restart: unless-stopped
+    networks:
+      - geav3_network
+    environment:
+      POSTGRES_DB: forgejo
+      POSTGRES_USER: forgejo
+      POSTGRES_PASSWORD: ${FORGEJO_DB_PASSWORD}
+    volumes:
+      - forgejo_db_data:/var/lib/postgresql/data
+
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:13
+    container_name: forgejo
+    restart: unless-stopped
+    networks:
+      - geav3_network
+    environment:
+      - USER_UID=1000
+      - USER_GID=1000
+      - FORGEJO__database__DB_TYPE=postgres
+      - FORGEJO__database__HOST=forgejo_db:5432
+      - FORGEJO__database__NAME=forgejo
+      - FORGEJO__database__USER=forgejo
+      - FORGEJO__database__PASSWD=${FORGEJO_DB_PASSWORD}
+    depends_on:
+      - forgejo_db
+    volumes:
+      - forgejo_data:/data
+      - /etc/timezone:/etc/timezone:ro
+      - /etc/localtime:/etc/localtime:ro
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.forgejo.rule=Host(`git.gea.abhirup.app`)"
+      - "traefik.http.routers.forgejo.entrypoints=websecure"
+      - "traefik.http.routers.forgejo.tls.certresolver=letsencrypt"
+      - "traefik.http.services.forgejo.loadbalancer.server.port=3000"

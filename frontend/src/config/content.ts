@@ -1,3 +1,5 @@
+import { config } from './env' 
+
 // ============================================
 // STATIC CONTENT CONFIGURATION
 // ============================================
@@ -87,7 +89,7 @@ export const aboutContent = {
   },
   contact: {
     title: "Contact Information",
-    email: "eservices@gov.gd",
+    email: config.ABOUT_CONTACT_EMAIL,
     description: "The team can be reached at eservices@gov.gd"
   }
 };
