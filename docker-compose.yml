@@ -1,5 +1,3 @@
-
-
 networks:
   geav3_network:
     driver: bridge
@@ -12,9 +10,7 @@ volumes:
   paperless_data:
   paperless_media:
   forgejo_db_data:
-  forgejo_data: 
-  freescout_db_data:
-  freescout_data:
+  forgejo_data:
 
 services:
   traefik:
@@ -136,48 +132,6 @@ services:
       - "traefik.http.services.paperless.loadbalancer.server.port=8000"
 
 
-  freescout_db:
-    image: mariadb:10.11
-    container_name: freescout_db
-    restart: unless-stopped
-    networks:
-      - geav3_network
-    environment:
-      MYSQL_ROOT_PASSWORD: ${FREESCOUT_DB_ROOT_PASSWORD}
-      MYSQL_DATABASE: freescout
-      MYSQL_USER: freescout
-      MYSQL_PASSWORD: ${FREESCOUT_DB_PASSWORD}
-    volumes:
-      - freescout_db_data:/var/lib/mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-
-  freescout:
-    image: tiredofit/freescout:latest
-    container_name: freescout
-    restart: unless-stopped
-    networks:
-      - geav3_network
-    depends_on:
-      - freescout_db
-    environment:
-      DB_HOST: freescout_db
-      DB_NAME: freescout
-      DB_USER: freescout
-      DB_PASS: ${FREESCOUT_DB_PASSWORD}
-      SITE_URL: https://services.gea.abhirup.app
-      ADMIN_EMAIL: ${FREESCOUT_ADMIN_EMAIL}
-      ADMIN_PASS: ${FREESCOUT_ADMIN_PASSWORD}
-      DISPLAY_ERRORS: "FALSE"
-      TIMEZONE: America/Grenada
-      ENABLE_SSL_PROXY: "TRUE"
-    volumes:
-      - freescout_data:/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.freescout.rule=Host(`services.gea.abhirup.app`)"
-      - "traefik.http.routers.freescout.entrypoints=websecure"
-      - "traefik.http.routers.freescout.tls.certresolver=letsencrypt"
-      - "traefik.http.services.freescout.loadbalancer.server.port=80"
 
 
   forgejo_db:
