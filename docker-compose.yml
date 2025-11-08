@@ -1,5 +1,6 @@
 networks:
   geav3_network:
+    name: geav3_network
     driver: bridge
 
 volumes:
@@ -11,6 +12,7 @@ volumes:
   paperless_media:
   forgejo_db_data:
   forgejo_data:
+  feedback_db_data:
 
 services:
   traefik:
@@ -29,6 +31,25 @@ services:
     environment:
       - LETS_ENCRYPT_EMAIL=mailabhirupbanerjee@gmail.com
 
+  feedback_db:
+    image: postgres:15-alpine
+    container_name: feedback_db
+    restart: unless-stopped
+    networks:
+      - geav3_network
+    environment:
+      POSTGRES_DB: ${FEEDBACK_DB_NAME}
+      POSTGRES_USER: ${FEEDBACK_DB_USER}
+      POSTGRES_PASSWORD: ${FEEDBACK_DB_PASSWORD}
+    volumes:
+      - feedback_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${FEEDBACK_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   frontend:
     build:
       context: ./frontend
@@ -36,7 +57,6 @@ services:
       args:
         - WIKI_URL=${WIKI_URL}
         - DMS_URL=${DMS_URL}
-#        - SERVICES_URL=${SERVICES_URL}
         - GIT_URL=${GIT_URL}
         - HELPDESK_URL=${HELPDESK_URL}
         - CHATBOT_URL=${CHATBOT_URL}
@@ -47,16 +67,31 @@ services:
         - CONTACT_EMAIL=${CONTACT_EMAIL}
         - ABOUT_CONTACT_EMAIL=${ABOUT_CONTACT_EMAIL}
         - COPYRIGHT_YEAR=${COPYRIGHT_YEAR}
+        - FEEDBACK_DB_HOST=feedback_db
+        - FEEDBACK_DB_PORT=5432
+        - FEEDBACK_DB_NAME=feedback
+        - FEEDBACK_DB_USER=feedback_user
+        - FEEDBACK_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
     container_name: frontend
     restart: unless-stopped
     networks:
       - geav3_network
+    environment:
+      # Runtime environment variables for database connection
+      - FEEDBACK_DB_HOST=feedback_db
+      - FEEDBACK_DB_PORT=${FEEDBACK_DB_PORT}
+      - FEEDBACK_DB_NAME=${FEEDBACK_DB_NAME}
+      - FEEDBACK_DB_USER=${FEEDBACK_DB_USER}
+      - FEEDBACK_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
+    depends_on:
+      feedback_db:
+        condition: service_healthy
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`gea.abhirup.app`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
-      - "traefik.http.services.frontend.loadbalancer.server.port=80"
+      - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
   wiki_db:
     image: postgres:15-alpine
@@ -121,7 +156,7 @@ services:
       PAPERLESS_REDIS: redis://paperless_redis:6379
       PAPERLESS_ADMIN_USER: ${PAPERLESS_ADMIN_USER}
       PAPERLESS_ADMIN_PASSWORD: ${PAPERLESS_ADMIN_PASSWORD}
-      PAPERLESS_URL: https://dms.gea.abhirup.app
+      PAPERLESS_URL: ${DMS_URL}
       PAPERLESS_SECRET_KEY: ${PAPERLESS_SECRET_KEY}
       PAPERLESS_TIME_ZONE: America/Grenada
       PAPERLESS_OCR_LANGUAGE: eng
