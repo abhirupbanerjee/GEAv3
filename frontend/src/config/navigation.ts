@@ -21,6 +21,16 @@ export const navigationItems: NavItem[] = [
     type: 'internal'
   },
   {
+    label: 'Services',
+    href: '/services',
+    type: 'internal'
+  },
+  {
+    label: 'Feedback',
+    href: '/feedback',
+    type: 'internal'
+  },
+  {
     label: 'Repository',
     href: config.DMS_URL,
     type: 'external'
@@ -36,8 +46,8 @@ export const navigationItems: NavItem[] = [
     type: 'external'                
   },
   {
-    label: 'Services',
-    href: config.SERVICES_URL,
+    label: 'Helpdesk',
+    href: config.HELPDESK_URL,
     type: 'external'
   }
 ];

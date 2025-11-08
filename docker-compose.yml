@@ -36,8 +36,9 @@ services:
       args:
         - WIKI_URL=${WIKI_URL}
         - DMS_URL=${DMS_URL}
-        - SERVICES_URL=${SERVICES_URL}
+#        - SERVICES_URL=${SERVICES_URL}
         - GIT_URL=${GIT_URL}
+        - HELPDESK_URL=${HELPDESK_URL}
         - CHATBOT_URL=${CHATBOT_URL}
         - GOG_URL=${GOG_URL}
         - ESERVICES_URL=${ESERVICES_URL}

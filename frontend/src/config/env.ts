@@ -14,8 +14,9 @@ export const config = {
   WIKI_URL: 'https://wiki.gea.abhirup.app',
   DMS_URL: 'https://dms.gea.abhirup.app',
   GIT_URL: 'https://git.gea.abhirup.app',
-  SERVICES_URL: 'https://services.gea.abhirup.app',
-  
+//  SERVICES_URL: 'https://helpdesk.gea.abhirup.app',
+  HELPDESK_URL='https://helpdesk.gea.abhirup.app',
+
   // External URLs
   CHATBOT_URL: 'https://gea-ai-assistant.vercel.app/',
   GOG_URL: 'https://www.gov.gd/',

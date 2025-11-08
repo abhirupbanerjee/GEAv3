@@ -5,7 +5,8 @@ WORKDIR /app
 ARG WIKI_URL
 ARG DMS_URL
 ARG GIT_URL
-ARG SERVICES_URL
+#ARG SERVICES_URL
+ARG HELPDESK_URL
 ARG CHATBOT_URL
 ARG GOG_URL
 ARG ESERVICES_URL
@@ -25,6 +26,7 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  WIKI_URL: '${WIKI_URL}'," >> src/config/env.ts && \
     echo "  DMS_URL: '${DMS_URL}'," >> src/config/env.ts && \
     echo "  SERVICES_URL: '${SERVICES_URL}'," >> src/config/env.ts && \
+    echo "  HELPDESK_URL: '${HELPDESK_URL}'," >> src/config/env.ts && \
     echo "  GIT_URL: '${GIT_URL}'," >> src/config/env.ts && \
     echo "  CHATBOT_URL: '${CHATBOT_URL}'," >> src/config/env.ts && \
     echo "  GOG_URL: '${GOG_URL}'," >> src/config/env.ts && \
