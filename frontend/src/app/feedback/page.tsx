@@ -1,67 +1,347 @@
 'use client'
 
-import { config } from '@/config/env'
+import { useState } from 'react'
+import ServiceSearch from '@/components/feedback/ServiceSearch'
+import RatingQuestions from '@/components/feedback/RatingQuestions'
+import SuccessMessage from '@/components/feedback/SuccessMessage'
 
-export default function Feedback() {
+interface Service {
+  service_id: string
+  service_name: string
+  service_description: string
+  entity_name: string
+}
+
+interface FeedbackData {
+  service_id: string
+  entity_id: string
+  channel: string
+  recipient_group: string
+  q1_ease: number
+  q2_clarity: number
+  q3_timeliness: number
+  q4_trust: number
+  q5_overall_satisfaction: number
+  comment_text: string
+  grievance_flag: boolean
+}
+
+export default function FeedbackPage() {
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
+  const [ratings, setRatings] = useState({
+    q1_ease: 0,
+    q2_clarity: 0,
+    q3_timeliness: 0,
+    q4_trust: 0,
+    q5_overall_satisfaction: 0
+  })
+  const [recipientGroup, setRecipientGroup] = useState('')
+  const [comments, setComments] = useState('')
+  const [grievanceFlag, setGrievanceFlag] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [submitSuccess, setSubmitSuccess] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+  const [feedbackId, setFeedbackId] = useState<number | null>(null)
+
+  // Reset form
+  const resetForm = () => {
+    setSelectedService(null)
+    setRatings({
+      q1_ease: 0,
+      q2_clarity: 0,
+      q3_timeliness: 0,
+      q4_trust: 0,
+      q5_overall_satisfaction: 0
+    })
+    setRecipientGroup('')
+    setComments('')
+    setGrievanceFlag(false)
+    setSubmitSuccess(false)
+    setSubmitError(null)
+    setFeedbackId(null)
+  }
+
+  // Validate form
+  const validateForm = (): string | null => {
+    if (!selectedService) {
+      return 'Please select a service'
+    }
+    if (ratings.q1_ease === 0 || ratings.q2_clarity === 0 || 
+        ratings.q3_timeliness === 0 || ratings.q4_trust === 0 || 
+        ratings.q5_overall_satisfaction === 0) {
+      return 'Please rate all questions'
+    }
+    if (!recipientGroup) {
+      return 'Please select who you are'
+    }
+    return null
+  }
+
+  // Submit feedback
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    // Validate
+    const error = validateForm()
+    if (error) {
+      setSubmitError(error)
+      return
+    }
+
+    setIsSubmitting(true)
+    setSubmitError(null)
+
+    try {
+      // Extract entity_id from service (it should be included in search results)
+      const entity_id = (selectedService as any).entity_id || 'UNKNOWN'
+
+      const feedbackData: FeedbackData = {
+        service_id: selectedService!.service_id,
+        entity_id: entity_id,
+        channel: 'ea_portal',
+        recipient_group: recipientGroup,
+        q1_ease: ratings.q1_ease,
+        q2_clarity: ratings.q2_clarity,
+        q3_timeliness: ratings.q3_timeliness,
+        q4_trust: ratings.q4_trust,
+        q5_overall_satisfaction: ratings.q5_overall_satisfaction,
+        comment_text: comments.trim(),
+        grievance_flag: grievanceFlag
+      }
+
+      const response = await fetch('/api/feedback/submit', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(feedbackData)
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to submit feedback')
+      }
+
+      // Success!
+      setFeedbackId(data.feedback_id)
+      setSubmitSuccess(true)
+      
+      // Scroll to top to show success message
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+
+    } catch (error) {
+      console.error('Submission error:', error)
+      setSubmitError(error instanceof Error ? error.message : 'An unexpected error occurred')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // If submission successful, show success message
+  if (submitSuccess) {
+    return (
+      <SuccessMessage 
+        feedbackId={feedbackId}
+        serviceName={selectedService?.service_name || ''}
+        onSubmitAnother={resetForm}
+      />
+    )
+  }
+
   return (
     <div className="py-16 bg-gray-50 min-h-screen">
-      <div className="container mx-auto px-4 max-w-5xl">
+      <div className="container mx-auto px-4 max-w-4xl">
         {/* Page Header */}
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">Feedback</h1>
+          <h1 className="text-4xl font-bold text-gray-900 mb-4">
+            Service Feedback
+          </h1>
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Your feedback helps us improve our digital services for all citizens of Grenada.
+            Help us improve government services by sharing your experience. Your feedback is valuable and helps us serve you better.
           </p>
         </div>
 
-        {/* Coming Soon Section */}
-        <section className="bg-white p-10 rounded-lg shadow-md text-center">
-          <div className="text-6xl mb-6">🚧</div>
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
-            Coming Soon
-          </h2>
-          <p className="text-gray-700 leading-relaxed text-lg mb-6">
-            We're building a comprehensive feedback system to hear your thoughts and suggestions 
-            about our digital transformation initiatives.
-          </p>
-          <p className="text-gray-600 mb-8">
-            This page will include:
-          </p>
-          <ul className="text-left max-w-2xl mx-auto space-y-3 text-gray-700">
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-3">✓</span>
-              <span>Feedback forms for specific services and initiatives</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-3">✓</span>
-              <span>Service quality ratings and reviews</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-3">✓</span>
-              <span>Suggestions for new digital services</span>
-            </li>
-            <li className="flex items-start">
-              <span className="text-blue-600 mr-3">✓</span>
-              <span>Track the status of your feedback submissions</span>
-            </li>
-          </ul>
-
-          {/* Temporary Contact */}
-          <div className="mt-12 pt-8 border-t border-gray-200">
-            <p className="text-gray-700 mb-4">
-              <strong>In the meantime,</strong> you can reach us through the DTA email id.
-            </p>
-            <a 
-              href={`mailto:${config.CONTACT_EMAIL}`}
-              className="inline-flex items-center text-blue-600 hover:text-blue-700 font-semibold text-lg"
-            >
-              <svg className="w-6 h-6 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        {/* Error Alert */}
+        {submitError && (
+          <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="flex items-start">
+              <svg className="w-6 h-6 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Contact Us
-            </a>
+              <div>
+                <h3 className="text-red-800 font-semibold">Unable to submit feedback</h3>
+                <p className="text-red-700 mt-1">{submitError}</p>
+              </div>
+              <button
+                onClick={() => setSubmitError(null)}
+                className="ml-auto text-red-600 hover:text-red-800"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
           </div>
-        </section>
+        )}
+
+        {/* Main Form */}
+        <form onSubmit={handleSubmit} className="space-y-8">
+          
+          {/* Step 1: Service Selection */}
+          <section className="bg-white p-8 rounded-lg shadow-md">
+            <div className="flex items-center mb-6">
+              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                1
+              </div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Select Service
+              </h2>
+            </div>
+            <ServiceSearch 
+              selectedService={selectedService}
+              onServiceSelect={setSelectedService}
+            />
+          </section>
+
+          {/* Step 2: Who are you? */}
+          {selectedService && (
+            <section className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                  2
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Who are you?
+                </h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {[
+                  { value: 'citizen', label: 'Citizen', icon: '👤' },
+                  { value: 'business', label: 'Business', icon: '🏢' },
+                  { value: 'government', label: 'Government Employee', icon: '🏛️' },
+                  { value: 'visitor', label: 'Visitor/Tourist', icon: '✈️' },
+                  { value: 'other', label: 'Other', icon: '📋' }
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setRecipientGroup(option.value)}
+                    className={`p-4 border-2 rounded-lg text-center transition-all ${
+                      recipientGroup === option.value
+                        ? 'border-blue-600 bg-blue-50 text-blue-900'
+                        : 'border-gray-200 hover:border-blue-300 text-gray-700'
+                    }`}
+                  >
+                    <div className="text-3xl mb-2">{option.icon}</div>
+                    <div className="font-semibold">{option.label}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Step 3: Rate Your Experience */}
+          {selectedService && recipientGroup && (
+            <section className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                  3
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Rate Your Experience
+                </h2>
+              </div>
+              <RatingQuestions 
+                ratings={ratings}
+                onRatingChange={(question, value) => 
+                  setRatings(prev => ({ ...prev, [question]: value }))
+                }
+              />
+            </section>
+          )}
+
+          {/* Step 4: Additional Comments */}
+          {selectedService && recipientGroup && ratings.q5_overall_satisfaction > 0 && (
+            <section className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                  4
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Additional Comments (Optional)
+                </h2>
+              </div>
+              
+              <textarea
+                value={comments}
+                onChange={(e) => setComments(e.target.value)}
+                placeholder="Please share any additional thoughts, suggestions, or concerns about this service..."
+                rows={5}
+                maxLength={1000}
+                className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+              />
+              <div className="mt-2 text-sm text-gray-500 text-right">
+                {comments.length}/1000 characters
+              </div>
+
+              {/* Grievance Flag */}
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                <label className="flex items-start cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={grievanceFlag}
+                    onChange={(e) => setGrievanceFlag(e.target.checked)}
+                    className="mt-1 w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  />
+                  <div className="ml-3">
+                    <div className="font-semibold text-gray-900">
+                      This is a formal grievance or complaint
+                    </div>
+                    <p className="text-sm text-gray-600 mt-1">
+                      Check this if you experienced significant issues that require formal review and follow-up from the service provider.
+                    </p>
+                  </div>
+                </label>
+              </div>
+            </section>
+          )}
+
+          {/* Submit Button */}
+          {selectedService && recipientGroup && ratings.q5_overall_satisfaction > 0 && (
+            <div className="flex justify-center">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className={`px-12 py-4 rounded-lg font-bold text-lg transition-all ${
+                  isSubmitting
+                    ? 'bg-gray-400 cursor-not-allowed'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl'
+                }`}
+              >
+                {isSubmitting ? (
+                  <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Submitting...
+                  </span>
+                ) : (
+                  'Submit Feedback'
+                )}
+              </button>
+            </div>
+          )}
+
+          {/* Privacy Notice */}
+          <div className="text-center text-sm text-gray-500 max-w-2xl mx-auto">
+            <p>
+              Your feedback is anonymous. We do not collect personal information such as names or email addresses. 
+              Your responses help us improve government services for everyone in Grenada.
+            </p>
+          </div>
+        </form>
       </div>
     </div>
   )

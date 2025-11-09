@@ -5,8 +5,6 @@ networks:
 
 volumes:
   traefik_acme:
-  wiki_db_data:
-  wiki_data:
   paperless_redis_data:
   paperless_data:
   paperless_media:
@@ -44,7 +42,7 @@ services:
     volumes:
       - feedback_db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${FEEDBACK_DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${FEEDBACK_DB_USER} -d ${FEEDBACK_DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -93,43 +91,6 @@ services:
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
-  wiki_db:
-    image: postgres:15-alpine
-    container_name: wiki_db
-    restart: unless-stopped
-    networks:
-      - geav3_network
-    environment:
-      POSTGRES_DB: wiki
-      POSTGRES_USER: wikijs
-      POSTGRES_PASSWORD: ${WIKI_DB_PASSWORD}
-    volumes:
-      - wiki_db_data:/var/lib/postgresql/data
-
-  wiki:
-    image: requarks/wiki:2
-    container_name: wiki
-    restart: unless-stopped
-    networks:
-      - geav3_network
-    environment:
-      DB_TYPE: postgres
-      DB_HOST: wiki_db
-      DB_PORT: 5432
-      DB_USER: wikijs
-      DB_PASS: ${WIKI_DB_PASSWORD}
-      DB_NAME: wiki
-    depends_on:
-      - wiki_db
-    volumes:
-      - wiki_data:/wiki/data
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.routers.wiki.rule=Host(`wiki.gea.abhirup.app`)"
-      - "traefik.http.routers.wiki.entrypoints=websecure"
-      - "traefik.http.routers.wiki.tls.certresolver=letsencrypt"
-      - "traefik.http.services.wiki.loadbalancer.server.port=3000"
-
   paperless_redis:
     image: redis:8-alpine
     container_name: paperless_redis
@@ -166,8 +127,6 @@ services:
       - "traefik.http.routers.paperless.entrypoints=websecure"
       - "traefik.http.routers.paperless.tls.certresolver=letsencrypt"
       - "traefik.http.services.paperless.loadbalancer.server.port=8000"
-
-
 
 
   forgejo_db:

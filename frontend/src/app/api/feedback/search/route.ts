@@ -8,6 +8,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
+// Force dynamic rendering for this route
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const query = searchParams.get('q');
@@ -28,6 +31,7 @@ export async function GET(request: NextRequest) {
         s.service_name,
         s.service_category,
         s.service_description,
+        s.entity_id,
         e.entity_name,
         e.entity_type,
         SIMILARITY(s.service_name, $1) as name_similarity,
@@ -60,6 +64,7 @@ export async function GET(request: NextRequest) {
         service_name: row.service_name,
         service_category: row.service_category,
         service_description: row.service_description,
+        entity_id: row.entity_id,
         entity_name: row.entity_name,
         entity_type: row.entity_type,
         relevance: Math.max(row.name_similarity, row.desc_similarity)

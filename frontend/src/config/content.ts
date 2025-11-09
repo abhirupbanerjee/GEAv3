@@ -12,12 +12,13 @@ export const heroContent = {
   description: "The Enterprise Architecture (EA) portal of Grenada is designed as a centralized platform to support the digital transformation initiatives of the government. It provides an accessible resource for Ministries, Departments, and Agencies (MDAs) by disseminating digital architecture information and standardizing system architecture designs across government entities. The portal aims to accommodate the natural evolution of architectural frameworks and foster a collaborative environment for managing shared infrastructure and interoperable solutions. This approach enables the alignment of digital initiatives with national priorities, facilitating seamless service delivery and governance efficiency."
 };
 
-// Strategic Focus Areas
+// Strategic Focus Areas - UPDATED TO USE ICONS
 export interface StrategyCard {
   id: string;
   title: string;
   description: string;
-  image: string;
+  icon: string; // SVG icon identifier
+  iconColor: string; // Tailwind color class
 }
 
 export const strategicFocusAreas: StrategyCard[] = [
@@ -25,26 +26,31 @@ export const strategicFocusAreas: StrategyCard[] = [
     id: 'build-people',
     title: 'Build Our People',
     description: 'Investing in our people through strategic campaigns and skill development programs.',
-    image: '/images/build-our-people.jpg'
+    icon: 'users',
+    iconColor: 'text-blue-600'
   },
   {
     id: 'simplify-life',
     title: 'Simplify Life',
     description: 'Simplify the lives of our citizens and business users by transforming GoG services.',
-    image: '/images/simplify-life.jpg'
+    icon: 'check-circle',
+    iconColor: 'text-green-600'
   },
   {
     id: 'boost-resilience',
     title: 'Boost Resilience & Sustainability',
     description: 'Encourage long-term sustainable and resilient initiatives planning across all MDAs.',
-    image: '/images/boost-resilience.jpg'
+    icon: 'shield-check',
+    iconColor: 'text-purple-600'
   }
 ];
 
-// Vision & Strategy
+// Vision & Strategy - UPDATED TO USE ICON
 export const visionStrategy = {
   title: "Vision & Strategy",
-  description: "Grenada's national vision is the guiding principle for the country's development and progress. Supporting this vision is the digital strategy, which outlines the use of technology and streamlined processes to improve government services and engage citizens effectively.\n\nThe Enterprise Architecture (EA) framework plays a critical role in realizing both the national vision and the digital strategy. By aligning various government initiatives with these overarching goals, the EA ensures that all digital initiatives and systems actively contribute to shared national public sectors and participate in the nation's digital future."
+  description: "Grenada's national vision is the guiding principle for the country's development and progress. Supporting this vision is the digital strategy, which outlines the use of technology and streamlined processes to improve government services and engage citizens effectively.\n\nThe Enterprise Architecture (EA) framework plays a critical role in realizing both the national vision and the digital strategy. By aligning various government initiatives with these overarching goals, the EA ensures that all digital initiatives and systems actively contribute to shared national public sectors and participate in the nation's digital future.",
+  icon: 'mobile',
+  iconColor: 'text-indigo-600'
 };
 
 // EA News and Updates

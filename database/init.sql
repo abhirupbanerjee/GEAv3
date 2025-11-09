@@ -16,7 +16,8 @@ CREATE EXTENSION IF NOT EXISTS pg_trgm;
 CREATE TABLE entity_master (
     unique_entity_id VARCHAR(50) PRIMARY KEY,
     entity_name VARCHAR(255) NOT NULL,
-    entity_type VARCHAR(50) NOT NULL CHECK (entity_type IN ('ministry', 'department', 'agency', 'statutory_body', 'other')),
+--    entity_type VARCHAR(50) NOT NULL CHECK (entity_type IN ('ministry', 'department', 'agency', 'statutory_body', 'other')),
+    entity_type VARCHAR(50) NOT NULL CHECK (entity_type IN ('ministry', 'department', 'agency', 'statutory_body', 'regulator', 'portal', 'other')),
     parent_entity_id VARCHAR(50) REFERENCES entity_master(unique_entity_id),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
