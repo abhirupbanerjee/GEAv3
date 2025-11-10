@@ -1,83 +1,90 @@
 // ============================================
-// FEEDBACK STATISTICS API
+// FEEDBACK STATISTICS API - Updated for Multi-Select
 // ============================================
 // GET /api/feedback/stats
-// Query params: service_id, entity_id, start_date, end_date, channel
+// Query Parameters:
+//   - service_id: comma-separated IDs (e.g., "SVC-001,SVC-002")
+//   - entity_id: comma-separated IDs (e.g., "MIN-001,DEPT-005")
+//   - start_date: ISO date string
+//   - end_date: ISO date string
+//   - channel: ea_portal | qr_code
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 
-// Force dynamic rendering for this route
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
-  try {
-    const searchParams = request.nextUrl.searchParams;
-    
-    // Extract filter parameters
-    const serviceId = searchParams.get('service_id');
-    const entityId = searchParams.get('entity_id');
-    const startDate = searchParams.get('start_date');
-    const endDate = searchParams.get('end_date');
-    const channel = searchParams.get('channel');
+  const searchParams = request.nextUrl.searchParams;
+  const serviceIdParam = searchParams.get('service_id');
+  const entityIdParam = searchParams.get('entity_id');
+  const startDate = searchParams.get('start_date');
+  const endDate = searchParams.get('end_date');
+  const channel = searchParams.get('channel');
 
-    // Build WHERE clause dynamically
+  try {
+    // Build WHERE conditions
     const conditions: string[] = [];
     const params: any[] = [];
-    let paramCount = 1;
+    let paramIndex = 1;
 
-    if (serviceId) {
-      conditions.push(`f.service_id = $${paramCount}`);
-      params.push(serviceId);
-      paramCount++;
+    // Handle multiple service IDs (comma-separated)
+    if (serviceIdParam && serviceIdParam.trim()) {
+      const serviceIds = serviceIdParam.split(',').filter(Boolean);
+      if (serviceIds.length > 0) {
+        const placeholders = serviceIds.map(() => `$${paramIndex++}`).join(',');
+        conditions.push(`f.service_id IN (${placeholders})`);
+        params.push(...serviceIds);
+      }
     }
 
-    if (entityId) {
-      conditions.push(`f.entity_id = $${paramCount}`);
-      params.push(entityId);
-      paramCount++;
+    // Handle multiple entity IDs (comma-separated)
+    if (entityIdParam && entityIdParam.trim()) {
+      const entityIds = entityIdParam.split(',').filter(Boolean);
+      if (entityIds.length > 0) {
+        const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+        conditions.push(`f.entity_id IN (${placeholders})`);
+        params.push(...entityIds);
+      }
     }
 
     if (startDate) {
-      conditions.push(`f.submitted_at >= $${paramCount}`);
+      conditions.push(`f.submitted_at >= $${paramIndex++}`);
       params.push(startDate);
-      paramCount++;
     }
 
     if (endDate) {
-      conditions.push(`f.submitted_at <= $${paramCount}`);
-      params.push(endDate);
-      paramCount++;
+      conditions.push(`f.submitted_at <= $${paramIndex++}`);
+      params.push(endDate + ' 23:59:59');
     }
 
     if (channel) {
-      conditions.push(`f.channel = $${paramCount}`);
+      conditions.push(`f.channel = $${paramIndex++}`);
       params.push(channel);
-      paramCount++;
     }
 
     const whereClause = conditions.length > 0 
-      ? `WHERE ${conditions.join(' AND ')}`
+      ? 'WHERE ' + conditions.join(' AND ')
       : '';
 
     // Query 1: Overall Statistics
     const overallStats = await pool.query(`
       SELECT 
         COUNT(*) as total_submissions,
+        ROUND(AVG(q5_overall_satisfaction)::numeric, 2) as avg_satisfaction,
         ROUND(AVG(q1_ease)::numeric, 2) as avg_ease,
         ROUND(AVG(q2_clarity)::numeric, 2) as avg_clarity,
         ROUND(AVG(q3_timeliness)::numeric, 2) as avg_timeliness,
         ROUND(AVG(q4_trust)::numeric, 2) as avg_trust,
-        ROUND(AVG(q5_overall_satisfaction)::numeric, 2) as avg_satisfaction,
-        SUM(CASE WHEN grievance_flag THEN 1 ELSE 0 END) as grievance_count,
+        COUNT(CASE WHEN grievance_flag = TRUE THEN 1 END) as grievance_count,
         MIN(submitted_at) as first_submission,
         MAX(submitted_at) as last_submission
       FROM service_feedback f
       ${whereClause}
     `, params);
 
-    // Query 2: Channel Breakdown
+    // Query 2: Breakdown by Channel
     const channelBreakdown = await pool.query(`
       SELECT 
         channel,
@@ -89,14 +96,15 @@ export async function GET(request: NextRequest) {
       ORDER BY count DESC
     `, params);
 
-    // Query 3: Recipient Group Breakdown
+    // Query 3: Breakdown by Recipient Group
     const recipientBreakdown = await pool.query(`
       SELECT 
         recipient_group,
         COUNT(*) as count,
         ROUND(AVG(q5_overall_satisfaction)::numeric, 2) as avg_satisfaction
       FROM service_feedback f
-      ${whereClause ? whereClause + ' AND' : 'WHERE'} recipient_group IS NOT NULL
+      ${whereClause}
+      ${conditions.length > 0 ? 'AND' : 'WHERE'} recipient_group IS NOT NULL
       GROUP BY recipient_group
       ORDER BY count DESC
     `, params);
@@ -113,9 +121,9 @@ export async function GET(request: NextRequest) {
       ORDER BY q5_overall_satisfaction DESC
     `, params);
 
-    // Query 5: Top Services (if not filtered by service)
+    // Query 5: Top Services (if not filtered by specific services)
     let topServices = null;
-    if (!serviceId) {
+    if (!serviceIdParam || !serviceIdParam.trim()) {
       topServices = await pool.query(`
         SELECT 
           s.service_id,
@@ -133,9 +141,14 @@ export async function GET(request: NextRequest) {
       `, params);
     }
 
-    // Query 6: Trend Data (Daily submissions for last 30 days if no date filter)
+    // Query 6: Trend Data (Daily submissions for date range or last 30 days)
     let trendData = null;
     if (!startDate && !endDate) {
+      // No date filter - show last 30 days
+      const trendParams = conditions.length > 0 
+        ? params.filter((_, i) => i < conditions.length) 
+        : [];
+      
       trendData = await pool.query(`
         SELECT 
           DATE(submitted_at) as date,
@@ -146,7 +159,19 @@ export async function GET(request: NextRequest) {
         ${conditions.length > 0 ? 'AND ' + conditions.join(' AND ') : ''}
         GROUP BY DATE(submitted_at)
         ORDER BY date DESC
-      `, conditions.length > 0 ? params.filter((_, i) => i < conditions.length) : []);
+      `, trendParams);
+    } else {
+      // Date filter applied - show trend for that range
+      trendData = await pool.query(`
+        SELECT 
+          DATE(submitted_at) as date,
+          COUNT(*) as submissions,
+          ROUND(AVG(q5_overall_satisfaction)::numeric, 2) as avg_satisfaction
+        FROM service_feedback f
+        ${whereClause}
+        GROUP BY DATE(submitted_at)
+        ORDER BY date DESC
+      `, params);
     }
 
     // Query 7: Comments with Grievances
@@ -170,8 +195,8 @@ export async function GET(request: NextRequest) {
     // Compile response
     const response = {
       filters: {
-        service_id: serviceId,
-        entity_id: entityId,
+        service_id: serviceIdParam,
+        entity_id: entityIdParam,
         start_date: startDate,
         end_date: endDate,
         channel: channel
