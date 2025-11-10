@@ -35,6 +35,8 @@ export default function FeedbackPage() {
     q4_trust: 0,
     q5_overall_satisfaction: 0
   })
+  
+  
   const [recipientGroup, setRecipientGroup] = useState('')
   const [comments, setComments] = useState('')
   const [grievanceFlag, setGrievanceFlag] = useState(false)
@@ -42,6 +44,14 @@ export default function FeedbackPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [feedbackId, setFeedbackId] = useState<number | null>(null)
+
+
+  const [submittedAt, setSubmittedAt] = useState<string>('')
+  const [ticketInfo, setTicketInfo] = useState<{
+    created: boolean;
+    ticketNumber?: string;
+    reason?: string;
+  } | null>(null)
 
   // Reset form
   const resetForm = () => {
@@ -59,6 +69,8 @@ export default function FeedbackPage() {
     setSubmitSuccess(false)
     setSubmitError(null)
     setFeedbackId(null)
+    setSubmittedAt('')
+    setTicketInfo(null)
   }
 
   // Validate form
@@ -125,6 +137,8 @@ export default function FeedbackPage() {
 
       // Success!
       setFeedbackId(data.feedback_id)
+      setSubmittedAt(data.submitted_at)
+      setTicketInfo(data.ticket || null)
       setSubmitSuccess(true)
       
       // Scroll to top to show success message
@@ -143,11 +157,13 @@ export default function FeedbackPage() {
     return (
       <SuccessMessage 
         feedbackId={feedbackId}
-        serviceName={selectedService?.service_name || ''}
+        submittedAt={submittedAt}
+        ticket={ticketInfo}
         onSubmitAnother={resetForm}
       />
     )
   }
+
 
   return (
     <div className="py-16 bg-gray-50 min-h-screen">

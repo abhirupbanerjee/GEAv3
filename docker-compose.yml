@@ -81,6 +81,9 @@ services:
       - FEEDBACK_DB_NAME=${FEEDBACK_DB_NAME}
       - FEEDBACK_DB_USER=${FEEDBACK_DB_USER}
       - FEEDBACK_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
+      - OSTICKET_API_URL=${OSTICKET_API_URL}
+      - OSTICKET_API_KEY=${OSTICKET_API_KEY}
+      - OSTICKET_SYSTEM_EMAIL=${OSTICKET_SYSTEM_EMAIL}
     depends_on:
       feedback_db:
         condition: service_healthy

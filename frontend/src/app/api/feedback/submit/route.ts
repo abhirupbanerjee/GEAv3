@@ -3,10 +3,12 @@
 // ============================================
 // POST /api/feedback/submit
 // Accepts feedback with rate limiting & validation
+// Creates osTicket automatically for grievances/low ratings
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
+import { processFeedbackForTicket, OSTICKET_CONFIG } from '@/lib/osticket-integration';
 import crypto from 'crypto';
 
 // Force dynamic rendering for this route
@@ -229,11 +231,54 @@ export async function POST(request: NextRequest) {
       ]
     );
 
+    const feedbackId = result.rows[0].feedback_id;
+    const submittedAt = result.rows[0].submitted_at;
+
+    // ============================================
+    // OSTICKET INTEGRATION
+    // ============================================
+    // Get complete feedback data with service/entity names
+    const feedbackResult = await pool.query(`
+      SELECT 
+        f.*,
+        s.service_name,
+        e.entity_name
+      FROM service_feedback f
+      JOIN service_master s ON f.service_id = s.service_id
+      JOIN entity_master e ON f.entity_id = e.unique_entity_id
+      WHERE f.feedback_id = $1
+    `, [feedbackId]);
+
+    // Try to create ticket if criteria met
+    let ticketInfo = null;
+    try {
+      const ticketResult = await processFeedbackForTicket(
+        feedbackResult.rows[0], 
+        OSTICKET_CONFIG
+      );
+      
+      if (ticketResult.ticketCreated) {
+        ticketInfo = {
+          created: true,
+          ticketNumber: ticketResult.ticketNumber,
+          reason: ticketResult.reason
+        };
+        console.log(`✓ Ticket #${ticketResult.ticketNumber} created for feedback #${feedbackId}`);
+      } else {
+        console.log(`No ticket created for feedback #${feedbackId}: ${ticketResult.reason}`);
+      }
+    } catch (ticketError) {
+      console.error('Failed to create ticket:', ticketError);
+      // Don't fail the feedback submission if ticket creation fails
+    }
+    // ============================================
+
     return NextResponse.json({
       success: true,
-      feedback_id: result.rows[0].feedback_id,
-      submitted_at: result.rows[0].submitted_at,
-      message: 'Thank you for your feedback!'
+      feedback_id: feedbackId,
+      submitted_at: submittedAt,
+      message: 'Thank you for your feedback!',
+      ticket: ticketInfo  // Include ticket info in response
     }, { status: 201 });
 
   } catch (error) {
