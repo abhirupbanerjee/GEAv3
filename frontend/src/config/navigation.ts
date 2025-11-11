@@ -57,6 +57,6 @@ export const siteBranding = {
   name: 'Government of Grenada',
   shortName: 'GoG',
   tagline: 'EA Portal',
-  logo: '🇬🇩', // Grenada flag emoji (can be replaced with image)
+  logo: '/images/grenada-flag.png',
   homeUrl: '/'
 };

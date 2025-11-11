@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { navigationItems, siteBranding } from '@/config/navigation'
+import Image from 'next/image' 
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -12,7 +13,15 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           <Link href={siteBranding.homeUrl} className="flex items-center space-x-2">
-            <span className="text-2xl">{siteBranding.logo}</span>
+            <Image 
+                src={siteBranding.logo} 
+                alt="Grenada Flag" 
+                width={128} 
+                height={128}
+                className="rounded-sm"
+                priority
+            />
+            
             <div>
               <div className="font-bold text-gray-900">{siteBranding.name}</div>
               <div className="text-xs text-gray-600">{siteBranding.tagline}</div>
