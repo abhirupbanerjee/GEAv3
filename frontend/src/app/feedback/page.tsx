@@ -60,38 +60,46 @@ function FeedbackPageContent() {
   const [qrCodeId, setQrCodeId] = useState<string | null>(null)
 
   // Handle pre-filled service from URL parameters (QR code scans)
-  useEffect(() => {
-    const serviceId = searchParams.get('service')
-    const qrId = searchParams.get('qr')
-    
-    if (serviceId && !selectedService) {
-      setIsLoadingPrefilledService(true)
-      setQrCodeId(qrId)
-      
-      // Fetch service details
-      fetch(`/api/feedback/search?q=${serviceId}`)
-        .then(res => res.json())
-        .then(data => {
-          if (data.results && data.results.length > 0) {
-            // Find exact match by service_id
-            const service = data.results.find((s: Service) => s.service_id === serviceId)
-            if (service) {
-              setSelectedService(service)
-            } else {
-              // If no exact match, try first result
-              setSelectedService(data.results[0])
+          useEffect(() => {
+            const serviceId = searchParams.get('service')
+            const qrId = searchParams.get('qr')
+            
+            if (serviceId && !selectedService) {
+              setIsLoadingPrefilledService(true)
+              setQrCodeId(qrId)
+              
+              // CORRECT: Use direct service lookup by ID
+              fetch(`/api/managedata/services`)
+                .then(res => {
+                  if (!res.ok) throw new Error('Failed to load services')
+                  return res.json()
+                })
+                .then(services => {
+                  // Find exact service by ID
+                  const service = services.find((s: any) => s.service_id === serviceId)
+                  if (service) {
+                    // Transform to match Service interface
+                    setSelectedService({
+                      service_id: service.service_id,
+                      service_name: service.service_name,
+                      service_description: service.service_description || '',
+                      entity_name: service.entity_name || '',
+                      entity_id: service.entity_id
+                    })
+                  } else {
+                    setSubmitError(`Service ${serviceId} not found. Please search manually.`)
+                  }
+                })
+                .catch(error => {
+                  console.error('Error loading pre-filled service:', error)
+                  setSubmitError('Unable to load service from QR code. Please search manually.')
+                })
+                .finally(() => {
+                  setIsLoadingPrefilledService(false)
+                })
             }
-          }
-        })
-        .catch(error => {
-          console.error('Error loading pre-filled service:', error)
-          setSubmitError('Unable to load service from QR code. Please search manually.')
-        })
-        .finally(() => {
-          setIsLoadingPrefilledService(false)
-        })
-    }
-  }, [searchParams, selectedService])
+          }, [searchParams, selectedService])
+
 
   // Reset form
   const resetForm = () => {
