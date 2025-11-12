@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import ServiceSearch from '@/components/feedback/ServiceSearch'
 import RatingQuestions from '@/components/feedback/RatingQuestions'
 import SuccessMessage from '@/components/feedback/SuccessMessage'
@@ -10,12 +11,14 @@ interface Service {
   service_name: string
   service_description: string
   entity_name: string
+  entity_id?: string
 }
 
 interface FeedbackData {
   service_id: string
   entity_id: string
   channel: string
+  qr_code_id?: string
   recipient_group: string
   q1_ease: number
   q2_clarity: number
@@ -26,7 +29,9 @@ interface FeedbackData {
   grievance_flag: boolean
 }
 
-export default function FeedbackPage() {
+function FeedbackPageContent() {
+  const searchParams = useSearchParams()
+  
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [ratings, setRatings] = useState({
     q1_ease: 0,
@@ -36,7 +41,6 @@ export default function FeedbackPage() {
     q5_overall_satisfaction: 0
   })
   
-  
   const [recipientGroup, setRecipientGroup] = useState('')
   const [comments, setComments] = useState('')
   const [grievanceFlag, setGrievanceFlag] = useState(false)
@@ -44,14 +48,50 @@ export default function FeedbackPage() {
   const [submitSuccess, setSubmitSuccess] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [feedbackId, setFeedbackId] = useState<number | null>(null)
-
-
   const [submittedAt, setSubmittedAt] = useState<string>('')
   const [ticketInfo, setTicketInfo] = useState<{
-    created: boolean;
-    ticketNumber?: string;
-    reason?: string;
+    created: boolean
+    ticketNumber?: string
+    reason?: string
   } | null>(null)
+
+  // QR code handling
+  const [isLoadingPrefilledService, setIsLoadingPrefilledService] = useState(false)
+  const [qrCodeId, setQrCodeId] = useState<string | null>(null)
+
+  // Handle pre-filled service from URL parameters (QR code scans)
+  useEffect(() => {
+    const serviceId = searchParams.get('service')
+    const qrId = searchParams.get('qr')
+    
+    if (serviceId && !selectedService) {
+      setIsLoadingPrefilledService(true)
+      setQrCodeId(qrId)
+      
+      // Fetch service details
+      fetch(`/api/feedback/search?q=${serviceId}`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.results && data.results.length > 0) {
+            // Find exact match by service_id
+            const service = data.results.find((s: Service) => s.service_id === serviceId)
+            if (service) {
+              setSelectedService(service)
+            } else {
+              // If no exact match, try first result
+              setSelectedService(data.results[0])
+            }
+          }
+        })
+        .catch(error => {
+          console.error('Error loading pre-filled service:', error)
+          setSubmitError('Unable to load service from QR code. Please search manually.')
+        })
+        .finally(() => {
+          setIsLoadingPrefilledService(false)
+        })
+    }
+  }, [searchParams, selectedService])
 
   // Reset form
   const resetForm = () => {
@@ -71,6 +111,7 @@ export default function FeedbackPage() {
     setFeedbackId(null)
     setSubmittedAt('')
     setTicketInfo(null)
+    setQrCodeId(null)
   }
 
   // Validate form
@@ -110,7 +151,8 @@ export default function FeedbackPage() {
       const feedbackData: FeedbackData = {
         service_id: selectedService!.service_id,
         entity_id: entity_id,
-        channel: 'ea_portal',
+        channel: qrCodeId ? 'qr_code' : 'ea_portal',
+        qr_code_id: qrCodeId || undefined,
         recipient_group: recipientGroup,
         q1_ease: ratings.q1_ease,
         q2_clarity: ratings.q2_clarity,
@@ -164,7 +206,6 @@ export default function FeedbackPage() {
     )
   }
 
-
   return (
     <div className="py-16 bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 max-w-4xl">
@@ -176,6 +217,24 @@ export default function FeedbackPage() {
           <p className="text-lg text-gray-600 max-w-3xl mx-auto">
             Help us improve government services by sharing your experience. Your feedback is valuable and helps us serve you better.
           </p>
+          
+          {/* QR Scan Indicator */}
+          {qrCodeId && (
+            <div className="mt-4 inline-flex items-center px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg">
+              <svg className="w-5 h-5 text-blue-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+              </svg>
+              <span className="text-blue-800 font-semibold">Feedback from QR Code Scan</span>
+            </div>
+          )}
+          
+          {/* Loading Indicator */}
+          {isLoadingPrefilledService && (
+            <div className="mt-4 text-blue-600">
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+              <p className="text-sm">Loading service information...</p>
+            </div>
+          )}
         </div>
 
         {/* Error Alert */}
@@ -349,16 +408,24 @@ export default function FeedbackPage() {
               </button>
             </div>
           )}
-
-          {/* Privacy Notice */}
-          <div className="text-center text-sm text-gray-500 max-w-2xl mx-auto">
-            <p>
-              Your feedback is anonymous. We do not collect personal information such as names or email addresses. 
-              Your responses help us improve government services for everyone in Grenada.
-            </p>
-          </div>
         </form>
       </div>
     </div>
+  )
+}
+
+// Wrap in Suspense for useSearchParams
+export default function FeedbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading feedback form...</p>
+        </div>
+      </div>
+    }>
+      <FeedbackPageContent />
+    </Suspense>
   )
 }

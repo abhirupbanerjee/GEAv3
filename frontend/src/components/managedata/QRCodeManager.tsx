@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
+import { generateQRFeedbackUrl } from '@/config/env-client'
 
 interface QRCodeData {
   qr_code_id: string
@@ -17,6 +18,13 @@ interface QRCodeData {
   is_active: boolean
   notes: string
   created_at: string
+}
+
+interface Entity {
+  unique_entity_id: string
+  entity_name: string
+  entity_type: string
+  is_active: boolean
 }
 
 interface Service {
@@ -42,12 +50,13 @@ const LOCATION_TYPES = [
 export default function QRCodeManager() {
   const [qrcodes, setQRCodes] = useState<QRCodeData[]>([])
   const [services, setServices] = useState<Service[]>([])
+  const [entities, setEntities] = useState<Entity[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingQR, setEditingQR] = useState<QRCodeData | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
   
-  // NEW: Success modal state
+  // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successQRCode, setSuccessQRCode] = useState<QRCodeData | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string>('')
@@ -73,9 +82,10 @@ export default function QRCodeManager() {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [qrRes, servicesRes] = await Promise.all([
+      const [qrRes, servicesRes, entitiesRes] = await Promise.all([
         fetch('/api/managedata/qrcodes'),
-        fetch('/api/managedata/services')
+        fetch('/api/managedata/services'),
+        fetch('/api/managedata/entities')
       ])
       
       if (qrRes.ok) {
@@ -85,6 +95,10 @@ export default function QRCodeManager() {
       if (servicesRes.ok) {
         const data = await servicesRes.json()
         setServices(data.filter((s: Service) => s.is_active))
+      }
+      if (entitiesRes.ok) {
+        const data = await entitiesRes.json()
+        setEntities(data.filter((e: Entity) => e.is_active))
       }
     } catch (error) {
       console.error('Error loading data:', error)
@@ -122,7 +136,7 @@ export default function QRCodeManager() {
     }
   }
 
-  // NEW: Generate QR code image
+  // Generate QR code image
   const generateQRCode = async (url: string) => {
     try {
       const qrDataUrl = await QRCode.toDataURL(url, {
@@ -139,53 +153,144 @@ export default function QRCodeManager() {
     }
   }
 
-  // NEW: Download QR code as PNG
+  // Download QR code as PNG
   const downloadQRCode = (qr: QRCodeData) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-
-    canvas.width = 600
-    canvas.height = 700
+    
+    canvas.width = 800
+    canvas.height = 1200
 
     // White background
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Generate QR code on canvas
-    QRCode.toCanvas(canvas, qr.generated_url, {
-      width: 400,
-      margin: 2,
-      color: { dark: '#000000', light: '#FFFFFF' }
-    }, (error) => {
-      if (error) {
-        console.error('QR generation error:', error)
-        return
-      }
+    // Draw Grenada flag using official SVG
+    const svgData = `<svg width="600" height="360" viewBox="0 0 500 300" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><path fill="#ce1126" d="M0 0h500v300H0z"/><path fill="#007a5e" d="M42 42h416v216H42z"/><path d="M42 42h416L42 258h416z" fill="#fcd116"/><circle r="36" cy="150" cx="250" fill="#ce1126"/><path d="M67.944 150.113c4.262 8.515 12.757 17.893 20.313 21.321.367-8.513-2.341-19.515-6.224-28.33z" fill="#ce1126"/><path d="M60.284 121.487c6.35 13.695-17.533 45.856 21.453 53.976-4.736-6.643-7.33-17.752-6.04-26.456 8.095 3.448 16.212 11.464 19.402 18.972 13.444-37.484-26.456-33.922-34.815-46.492z" fill="#fcd116"/><use xlink:href="#a" fill="#fcd116"/><use xlink:href="#a" x="100" fill="#fcd116"/><use xlink:href="#a" x="200" fill="#fcd116"/><use xlink:href="#a" x="200" y="-258" fill="#fcd116"/><use xlink:href="#a" x="100" y="-258" fill="#fcd116"/><use xlink:href="#a" y="-258" fill="#fcd116"/><path d="m250 117-19.397 59.697 50.782-36.895h-62.769l50.782 36.895z" fill="#fcd116"/><defs><path id="a" d="m150 259.5-11.462 35.276 30.007-21.802h-37.091l30.007 21.802z"/></defs></svg>`
+    
+    const img = new Image()
+    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
+    const url = URL.createObjectURL(svgBlob)
 
-      // Add text labels
+    img.onload = () => {
+      // Draw flag at top (optimized size: 600x360)
+      ctx.drawImage(img, 100, 30, 600, 360)
+      URL.revokeObjectURL(url)
+
+      // Header text below flag
+      const headerY = 420
       ctx.fillStyle = '#000000'
-      ctx.font = 'bold 24px Arial'
+      ctx.font = 'bold 32px Arial'
       ctx.textAlign = 'center'
-      ctx.fillText(qr.location_name, canvas.width / 2, 550)
+      ctx.fillText('Government of Grenada', canvas.width / 2, headerY)
+      
+      ctx.font = '20px Arial'
+      ctx.fillStyle = '#444444'
+      ctx.fillText('Citizen Feedback', canvas.width / 2, headerY + 35)
+
+      // Entity and Service info
+      ctx.font = 'bold 22px Arial'
+      ctx.fillStyle = '#000000'
+      ctx.fillText(qr.entity_name || '', canvas.width / 2, headerY + 75)
       
       ctx.font = '18px Arial'
-      ctx.fillText(qr.service_name || '', canvas.width / 2, 580)
-      
-      ctx.font = '14px Arial'
-      ctx.fillText(`ID: ${qr.qr_code_id}`, canvas.width / 2, 610)
+      ctx.fillStyle = '#333333'
+      ctx.fillText(qr.service_name || '', canvas.width / 2, headerY + 105)
 
-      ctx.font = '12px Arial'
-      ctx.fillStyle = '#666666'
-      ctx.fillText('Scan to provide feedback', canvas.width / 2, 640)
-      ctx.fillText('Government of Grenada', canvas.width / 2, 660)
+      // Generate QR code in temporary canvas
+      const tempCanvas = document.createElement('canvas')
+      QRCode.toCanvas(tempCanvas, qr.generated_url, {
+        width: 450,
+        margin: 2,
+        color: { dark: '#000000', light: '#FFFFFF' }
+      }, (error) => {
+        if (error) {
+          console.error('QR generation error:', error)
+          return
+        }
 
-      // Download
-      const link = document.createElement('a')
-      link.download = `QR-${qr.qr_code_id}.png`
-      link.href = canvas.toDataURL('image/png')
-      link.click()
-    })
+        // Draw QR code centered
+        const qrY = headerY + 140
+        ctx.drawImage(tempCanvas, (canvas.width - 450) / 2, qrY)
+
+        // Location and ID info below QR
+        const infoY = qrY + 490
+        ctx.font = 'bold 20px Arial'
+        ctx.fillStyle = '#000000'
+        ctx.textAlign = 'center'
+        ctx.fillText(qr.location_name, canvas.width / 2, infoY)
+        
+        // Multi-line address handling
+        ctx.font = '16px Arial'
+        ctx.fillStyle = '#666666'
+        const addressLines = qr.location_address.split(',')
+        addressLines.forEach((line, index) => {
+          ctx.fillText(line.trim(), canvas.width / 2, infoY + 30 + (index * 22))
+        })
+        
+        ctx.font = '14px Arial'
+        ctx.fillStyle = '#888888'
+        const qrIdY = infoY + 30 + (addressLines.length * 22) + 10
+        ctx.fillText(`QR Code: ${qr.qr_code_id}`, canvas.width / 2, qrIdY)
+
+        // Conditional instructions based on location_type
+        const isPhysical = ['office', 'kiosk', 'service_center'].includes(qr.location_type)
+        
+        const instructionsY = qrIdY + 50
+        ctx.font = 'bold 18px Arial'
+        ctx.fillStyle = '#444444'
+        ctx.fillText('📱 How to Give Feedback', canvas.width / 2, instructionsY)
+        
+        ctx.font = '15px Arial'
+        ctx.textAlign = 'left'
+        const instructionsX = 80
+        const lineHeight = 28
+        
+        if (isPhysical) {
+          // Physical location instructions
+          ctx.fillText('1. Scan this code with your phone camera', instructionsX, instructionsY + 30)
+          ctx.fillText('2. Rate your service experience', instructionsX, instructionsY + 30 + lineHeight)
+          ctx.fillText('3. Share your thoughts or concerns', instructionsX, instructionsY + 30 + (lineHeight * 2))
+        } else {
+          // Digital/web portal instructions
+          ctx.fillText('1. Scan or click this QR code', instructionsX, instructionsY + 30)
+          ctx.fillText('2. Rate your online experience', instructionsX, instructionsY + 30 + lineHeight)
+          ctx.fillText('3. Help us improve digital services', instructionsX, instructionsY + 30 + (lineHeight * 2))
+        }
+        
+        ctx.textAlign = 'center'
+        ctx.font = 'italic 14px Arial'
+        ctx.fillStyle = '#007a5e' // Grenada green
+        ctx.fillText('⚡ Grievances are immediately sent to', canvas.width / 2, instructionsY + 140)
+        ctx.fillText('our support team for action.', canvas.width / 2, instructionsY + 162)
+
+        // Footer
+        ctx.font = '13px Arial'
+        ctx.fillStyle = '#999999'
+        ctx.fillText('Thank you for helping us improve!', canvas.width / 2, instructionsY + 205)
+        
+        const date = new Date(qr.created_at).toLocaleDateString('en-US', { 
+          year: 'numeric', 
+          month: 'long', 
+          day: 'numeric' 
+        })
+        ctx.fillText(`Generated: ${date}`, canvas.width / 2, instructionsY + 230)
+
+        // Download
+        const link = document.createElement('a')
+        link.download = `QR-${qr.qr_code_id}.png`
+        link.href = canvas.toDataURL('image/png')
+        link.click()
+      })
+    }
+
+    img.onerror = () => {
+      console.error('Failed to load Grenada flag SVG')
+      URL.revokeObjectURL(url)
+    }
+
+    img.src = url
   }
 
   // Sorting handler
@@ -208,7 +313,7 @@ export default function QRCodeManager() {
     return sortDirection === 'asc' ? '↑' : '↓'
   }
 
-  // NEW: Enhanced submit handler with success modal
+  // Submit handler with success modal
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -218,7 +323,7 @@ export default function QRCodeManager() {
     const payload = {
       ...formData,
       entity_id: service.entity_id,
-      generated_url: `https://gea.abhirup.app/feedback/qr?c=${formData.qr_code_id}`
+      generated_url: generateQRFeedbackUrl(formData.qr_code_id)
     }
 
     try {
@@ -235,12 +340,13 @@ export default function QRCodeManager() {
       if (response.ok) {
         await loadData()
         
-        // Find the created/updated QR code
-        const qrCodeId = formData.qr_code_id
+        // Get entity from entities array
+        const entity = entities.find(e => e.unique_entity_id === service.entity_id)
+        
         const updatedQRCode = {
           ...payload,
           service_name: service.service_name,
-          entity_name: services.find(s => s.service_id === formData.service_id)?.service_name || '',
+          entity_name: entity?.entity_name || '',
           scan_count: editingQR?.scan_count || 0,
           created_at: editingQR?.created_at || new Date().toISOString()
         } as QRCodeData
@@ -437,7 +543,7 @@ export default function QRCodeManager() {
                   required
                   value={formData.location_name}
                   onChange={(e) => setFormData({...formData, location_name: e.target.value})}
-                  placeholder="e.g., Immigration Office - St. Georges"
+                  placeholder="e.g., Immigration Office - St. George's"
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -587,80 +693,110 @@ export default function QRCodeManager() {
         )}
       </div>
 
-      {/* NEW: Success Modal with Download Option */}
+      {/* Success Modal with Download Option */}
       {showSuccessModal && successQRCode && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full p-8">
-            <div className="text-center mb-6">
-              <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
-                <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                </svg>
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full my-8">
+            {/* Fixed Header */}
+            <div className="sticky top-0 bg-white rounded-t-lg border-b border-gray-200 p-6 z-10">
+              <div className="text-center">
+                <div className="mx-auto flex items-center justify-center h-16 w-16 rounded-full bg-green-100 mb-4">
+                  <svg className="h-10 w-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                  {editingQR ? '✅ QR Code Updated!' : '🎉 QR Code Created Successfully!'}
+                </h3>
+                <p className="text-gray-600">
+                  Your QR code is ready to use. Download it now or access it later from the table.
+                </p>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">
-                {editingQR ? '✅ QR Code Updated!' : '🎉 QR Code Created Successfully!'}
-              </h3>
-              <p className="text-gray-600">
-                Your QR code is ready to use. Download it now or access it later from the table.
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="max-h-[60vh] overflow-y-auto p-6 space-y-6">
+              {/* QR Code Display */}
+              <div className="flex justify-center bg-gray-50 p-6 rounded-lg">
+                {qrCodeImage && (
+                  <img 
+                    src={qrCodeImage} 
+                    alt="QR Code" 
+                    className="w-64 h-64 object-contain"
+                  />
+                )}
+              </div>
+
+              {/* QR Details */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-sm font-semibold text-gray-600">QR Code ID:</span>
+                  <span className="text-sm font-mono text-gray-900">{successQRCode.qr_code_id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-semibold text-gray-600">Service:</span>
+                  <span className="text-sm text-gray-900">{successQRCode.service_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-semibold text-gray-600">Location:</span>
+                  <span className="text-sm text-gray-900">{successQRCode.location_name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-sm font-semibold text-gray-600">Entity:</span>
+                  <span className="text-sm text-gray-900">{successQRCode.entity_name}</span>
+                </div>
+              </div>
+
+              {/* Usage Guidelines */}
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h4 className="font-bold text-blue-900 mb-2">📋 Usage Guidelines</h4>
+                <div className="text-sm text-blue-800 space-y-1">
+                  <p><strong>Where to Display:</strong></p>
+                  <ul className="list-disc list-inside ml-2 space-y-1">
+                    <li>Service counters and reception desks</li>
+                    <li>Waiting areas and lobbies</li>
+                    <li>Exit points and checkout windows</li>
+                  </ul>
+                  <p className="mt-2"><strong>How to Display:</strong></p>
+                  <ul className="list-disc list-inside ml-2 space-y-1">
+                    <li>Mount at eye level (5 feet / 1.5 meters)</li>
+                    <li>Laminate for durability and protection</li>
+                    <li>Ensure good lighting for camera scanning</li>
+                    <li>Keep clear of obstructions</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            {/* Fixed Footer with Action Buttons */}
+            <div className="sticky bottom-0 bg-white rounded-b-lg border-t border-gray-200 p-6">
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    downloadQRCode(successQRCode)
+                  }}
+                  className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  Download PNG
+                </button>
+                <button
+                  onClick={() => {
+                    setShowSuccessModal(false)
+                    setSuccessQRCode(null)
+                    setQrCodeImage('')
+                  }}
+                  className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg transition"
+                >
+                  Close
+                </button>
+              </div>
+              <p className="text-center text-sm text-gray-500 mt-3">
+                💡 Tip: You can download this QR code again anytime from the QR Codes table
               </p>
             </div>
-
-            {/* QR Code Display */}
-            <div className="flex justify-center bg-gray-50 p-8 rounded-lg mb-6">
-              {qrCodeImage && (
-                <img 
-                  src={qrCodeImage} 
-                  alt="QR Code" 
-                  className="w-80 h-80 border-4 border-white shadow-lg"
-                />
-              )}
-            </div>
-
-            {/* QR Details */}
-            <div className="bg-gray-50 rounded-lg p-4 mb-6 space-y-2">
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-600">QR Code ID:</span>
-                <span className="text-sm font-mono text-gray-900">{successQRCode.qr_code_id}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-600">Service:</span>
-                <span className="text-sm text-gray-900">{successQRCode.service_name}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-sm font-semibold text-gray-600">Location:</span>
-                <span className="text-sm text-gray-900">{successQRCode.location_name}</span>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-3">
-              <button
-                onClick={() => {
-                  downloadQRCode(successQRCode)
-                  // Keep modal open so user can download again if needed
-                }}
-                className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-                Download PNG
-              </button>
-              <button
-                onClick={() => {
-                  setShowSuccessModal(false)
-                  setSuccessQRCode(null)
-                  setQrCodeImage('')
-                }}
-                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold rounded-lg"
-              >
-                Close
-              </button>
-            </div>
-
-            <p className="text-center text-sm text-gray-500 mt-4">
-              💡 Tip: You can download this QR code again anytime from the QR Codes table
-            </p>
           </div>
         </div>
       )}

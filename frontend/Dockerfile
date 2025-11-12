@@ -20,10 +20,26 @@ ARG ABOUT_CONTACT_EMAIL
 ARG COPYRIGHT_YEAR
 ARG FEEDBACK_DB_HOST=feedback_db
 ARG FEEDBACK_DB_PASSWORD
+ARG NEXT_PUBLIC_FRONTEND_URL
+ARG NEXT_PUBLIC_SITE_NAME
+ARG NEXT_PUBLIC_SITE_SHORT_NAME
+ARG NEXT_PUBLIC_BASE_DOMAIN
+ARG SERVICES_URL
+ARG FEEDBACK_DB_PORT=5432
+ARG FEEDBACK_DB_NAME=feedback
+ARG FEEDBACK_DB_USER=feedback_user
+
+
+# Set as environment variables during build
+ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
+ENV NEXT_PUBLIC_SITE_NAME=$NEXT_PUBLIC_SITE_NAME
+ENV NEXT_PUBLIC_SITE_SHORT_NAME=$NEXT_PUBLIC_SITE_SHORT_NAME
+ENV NEXT_PUBLIC_BASE_DOMAIN=$NEXT_PUBLIC_BASE_DOMAIN
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --only=production && \
+    npm cache clean --force
 
 # Copy source code
 COPY . .
@@ -51,19 +67,11 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  FEEDBACK_DB_PASSWORD: '${FEEDBACK_DB_PASSWORD}'," >> src/config/env.ts && \
     echo "};" >> src/config/env.ts && \
     echo "export type Config = typeof config;" >> src/config/env.ts
+    RUN cat src/config/env.ts && echo "✅ env.ts generated successfully"
 
 # Build the application
 RUN npm run build
 
-
-# Optional: If you want to export a static version
-#FROM nginx:alpine
-#WORKDIR /usr/share/nginx/html
-#RUN rm -rf ./*
-#COPY --from=builder /app/out ./
-#COPY nginx.conf /etc/nginx/conf.d/default.conf
-#EXPOSE 80
-#CMD ["nginx", "-g", "daemon off;"]
 
 # ============================================
 # STAGE 2: Production Runtime

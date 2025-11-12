@@ -12,13 +12,13 @@ export const heroContent = {
   description: "The Enterprise Architecture (EA) portal of Grenada is designed as a centralized platform to support the digital transformation initiatives of the government. It provides an accessible resource for Ministries, Departments, and Agencies (MDAs) by disseminating digital architecture information and standardizing system architecture designs across government entities. The portal aims to accommodate the natural evolution of architectural frameworks and foster a collaborative environment for managing shared infrastructure and interoperable solutions. This approach enables the alignment of digital initiatives with national priorities, facilitating seamless service delivery and governance efficiency."
 };
 
-// Strategic Focus Areas - UPDATED TO USE ICONS
+// Strategic Focus Areas 
 export interface StrategyCard {
   id: string;
   title: string;
   description: string;
-  icon: string; // SVG icon identifier
-  iconColor: string; // Tailwind color class
+  icon: string; 
+  iconColor: string; 
 }
 
 export const strategicFocusAreas: StrategyCard[] = [

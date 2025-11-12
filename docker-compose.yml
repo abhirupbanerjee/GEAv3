@@ -54,6 +54,7 @@ services:
         - HELPDESK_URL=${HELPDESK_URL}
         - CHATBOT_URL=${CHATBOT_URL}
         - GOG_URL=${GOG_URL}
+        - SERVICES_URL=${SERVICES_URL} 
         - ESERVICES_URL=${ESERVICES_URL}
         - CONSTITUTION_URL=${CONSTITUTION_URL}
         - SITE_NAME=${SITE_NAME}
@@ -65,6 +66,10 @@ services:
         - FEEDBACK_DB_NAME=feedback
         - FEEDBACK_DB_USER=feedback_user
         - FEEDBACK_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
+        - NEXT_PUBLIC_FRONTEND_URL= ${NEXT_PUBLIC_FRONTEND_URL}
+        - NEXT_PUBLIC_SITE_NAME= ${NEXT_PUBLIC_SITE_NAME}
+        - NEXT_PUBLIC_SITE_SHORT_NAME= ${NEXT_PUBLIC_SITE_SHORT_NAME}
+        - NEXT_PUBLIC_BASE_DOMAIN= ${NEXT_PUBLIC_BASE_DOMAIN}
     container_name: frontend
     restart: unless-stopped
     networks:
