@@ -1,53 +1,64 @@
+// ============================================
+// MIDDLEWARE - ADMIN ROUTE PROTECTION
+// ============================================
+// Fixed version that prevents redirect loops
+// ============================================
+
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Admin routes protection
-  if (pathname.startsWith('/admin')) {
-    // Allow login page
-    if (pathname === '/admin') {
-      return NextResponse.next()
-    }
+  // Skip middleware for non-admin routes
+  if (!pathname.startsWith('/admin')) {
+    return NextResponse.next()
+  }
 
-    // Check for session cookie
-    const sessionCookie = request.cookies.get('admin_session')
+  // ✅ CRITICAL: Always allow the login page itself
+  // This prevents the redirect loop
+  if (pathname === '/admin' || pathname === '/admin/') {
+    console.log('[Middleware] Allowing login page:', pathname)
+    return NextResponse.next()
+  }
+
+  // For all other /admin/* routes, check authentication
+  console.log('[Middleware] Checking auth for:', pathname)
+  
+  const sessionCookie = request.cookies.get('admin_session')
+  
+  if (!sessionCookie?.value) {
+    console.log('[Middleware] No session, redirecting to /admin')
+    return NextResponse.redirect(new URL('/admin', request.url))
+  }
+
+  // Validate session token
+  try {
+    const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8')
+    const [timestamp] = decoded.split('-')
+    const tokenAge = Date.now() - parseInt(timestamp, 10)
+    const SESSION_DURATION = 2 * 60 * 60 * 1000 // 2 hours
     
-    if (!sessionCookie?.value) {
-      // No session - redirect to login
-      return NextResponse.redirect(new URL('/admin', request.url))
-    }
-
-    // Validate session
-    try {
-      const sessionData = JSON.parse(
-        Buffer.from(sessionCookie.value, 'base64').toString('utf-8')
-      )
-      
-      const expiresAt = new Date(sessionData.expiresAt).getTime()
-      const now = Date.now()
-      
-      if (now > expiresAt) {
-        // Session expired
-        const response = NextResponse.redirect(new URL('/admin', request.url))
-        response.cookies.delete('admin_session')
-        return response
-      }
-      
-      // Session valid
-      return NextResponse.next()
-      
-    } catch (error) {
-      // Invalid session
+    if (tokenAge >= SESSION_DURATION) {
+      console.log('[Middleware] Session expired, redirecting to /admin')
       const response = NextResponse.redirect(new URL('/admin', request.url))
       response.cookies.delete('admin_session')
       return response
     }
+    
+    console.log('[Middleware] Session valid, allowing access')
+    return NextResponse.next()
+    
+  } catch (error) {
+    console.log('[Middleware] Invalid session, redirecting to /admin')
+    const response = NextResponse.redirect(new URL('/admin', request.url))
+    response.cookies.delete('admin_session')
+    return response
   }
-
-  return NextResponse.next()
 }
 
 export const config = {
-  matcher: ['/admin/:path*'],
+  // ✅ CRITICAL FIX: Use :path+ instead of :path*
+  // :path+ requires at least ONE segment after /admin
+  // This means /admin/home matches but /admin does NOT
+  matcher: ['/admin/:path+'],
 }
