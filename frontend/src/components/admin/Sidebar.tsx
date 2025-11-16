@@ -63,14 +63,9 @@ export default function Sidebar() {
     
     setLoggingOut(true)
     try {
-      const response = await fetch('/api/admin/auth/logout', { method: 'POST' })
-      
-      if (response.ok) {
-        // ✅ FIX 3: Clear session and redirect immediately
-        window.location.href = '/admin'
-      } else {
-        throw new Error('Logout failed')
-      }
+      await fetch('/api/admin/auth/logout', { method: 'POST' })
+      // Force full page reload to clear all state
+      window.location.href = '/admin'
     } catch (error) {
       console.error('Logout error:', error)
       alert('Failed to logout. Please try again.')
@@ -80,7 +75,7 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* ✅ FIX 2: Mobile Menu Toggle Button */}
+      {/* Mobile Menu Toggle Button */}
       <button
         onClick={() => setIsMobileOpen(!isMobileOpen)}
         className="lg:hidden fixed top-20 left-4 z-50 p-2 bg-white rounded-lg shadow-lg border border-gray-200"
@@ -95,7 +90,7 @@ export default function Sidebar() {
         </svg>
       </button>
 
-      {/* ✅ FIX 2: Overlay for mobile */}
+      {/* Overlay for mobile */}
       {isMobileOpen && (
         <div
           className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
@@ -129,7 +124,7 @@ export default function Sidebar() {
             </div>
           </div>
 
-          {/* Logout Button - AT TOP */}
+          {/* Logout Button */}
           <button
             onClick={handleLogout}
             disabled={loggingOut}
@@ -154,7 +149,7 @@ export default function Sidebar() {
           </button>
         </div>
 
-        {/* Navigation - Takes up remaining space */}
+        {/* Navigation */}
         <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
           {navigationItems.map((item) => {
             const isActive = pathname === item.href

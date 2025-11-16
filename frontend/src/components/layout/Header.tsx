@@ -1,8 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { useState } from 'react'
 import { config } from '@/config/env'
 
 const navigationItems = [
@@ -17,24 +16,6 @@ const navigationItems = [
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const pathname = usePathname()
-  
-  // Don't show login button on admin pages
-  const isAdminPage = pathname?.startsWith('/admin')
-
-  // Check if user is authenticated
-  useEffect(() => {
-    async function checkAuth() {
-      try {
-        const response = await fetch('/api/admin/auth/check')
-        setIsAuthenticated(response.ok)
-      } catch {
-        setIsAuthenticated(false)
-      }
-    }
-    checkAuth()
-  }, [pathname])
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
@@ -51,7 +32,7 @@ export default function Header() {
             <div className="text-lg font-bold text-gray-900">EA Portal</div>
           </Link>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - NO LOGIN/LOGOUT BUTTONS */}
           <nav className="hidden md:flex items-center space-x-6">
             {navigationItems.map((item) => (
               item.type === 'internal' ? (
@@ -74,16 +55,6 @@ export default function Header() {
                 </a>
               )
             ))}
-            
-            {/* ✅ FIX: Only show login button if NOT on admin pages AND NOT authenticated */}
-            {!isAdminPage && !isAuthenticated && (
-              <Link
-                href="/admin"
-                className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
-              >
-                Admin Login
-              </Link>
-            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -98,7 +69,7 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - NO LOGIN/LOGOUT BUTTONS */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-3">
@@ -124,17 +95,6 @@ export default function Header() {
                   </a>
                 )
               ))}
-              
-              {/* ✅ FIX: Mobile login only if not on admin pages and not authenticated */}
-              {!isAdminPage && !isAuthenticated && (
-                <Link
-                  href="/admin"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-center"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Admin Login
-                </Link>
-              )}
             </nav>
           </div>
         )}
