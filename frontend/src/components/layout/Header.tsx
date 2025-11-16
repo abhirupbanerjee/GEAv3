@@ -12,6 +12,7 @@ const navigationItems = [
   { label: 'Wiki', href: config.WIKI_URL, type: 'external' as const },
   { label: 'Git', href: config.GIT_URL, type: 'external' as const },
   { label: 'Helpdesk', href: config.HELPDESK_URL, type: 'external' as const },
+  { label: 'Admin', href: '/admin', type: 'internal' as const },
 ]
 
 export default function Header() {
