@@ -1,23 +1,38 @@
 // ============================================
 // ADMIN LAYOUT
 // ============================================
-// Simplified version - authentication is handled by:
-// 1. middleware.ts (protects routes)
-// 2. admin/page.tsx (login/redirect logic)
+// Displays sidebar for authenticated admin pages
+// Login page has its own layout (no sidebar)
 // ============================================
 
 import Sidebar from '@/components/admin/Sidebar'
+import { validateSession } from '@/lib/admin-auth'
 
 export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  // Layout simply renders children
-  // Authentication is handled upstream by middleware
+  // Check authentication
+  const isAuthenticated = await validateSession()
+  
+  // If not authenticated (login page), render without sidebar
+  if (!isAuthenticated) {
+    return <div className="min-h-screen bg-gray-50">{children}</div>
+  }
+
+  // Authenticated - show sidebar layout
   return (
-    <div className="min-h-screen bg-gray-50">
-      {children}
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <Sidebar />
+      
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto">
+        <main className="p-6">
+          {children}
+        </main>
+      </div>
     </div>
   )
 }

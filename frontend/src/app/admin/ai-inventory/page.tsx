@@ -24,12 +24,23 @@ export default function AIInventoryPage() {
   useEffect(() => {
     async function loadBots() {
       try {
+        // ✅ FIXED: Correct path - files in /public are served from root /
         const response = await fetch('/config/bots-config.json')
-        if (!response.ok) throw new Error('Failed to load bots configuration')
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
         const data = await response.json()
+        
+        // Validate data structure
+        if (!data.bots || !Array.isArray(data.bots)) {
+          throw new Error('Invalid data format: expected {bots: []}')
+        }
+        
         setBots(data.bots)
+        setError('') // Clear any previous errors
       } catch (err) {
-        setError('Failed to load AI bots configuration')
+        console.error('Failed to load bots config:', err)
+        setError(err instanceof Error ? err.message : 'Failed to load AI bots configuration')
       } finally {
         setLoading(false)
       }
@@ -78,8 +89,31 @@ export default function AIInventoryPage() {
   if (error) {
     return (
       <div className="max-w-7xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-600">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex items-start">
+            <svg className="w-6 h-6 text-red-600 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+              <h3 className="text-red-800 font-semibold mb-2">Failed to Load AI Bots Configuration</h3>
+              <p className="text-red-700 text-sm mb-4">{error}</p>
+              <details className="text-sm">
+                <summary className="text-red-600 cursor-pointer hover:text-red-800">Troubleshooting</summary>
+                <ul className="mt-2 ml-4 list-disc text-red-600 space-y-1">
+                  <li>Check that `/public/config/bots-config.json` exists</li>
+                  <li>Verify the JSON file has valid syntax</li>
+                  <li>Ensure the file is included in the Docker build</li>
+                  <li>Check browser console for detailed errors</li>
+                </ul>
+              </details>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     )
