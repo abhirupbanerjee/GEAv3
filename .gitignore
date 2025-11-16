@@ -12,9 +12,10 @@ frontend/node_modules/
 coverage/
 
 # Next.js
-.next/
-out/
-build/
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/node_modules
 
 # Production builds
 dist/
@@ -24,14 +25,8 @@ dist/
 docs/
 
 # Environment variables (NEVER COMMIT THESE!)
-.env*
-!.env.example
-.env.dev
-.env.production
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env
+
 
 # Misc
 .DS_Store
@@ -50,17 +45,10 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# Docker volumes data (if accidentally created locally)
-paperless/consume/*
-!paperless/consume/.gitkeep
-paperless/export/*
-!paperless/export/.gitkeep
 
 # SSL certificates
 acme.json
 
-# Vercel
-.vercel
 
 # TypeScript
 *.tsbuildinfo
@@ -87,8 +75,8 @@ yarn-error.log*
 pnpm-debug.log*
 
 # Env / secrets
-.env*
-!.env.example
+.env
+
 
 # OS / editor
 .DS_Store
