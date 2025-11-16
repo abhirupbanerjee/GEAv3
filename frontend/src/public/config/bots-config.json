@@ -1,0 +1,81 @@
+{
+  "bots": [
+    {
+      "id": "gea-bot",
+      "name": "GEA AI Assistant",
+      "url": "https://gea-ai-assistant.vercel.app/",
+      "description": "General EA portal assistant for government services and citizen inquiries",
+      "status": "active",
+      "deployment": "Vercel",
+      "audience": "Public",
+      "modality": "text",
+      "category": "General Support"
+    },
+    {
+      "id": "change-management-bot",
+      "name": "Change Management Bot",
+      "url": "https://cmb-jade.vercel.app/",
+      "description": "Assists with government digital transformation change management processes",
+      "status": "active",
+      "deployment": "Vercel",
+      "audience": "Government Staff",
+      "modality": "text-audio",
+      "category": "Process Management"
+    },
+    {
+      "id": "citizen-survey-bot",
+      "name": "Citizen Survey Bot",
+      "url": "https://gog-citizen-survey-bot.vercel.app/",
+      "description": "Conducts citizen satisfaction surveys and collects feedback data",
+      "status": "active",
+      "deployment": "Vercel",
+      "audience": "Public",
+      "modality": "text",
+      "category": "Feedback Collection"
+    },
+    {
+      "id": "ea-compliance-bot",
+      "name": "EA Compliance Bot",
+      "url": "",
+      "description": "Monitors and reports on enterprise architecture compliance standards",
+      "status": "planned",
+      "deployment": "TBD",
+      "audience": "Government Staff",
+      "modality": "text",
+      "category": "Compliance"
+    },
+    {
+      "id": "service-feedback-bot",
+      "name": "Service Feedback Bot",
+      "url": "",
+      "description": "Collects and analyzes service delivery feedback from citizens",
+      "status": "planned",
+      "deployment": "TBD",
+      "audience": "Public",
+      "modality": "text",
+      "category": "Feedback Collection"
+    },
+    {
+      "id": "policy-bot",
+      "name": "Policy Bot",
+      "url": "",
+      "description": "Provides guidance on government policies and digital transformation strategies",
+      "status": "planned",
+      "deployment": "TBD",
+      "audience": "Government Staff",
+      "modality": "text",
+      "category": "Policy Guidance"
+    },
+    {
+      "id": "ea-maturity-assessment-bot",
+      "name": "EA Maturity Assessment Bot",
+      "url": "",
+      "description": "Assesses and reports on enterprise architecture maturity levels",
+      "status": "planned",
+      "deployment": "TBD",
+      "audience": "Government Staff",
+      "modality": "text",
+      "category": "Assessment"
+    }
+  ]
+}

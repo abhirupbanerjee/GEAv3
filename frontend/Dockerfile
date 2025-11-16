@@ -43,6 +43,7 @@ RUN npm ci --only=production && \
 
 # Copy source code
 COPY . .
+COPY ./src/middleware.ts ./src/middleware.ts
 
 # Generate env.ts from build arguments
 RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
