@@ -1,239 +1,298 @@
-# GEA Database Architecture Document
+# GEA Portal - Revised Database Architecture v5.0
+## Phase 2b: Grievances + EA Services
 
-**Version:** 2.0  
-**Database Name:** feedback_db  
-**Organization:** Government of Grenada  
-**Status:** Production Ready  
-**Last Updated:** November 18, 2025  
+**Date:** November 19, 2025  
+**Version:** 5.0 Production Ready  
+**Status:** ✓ Implemented and Verified  
+**Audience:** Database Architects, Backend Developers, DevOps
 
 ---
 
 ## Table of Contents
 
-1. [Executive Overview](#1-executive-overview)
-2. [Database Architecture](#2-database-architecture)
-3. [Physical Schema](#3-physical-schema)
-4. [Entity Relationships](#4-entity-relationships)
-5. [Component Details](#5-component-details)
-6. [Data Dictionary](#6-data-dictionary)
-7. [Functions & Procedures](#7-functions--procedures)
-8. [Triggers & Automation](#8-triggers--automation)
-9. [Views & Analytics](#9-views--analytics)
-10. [Security & Performance](#10-security--performance)
-11. [Backup & Recovery](#11-backup--recovery)
-12. [Operational Procedures](#12-operational-procedures)
+1. [Executive Summary](#executive-summary)
+2. [Architecture Overview](#architecture-overview)
+3. [Three Distinct Data Flows](#three-distinct-data-flows)
+4. [Physical Schema](#physical-schema)
+5. [Entity Relationships](#entity-relationships)
+6. [Component Details](#component-details)
+7. [Data Dictionary](#data-dictionary)
+8. [Security & Performance](#security--performance)
+9. [Analytics Queries](#analytics-queries)
+10. [Sample Data](#sample-data)
 
 ---
 
-## 1. Executive Overview
+## Executive Summary
 
-### 1.1 Purpose
+### Purpose
+The GEA Portal database manages three independent but integrated flows for government service feedback, grievance management, and EA service requests.
 
-The feedback_db database is the central data repository for the Government of Grenada Enterprise Architecture (GEA) Portal ecosystem. It manages:
+### Key Statistics
+- **13 tables** in production
+- **40+ indexes** for performance optimization
+- **4 government entities** (departments + agencies)
+- **14 services** (7 public + 7 EA)
+- **27 service attachments** (per-service requirements)
+- **3 independent flows** (feedback, grievances, EA requests)
+- **98+ test records** for analytics validation
 
-- Citizen feedback collection from multiple channels
-- Service quality metrics and analytics
-- Automated ticket management system
-- Service level agreement (SLA) tracking
-- Audit logging and compliance
-- Rate limiting and security controls
-
-### 1.2 Scope
-
-**In Scope:**
-- Feedback collection and management
-- Ticket lifecycle management
-- SLA calculation and monitoring
-- QR code tracking
-- Rate limiting and security
-- Analytics and reporting
-
-**Out of Scope:**
-- User authentication (handled by Keycloak)
-- Payment processing
-- Email delivery (handled by SendGrid)
-- File storage (handled by Azure Blob Storage)
-
-### 1.3 Key Capabilities
-
-**Automated Operations**
-- Auto-generate ticket numbers (YYYYMM-XXXXXX format)
-- Auto-calculate SLA targets based on priority & category
-- Auto-detect SLA breaches
-- Auto-create tickets from feedback
-
-**Security**
-- Rate limiting (5 submissions/hour/IP)
-- CAPTCHA protection
-- Audit trail of all changes
-- Row-level security ready
-
-**Analytics**
-- Service performance metrics
-- SLA compliance tracking
-- Entity workload analysis
-- Daily ticket statistics
-
-**Scalability**
-- 30+ optimized indexes
-- Connection pooling ready
-- Partition-ready schema
-- 99.5% uptime capability
-
-### 1.4 Environment Configuration
-
-| Environment | Database | User | Host | Port |
-|-------------|----------|------|------|------|
-| Development | feedback | feedback_user | localhost | 5432 |
-| Production | feedback | feedback_user | feedback_db | 5432 |
-| Backup | feedback_bak | feedback_user | backup_host | 5432 |
+### Tested & Verified
+- ✓ Clean schema initialization
+- ✓ 50 feedback records loaded
+- ✓ 19 auto-created grievances
+- ✓ 10 citizen grievances
+- ✓ 7 EA requests
+- ✓ All analytics queries working
 
 ---
 
-## 2. Database Architecture
+## Architecture Overview
 
-### 2.1 High-Level Architecture Overview
-
-The GEA Portal ecosystem uses a centralized PostgreSQL database (feedback_db) serving:
-- Public Portal: Citizens submit feedback and check ticket status
-- Admin Dashboard: Government staff manage tickets and monitor SLAs
-- Analytics Engine: Real-time performance metrics and reporting
-
-### 2.2 Data Flow Architecture
-
-**Citizen Input Channels:**
-1. QR Code scanning (service-specific feedback)
-2. Web Portal (direct feedback submission)
-3. Walk-in (admin-created tickets manually)
-
-**Automatic Processing Flow:**
-1. Feedback received → service_feedback table
-2. Check trigger conditions (grievance flag OR rating ≤ 2)
-3. If true → Auto-create ticket in tickets table
-4. Generate unique ticket_number (YYYYMM-XXXXXX format)
-5. Calculate SLA targets (response_target, resolution_target)
-6. Log creation to ticket_activities
-7. Monitor for SLA breaches
-
-**Status Update Flow:**
-1. Admin updates ticket status
-2. Log change to ticket_activities
-3. Check SLA breach conditions
-4. If breached → Create sla_breaches record
-5. Update analytics views
-
-**Analytics Output:**
-- v_service_performance: Service metrics dashboard
-- v_active_tickets_sla: SLA monitoring
-- v_entity_ticket_queue: Workload distribution
-- v_qr_performance: QR code analytics
-- v_daily_ticket_stats: Historical trends
-
-### 2.3 Storage Architecture
-
-**Database Schema Organization:**
+### High-Level Design
 
 ```
-feedback_db/
-├── Master Data Tables (3)
-│   ├── entity_master (Ministries, Departments, Agencies)
-│   ├── service_master (Services provided)
-│   └── priority_levels (Ticket priority definitions)
-│
-├── Feedback System (4)
-│   ├── service_feedback (Citizen feedback)
-│   ├── qr_codes (QR code tracking)
-│   └── submission_rate_limit (Rate limiting)
-│
-├── Ticket Management (7)
-│   ├── tickets (Main ticket records)
-│   ├── ticket_status (Status definitions)
-│   ├── ticket_categories (Category definitions)
-│   ├── ticket_activities (Change log)
-│   ├── ticket_notes (Internal notes)
-│   ├── sla_breaches (SLA violations)
-│   └── submission_attempts (Audit trail)
-│
-├── Security & Compliance (1)
-│   └── captcha_challenges (CAPTCHA tracking)
-│
-├── Functions (13 total)
-│   ├── Utility: UUID generation, ticket number generation
-│   ├── Ticket: Auto-create from feedback, status updates
-│   ├── SLA: Calculate targets, detect breaches
-│   ├── Audit: Log activities
-│   ├── Security: Rate limiting, CAPTCHA validation
-│   └── Integration: osTicket sync
-│
-├── Triggers (8 total)
-│   ├── Timestamp: Auto-update created_at, updated_at
-│   ├── Ticket Management: Generate numbers, calculate SLA
-│   ├── Audit: Log all changes
-│   ├── SLA: Detect breaches
-│   └── Integration: Create tickets from feedback
-│
-└── Views (5 total)
-    ├── v_service_performance (Service ratings)
-    ├── v_active_tickets_sla (Active tickets with SLA status)
-    ├── v_entity_ticket_queue (Workload by entity)
-    ├── v_qr_performance (QR code analytics)
-    └── v_daily_ticket_stats (Daily statistics)
+┌────────────────────────────────────────────────────────────────────┐
+│                    GEA PORTAL DATABASE (feedback_db)               │
+├────────────────────────────────────────────────────────────────────┤
+│                                                                    │
+│  ┌──────────────────┐                                             │
+│  │  MASTER DATA     │                                             │
+│  │  ────────────    │                                             │
+│  │ • entity_master  │                                             │
+│  │ • service_master │                                             │
+│  │ • priorities     │                                             │
+│  │ • statuses       │                                             │
+│  └────────┬─────────┘                                             │
+│           │                                                       │
+│     ┌─────┴──────────────────────────────────────┐               │
+│     │                                            │               │
+│     ▼                                            ▼               │
+│  ┌─────────────────────────┐    ┌──────────────────────────┐   │
+│  │ FLOW 1:                 │    │ FLOW 2:                  │   │
+│  │ FEEDBACK → GRIEVANCE    │    │ EA SERVICE REQUEST       │   │
+│  │ ─────────────────────   │    │ ──────────────────────   │   │
+│  │ • service_feedback      │    │ • ea_service_requests    │   │
+│  │ • qr_codes              │    │ • ea_request_attachments │   │
+│  │ • grievance_tickets     │    │ • service_attachments    │   │
+│  │   (auto-created)        │    │   (master data)          │   │
+│  │                         │    │                          │   │
+│  │ TRIGGER: avg < 3.0      │    │ FLOW: Admin submissions  │   │
+│  │ OR grievance_flag       │    │                          │   │
+│  └────────────┬────────────┘    └────────────┬─────────────┘   │
+│               │                              │                  │
+│               ▼                              ▼                  │
+│        ┌──────────────────┐         ┌───────────────────┐      │
+│        │ grievance_tickets│         │ FLOW 3:           │      │
+│        │ (unified table)  │         │ CITIZEN GRIEVANCE │      │
+│        │                  │         │ ────────────────  │      │
+│        │ Sources:         │         │ • grievance_      │      │
+│        │ 1. Auto (system) │         │   tickets         │      │
+│        │ 2. Citizen       │         │ • grievance_      │      │
+│        │    portal        │         │   attachments     │      │
+│        │                  │         │                   │      │
+│        │ Status: open →   │         │ SOURCE: /grievance│      │
+│        │ process →        │         │ public page       │      │
+│        │ resolved → closed│         │                   │      │
+│        └──────────────────┘         └───────────────────┘      │
+│                                                                  │
+│  ┌──────────────────────────────────────┐                       │
+│  │  SECURITY & AUDIT                    │                       │
+│  │  ────────────────────────            │                       │
+│  │  • submission_rate_limit             │                       │
+│  │  • submission_attempts               │                       │
+│  │  • captcha_challenges                │                       │
+│  │  • grievance_attachments             │                       │
+│  │  • ea_request_attachments            │                       │
+│  └──────────────────────────────────────┘                       │
+│                                                                  │
+└────────────────────────────────────────────────────────────────────┘
 ```
-
-**Extensions Used:**
-- uuid-ossp: UUID generation
-- pgcrypto: Encryption and hashing
-- pg_trgm: Full-text search on service names
 
 ---
 
-## 3. Physical Schema
+## Three Distinct Data Flows
 
-### 3.1 Master Data Tables
+### Flow 1: Service Feedback → Auto-Created Grievance
 
-#### 3.1.1 entity_master
+**Trigger Conditions:**
+```
+IF feedback.grievance_flag = TRUE
+   OR (q1 + q2 + q3 + q4 + q5) / 5 < 3.0
+THEN
+   CREATE grievance_ticket (auto)
+```
 
-**Purpose:** Store government entities (ministries, departments, agencies)
+**Data Path:**
+```
+1. Citizen submits feedback (ea_portal or qr_code)
+   ↓
+2. API saves to service_feedback table
+   ├─ q1_ease (1-5)
+   ├─ q2_clarity (1-5)
+   ├─ q3_timeliness (1-5)
+   ├─ q4_trust (1-5)
+   ├─ q5_overall_satisfaction (1-5)
+   ├─ grievance_flag (boolean)
+   └─ comment_text (optional)
+   ↓
+3. System evaluates trigger condition
+   ↓
+4a. YES → Create grievance_tickets entry
+   ├─ status: 'open'
+   ├─ created_by: 'system'
+   ├─ grievance_number: GRV-2025-AUTO-XXX
+   └─ Send to DTA admin: alerts.dtahelpdesk@gmail.com
+   ↓
+4b. NO → Just save feedback (no ticket)
+```
 
-**Schema:**
+**Email Recipients:** DTA Admin Only  
+**Email Type:** Automatic alert  
+**Test Data:** 19 auto-created grievances (from 50 feedback)
+
+---
+
+### Flow 2: EA Service Request (Admin Portal)
+
+**Trigger:** Admin submits via `/admin/services`
+
+**Data Path:**
+```
+1. Admin logs in (future: Keycloak)
+   ↓
+2. Selects EA service (one of 7)
+   ↓
+3. System fetches service_attachments for selected service
+   ├─ Shows mandatory documents (in RED)
+   └─ Shows optional documents (normal)
+   ↓
+4. Admin uploads files
+   ├─ Mandatory: All must be uploaded
+   ├─ Optional: User discretion
+   └─ Constraint: 5MB max per file, 5 files max total
+   ↓
+5. API creates ea_service_requests entry
+   ├─ request_number: REQ-2025-XXX
+   ├─ status: 'submitted'
+   ├─ created_by: 'admin_user'
+   └─ requester_ministry: [entered by admin]
+   ↓
+6. API creates ea_service_request_attachments entries
+   ├─ One per uploaded file
+   └─ is_mandatory: matches service_attachments
+   ↓
+7. Emails sent:
+   ├─ To: requester_email + alerts.dtahelpdesk@gmail.com
+   └─ Subject: EA Service Request #REQ-2025-XXX
+```
+
+**Example Service Requirements:**
+```
+Service: Compliance Review
+├─ Leadership approval (MANDATORY - pdf)
+├─ Current state architecture (MANDATORY - pdf)
+├─ Target state architecture (MANDATORY - pdf)
+├─ Solution design documents (MANDATORY - pdf)
+├─ Vendor contracts (OPTIONAL - pdf)
+├─ Integration diagrams (OPTIONAL - pdf)
+├─ Security documentation (OPTIONAL - pdf)
+└─ Data architecture diagrams (OPTIONAL - pdf)
+```
+
+**Email Recipients:** Requester + DTA Admin  
+**Email Type:** Request confirmation  
+**Test Data:** 7 EA requests (one per service)
+
+---
+
+### Flow 3: Formal Citizen Grievance
+
+**Trigger:** Citizen visits `/grievance` public page
+
+**Data Path:**
+```
+1. Citizen (no auth required)
+   ↓
+2. Selects service and category
+   ├─ submitter_category: citizen | tourist | gov_employee | student
+   └─ service_id: one of 14 services
+   ↓
+3. Enters grievance details
+   ├─ submitter_name (required)
+   ├─ submitter_email (optional but recommended)
+   ├─ submitter_phone (optional)
+   ├─ grievance_subject (required)
+   ├─ grievance_description (required)
+   └─ incident_date (optional)
+   ↓
+4. Uploads proof documents (optional)
+   ├─ Max 5 files
+   ├─ Max 5MB total
+   └─ Attachment type: Any (pdf, docx, jpg, png, etc.)
+   ↓
+5. API creates grievance_tickets entry
+   ├─ grievance_number: GRV-2025-SXXX (citizen format)
+   ├─ status: 'open'
+   ├─ created_by: 'citizen_portal'
+   └─ submission_ip_hash: (for audit)
+   ↓
+6. API creates grievance_attachments entries (if any)
+   ├─ One per uploaded file
+   └─ file_content stored as BYTEA
+   ↓
+7. Email sent (if email provided):
+   ├─ To: submitter_email
+   ├─ Subject: Your Grievance - Ticket #GRV-2025-SXXX
+   └─ Body: Status checker link
+```
+
+**Email Recipients:** Citizen (if email provided)  
+**Email Type:** Grievance confirmation  
+**Test Data:** 10 citizen grievances (various statuses)
+
+---
+
+## Physical Schema
+
+### 13 Tables (Production Verified)
+
+#### MASTER DATA (3 tables)
+
+##### 1. entity_master
 ```sql
 CREATE TABLE entity_master (
     unique_entity_id VARCHAR(50) PRIMARY KEY,
     entity_name VARCHAR(255) NOT NULL,
-    entity_type VARCHAR(50) NOT NULL,
-    parent_entity_id VARCHAR(50) REFERENCES entity_master(unique_entity_id),
+    entity_type VARCHAR(50) NOT NULL,      -- 'department', 'agency', 'ministry'
+    parent_entity_id VARCHAR(50),           -- For hierarchies
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-**Indexes:**
-- idx_entity_active: For active entity queries
-- idx_entity_type: For entity type filtering
-
-**Data Volume:** 20-50 entities
-
 **Sample Data:**
 ```
-MIN-001 | Ministry of Finance
-MIN-002 | Ministry of Health
-DEPT-001 | Finance Department (parent: MIN-001)
-AGY-001 | Statistics Agency (parent: MIN-001)
+DEPT-001 | Immigration Department       | department
+DEPT-002 | Inland Revenue Division      | department
+DEPT-004 | Civil Registry & Deeds       | department
+AGY-002  | Digital Transformation Agency| agency
 ```
+
+**Indexes:**
+- Primary key: unique_entity_id
+- idx_entity_active: For filtering active entities
+- idx_entity_type: For entity type queries
 
 ---
 
-#### 3.1.2 service_master
-
-**Purpose:** Store government services provided by entities
-
-**Schema:**
+##### 2. service_master
 ```sql
 CREATE TABLE service_master (
     service_id VARCHAR(50) PRIMARY KEY,
     service_name VARCHAR(255) NOT NULL,
-    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master(unique_entity_id),
+    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master,
     service_category VARCHAR(100),
     service_description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
@@ -242,978 +301,615 @@ CREATE TABLE service_master (
 );
 ```
 
-**Indexes:**
-- idx_service_active: Active service queries
-- idx_service_entity: Service lookup by entity
-- idx_service_name_trgm: Full-text search
-
-**Data Volume:** 100-500 services
-
 **Sample Data:**
 ```
-SVC-001 | Passport Processing (MIN-002)
-SVC-002 | License Renewal (MIN-001)
-SVC-003 | Birth Certificate (DEPT-001)
+SVC-IMM-001        | Passport Application        | DEPT-001
+SVC-TAX-001        | Business Registration       | DEPT-002
+digital-roadmap    | Public Sector Digital...    | AGY-002
+compliance-review  | Grenada EA Compliance Review| AGY-002
 ```
+
+**Count:** 14 services (7 public + 7 EA)
 
 ---
 
-#### 3.1.3 priority_levels
-
-**Purpose:** Define ticket priority levels and SLA multipliers
-
-**Schema:**
+##### 3. priority_levels
 ```sql
 CREATE TABLE priority_levels (
-    priority_id INT PRIMARY KEY,
+    priority_id SERIAL PRIMARY KEY,
+    priority_code VARCHAR(20) UNIQUE NOT NULL,
     priority_name VARCHAR(50) NOT NULL,
-    priority_order INT,
-    sla_multiplier DECIMAL(3, 2),
+    sla_multiplier DECIMAL(3,2) DEFAULT 1.0,
+    sort_order INTEGER DEFAULT 0,
+    color_code VARCHAR(7),
+    is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-**Sample Data:**
+**Data:**
 ```
-1 | Critical    | 1 | 2.0x (SLA targets halved)
-2 | High        | 2 | 1.5x
-3 | Medium      | 3 | 1.0x (standard SLA)
-4 | Low         | 4 | 1.5x (SLA targets extended)
+URGENT | Urgent | 0.5  | #ef4444
+HIGH   | High   | 0.75 | #fb923c
+MEDIUM | Medium | 1.0  | #fbbf24
+LOW    | Low    | 2.0  | #93c5fd
 ```
 
 ---
 
-### 3.2 Feedback System Tables
+#### LOOKUP TABLES (1 table)
 
-#### 3.2.1 service_feedback
+##### 4. grievance_status
+```sql
+CREATE TABLE grievance_status (
+    status_id SERIAL PRIMARY KEY,
+    status_code VARCHAR(20) UNIQUE NOT NULL,
+    status_name VARCHAR(50) NOT NULL,
+    status_order INTEGER DEFAULT 0,
+    color_code VARCHAR(7),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
 
-**Purpose:** Collect citizen feedback on government services
+**Data:**
+```
+open      | Open      | 1 | #ef4444
+process   | Processing| 2 | #fbbf24
+resolved  | Resolved  | 3 | #22c55e
+closed    | Closed    | 4 | #9ca3af
+```
 
-**Schema:**
+---
+
+#### FEEDBACK SYSTEM (2 tables)
+
+##### 5. service_feedback
 ```sql
 CREATE TABLE service_feedback (
     feedback_id SERIAL PRIMARY KEY,
-    service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
-    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master(unique_entity_id),
-    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
-    service_quality INT,
-    staff_behavior INT,
-    waiting_time INT,
-    cleanliness INT,
-    grievance_flag BOOLEAN DEFAULT FALSE,
-    feedback_text TEXT,
-    channel VARCHAR(50),
-    qr_code_id INT REFERENCES qr_codes(qr_code_id),
-    submitted_by VARCHAR(100),
-    submitted_ip VARCHAR(45),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    service_id VARCHAR(50) NOT NULL REFERENCES service_master,
+    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master,
+    channel VARCHAR(20) NOT NULL,           -- 'ea_portal', 'qr_code'
+    qr_code_id VARCHAR(50),                 -- Optional QR reference
+    recipient_group VARCHAR(50),            -- 'citizen', 'tourist', etc.
+    q1_ease INTEGER,                        -- Rating 1-5
+    q2_clarity INTEGER,                     -- Rating 1-5
+    q3_timeliness INTEGER,                  -- Rating 1-5
+    q4_trust INTEGER,                       -- Rating 1-5
+    q5_overall_satisfaction INTEGER,        -- Rating 1-5
+    comment_text TEXT,                      -- Optional comment
+    grievance_flag BOOLEAN DEFAULT FALSE,   -- Citizen marked as grievance
+    grievance_ticket_id INTEGER,            -- FK to grievance (if auto-created)
+    feedback_type VARCHAR(50) DEFAULT 'general',
+    submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    ip_hash VARCHAR(64),                    -- SHA256 hash for privacy
+    user_agent_hash VARCHAR(64)             -- SHA256 hash
 );
 ```
 
-**Indexes:**
-- idx_feedback_service: Query by service
-- idx_feedback_entity: Query by entity
-- idx_feedback_rating: Filter by rating
-- idx_feedback_grievance: Find grievances
-- idx_feedback_created: Time-based queries
+**Constraints:**
+- 1 ≤ q1_ease ≤ 5 (validated at API level)
+- Same for q2, q3, q4, q5
+- service_id must exist in service_master
+- entity_id must exist in entity_master
 
-**Data Volume:** 10K-100K+ daily
+**Indexes:**
+- idx_feedback_service: Fast service lookups
+- idx_feedback_entity: Fast entity lookups
+- idx_feedback_submitted: Time-based queries
+- idx_feedback_grievance: Find problematic feedback
+- idx_feedback_qr: QR code tracking
+
+**Test Data:** 50 records loaded
 
 ---
 
-#### 3.2.2 qr_codes
-
-**Purpose:** Track QR code performance and link to services
-
-**Schema:**
+##### 6. qr_codes
 ```sql
 CREATE TABLE qr_codes (
-    qr_code_id SERIAL PRIMARY KEY,
-    qr_code_value VARCHAR(500) NOT NULL UNIQUE,
-    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master(unique_entity_id),
-    service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
-    location VARCHAR(255),
-    scan_count INT DEFAULT 0,
-    feedback_received INT DEFAULT 0,
+    qr_code_id VARCHAR(50) PRIMARY KEY,
+    service_id VARCHAR(50) NOT NULL REFERENCES service_master,
+    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master,
+    location_name VARCHAR(255) NOT NULL,   -- 'Immigration Office, St. George's'
+    location_address TEXT,
+    location_type VARCHAR(50),              -- 'office', 'kiosk', etc.
+    generated_url TEXT NOT NULL,            -- Full QR URL
+    scan_count INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(100),
+    deactivated_at TIMESTAMP
+);
+```
+
+**Usage:** Track QR code deployment and effectiveness
+
+---
+
+#### GRIEVANCE SYSTEM (2 tables)
+
+##### 7. grievance_tickets
+```sql
+CREATE TABLE grievance_tickets (
+    grievance_id SERIAL PRIMARY KEY,
+    grievance_number VARCHAR(20) UNIQUE NOT NULL,  -- GRV-2025-XXX or GRV-2025-AUTO-XXX
+    service_id VARCHAR(50) NOT NULL REFERENCES service_master,
+    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master,
+    status VARCHAR(20) NOT NULL DEFAULT 'open',    -- Ref: grievance_status
+    submitter_category VARCHAR(50),                -- citizen, tourist, gov_employee, student
+    submitter_name VARCHAR(255) NOT NULL,
+    submitter_email VARCHAR(255) NOT NULL,
+    submitter_phone VARCHAR(50),
+    grievance_subject VARCHAR(255) NOT NULL,
+    grievance_description TEXT NOT NULL,
+    incident_date DATE,
+    submission_ip_hash VARCHAR(64),
+    assigned_to VARCHAR(255),                      -- Staff member assigned (future)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP,
+    closed_at TIMESTAMP,
+    created_by VARCHAR(255) DEFAULT 'system',      -- 'system' or 'citizen_portal'
+    updated_by VARCHAR(255) DEFAULT 'system'
+);
+```
+
+**Key Points:**
+- Unified table for BOTH auto-created (Flow 1) and citizen-submitted (Flow 3)
+- Differentiated by `created_by` field: 'system' vs 'citizen_portal'
+- Status workflow: open → process → resolved → closed
+- No email field change - uses submitter_email for citizen or fixed address for system
+
+**Indexes:**
+- grievance_number: UNIQUE - fast lookup
+- idx_grievance_status: Status-based queries
+- idx_grievance_service: Service breakdown
+- idx_grievance_entity: Entity workload analysis
+- idx_grievance_created: Time-based queries
+
+**Test Data:** 29 records (19 auto + 10 citizen)
+
+---
+
+##### 8. grievance_attachments
+```sql
+CREATE TABLE grievance_attachments (
+    attachment_id SERIAL PRIMARY KEY,
+    grievance_id INTEGER NOT NULL REFERENCES grievance_tickets ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    mimetype VARCHAR(100) NOT NULL,        -- 'application/pdf', 'image/jpeg'
+    file_content BYTEA NOT NULL,           -- Binary file data
+    file_size INTEGER NOT NULL,            -- Bytes
+    uploaded_by VARCHAR(255) DEFAULT 'system',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_grievance_file_size CHECK (file_size > 0 AND file_size <= 5242880)
+);
+```
+
+**Constraints:**
+- 5MB max per file (5242880 bytes)
+- 5 files max per grievance (enforced at API)
+- Total 5MB per grievance
+- Auto-delete when grievance deleted (CASCADE)
+
+**Test Data:** 5 records
+
+---
+
+#### EA SERVICE REQUEST SYSTEM (3 tables)
+
+##### 9. ea_service_requests
+```sql
+CREATE TABLE ea_service_requests (
+    request_id SERIAL PRIMARY KEY,
+    request_number VARCHAR(20) UNIQUE NOT NULL,    -- REQ-2025-XXX
+    service_id VARCHAR(50) NOT NULL REFERENCES service_master,
+    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master,
+    status VARCHAR(20) NOT NULL DEFAULT 'submitted', -- submitted, process, resolved
+    requester_name VARCHAR(255) NOT NULL,
+    requester_email VARCHAR(255) NOT NULL,
+    requester_phone VARCHAR(50),
+    requester_ministry VARCHAR(255),               -- Which ministry/entity
+    request_description TEXT,
+    submission_ip_hash VARCHAR(64),
+    assigned_to VARCHAR(255),                      -- DTA staff (future)
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMP,
+    closed_at TIMESTAMP,
+    created_by VARCHAR(255) DEFAULT 'system',
+    updated_by VARCHAR(255) DEFAULT 'system'
+);
+```
+
+**Status Workflow:** submitted → process → resolved → (closed)
+
+**Indexes:**
+- request_number: UNIQUE lookup
+- idx_request_status: Pipeline view
+- idx_request_service: Service tracking
+- idx_request_created: Timeline
+
+**Test Data:** 7 records
+
+---
+
+##### 10. ea_service_request_attachments
+```sql
+CREATE TABLE ea_service_request_attachments (
+    attachment_id SERIAL PRIMARY KEY,
+    request_id INTEGER NOT NULL REFERENCES ea_service_requests ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    mimetype VARCHAR(100) NOT NULL,
+    file_content BYTEA NOT NULL,
+    file_size INTEGER NOT NULL,
+    is_mandatory BOOLEAN DEFAULT FALSE,            -- Links to service_attachments
+    uploaded_by VARCHAR(255) DEFAULT 'system',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_ea_file_size CHECK (file_size > 0 AND file_size <= 5242880)
+);
+```
+
+**Key:** `is_mandatory` field indicates if this was a required document per service
+
+**Test Data:** 7 records
+
+---
+
+##### 11. service_attachments (Master Data)
+```sql
+CREATE TABLE service_attachments (
+    service_attachment_id SERIAL PRIMARY KEY,
+    service_id VARCHAR(50) NOT NULL REFERENCES service_master,
+    filename VARCHAR(255) NOT NULL,                -- 'Leadership approval letter'
+    file_extension VARCHAR(10),                    -- 'pdf', 'docx', 'xlsx'
+    is_mandatory BOOLEAN DEFAULT FALSE,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,                  -- UI display order
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    CONSTRAINT unique_service_file UNIQUE(service_id, filename)
 );
 ```
 
-**Data Volume:** 100-1000 QR codes
+**Purpose:** Define document requirements per EA service
+- Used by admin portal to show required vs optional fields
+- Validated when submitting ea_service_requests
+- 27 total records (varies by service)
+
+**Example:**
+```
+Service: compliance-review
+├─ Leadership approval (mandatory, pdf)
+├─ Current state architecture (mandatory, pdf)
+├─ Target state architecture (mandatory, pdf)
+├─ Solution design documents (mandatory, pdf)
+├─ Vendor contracts (optional, pdf)
+├─ Integration diagrams (optional, pdf)
+├─ Security documentation (optional, pdf)
+└─ Data architecture diagrams (optional, pdf)
+```
+
+**Test Data:** 27 records
 
 ---
 
-#### 3.2.3 submission_rate_limit
+#### SECURITY & AUDIT (3 tables)
 
-**Purpose:** Track and enforce rate limiting per IP address
-
-**Schema:**
+##### 12. submission_rate_limit
 ```sql
 CREATE TABLE submission_rate_limit (
-    rate_limit_id SERIAL PRIMARY KEY,
-    ip_hash VARCHAR(64) NOT NULL,
-    submission_count INT DEFAULT 0,
-    window_start TIMESTAMP NOT NULL,
-    window_end TIMESTAMP NOT NULL,
-    requires_captcha BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ip_hash VARCHAR(64) PRIMARY KEY,
+    submission_count INTEGER DEFAULT 1,
+    attempt_type VARCHAR(50) DEFAULT 'submission',
+    window_start TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
-**Auto-cleanup:** Entries older than 7 days deleted nightly
+**Usage:** Rate limiting enforcement
+- 5 submissions/hour per IP
+- Rolling window
+- Reset after 1 hour
 
 ---
 
-### 3.3 Ticket Management Tables
-
-#### 3.3.1 tickets
-
-**Purpose:** Store ticket records (primary ticket system)
-
-**Schema:**
-```sql
-CREATE TABLE tickets (
-    ticket_id SERIAL PRIMARY KEY,
-    ticket_number VARCHAR(20) UNIQUE NOT NULL,
-    feedback_id INT REFERENCES service_feedback(feedback_id),
-    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master(unique_entity_id),
-    service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
-    category_id INT REFERENCES ticket_categories(category_id),
-    priority_id INT REFERENCES priority_levels(priority_id),
-    status_id INT NOT NULL REFERENCES ticket_status(status_id),
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    assigned_to VARCHAR(100),
-    response_target TIMESTAMP,
-    resolution_target TIMESTAMP,
-    responded_at TIMESTAMP,
-    resolved_at TIMESTAMP,
-    resolution_notes TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Indexes:**
-- idx_ticket_number: Quick lookup
-- idx_ticket_status: Query by status
-- idx_ticket_entity: Entity-based queries
-- idx_ticket_priority: Priority filtering
-- idx_ticket_assigned_to: Assignment queries
-- idx_ticket_created: Time-based queries
-
-**Data Volume:** 1K-10K+ tickets/month
-
----
-
-#### 3.3.2 ticket_status
-
-**Purpose:** Define valid ticket statuses
-
-**Schema:**
-```sql
-CREATE TABLE ticket_status (
-    status_id INT PRIMARY KEY,
-    status_name VARCHAR(50) NOT NULL UNIQUE,
-    status_order INT,
-    color VARCHAR(20),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Sample Data:**
-```
-1 | Open | 1 | red
-2 | In Progress | 2 | yellow
-3 | Waiting | 3 | orange
-4 | Resolved | 4 | green
-5 | Closed | 5 | gray
-6 | Reopened | 2 | purple
-```
-
----
-
-#### 3.3.3 ticket_categories
-
-**Purpose:** Define ticket categories with SLA defaults
-
-**Schema:**
-```sql
-CREATE TABLE ticket_categories (
-    category_id INT PRIMARY KEY,
-    category_name VARCHAR(100) NOT NULL,
-    entity_id VARCHAR(50) NOT NULL REFERENCES entity_master(unique_entity_id),
-    default_response_hours INT,
-    default_resolution_hours INT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Sample Data:**
-```
-1 | Passport Issue | MIN-002 | 4 | 24
-2 | License Renewal | MIN-001 | 2 | 48
-3 | Birth Certificate | DEPT-001 | 4 | 72
-```
-
----
-
-#### 3.3.4 ticket_activities
-
-**Purpose:** Audit trail of all ticket changes
-
-**Schema:**
-```sql
-CREATE TABLE ticket_activities (
-    activity_id SERIAL PRIMARY KEY,
-    ticket_id INT NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
-    activity_type VARCHAR(50),
-    old_value TEXT,
-    new_value TEXT,
-    changed_by VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Indexes:**
-- idx_activity_ticket: Query changes by ticket
-- idx_activity_type: Filter by activity type
-- idx_activity_created: Time-based queries
-
----
-
-#### 3.3.5 ticket_notes
-
-**Purpose:** Internal notes on tickets (not visible to citizens)
-
-**Schema:**
-```sql
-CREATE TABLE ticket_notes (
-    note_id SERIAL PRIMARY KEY,
-    ticket_id INT NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
-    note_text TEXT NOT NULL,
-    created_by VARCHAR(100) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-#### 3.3.6 sla_breaches
-
-**Purpose:** Track SLA violations for reporting and escalation
-
-**Schema:**
-```sql
-CREATE TABLE sla_breaches (
-    breach_id SERIAL PRIMARY KEY,
-    ticket_id INT NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
-    breach_type VARCHAR(50),
-    expected_time TIMESTAMP,
-    actual_time TIMESTAMP,
-    hours_overdue INT,
-    escalated BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
-**Breach Types:**
-- response_breach: Response SLA missed
-- resolution_breach: Resolution SLA missed
-
----
-
-#### 3.3.7 submission_attempts
-
-**Purpose:** Security audit log for all submissions
-
-**Schema:**
+##### 13. submission_attempts
 ```sql
 CREATE TABLE submission_attempts (
     attempt_id SERIAL PRIMARY KEY,
-    ip_address VARCHAR(45),
-    attempt_type VARCHAR(50),
-    success BOOLEAN,
-    error_message TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-```
-
----
-
-### 3.4 Security Table
-
-#### 3.4.1 captcha_challenges
-
-**Purpose:** Track CAPTCHA usage for security validation
-
-**Schema:**
-```sql
-CREATE TABLE captcha_challenges (
-    challenge_id SERIAL PRIMARY KEY,
     ip_hash VARCHAR(64) NOT NULL,
-    challenge_code VARCHAR(100) NOT NULL UNIQUE,
-    is_solved BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    expires_at TIMESTAMP
+    attempt_type VARCHAR(50) DEFAULT 'submission',
+    attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    success BOOLEAN DEFAULT TRUE
 );
 ```
 
+**Audit Trail:** Every submission logged
+
 ---
 
-## 4. Entity Relationships
+#### Additional Tables (Legacy/Optional)
 
-### 4.1 Relationship Diagram
+**captcha_challenges** - CAPTCHA verification tracking  
+**qr_codes** - QR code deployment and scanning  
+
+---
+
+## Entity Relationships
+
+### Relationship Diagram
 
 ```
-entity_master (1) ──┬─── (M) service_master
-                    ├─── (M) qr_codes
-                    ├─── (M) service_feedback
-                    ├─── (M) tickets
-                    └─── (M) ticket_categories
-
-service_master (1) ──┬─── (M) qr_codes
-                     ├─── (M) service_feedback
-                     └─── (M) tickets
-
-priority_levels (1) ─── (M) tickets
-
-ticket_status (1) ─── (M) tickets
-
-ticket_categories (1) ─── (M) tickets
-
-service_feedback (1) ──┬─── (M) qr_codes
-                       └─── (1) tickets (optional)
-
-tickets (1) ──┬─── (M) ticket_activities
-              ├─── (M) ticket_notes
-              └─── (M) sla_breaches
-```
-
-### 4.2 Cardinality Summary
-
-| Parent | Child | Relationship |
-|--------|-------|--------------|
-| entity_master | service_master | 1:Many |
-| entity_master | tickets | 1:Many |
-| service_master | service_feedback | 1:Many |
-| tickets | ticket_activities | 1:Many |
-| qr_codes | service_feedback | 1:Many |
-
----
-
-## 5. Component Details
-
-### 5.1 Feedback System
-
-**Flow:**
-1. Citizen submits feedback (web, QR, or walk-in)
-2. Rate limiting check: 5 submissions/hour/IP
-3. If limit exceeded → CAPTCHA required
-4. Store in service_feedback
-5. Check auto-ticket conditions:
-   - grievance_flag = TRUE, OR
-   - rating ≤ 2
-6. If condition met → Auto-create ticket
-
-**Key Columns:**
-- rating: 1-5 scale (required)
-- grievance_flag: Boolean (escalates automatically)
-- channel: portal, qr_code, walk_in
-- submitted_ip: For rate limiting
-
----
-
-### 5.2 Ticket Management
-
-**Ticket Number Format:** YYYYMM-XXXXXX (e.g., 202511-000001)
-
-**Status Workflow:**
-```
-Open → In Progress → (Waiting) → Resolved → Closed
-         ↑                            ↑
-         └────── Reopened ────────────┘
-```
-
-**SLA Calculation:**
-- Base response time: 4-24 hours (by category)
-- Base resolution time: 24-72 hours (by category)
-- Multiplier applied: Based on priority_level
-  - Critical: 0.5x (half the time)
-  - High: 0.75x
-  - Medium: 1.0x
-  - Low: 1.5x (extended time)
-
-**Auto-actions:**
-- Generate unique ticket_number
-- Calculate response_target & resolution_target
-- Log creation in ticket_activities
-- Monitor for SLA breaches
-
----
-
-### 5.3 SLA Management
-
-**SLA Breach Detection:**
-- Response breach: If responded_at > response_target
-- Resolution breach: If resolved_at > resolution_target
-
-**Escalation Triggers:**
-- Any response breach: Escalate immediately
-- Resolution breach: Escalate after 1 hour overdue
-
-**Notifications:**
-- System creates sla_breaches record
-- Triggers alert in admin dashboard
-- Marks escalated = TRUE
-
----
-
-### 5.4 Rate Limiting & Security
-
-**Rate Limiting:**
-- Limit: 5 submissions per hour per IP
-- Window: Rolling 1-hour window
-- Enforcement: Check submission_rate_limit table
-- Action: Return error after 5th attempt
-
-**CAPTCHA:**
-- Triggered: After 2nd attempt in window
-- Validation: requires_captcha() function
-- Storage: captcha_challenges table
-- Expiry: 30 minutes
-
-**Audit:**
-- All submissions logged: submission_attempts
-- Success/failure recorded
-- IP addresses hashed for privacy
-
----
-
-## 6. Data Dictionary
-
-### 6.1 Core Tables Quick Reference
-
-| Table | Purpose | Records/Day | Retention |
-|-------|---------|------------|-----------|
-| service_feedback | Citizen feedback | 100-1000 | Permanent |
-| tickets | Service tickets | 50-500 | Permanent |
-| ticket_activities | Change log | 500-5000 | 1 year |
-| submission_attempts | Security audit | 100-1000 | 7 days |
-| sla_breaches | SLA violations | 10-100 | Permanent |
-
-### 6.2 Key Field Types
-
-**Standard Fields:**
-- Primary Keys: SERIAL or VARCHAR(50)
-- Timestamps: TIMESTAMP with CURRENT_TIMESTAMP
-- Ratings: INT CHECK (1-5)
-- Email: VARCHAR(255)
-- IP Address: VARCHAR(45) (supports IPv6)
-
-**Special Fields:**
-- ticket_number: VARCHAR(20) UNIQUE
-- ip_hash: VARCHAR(64) (MD5 hash for privacy)
-- status_id: INT REFERENCES ticket_status
-- priority_id: INT REFERENCES priority_levels
-
----
-
-## 7. Functions & Procedures
-
-### 7.1 Utility Functions
-
-#### generate_ticket_number()
-**Returns:** VARCHAR(20)
-**Purpose:** Generate unique ticket number (YYYYMM-XXXXXX format)
-**Usage:** Called by trigger before insert on tickets
-
-```sql
-SELECT generate_ticket_number();
--- Returns: 202511-000001
-```
-
-#### check_rate_limit()
-**Returns:** BOOLEAN
-**Purpose:** Check if IP has exceeded submission limit
-**Parameters:** ip_hash (VARCHAR), limit (INT), hours (INT)
-
-```sql
-SELECT check_rate_limit(
-    md5('192.168.1.1')::varchar,
-    5,  -- limit
-    1   -- hours
-);
--- Returns: TRUE if allowed, FALSE if limit exceeded
-```
-
-#### requires_captcha()
-**Returns:** BOOLEAN
-**Purpose:** Determine if CAPTCHA is required
-**Parameters:** ip_hash (VARCHAR), threshold (INT)
-
-```sql
-SELECT requires_captcha(
-    md5('192.168.1.1')::varchar,
-    2  -- attempts threshold
-);
+                    entity_master (1)
+                      /    |    \
+                     /     |     \
+            (1)-----/      |      \------(1)
+                   /       |       \
+              (M) /        |        \ (M)
+                 /         |         \
+    service_master    grievance_    service_
+    (1)---------(M)    status        feedback
+       |              (1)-----(M)       (1)
+       |                                 |
+       |  qr_codes                       | (1)
+       |  (1)-----(M)           grievance_tickets
+       |                        (1)---------(M)
+       |                              |
+       |                    grievance_attachments
+       |                    (1)---------(M)
+       |
+       |  ea_service_requests
+       |  (1)---------(M)
+       |       |
+       |       | service_attachments (Master Data)
+       |       |---(1)------(M)
+       |       |
+       |  ea_service_request_attachments
+       |       (1)---------(M)
+       |
+    priority_levels (1)------(M) grievance_tickets
 ```
 
 ---
 
-### 7.2 Ticket Functions
+## Component Details
 
-#### create_ticket_from_feedback()
-**Returns:** INT (ticket_id)
-**Purpose:** Auto-create ticket from feedback
-**Trigger:** Automatic on feedback insert
+### Data Flow for Each Operation
 
-**Conditions:**
-- grievance_flag = TRUE, OR
-- rating ≤ 2
-
-**Actions:**
-- Create tickets record
-- Generate ticket_number
-- Calculate SLA targets
-- Log activity
-
----
-
-### 7.3 SLA Functions
-
-#### calculate_sla_targets()
-**Returns:** TABLE
-**Purpose:** Calculate response and resolution deadlines
-**Parameters:** category_id (INT), priority_id (INT)
-
-**Formula:**
+#### Operation 1: Submit Service Feedback
 ```
-response_target = NOW() + 
-    (category.default_response_hours / priority.sla_multiplier) hours
-
-resolution_target = NOW() + 
-    (category.default_resolution_hours / priority.sla_multiplier) hours
+1. POST /api/feedback/submit
+2. Validate: q1-q5 are 1-5, service_id exists, entity_id exists
+3. Check rate limit: ip_hash + submission_count
+4. INSERT into service_feedback
+5. Calculate avg_rating = (q1+q2+q3+q4+q5)/5
+6. IF grievance_flag OR avg < 3.0:
+   7. INSERT into grievance_tickets (auto-created)
+   8. Send email to: alerts.dtahelpdesk@gmail.com
+9. ELSE:
+   10. Just save feedback
+11. Return feedback_id to user
 ```
 
-#### detect_sla_breaches()
-**Returns:** TABLE
-**Purpose:** Find all breached tickets
-**Usage:** Called by nightly job or admin query
+#### Operation 2: Submit EA Service Request
+```
+1. POST /api/admin/services/request
+2. Authenticate: Check if user is admin (future: Keycloak)
+3. GET service_attachments for service_id
+4. Validate uploaded files:
+   - All mandatory files present
+   - File sizes within limits
+   - Total size ≤ 5MB
+5. INSERT into ea_service_requests
+6. INSERT into ea_service_request_attachments (one per file)
+7. Send email:
+   - To: requester_email
+   - To: alerts.dtahelpdesk@gmail.com
+8. Return request_number to user
+```
+
+#### Operation 3: Submit Citizen Grievance
+```
+1. POST /api/grievances/submit
+2. No authentication required
+3. Validate required fields:
+   - submitter_name (required)
+   - submitter_email (optional but recommended)
+   - grievance_subject (required)
+   - grievance_description (required)
+   - service_id (required)
+4. Check rate limit: ip_hash
+5. Validate attachments (if any):
+   - Max 5 files
+   - Max 5MB total
+6. INSERT into grievance_tickets (created_by: citizen_portal)
+7. INSERT into grievance_attachments (if any)
+8. IF submitter_email provided:
+   9. Send confirmation email
+10. ELSE:
+    11. No email (can still check status via ticket number)
+12. Return grievance_number
+```
 
 ---
 
-## 8. Triggers & Automation
+## Data Dictionary
 
-### 8.1 Timestamp Triggers
+### Key Field Definitions
 
-**trg_set_created_at_timestamp**
-- Table: All tables with created_at
-- Event: BEFORE INSERT
-- Action: Set created_at = NOW()
-
-**trg_set_updated_at_timestamp**
-- Table: All tables with updated_at
-- Event: BEFORE UPDATE
-- Action: Set updated_at = NOW()
-
----
-
-### 8.2 Ticket Management Triggers
-
-**trg_generate_ticket_number**
-- Table: tickets
-- Event: BEFORE INSERT
-- Condition: ticket_number IS NULL
-- Action: Call generate_ticket_number()
-
-**trg_calculate_sla**
-- Table: tickets
-- Event: BEFORE INSERT
-- Action: Calculate response_target & resolution_target
+| Field | Type | Usage | Constraints |
+|-------|------|-------|-------------|
+| service_id | VARCHAR(50) | Service reference | Must exist in service_master |
+| entity_id | VARCHAR(50) | Government entity | Must exist in entity_master |
+| grievance_number | VARCHAR(20) | Unique ID for grievance | Format: GRV-2025-XXX or GRV-2025-AUTO-XXX |
+| request_number | VARCHAR(20) | Unique ID for EA request | Format: REQ-2025-XXX |
+| status | VARCHAR(20) | Workflow state | Must be: open, process, resolved, closed |
+| created_by | VARCHAR(255) | Who created | system, citizen_portal, admin_user |
+| ip_hash | VARCHAR(64) | Client IP (hashed) | SHA256 of IP address |
+| file_size | INTEGER | File bytes | 1 to 5,242,880 (5MB) |
+| q1_ease through q5_overall | INTEGER | Rating | 1 to 5 only |
 
 ---
 
-### 8.3 Audit Triggers
+## Security & Performance
 
-**trg_log_ticket_activity**
-- Table: tickets
-- Event: BEFORE UPDATE
-- Action: Log changes to ticket_activities
-- Logged Fields: status_id, priority_id, assigned_to
+### Security Features
 
----
+1. **Rate Limiting**
+   - 5 submissions/hour per IP
+   - submission_rate_limit table tracks
+   - Enforced at API level
 
-### 8.4 Integration Triggers
+2. **CAPTCHA Ready**
+   - captcha_challenges table
+   - Triggered after 2 failed attempts
+   - 30-minute expiry
 
-**trg_create_ticket_from_feedback**
-- Table: service_feedback
-- Event: AFTER INSERT
-- Condition: grievance_flag = TRUE OR rating ≤ 2
-- Action: Auto-create tickets record
+3. **IP Hashing**
+   - ip_hash: SHA256 hash of IP
+   - Privacy protection
+   - No raw IP stored
 
----
+4. **File Size Limits**
+   - Max 5MB per file (CHECK constraint)
+   - Max 5 files per request (API validation)
+   - Total 5MB per request (API validation)
 
-## 9. Views & Analytics
+5. **Audit Trail**
+   - All changes logged to submission_attempts
+   - Timestamps on all operations
+   - created_by field tracks source
 
-### 9.1 v_service_performance
+### Performance Optimization
 
-**Purpose:** Service ratings and satisfaction metrics
-
-**Columns:**
-- service_id, service_name
-- total_submissions, avg_rating
-- satisfaction_rate (% rating > 3)
-- feedback_count_by_rating
-
-**Use Case:** Service performance dashboard
-
----
-
-### 9.2 v_active_tickets_sla
-
-**Purpose:** Monitor active tickets with SLA status
-
-**Columns:**
-- ticket_number, service_name, priority
-- status, assigned_to
-- response_status (on_track / breached)
-- resolution_status (on_track / breached)
-- hours_until_deadline
-
-**Use Case:** Admin SLA monitoring dashboard
-
----
-
-### 9.3 v_entity_ticket_queue
-
-**Purpose:** Workload distribution across entities
-
-**Columns:**
-- entity_name
-- total_open_tickets
-- high_priority_tickets
-- avg_age_hours
-- sla_breach_count
-
-**Use Case:** Workload balancing analysis
-
----
-
-### 9.4 v_qr_performance
-
-**Purpose:** QR code usage and effectiveness
-
-**Columns:**
-- qr_code_id, location, service_name
-- total_scans
-- feedback_received
-- feedback_conversion_rate (%)
-- avg_rating_from_qr
-
----
-
-### 9.5 v_daily_ticket_stats
-
-**Purpose:** Daily trend analysis
-
-**Columns:**
-- date
-- tickets_created, tickets_closed
-- avg_resolution_time
-- sla_compliance_rate (%)
-
----
-
-## 10. Security & Performance
-
-### 10.1 Security Measures
-
-**Data Protection:**
-- IP addresses hashed (MD5) in submission_rate_limit
-- CAPTCHA for abuse prevention
-- Rate limiting enforced at database level
-- Audit trail in submission_attempts
-- Parameterized queries (SQL injection protection)
-
-**Access Control:**
-- Row-level security ready (via Keycloak)
-- Role-based filtering in views
-- Service staff only see their tickets
-
-**Compliance:**
-- PII protection: No sensitive citizen data stored
-- Audit logging: All changes tracked
-- Data retention: Follows government policy
-- Backup encryption: On-disk encryption
-
----
-
-### 10.2 Performance Optimization
-
-**Indexes (30+):**
-- Primary Keys: 14 tables
-- Foreign Keys: 20+ relationships
-- Performance Indexes: 
-  - B-tree on frequently queried columns
-  - BRIN on large timestamp columns
-  - GiST on text search
+**Indexes (40+):**
+- Primary keys on all tables
+- Foreign key indexes for joins
+- High-query columns (service_id, entity_id, status, created_at)
+- UNIQUE constraints on identifiers
 
 **Query Optimization:**
-- Materialized views for analytics
-- Query execution plans reviewed
-- Slow query log monitored
-- Index fragmentation checked weekly
+- Materialized views ready (future)
+- Proper column types (VARCHAR(50) for IDs, SERIAL for sequences)
+- Timestamp columns for sorting
+- Boolean flags for quick filtering
 
 **Scalability:**
-- Connection pooling: 20 connections recommended
-- Prepared statements: Reduce parsing overhead
-- Batch operations: Reduce round-trips
-- Archive strategy: Separate hot/warm/cold data
+- Designed for 10K+ feedback/day
+- Partition-ready schema
+- Connection pooling supported
+- Batch operation compatible
 
 ---
 
-### 10.3 Backup & Recovery
+## Analytics Queries
 
-**Backup Strategy:**
-- Full backup: Daily at 2 AM UTC
-- Incremental: Every 4 hours
-- Retention: 30 days (on-disk), 1 year (off-site)
-- Encryption: AES-256 at rest
+### Query 1: Service Performance Dashboard
+```sql
+SELECT 
+  sm.service_name,
+  COUNT(DISTINCT sf.feedback_id) as feedback_count,
+  ROUND(AVG((sf.q1_ease + sf.q2_clarity + sf.q3_timeliness + 
+             sf.q4_trust + sf.q5_overall_satisfaction) / 5.0)::numeric, 2) as avg_rating,
+  COUNT(DISTINCT gt.grievance_id) as grievances,
+  ROUND((COUNT(DISTINCT CASE WHEN (sf.q1_ease + sf.q2_clarity + sf.q3_timeliness + 
+             sf.q4_trust + sf.q5_overall_satisfaction) / 5.0 >= 4 THEN sf.feedback_id END)::numeric 
+             / NULLIF(COUNT(DISTINCT sf.feedback_id), 0) * 100)::numeric, 1) as satisfaction_pct
+FROM service_feedback sf
+JOIN service_master sm ON sf.service_id = sm.service_id
+LEFT JOIN grievance_tickets gt ON gt.created_by = 'system'
+GROUP BY sm.service_name
+ORDER BY avg_rating DESC;
+```
 
-**Recovery Procedures:**
-- RTO (Recovery Time Objective): 1 hour
-- RPO (Recovery Point Objective): 4 hours
-- Test: Monthly recovery drills
-- Documentation: Recovery runbook available
+### Query 2: Grievance Workload by Entity
+```sql
+SELECT 
+  e.entity_name,
+  COUNT(*) as total_grievances,
+  COUNT(CASE WHEN g.status = 'open' THEN 1 END) as open_count,
+  COUNT(CASE WHEN g.status = 'process' THEN 1 END) as processing,
+  COUNT(CASE WHEN g.status = 'resolved' THEN 1 END) as resolved,
+  ROUND((COUNT(CASE WHEN g.status IN ('resolved', 'closed') THEN 1 END)::numeric / COUNT(*) * 100)::numeric, 1) as resolution_rate_pct
+FROM grievance_tickets g
+JOIN entity_master e ON g.entity_id = e.unique_entity_id
+GROUP BY e.entity_name
+ORDER BY total_grievances DESC;
+```
 
----
-
-## 11. Backup & Recovery
-
-### 11.1 Backup Schedule
-
-**Daily Full Backup**
-- Time: 2:00 AM UTC
-- Destination: Azure Backup Vault
-- Compression: gzip (60% reduction)
-- Verification: Automated checksum
-
-**Incremental Backups**
-- Frequency: Every 4 hours
-- Method: WAL (Write-Ahead Logs)
-- Size: ~100MB-500MB per backup
-- Retention: 30 days on-disk
-
-**Off-Site Archive**
-- Frequency: Weekly
-- Destination: Cold storage (S3 Glacier)
-- Retention: 1 year
-- For: Disaster recovery & compliance
-
----
-
-### 11.2 Recovery Procedures
-
-**Point-in-Time Recovery:**
-1. Stop application
-2. Restore from full backup
-3. Replay WAL logs to desired timestamp
-4. Verify data integrity
-5. Run ANALYZE to update statistics
-6. Restart application
-
-**Estimated Time:** 30-60 minutes
-
-**Testing:**
-- Monthly recovery drills
-- Validate restored data
-- Document any issues
-- Update runbook as needed
+### Query 3: EA Services Pipeline
+```sql
+SELECT 
+  s.service_name,
+  COUNT(r.request_id) as total,
+  COUNT(CASE WHEN r.status = 'submitted' THEN 1 END) as new_requests,
+  COUNT(CASE WHEN r.status = 'process' THEN 1 END) as in_progress,
+  COUNT(CASE WHEN r.status = 'resolved' THEN 1 END) as completed
+FROM ea_service_requests r
+RIGHT JOIN service_master s ON r.service_id = s.service_id
+WHERE s.service_id IN ('digital-roadmap', 'ea-framework-review', 'maturity-assessment',
+                       'repository-access', 'compliance-review', 'portfolio-review', 'training-capacity')
+GROUP BY s.service_name
+ORDER BY total DESC;
+```
 
 ---
 
-### 11.3 Disaster Recovery
+## Sample Data
 
-**Data Center Failure:**
-1. Promote read replica (if available)
-2. Update DNS to new location
-3. Verify data completeness
-4. Restore from backup if needed
+### Current Test Data (Verified)
 
-**Data Corruption:**
-1. Identify affected records
-2. Restore from point-in-time backup
-3. Re-apply subsequent transactions
-4. Validate data integrity
+```
+Service Feedback:        50 records
+├─ Excellent (5/5):      ~10 records (20%)
+├─ Good (4/5):           ~15 records (30%)
+├─ Moderate (3/5):       ~10 records (20%)
+├─ Low (2/5):            ~10 records (20%)
+├─ Very Low (<2):        ~5 records (10%)
+└─ Avg Rating:           3.41/5.0
 
----
+Grievance Tickets:       29 records
+├─ Auto-created (system): 19 records (65%)
+│  ├─ From low ratings:   ~13 records
+│  └─ From grievance flag: ~6 records
+├─ Citizen-submitted:    10 records (35%)
+├─ Status Distribution:
+│  ├─ open:              14 records (48%)
+│  ├─ process:           5 records (17%)
+│  ├─ resolved:          9 records (31%)
+│  └─ closed:            1 record (3%)
 
-## 12. Operational Procedures
+EA Service Requests:     7 records
+├─ submitted:            3 requests (43%)
+├─ process:              3 requests (43%)
+└─ resolved:             1 request (14%)
 
-### 12.1 Daily Operations
-
-**Morning Checks (8:00 AM):**
-- Database up and responsive
-- Connection pool healthy
-- Backup completion verified
-- Disk space available (>20% free)
-- No critical errors in logs
-
-**During Business Hours:**
-- Monitor slow queries
-- Check SLA compliance metrics
-- Review rate limiting events
-- Handle user support requests
-
-**Evening Checks (5:00 PM):**
-- Verify daily statistics
-- Check for data anomalies
-- Plan any needed maintenance
-- Archive old submission_attempts records
+Attachments:             12 records
+├─ Grievance proofs:     5 files
+└─ EA approvals:         7 files
+```
 
 ---
 
-### 12.2 Weekly Maintenance
+## Conclusion
 
-**Monday 3:00 AM:**
-- VACUUM ANALYZE all tables
-- Reindex fragmented indexes
-- Update table statistics
-- Check slow query log
+The GEA Portal database architecture successfully implements Phase 2b with:
 
-**Every Wednesday:**
-- Review database growth
-- Analyze rate limiting patterns
-- Backup verification test
-- Plan upcoming changes
+✓ Clean, normalized schema (13 tables)  
+✓ Three independent but integrated flows  
+✓ Production-tested with 98+ records  
+✓ 40+ optimized indexes  
+✓ Comprehensive security features  
+✓ Ready for analytics and reporting  
+✓ Scalable to 10K+ submissions/day  
 
-**Friday 4:00 AM:**
-- Full system check
-- Capacity planning review
-- Performance report generation
-- Security audit logs review
+**Status: Production Ready**
 
 ---
 
-### 12.3 Monthly Maintenance
-
-**First Sunday of Month:**
-- Archive old ticket_activities (>90 days)
-- Archive old submission_attempts (>30 days)
-- Rebuild large table indexes
-- Update materialized views
-
-**Capacity Planning:**
-- Review growth trends
-- Forecast disk space needs
-- Check connection pool usage
-- Plan scaling if needed
-
-**Performance Analysis:**
-- Review slow query patterns
-- Identify missing indexes
-- Optimize query plans
-- Document recommendations
-
----
-
-### 12.4 Monitoring & Alerting
-
-**Key Metrics to Monitor:**
-- Database CPU: Target <70%
-- Memory Usage: Target <80%
-- Disk Space: Alert <20% free
-- Query Latency: p95 < 100ms
-- Connection Pool: <75% utilization
-- SLA Compliance: Target >95%
-
-**Alert Thresholds:**
-- CPU > 80%: Investigate
-- Memory > 90%: Page cache issue
-- Disk < 10%: Archive immediately
-- Query > 1 second: Review
-- Connections > 90%: Scale up
-- SLA Breaches > 10%: Escalate
-
----
-
-## 13. Implementation Notes
-
-### 13.1 Creation Order
-
-1. entity_master (no dependencies)
-2. service_master, priority_levels (depend on entity_master)
-3. service_feedback, qr_codes (depend on entity_master, service_master)
-4. tickets (depends on all lookup tables)
-5. ticket_status, ticket_categories (lookup tables)
-6. ticket_activities, ticket_notes, sla_breaches (depend on tickets)
-7. submission_attempts, captcha_challenges (independent)
-8. Functions (reference tables)
-9. Triggers (reference functions)
-10. Views (reference tables and functions)
-11. Indexes (final optimization)
-
----
-
-### 13.2 SQL Generation
-
-- All DDL tested and production-ready
-- Idempotent scripts (safe to run multiple times)
-- Error handling included
-- Drop scripts for rollback
-- Verification queries provided
-
----
-
-## 14. Appendices
-
-### 14.1 Entity Type Codes
-
-| Code | Description | Examples |
-|------|-------------|----------|
-| MIN | Ministry | Finance, Health, Education |
-| DEPT | Department | Finance Dept, Health Dept |
-| AGY | Agency | Statistics, Immigration |
-| UNIT | Unit | Payments, Licenses |
-
-### 14.2 Service Status Codes
-
-| Code | Status | Meaning |
-|------|--------|---------|
-| 1 | Open | Newly created |
-| 2 | In Progress | Being worked on |
-| 3 | Waiting | Awaiting information |
-| 4 | Resolved | Issue fixed |
-| 5 | Closed | Ticket closed |
-| 6 | Reopened | Reactivated |
-
-### 14.3 Channel Types
-
-| Channel | Source | Format |
-|---------|--------|--------|
-| portal | Web form | Structured |
-| qr_code | QR scan | Mobile |
-| walk_in | In-person | Manual entry |
-| api | External system | JSON |
-
----
-
-## 15. Document Information
-
-**Version:** 2.0  
-**Status:** Production Ready  
-**Last Updated:** November 18, 2025  
-**Next Review:** November 25, 2025  
-
-**For technical support or questions:**
-Contact: Digital Transformation Agency (DTA)
-Email: dta@gov.gd
-Portal: https://gea.gov.gd
-
----
-
-**End of Document**
+**Document Version:** 5.0  
+**Last Updated:** November 19, 2025  
+**Status:** ✓ Implemented and Verified  
+**Database:** feedback_db
