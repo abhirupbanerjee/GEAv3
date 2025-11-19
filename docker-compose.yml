@@ -70,6 +70,26 @@ services:
         - NEXT_PUBLIC_SITE_NAME= ${NEXT_PUBLIC_SITE_NAME}
         - NEXT_PUBLIC_SITE_SHORT_NAME= ${NEXT_PUBLIC_SITE_SHORT_NAME}
         - NEXT_PUBLIC_BASE_DOMAIN= ${NEXT_PUBLIC_BASE_DOMAIN}
+        # NEW - Phase 2b: SendGrid
+        - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+        - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
+        - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME}
+        
+        # NEW - Phase 2b: Service Admin
+        - SERVICE_ADMIN_EMAIL=${SERVICE_ADMIN_EMAIL}
+        
+        # NEW - Phase 2b: File Upload
+        - MAX_FILE_SIZE=${MAX_FILE_SIZE}
+        - MAX_TOTAL_UPLOAD_SIZE=${MAX_TOTAL_UPLOAD_SIZE}
+        - ALLOWED_FILE_TYPES=${ALLOWED_FILE_TYPES}
+        
+        # NEW - Phase 2b: Rate Limiting
+        - EA_SERVICE_RATE_LIMIT=${EA_SERVICE_RATE_LIMIT}
+        - GRIEVANCE_RATE_LIMIT=${GRIEVANCE_RATE_LIMIT}
+        
+        # NEW - Phase 2b: API Base URLs
+        - API_BASE_URL=${API_BASE_URL}
+        - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
     container_name: frontend
     restart: unless-stopped
     networks:
@@ -86,6 +106,7 @@ services:
       - OSTICKET_SYSTEM_EMAIL=${OSTICKET_SYSTEM_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_SESSION_SECRET=${ADMIN_SESSION_SECRET}
+
     depends_on:
       feedback_db:
         condition: service_healthy

@@ -5,7 +5,7 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Build arguments for configuration
+# Build arguments (existing)
 ARG WIKI_URL
 ARG DMS_URL
 ARG GIT_URL
@@ -29,6 +29,17 @@ ARG FEEDBACK_DB_PORT=5432
 ARG FEEDBACK_DB_NAME=feedback
 ARG FEEDBACK_DB_USER=feedback_user
 
+# NEW Args
+ARG SENDGRID_API_KEY
+ARG SENDGRID_FROM_EMAIL
+ARG SENDGRID_FROM_NAME
+ARG SERVICE_ADMIN_EMAIL
+ARG MAX_FILE_SIZE
+ARG MAX_TOTAL_UPLOAD_SIZE
+ARG ALLOWED_FILE_TYPES
+ARG EA_SERVICE_RATE_LIMIT
+ARG GRIEVANCE_RATE_LIMIT
+ARG API_BASE_URL
 
 # Set as environment variables during build
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
@@ -45,7 +56,7 @@ RUN npm ci --only=production && \
 COPY . .
 COPY ./src/middleware.ts ./src/middleware.ts
 
-# Generate env.ts from build arguments
+# Generate env.ts from build arguments (UPDATED)
 RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "export const config = {" >> src/config/env.ts && \
     echo "  WIKI_URL: '${WIKI_URL}'," >> src/config/env.ts && \
@@ -66,13 +77,23 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  FEEDBACK_DB_NAME: '${FEEDBACK_DB_NAME}'," >> src/config/env.ts && \
     echo "  FEEDBACK_DB_USER: '${FEEDBACK_DB_USER}'," >> src/config/env.ts && \
     echo "  FEEDBACK_DB_PASSWORD: '${FEEDBACK_DB_PASSWORD}'," >> src/config/env.ts && \
+    echo "  SENDGRID_API_KEY: '${SENDGRID_API_KEY}'," >> src/config/env.ts && \
+    echo "  SENDGRID_FROM_EMAIL: '${SENDGRID_FROM_EMAIL}'," >> src/config/env.ts && \
+    echo "  SENDGRID_FROM_NAME: '${SENDGRID_FROM_NAME}'," >> src/config/env.ts && \
+    echo "  SERVICE_ADMIN_EMAIL: '${SERVICE_ADMIN_EMAIL}'," >> src/config/env.ts && \
+    echo "  MAX_FILE_SIZE: ${MAX_FILE_SIZE}," >> src/config/env.ts && \
+    echo "  MAX_TOTAL_UPLOAD_SIZE: ${MAX_TOTAL_UPLOAD_SIZE}," >> src/config/env.ts && \
+    echo "  ALLOWED_FILE_TYPES: '${ALLOWED_FILE_TYPES}'," >> src/config/env.ts && \
+    echo "  EA_SERVICE_RATE_LIMIT: ${EA_SERVICE_RATE_LIMIT}," >> src/config/env.ts && \
+    echo "  GRIEVANCE_RATE_LIMIT: ${GRIEVANCE_RATE_LIMIT}," >> src/config/env.ts && \
+    echo "  API_BASE_URL: '${API_BASE_URL}'," >> src/config/env.ts && \
     echo "};" >> src/config/env.ts && \
     echo "export type Config = typeof config;" >> src/config/env.ts
-    RUN cat src/config/env.ts && echo "✅ env.ts generated successfully"
+
+RUN cat src/config/env.ts && echo "✅ env.ts generated successfully"
 
 # Build the application
 RUN npm run build
-
 
 # ============================================
 # STAGE 2: Production Runtime
@@ -89,7 +110,6 @@ COPY --from=builder /app/next.config.js ./
 COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/node_modules ./node_modules
-
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \

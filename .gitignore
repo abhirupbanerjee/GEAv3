@@ -22,7 +22,7 @@ dist/
 
 
 # docs
-docs/
+
 
 # Environment variables (NEVER COMMIT THESE!)
 .env

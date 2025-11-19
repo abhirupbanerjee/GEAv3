@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
     // 6. VERIFY CATEGORY EXISTS
     const categoryCheck = await executeQuery<CategoryCheckResult>(
       `SELECT category_id FROM ticket_categories
-       WHERE category_id = $1 AND is_active = TRUE`,
+      WHERE category_code = $1 AND is_active = TRUE`,
       [ticketData.category]
     )
     
@@ -175,42 +175,47 @@ export async function POST(request: NextRequest) {
     }
     
     // 7. CREATE TICKET IN DATABASE
-    const insertResult = await executeQuery<TicketCreationResult>(
-      `INSERT INTO tickets (
-        service_id,
-        entity_id,
-        category_id,
-        status,
-        priority,
-        subject,
-        description,
-        submitter_email,
-        submitter_phone,
-        channel,
-        qr_code_id,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, NOW())
-      RETURNING 
-        ticket_id,
-        ticket_number,
-        status,
-        created_at,
-        service_id,
-        entity_id`,
-      [
-        ticketData.service_id,
-        ticketData.entity_id,
-        ticketData.category,
-        'open', // Default status
-        ticketData.priority || 'medium',
-        ticketData.subject,
-        ticketData.description,
-        ticketData.submitter_email || null,
-        ticketData.submitter_phone || null,
-        ticketData.channel || 'portal',
-        ticketData.qr_code_id || null,
-      ]
-    )
+    // CORRECT - Get the category_id integer
+const categoryRow = (categoryCheck.rows as CategoryCheckResult[])[0]
+if (!categoryRow) {
+  return respondError(ErrorCodes.CATEGORY_NOT_FOUND, { requestId })
+}
+
+const insertResult = await executeQuery<TicketCreationResult>(
+  `INSERT INTO tickets (
+    service_id,
+    entity_id,
+    category_id,
+    status_id,
+    priority_id,
+    subject,
+    description,
+    submitter_email,
+    submitter_phone,
+    source,
+    created_at
+  ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
+  RETURNING 
+    ticket_id,
+    ticket_number,
+    status_id,
+    created_at,
+    service_id,
+    entity_id`,
+  [
+    ticketData.service_id,
+    ticketData.entity_id,
+    categoryRow.category_id,  // ← CORRECT: integer ID from lookup
+    1,  // status_id for 'OPEN'
+    2,  // priority_id for 'MEDIUM' (adjust as needed)
+    ticketData.subject,
+    ticketData.description,
+    ticketData.submitter_email || null,
+    ticketData.submitter_phone || null,
+    'portal',
+  ]
+)
+
     
     if (insertResult.rows.length === 0) {
       logError('POST', '/api/tickets/submit', 'Failed to insert ticket', requestId)

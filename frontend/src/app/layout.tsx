@@ -3,10 +3,13 @@ import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ChatBot from '@/components/ChatBot'
-import { config } from '@/config/env'
+import { validateEnvironment } from '@/lib/validateEnv'
+
+// Validate environment on app startup
+const appConfig = validateEnvironment();
 
 export const metadata: Metadata = {
-  title: config.SITE_NAME,
+  title: appConfig.SITE_NAME,
   description: 'Enterprise Architecture Portal for the Government of Grenada',
 }
 
