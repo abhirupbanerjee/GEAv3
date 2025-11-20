@@ -188,7 +188,10 @@ function FeedbackPageContent() {
       // Success!
       setFeedbackId(data.feedback_id)
       setSubmittedAt(data.submitted_at)
-      setTicketInfo(data.ticket || null)
+      if (data.ticket) {
+        setTicketInfo(data.ticket)
+      }
+      //setTicketInfo(data.ticket || null)
       setSubmitSuccess(true)
       
       // Scroll to top to show success message

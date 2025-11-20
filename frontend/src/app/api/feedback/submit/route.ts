@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       'q5_overall_satisfaction'
     ];
 
-    for (const field of requiredFields) {
+    for (const field of requiredFields){
       if (!body[field]) {
         return NextResponse.json(
           { error: `Missing required field: ${field}` },
@@ -302,6 +302,69 @@ if (overallRating <= 2) {
 }
 
 // ============================================
+// TICKET CREATION: For grievances or low ratings
+// ============================================
+
+let ticketInfo: {
+  ticketNumber?: string;
+  reason?: string;
+  created?: boolean;
+} = {};
+
+// Determine if ticket is needed
+//const overallRating = body.q5_overall_satisfaction;
+const isGrievance = body.grievance_flag || false;
+const avgRating = (
+  body.q1_ease +
+  body.q2_clarity +
+  body.q3_timeliness +
+  body.q4_trust +
+  body.q5_overall_satisfaction
+) / 5;
+
+const needsTicket = isGrievance || avgRating <= 2.5;
+
+if (needsTicket) {
+  try {
+    // Call internal ticket creation endpoint
+    const ticketResponse = await fetch(
+      `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/tickets/from-feedback`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          feedback_id: feedbackId,
+          service_id: body.service_id,
+          entity_id: body.entity_id,
+          avg_rating: avgRating,
+          grievance_flag: isGrievance,
+          submitter_email: body.requester_email || null
+        })
+      }
+    );
+
+    if (ticketResponse.ok) {
+      const ticketData = await ticketResponse.json();
+      if (ticketData.success && ticketData.ticket) {
+        ticketInfo = {
+          created: true,
+          ticketNumber: ticketData.ticket.ticket_number,
+          reason: isGrievance ? 'Formal grievance flagged' : `Low average rating (${avgRating.toFixed(1)}/5)`
+        };
+        console.log(`✅ Ticket created: ${ticketData.ticket.ticket_number}`);
+      }
+    } else {
+      const error = await ticketResponse.json();
+      console.warn('⚠️ Ticket creation failed (non-blocking):', error.error);
+      // Non-blocking: feedback already submitted, ticket failure doesn't affect response
+    }
+  } catch (error) {
+    console.error('❌ Ticket creation error (non-blocking):', error);
+    // Non-blocking: ticket failure doesn't affect feedback submission
+  }
+}
+
+// ============================================
 // RESPONSE: Success
 // ============================================
     return NextResponse.json({
@@ -309,9 +372,14 @@ if (overallRating <= 2) {
       feedback_id: feedbackId,
       submitted_at: submittedAt,
       message: 'Thank you for your feedback!',
+      ticket: ticketInfo.created ? {
+        ticketNumber: ticketInfo.ticketNumber,
+        reason: ticketInfo.reason
+      } : undefined,
       metadata: {
         requester_category_validation: body.recipient_group ? 'passed' : 'not_provided',
-        channel: body.channel
+        channel: body.channel,
+        ticket_created: ticketInfo.created || false
       }
     }, { status: 201 });
 
