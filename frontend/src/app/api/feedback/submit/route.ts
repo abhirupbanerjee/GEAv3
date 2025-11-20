@@ -141,6 +141,16 @@ export async function POST(request: NextRequest) {
     // Map frontend display names to backend category codes
     function mapDisplayNameToCategory(displayName: string): string {
       const mapping: Record<string, string> = {
+        // Lowercase values (what frontend actually sends)
+        'citizen': 'citizen',
+        'business': 'citizen',
+        'government': 'gov_employee',
+        'visitor': 'tourist',
+        'tourist': 'tourist',
+        'student': 'student',
+        'officer': 'officer',
+        'other': 'citizen',
+        // Capitalized display names (for backward compatibility)
         'Citizen': 'citizen',
         'Business': 'citizen',
         'Government Employee': 'gov_employee',
@@ -152,7 +162,7 @@ export async function POST(request: NextRequest) {
         'Officer': 'officer',
         'Other': 'citizen'
       };
-      
+
       return mapping[displayName] || displayName.toLowerCase();
     }
 
