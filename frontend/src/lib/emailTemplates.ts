@@ -152,3 +152,104 @@ export function getFeedbackTicketAdminEmail(
   
   return html;
 }
+
+/**
+ * Feedback Confirmation Email Template
+ * Sent to citizen who submitted feedback
+ */
+export function getFeedbackSubmittedTemplate(
+  feedbackId: number,
+  serviceId: string
+): string {
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { 
+            font-family: Arial, sans-serif; 
+            color: #333; 
+            margin: 0; 
+            padding: 0; 
+          }
+          .container { 
+            max-width: 600px; 
+            margin: 0 auto; 
+            padding: 20px; 
+            background: #f9fafb; 
+          }
+          .content { 
+            background: white; 
+            padding: 40px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+          }
+          .header { 
+            border-bottom: 3px solid #2563eb; 
+            padding-bottom: 20px; 
+            margin-bottom: 20px; 
+          }
+          .header h1 { 
+            color: #2563eb; 
+            margin: 0; 
+            font-size: 24px; 
+          }
+          .reference { 
+            background: #eff6ff; 
+            border-left: 4px solid #2563eb; 
+            padding: 15px; 
+            margin: 20px 0; 
+          }
+          .reference p { 
+            margin: 8px 0; 
+            color: #1e40af; 
+            font-weight: bold; 
+          }
+          .message { 
+            color: #374151; 
+            line-height: 1.6; 
+            margin: 15px 0; 
+          }
+          .footer { 
+            border-top: 1px solid #e5e7eb; 
+            padding-top: 20px; 
+            margin-top: 30px; 
+            color: #6b7280; 
+            font-size: 12px; 
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="content">
+            <div class="header">
+              <h1>✅ Thank You for Your Feedback</h1>
+            </div>
+            
+            <p class="message">Dear Valued Citizen,</p>
+            
+            <p class="message">We have successfully received your feedback regarding government services. Your input is important and helps us improve our service delivery.</p>
+            
+            <div class="reference">
+              <p>📋 Feedback ID: ${feedbackId}</p>
+              <p>🏢 Service: ${serviceId}</p>
+              <p>📅 Date: ${new Date().toLocaleDateString()}</p>
+            </div>
+            
+            <p class="message">Your feedback has been recorded and will be reviewed by our team. If you provided contact information, we may reach out with follow-up questions.</p>
+            
+            <p class="message">Thank you for helping us serve you better!</p>
+            
+            <div class="footer">
+              <p>This is an automated message from the Government of Grenada Enterprise Architecture Portal.</p>
+              <p>If you have urgent questions, please contact: alerts.dtahelpdesk@gmail.com</p>
+              <p style="margin-top: 20px; color: #9ca3af;">© Government of Grenada - All Rights Reserved</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+  
+  return html;
+}

@@ -1,6 +1,6 @@
 'use client'
 
-import { aboutContent } from '@/config/content'
+import { aboutContent } from '../../config/content'
 
 // Leadership team member interface
 interface LeadershipMember {

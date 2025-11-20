@@ -14,6 +14,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
+import { sendEmail } from '@/lib/sendgrid';
+import { 
+  getFeedbackSubmittedTemplate,
+  getFeedbackTicketAdminEmail 
+} from '@/lib/emailTemplates';
 
 // NEW: Valid requester categories (from new tickets.requester_category field)
 const VALID_REQUESTER_CATEGORIES = [
@@ -247,16 +252,58 @@ export async function POST(request: NextRequest) {
     const feedbackId = result.rows[0].feedback_id;
     const submittedAt = result.rows[0].submitted_at;
 
-    // ============================================
-    // NEW: Log mapping for audit trail
-    // ============================================
-    if (body.recipient_group) {
-      console.log(`✓ Feedback ${feedbackId}: recipient_group "${body.recipient_group}" validated`);
-    }
+// ============================================
+// NEW: Log mapping for audit trail
+// ============================================
+if (body.recipient_group) {
+  console.log(`✓ Feedback ${feedbackId}: recipient_group "${body.recipient_group}" validated`);
+}
 
-    // ============================================
-    // RESPONSE: Success
-    // ============================================
+// ============================================
+// EMAIL: Send confirmation & alerts (NEW)
+// ============================================
+
+// Send confirmation to requester (if email provided)
+if (body.requester_email) {
+  try {
+    await sendEmail({
+      to: body.requester_email,
+      subject: 'Thank You - Your Feedback Received (GEA Portal)',
+      html: getFeedbackSubmittedTemplate(feedbackId, body.service_id)
+    });
+    console.log(`✅ Confirmation email sent to ${body.requester_email}`);
+  } catch (error) {
+    console.error('❌ Confirmation email failed (non-critical):', error);
+    // Don't fail the API response - email is optional
+  }
+}
+
+// Send DTA alert for poor ratings
+const overallRating = body.q5_overall_satisfaction;
+if (overallRating <= 2) {
+  try {
+    const adminEmail = process.env.SERVICE_ADMIN_EMAIL || 'alerts.dtahelpdesk@gmail.com';
+    
+    await sendEmail({
+      to: adminEmail,
+      subject: `⚠️ ALERT: Low Service Rating - ${body.service_id} (${overallRating}/5)`,
+      html: getFeedbackTicketAdminEmail(
+        `FB-${feedbackId}`,
+        body.service_id,
+        overallRating,
+        body.comment_text || 'No comment provided'
+      )
+    });
+    console.log(`✅ DTA alert sent to ${adminEmail}`);
+  } catch (error) {
+    console.error('❌ DTA alert email failed (non-critical):', error);
+    // Don't fail the API response
+  }
+}
+
+// ============================================
+// RESPONSE: Success
+// ============================================
     return NextResponse.json({
       success: true,
       feedback_id: feedbackId,
