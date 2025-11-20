@@ -15,6 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
+import { checkGrievanceRateLimit, hashIP } from '@/lib/rate-limit'
 
 // Valid requester categories - NEW FIELD
 const VALID_REQUESTER_CATEGORIES = [
@@ -43,6 +44,7 @@ function generateTicketNumber(): string {
     .padStart(6, '0');
   return `${yearMonth}-${randomPart}`;
 }
+
 
 // Map feedback recipient_group to ticket requester_category
 function mapRecipientGroupToCategory(recipientGroup: string | null): string {
@@ -134,7 +136,27 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-    
+
+    // Get and hash IP address for rate limiting
+    const forwarded = request.headers.get('x-forwarded-for');
+    const ip = forwarded ? forwarded.split(',')[0] : request.headers.get('x-real-ip') || 'unknown';
+    const ipHash = hashIP(ip);
+
+    // Check grievance rate limit
+    const rateLimitStatus = await checkGrievanceRateLimit(ipHash)
+
+      if (!rateLimitStatus.allowed) {
+        return NextResponse.json(
+          { 
+            error: `Rate limit exceeded. Maximum ${rateLimitStatus.limit} grievances per hour.`,
+            retry_after: 3600,
+            remaining: rateLimitStatus.remaining,
+            resetAt: rateLimitStatus.resetAt
+          },
+          { status: 429 }
+        );
+      }
+
     // Extract fields
     const {
       feedback_id,
