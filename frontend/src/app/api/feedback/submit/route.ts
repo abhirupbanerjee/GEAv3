@@ -19,6 +19,7 @@ import {
   getFeedbackSubmittedTemplate,
   getFeedbackTicketAdminEmail 
 } from '@/lib/emailTemplates';
+import { config } from '@/config/env'; 
 
 // NEW: Valid requester categories (from new tickets.requester_category field)
 const VALID_REQUESTER_CATEGORIES = [
@@ -63,17 +64,16 @@ function isValidRequesterCategory(category: string | null | undefined): boolean 
 }
 
 // Check rate limit (existing function)
-async function checkRateLimit(ipHash: string): Promise<boolean> {
-  const oneHourAgo = new Date(Date.now() - 3600000);
-  
+async function checkRateLimit(ipHash: string, limit: number = 5): Promise<boolean> {
   const result = await pool.query(
-    `SELECT COUNT(*) as count FROM service_feedback
-     WHERE ip_hash = $1 AND submitted_at > $2`,
-    [ipHash, oneHourAgo]
+    `SELECT COUNT(*) FROM service_feedback 
+     WHERE ip_hash = $1 
+     AND submitted_at > NOW() - INTERVAL '1 hour'`,
+    [ipHash]
   );
   
-  const count = parseInt(result.rows[0].count);
-  return count < 5; // Max 5 per hour
+  const count = parseInt(result.rows[0].count, 10);
+  return count < limit;  // ← Use parameter
 }
 
 export async function POST(request: NextRequest) {
@@ -136,21 +136,44 @@ export async function POST(request: NextRequest) {
     }
 
     // ============================================
-    // VALIDATION: Recipient group → NEW validation
+    // VALIDATION: Recipient group 
     // ============================================
+    // Map frontend display names to backend category codes
+    function mapDisplayNameToCategory(displayName: string): string {
+      const mapping: Record<string, string> = {
+        'Citizen': 'citizen',
+        'Business': 'citizen',
+        'Government Employee': 'gov_employee',
+        'Government': 'gov_employee',
+        'Visitor/Tourist': 'tourist',
+        'Visitor': 'tourist',
+        'Tourist': 'tourist',
+        'Student': 'student',
+        'Officer': 'officer',
+        'Other': 'citizen'
+      };
+      
+      return mapping[displayName] || displayName.toLowerCase();
+    }
+
     if (body.recipient_group) {
-      // NEW: Check against valid categories (mapped to requester_category)
-      if (!isValidRequesterCategory(body.recipient_group)) {
+      // Map display name to category code
+      const mappedCategory = mapDisplayNameToCategory(body.recipient_group);
+      
+      // Check against valid categories
+      if (!VALID_REQUESTER_CATEGORIES.includes(mappedCategory)) {
         return NextResponse.json(
           { 
-            error: 'Invalid recipient_group. Must be one of: ' + 
-                   VALID_REQUESTER_CATEGORIES.join(', '),
+            error: 'Invalid recipient_group. Must be one of: Citizen, Business, Government Employee, Visitor/Tourist, Student, Officer',
             provided_value: body.recipient_group,
-            valid_values: VALID_REQUESTER_CATEGORIES
+            valid_values: ['Citizen', 'Business', 'Government Employee', 'Visitor/Tourist', 'Student', 'Officer']
           },
           { status: 400 }
         );
       }
+      
+      // Update body.recipient_group with mapped value
+      body.recipient_group = mappedCategory;
     }
 
     // ============================================
@@ -175,17 +198,18 @@ export async function POST(request: NextRequest) {
     // ============================================
     // Check rate limit (unchanged)
     // ============================================
-    const canSubmit = await checkRateLimit(ipHash);
-    if (!canSubmit) {
-      return NextResponse.json(
-        { 
-          error: 'Rate limit exceeded. Maximum 5 submissions per hour.',
-          retry_after: 3600 
-        },
-        { status: 429 }
-      );
-    }
+      const rateLimit = config.EA_SERVICE_RATE_LIMIT || 5;
+      const canSubmit = await checkRateLimit(ipHash, rateLimit);
 
+      if (!canSubmit) {
+        return NextResponse.json(
+          { 
+            error: `Rate limit exceeded. Maximum ${rateLimit} submissions per hour.`,
+            retry_after: 3600 
+          },
+          { status: 429 }
+        );
+      }
     // ============================================
     // VALIDATION: Service and entity (unchanged)
     // ============================================
