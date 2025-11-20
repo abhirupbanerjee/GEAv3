@@ -43,7 +43,7 @@ export async function GET(
         ts.status_name,
         ts.status_code,
         pl.priority_name,
-        pl.priority_level,
+        pl.priority_code,
         s.service_name,
         s.service_id,
         e.entity_name
@@ -79,7 +79,7 @@ export async function GET(
         status: ticket.status_name || 'Unknown',
         status_code: ticket.status_code,
         priority: ticket.priority_name || 'Unknown',
-        priority_level: ticket.priority_level,
+        priority_code: ticket.priority_code,
         service_name: ticket.service_name,
         service_id: ticket.service_id,
         entity_name: ticket.entity_name,

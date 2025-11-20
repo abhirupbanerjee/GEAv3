@@ -10,7 +10,7 @@ interface TicketDetails {
   status: string;
   status_code: string;
   priority: string;
-  priority_level: number;
+  priority_code: string;
   service_name: string;
   service_id: string;
   entity_name: string;
