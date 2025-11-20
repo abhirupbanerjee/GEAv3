@@ -51,7 +51,7 @@ export async function GET(
       LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
       LEFT JOIN priority_levels pl ON t.priority_id = pl.priority_id
       LEFT JOIN service_master s ON t.service_id = s.service_id
-      LEFT JOIN entity_master e ON t.entity_id = e.entity_id
+      LEFT JOIN entity_master e ON t.entity_id = e.unique_entity_id
       WHERE t.ticket_number = $1`,
       [ticketNumber]
     );
