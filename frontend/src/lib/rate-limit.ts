@@ -12,7 +12,7 @@
 
 import crypto from 'crypto'
 import { pool } from './db'
-import { config } from './config/env'
+import { config } from '@/config/env'
 
 // ============================================
 // TYPES
