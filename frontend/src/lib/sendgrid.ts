@@ -5,9 +5,10 @@
 
 import sgMail from '@sendgrid/mail';
 
-const SENDGRID_API_KEY = process.env.SENDGRID_API_KEY;
-const FROM_EMAIL = process.env.SENDGRID_FROM_EMAIL!;
-const FROM_NAME = process.env.SENDGRID_FROM_NAME || 'GEA Portal';
+import { config } from '@/config/env';
+const SENDGRID_API_KEY = config.SENDGRID_API_KEY;
+const FROM_EMAIL = config.SENDGRID_FROM_EMAIL!;
+const FROM_NAME = config.SENDGRID_FROM_NAME || 'GEA Portal';
 
 if (!SENDGRID_API_KEY) {
   throw new Error('SENDGRID_API_KEY is not set');
