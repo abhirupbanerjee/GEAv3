@@ -358,10 +358,14 @@ if (needsTicket) {
     const ticketPayload = {
       feedback_id: feedbackId,
       service_id: body.service_id,
-      entity_id: body.entity_id,
-      avg_rating: avgRating,
+      recipient_group: body.recipient_group || null,
       grievance_flag: isGrievance,
-      submitter_email: body.requester_email || null
+      comment_text: body.comment_text || null,
+      q1_ease: body.q1_ease,
+      q2_clarity: body.q2_clarity,
+      q3_timeliness: body.q3_timeliness,
+      q4_trust: body.q4_trust,
+      q5_overall_satisfaction: body.q5_overall_satisfaction
     };
     
     console.log(`🔄 TICKET: Calling ${ticketApiUrl}`);
