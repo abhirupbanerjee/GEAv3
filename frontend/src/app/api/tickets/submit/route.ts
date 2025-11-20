@@ -30,6 +30,7 @@ import {
   recordAttempt,
   verifyCaptcha,
   getClientIP,
+  hashIP,
 } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -78,10 +79,11 @@ export async function POST(request: NextRequest) {
   
   try {
     // 1. EXTRACT CLIENT IP
-    const clientIP = getClientIP(request.headers)
-    
+    const clientIP = getClientIP(request)
+    const ipHash = hashIP(clientIP)
+
     // 2. CHECK RATE LIMIT
-    const rateLimitStatus = await checkRateLimit(clientIP, 'ticket_submit')
+    const rateLimitStatus = await checkRateLimit(ipHash, 'grievance')
     
     if (!rateLimitStatus.allowed) {
       logRequest('POST', '/api/tickets/submit', 429, Date.now() - startTime, requestId, {
@@ -90,16 +92,6 @@ export async function POST(request: NextRequest) {
         remaining: rateLimitStatus.remaining,
       })
       return respondError(ErrorCodes.RATE_LIMIT_EXCEEDED, { requestId })
-    }
-    
-    // If CAPTCHA needed but not provided, return 429
-    if (rateLimitStatus.requiresCaptcha) {
-      logRequest('POST', '/api/tickets/submit', 429, Date.now() - startTime, requestId, {
-        reason: 'captcha_required',
-        ip: clientIP,
-        attempts: rateLimitStatus.attemptCount,
-      })
-      return respondError(ErrorCodes.CAPTCHA_REQUIRED, { requestId })
     }
     
     // 3. PARSE AND VALIDATE REQUEST BODY
