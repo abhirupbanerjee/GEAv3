@@ -11,7 +11,7 @@ const navigationItems = [
   { label: 'Repository', href: config.DMS_URL, type: 'external' as const },
   { label: 'Wiki', href: config.WIKI_URL, type: 'external' as const },
   { label: 'Git', href: config.GIT_URL, type: 'external' as const },
-  { label: 'Helpdesk', href: config.HELPDESK_URL, type: 'external' as const },
+  { label: 'Helpdesk', href: '/helpdesk', type: 'internal' as const },
   { label: 'Admin', href: '/admin', type: 'internal' as const },
 ]
 
