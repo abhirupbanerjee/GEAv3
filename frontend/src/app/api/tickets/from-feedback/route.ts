@@ -224,7 +224,11 @@ export async function POST(request: NextRequest) {
     );
     const status_id = statusResult.rows[0]?.status_id || 1;
 
-    // Build ticket description from feedback
+    // Build ticket subject and description from feedback
+    const subject = grievance_flag
+      ? `Grievance: ${service.service_name} - Low Rating (${avgRating.toFixed(1)}/5)`
+      : `Feedback Issue: ${service.service_name} - Rating ${avgRating.toFixed(1)}/5`;
+
     const description = `
 Ticket created from citizen feedback
 
@@ -242,7 +246,7 @@ Ratings:
 
 ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
     `.trim();
-    
+
     // ============================================
     // STEP 4: Create ticket with new schema fields
     // ============================================
@@ -256,13 +260,14 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         entity_id,
         requester_category,
         feedback_id,
+        subject,
         description,
         priority_id,
         status_id,
         created_by,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING ticket_id, ticket_number, created_at`,
       [
         ticketNumber,
@@ -270,6 +275,7 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         entity_id,
         requesterCategory,
         feedback_id,
+        subject,
         description,
         priority_id,
         status_id,
