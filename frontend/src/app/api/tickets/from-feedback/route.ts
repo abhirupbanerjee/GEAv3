@@ -20,10 +20,11 @@ import { checkGrievanceRateLimit, hashIP } from '@/lib/rate-limit'
 // Valid requester categories - NEW FIELD
 const VALID_REQUESTER_CATEGORIES = [
   'citizen',
+  'business',        
+  'government',     
   'tourist',
-  'gov_employee',
   'student',
-  'officer'
+  'other'
 ];
 
 // Ticket priority mapping based on feedback rating
@@ -51,12 +52,12 @@ function mapRecipientGroupToCategory(recipientGroup: string | null): string {
   if (!recipientGroup) return 'citizen'; // Default
   
   const mapping: Record<string, string> = {
-    'citizen': 'citizen',
-    'business': 'citizen', // Treat business as citizen for now
-    'government': 'gov_employee',
-    'visitor': 'tourist',
-    'student': 'student',
-    'other': 'citizen'
+  'citizen': 'citizen',
+  'business': 'business',
+  'government': 'government',
+  'visitor': 'tourist',
+  'student': 'student',
+  'other': 'other'  
   };
   
   return mapping[recipientGroup.toLowerCase()] || 'citizen';

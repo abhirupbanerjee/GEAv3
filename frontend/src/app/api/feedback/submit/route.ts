@@ -24,10 +24,11 @@ import { config } from '@/config/env';
 // NEW: Valid requester categories (from new tickets.requester_category field)
 const VALID_REQUESTER_CATEGORIES = [
   'citizen',
+  'business',        
+  'government',      
   'tourist',
-  'gov_employee',
   'student',
-  'officer'
+  'other'  
 ];
 
 // Get client IP safely
@@ -143,24 +144,23 @@ export async function POST(request: NextRequest) {
       const mapping: Record<string, string> = {
         // Lowercase values (what frontend actually sends)
         'citizen': 'citizen',
-        'business': 'citizen',
-        'government': 'gov_employee',
+        'business': 'business',          
+        'government': 'government',      
         'visitor': 'tourist',
         'tourist': 'tourist',
         'student': 'student',
         'officer': 'officer',
-        'other': 'citizen',
-        // Capitalized display names (for backward compatibility)
+        'other': 'other',                
         'Citizen': 'citizen',
-        'Business': 'citizen',
-        'Government Employee': 'gov_employee',
-        'Government': 'gov_employee',
+        'Business': 'business',
+        'Government Employee': 'government',
+        'Government': 'government',
         'Visitor/Tourist': 'tourist',
         'Visitor': 'tourist',
         'Tourist': 'tourist',
         'Student': 'student',
         'Officer': 'officer',
-        'Other': 'citizen'
+        'Other': 'other' 
       };
 
       return mapping[displayName] || displayName.toLowerCase();
