@@ -306,7 +306,8 @@ function FeedbackPageContent() {
                   { value: 'citizen', label: 'Citizen', icon: '👤' },
                   { value: 'business', label: 'Business', icon: '🏢' },
                   { value: 'government', label: 'Government Employee', icon: '🏛️' },
-                  { value: 'visitor', label: 'Visitor/Tourist', icon: '✈️' },
+                  { value: 'visitor', label: 'Visitor', icon: '✈️' },
+                  { value: 'student', label: 'Student', icon: '🎓' }, 
                   { value: 'other', label: 'Other', icon: '📋' }
                 ].map((option) => (
                   <button
