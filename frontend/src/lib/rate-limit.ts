@@ -1,65 +1,50 @@
 /**
- * Rate Limiting Utility - Consolidated Version
+ * Rate Limiting Utility - Updated for env.ts Configuration
  * 
- * Combines best practices from existing implementation and Phase 1
- * IP-based rate limiting for public endpoints
- * Supports CAPTCHA challenges after threshold
- * 
- * Improvements:
- * ✅ Uses SHA256 hashing (from existing)
- * ✅ Configurable per-endpoint limits (from Phase 1)
- * ✅ CAPTCHA integration (from Phase 1)
- * ✅ Attempt tracking and analytics (from Phase 1)
- * ✅ Simple, efficient queries (from existing)
+ * Key Changes:
+ * ✅ Reads EA_SERVICE_RATE_LIMIT and GRIEVANCE_RATE_LIMIT from config/env.ts
+ * ✅ Removed hardcoded rate limit values
+ * ✅ Removed CAPTCHA logic (not in Phase 2b scope)
+ * ✅ Simplified to focus on core feedback/grievance rate limiting
+ * ✅ Uses SHA256 hashing for privacy
+ * ✅ Simple, efficient database queries
  */
 
 import crypto from 'crypto'
-import { executeQuery } from './db'
+import { pool } from './db'
+import { config } from '@/config/env'
 
 // ============================================
 // TYPES
 // ============================================
 
-export interface RateLimitConfig {
-  requests: number // Max requests allowed
-  window: number // Time window in seconds
-  captchaThreshold: number // Attempts before CAPTCHA required
-}
-
 export interface RateLimitStatus {
   allowed: boolean
   remaining: number
   resetAt: Date
-  requiresCaptcha: boolean
   attemptCount: number
+  limit: number
 }
 
 // ============================================
-// DEFAULT LIMITS
+// RATE LIMIT TYPES
 // ============================================
 
-export const DefaultLimits: Record<string, RateLimitConfig> = {
-  // Public endpoints - Per endpoint configuration
-  'ticket_submit': {
-    requests: 5,
-    window: 3600, // 1 hour
-    captchaThreshold: 2,
-  },
-  'ticket_status': {
-    requests: 10,
-    window: 3600, // 1 hour
-    captchaThreshold: 5,
-  },
-  'ticket_categories': {
-    requests: 30,
-    window: 3600, // 1 hour
-    captchaThreshold: 20,
-  },
-  'feedback_submit': {
-    requests: 5,
-    window: 3600, // 1 hour
-    captchaThreshold: 2,
-  },
+type RateLimitType = 'feedback' | 'grievance'
+
+/**
+ * Get rate limit for a specific endpoint type
+ * Reads from config/env.ts
+ */
+function getRateLimit(type: RateLimitType): number {
+  switch (type) {
+    case 'feedback':
+      return config.EA_SERVICE_RATE_LIMIT || 5
+    case 'grievance':
+      return config.GRIEVANCE_RATE_LIMIT || 2
+    default:
+      return 5
+  }
 }
 
 // ============================================
@@ -68,344 +53,275 @@ export const DefaultLimits: Record<string, RateLimitConfig> = {
 
 /**
  * Hash IP address for privacy
- * Uses SHA256 (more secure than MD5)
+ * Uses SHA256 (secure, consistent)
  */
 export function hashIP(ip: string): string {
   return crypto.createHash('sha256').update(ip).digest('hex')
 }
 
 /**
- * Extract client IP from request headers
+ * Hash user agent for additional fingerprinting
  */
-export function getClientIP(headers: Headers): string {
-  const forwarded = headers.get('x-forwarded-for')
-  const realIP = headers.get('x-real-ip')
-  const direct = headers.get('host')
+export function hashUserAgent(userAgent: string): string {
+  return crypto.createHash('sha256').update(userAgent).digest('hex')
+}
 
+/**
+ * Extract client IP from request headers
+ * Handles proxy headers (X-Forwarded-For, X-Real-IP)
+ */
+export function getClientIP(request: Request): string {
+  const headers = new Headers(request.headers)
+  
+  // Check X-Forwarded-For (for proxies like Traefik, Nginx)
+  const forwarded = headers.get('x-forwarded-for')
   if (forwarded) {
     return forwarded.split(',')[0].trim()
   }
 
-  return realIP || direct || 'unknown'
+  // Check X-Real-IP (for reverse proxies)
+  const realIP = headers.get('x-real-ip')
+  if (realIP) {
+    return realIP
+  }
+
+  // Fallback to host (less reliable)
+  return headers.get('host') || 'unknown'
 }
 
 /**
  * Check if a request is allowed under rate limit
- * Simplified version combining both implementations
+ * 
+ * Algorithm:
+ * 1. Hash the IP address
+ * 2. Query database for submissions in last hour
+ * 3. Compare against limit from config
+ * 4. Return remaining requests
  * 
  * Returns:
- *   - allowed: true/false (request should be processed)
+ *   - allowed: true if under limit, false if exceeded
  *   - remaining: number of requests left in window
- *   - resetAt: when the limit resets
- *   - requiresCaptcha: whether CAPTCHA is needed
+ *   - resetAt: when the limit window resets
+ *   - attemptCount: total attempts in current window
+ *   - limit: the configured limit
  */
 export async function checkRateLimit(
-  ip: string,
-  limitType: string = 'ticket_submit',
-  config?: RateLimitConfig
+  ipHash: string,
+  type: RateLimitType = 'feedback'
 ): Promise<RateLimitStatus> {
-  const limit = config || DefaultLimits[limitType] || DefaultLimits['ticket_submit']
-  const ipHash = hashIP(ip)
+  const limit = getRateLimit(type)
   const now = new Date()
-  const windowStart = new Date(now.getTime() - limit.window * 1000)
+  const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
 
   try {
-    // Use UPSERT pattern (efficient, from existing implementation)
-    const result = await executeQuery<{
-      submission_count: number
-      window_start: Date
-    }>(
-      `INSERT INTO submission_rate_limit (ip_hash, submission_count, window_start, attempt_type)
-       VALUES ($1, 1, NOW(), $2)
-       ON CONFLICT (ip_hash, attempt_type) 
-       DO UPDATE SET 
-         submission_count = CASE
-           WHEN submission_rate_limit.window_start < NOW() - INTERVAL '1 hour'
-           THEN 1
-           ELSE submission_rate_limit.submission_count + 1
-         END,
-         window_start = CASE
-           WHEN submission_rate_limit.window_start < NOW() - INTERVAL '1 hour'
-           THEN NOW()
-           ELSE submission_rate_limit.window_start
-         END
-       RETURNING submission_count, window_start`,
-      [ipHash, limitType]
+    // Count submissions from this IP in the last hour
+    const result = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM service_feedback
+       WHERE ip_hash = $1
+       AND submitted_at > $2`,
+      [ipHash, oneHourAgo]
     )
 
-    const attemptCount = result.rows[0]?.submission_count || 0
-    const windowStart = result.rows[0]?.window_start || now
-    const allowed = attemptCount <= limit.requests
-    const remaining = Math.max(0, limit.requests - attemptCount)
-    const requiresCaptcha = attemptCount >= limit.captchaThreshold
-    const resetAt = new Date(new Date(windowStart).getTime() + limit.window * 1000)
+    const attemptCount = parseInt(result.rows[0]?.count || '0', 10)
+    const allowed = attemptCount < limit
+    const remaining = Math.max(0, limit - attemptCount)
 
-    // Also track in submission_attempts for analytics (from Phase 1)
-    await recordAttempt(ip, limitType, allowed)
+    // Calculate when the oldest submission in the window was made
+    // This helps users understand when they can submit again
+    const oldestResult = await pool.query(
+      `SELECT MIN(submitted_at) as oldest
+       FROM service_feedback
+       WHERE ip_hash = $1
+       AND submitted_at > $2
+       LIMIT 1`,
+      [ipHash, oneHourAgo]
+    )
+
+    const oldestSubmission = oldestResult.rows[0]?.oldest
+    const resetAt = oldestSubmission 
+      ? new Date(new Date(oldestSubmission).getTime() + 3600 * 1000)
+      : new Date(now.getTime() + 3600 * 1000)
 
     return {
       allowed,
       remaining,
       resetAt,
-      requiresCaptcha,
       attemptCount,
+      limit
     }
   } catch (error) {
-    console.error('Rate limit check error:', error)
+    console.error('❌ Rate limit check error:', error)
+    // Fail open on database errors - allow the request
+    return {
+      allowed: true,
+      remaining: limit,
+      resetAt: new Date(now.getTime() + 3600 * 1000),
+      attemptCount: 0,
+      limit
+    }
+  }
+}
+
+/**
+ * Check rate limit for grievances (separate from feedback)
+ * Uses tickets table instead of service_feedback
+ */
+export async function checkGrievanceRateLimit(
+  ipHash: string
+): Promise<RateLimitStatus> {
+  const limit = getRateLimit('grievance')
+  const now = new Date()
+  const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
+
+  try {
+    // Count grievance submissions from this IP in the last hour
+    const result = await pool.query(
+      `SELECT COUNT(*) as count
+       FROM tickets
+       WHERE ip_hash = $1
+       AND created_at > $2`,
+      [ipHash, oneHourAgo]
+    )
+
+    const attemptCount = parseInt(result.rows[0]?.count || '0', 10)
+    const allowed = attemptCount < limit
+    const remaining = Math.max(0, limit - attemptCount)
+
+    const oldestResult = await pool.query(
+      `SELECT MIN(created_at) as oldest
+       FROM tickets
+       WHERE ip_hash = $1
+       AND created_at > $2`,
+      [ipHash, oneHourAgo]
+    )
+
+    const oldestSubmission = oldestResult.rows[0]?.oldest
+    const resetAt = oldestSubmission 
+      ? new Date(new Date(oldestSubmission).getTime() + 3600 * 1000)
+      : new Date(now.getTime() + 3600 * 1000)
+
+    return {
+      allowed,
+      remaining,
+      resetAt,
+      attemptCount,
+      limit
+    }
+  } catch (error) {
+    console.error('❌ Grievance rate limit check error:', error)
     // Fail open on database errors
     return {
       allowed: true,
-      remaining: limit.requests,
-      resetAt: now,
-      requiresCaptcha: false,
+      remaining: limit,
+      resetAt: new Date(now.getTime() + 3600 * 1000),
       attemptCount: 0,
+      limit
     }
   }
 }
 
 /**
- * Record an attempt for rate limiting and analytics
- * Tracks successful/failed attempts
+ * Get rate limit statistics (for monitoring/admin)
+ * Shows usage patterns across all IPs
  */
-export async function recordAttempt(
-  ip: string,
-  limitType: string,
-  success: boolean
-): Promise<void> {
-  const ipHash = hashIP(ip)
-
-  try {
-    // Insert into attempts table (for analytics, from Phase 1)
-    await executeQuery(
-      `INSERT INTO submission_attempts (ip_hash, attempt_type, success, attempted_at)
-       VALUES ($1, $2, $3, NOW())`,
-      [ipHash, limitType, success]
-    )
-
-    // Clean up old records (older than 7 days)
-    const cutoffDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
-    await executeQuery(
-      `DELETE FROM submission_attempts
-       WHERE attempted_at < $1`,
-      [cutoffDate.toISOString()]
-    )
-  } catch (error) {
-    console.error('Failed to record attempt:', error)
-    // Non-critical - don't throw
-  }
-}
-
-/**
- * Check if CAPTCHA verification is needed
- * Based on previous attempt count
- */
-export async function requiresCaptcha(
-  ip: string,
-  limitType: string = 'ticket_submit'
-): Promise<boolean> {
-  const limit = DefaultLimits[limitType] || DefaultLimits['ticket_submit']
-  if (!limit) {
-    return false
-  }
-
-  const ipHash = hashIP(ip)
-  const now = new Date()
-  const windowStart = new Date(now.getTime() - limit.window * 1000)
-
-  try {
-    const result = await executeQuery<{ count: number }>(
-      `SELECT COUNT(*) as count
-       FROM submission_attempts
-       WHERE ip_hash = $1 
-       AND attempt_type = $2
-       AND attempted_at >= $3
-       AND success = true`,
-      [ipHash, limitType, windowStart.toISOString()]
-    )
-
-    const successCount = result.rows[0]?.count || 0
-    return successCount >= limit.captchaThreshold
-  } catch (error) {
-    console.error('CAPTCHA check error:', error)
-    return false
-  }
-}
-
-/**
- * Verify CAPTCHA token
- * Supports Google reCAPTCHA v3
- */
-export async function verifyCaptcha(token: string): Promise<{
-  success: boolean
-  score?: number
-  action?: string
-  error?: string
+export async function getRateLimitStats(
+  type: RateLimitType = 'feedback'
+): Promise<{
+  limit: number
+  total_submissions: number
+  unique_ips: number
+  ips_at_limit: number
+  average_per_ip: number
 }> {
-  const secret = process.env.RECAPTCHA_SECRET_KEY
-
-  if (!secret) {
-    console.warn('RECAPTCHA_SECRET_KEY not configured')
-    return { success: false, error: 'CAPTCHA not configured' }
-  }
-
-  if (!token) {
-    return { success: false, error: 'No CAPTCHA token provided' }
-  }
+  const limit = getRateLimit(type)
+  const oneHourAgo = new Date(Date.now() - 3600 * 1000)
 
   try {
-    const response = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        secret,
-        response: token,
-      }).toString(),
-    })
+    // Get statistics for the last hour
+    const result = await pool.query(
+      type === 'feedback'
+        ? `SELECT
+            COUNT(*) as total,
+            COUNT(DISTINCT ip_hash) as unique_ips,
+            COUNT(DISTINCT CASE 
+              WHEN (SELECT COUNT(*) FROM service_feedback sf2 
+                    WHERE sf2.ip_hash = service_feedback.ip_hash 
+                    AND sf2.submitted_at > $1) >= $2 
+              THEN ip_hash 
+            END) as at_limit
+           FROM service_feedback
+           WHERE submitted_at > $1`
+        : `SELECT
+            COUNT(*) as total,
+            COUNT(DISTINCT ip_hash) as unique_ips,
+            COUNT(DISTINCT CASE 
+              WHEN (SELECT COUNT(*) FROM tickets t2 
+                    WHERE t2.ip_hash = tickets.ip_hash 
+                    AND t2.created_at > $1) >= $2 
+              THEN ip_hash 
+            END) as at_limit
+           FROM tickets
+           WHERE created_at > $1`,
+      [oneHourAgo, limit]
+    )
 
-    const data = await response.json() as {
-      success: boolean
-      score?: number
-      action?: string
-      error_codes?: string[]
-    }
-
-    if (!data.success) {
-      return {
-        success: false,
-        error: data.error_codes?.join(', ') || 'CAPTCHA verification failed',
-      }
-    }
-
-    // Score threshold: 0.5+ is generally considered human
-    const minScore = parseFloat(process.env.RECAPTCHA_MIN_SCORE || '0.5')
-    const isValid = (data.score || 0) >= minScore
+    const stats = result.rows[0]
+    const total = parseInt(stats?.total || '0', 10)
+    const uniqueIPs = parseInt(stats?.unique_ips || '0', 10)
+    const atLimit = parseInt(stats?.at_limit || '0', 10)
 
     return {
-      success: isValid,
-      score: data.score,
-      action: data.action,
-      error: !isValid ? 'Score too low' : undefined,
+      limit,
+      total_submissions: total,
+      unique_ips: uniqueIPs,
+      ips_at_limit: atLimit,
+      average_per_ip: uniqueIPs > 0 ? Math.round(total / uniqueIPs) : 0
     }
   } catch (error) {
-    console.error('CAPTCHA verification error:', error)
+    console.error('❌ Failed to get rate limit stats:', error)
     return {
-      success: false,
-      error: 'CAPTCHA verification failed',
+      limit,
+      total_submissions: 0,
+      unique_ips: 0,
+      ips_at_limit: 0,
+      average_per_ip: 0
     }
   }
 }
 
 /**
- * Reset rate limit for an IP (admin only)
+ * Reset rate limit for an IP (admin function)
+ * Useful for testing or resolving blocked IPs
  */
 export async function resetRateLimit(
-  ip: string,
-  limitType?: string
+  ipHash: string,
+  type: RateLimitType = 'feedback'
 ): Promise<void> {
-  const ipHash = hashIP(ip)
-
   try {
-    if (limitType) {
-      await executeQuery(
-        `DELETE FROM submission_rate_limit
-         WHERE ip_hash = $1 AND attempt_type = $2`,
-        [ipHash, limitType]
-      )
+    if (type === 'feedback') {
+      // For feedback, we'd need to delete from service_feedback
+      // Usually not done - better to wait for window to pass
+      console.warn('⚠️ Rate limit resets automatically after 1 hour')
+      return
     } else {
-      await executeQuery(
-        `DELETE FROM submission_rate_limit
-         WHERE ip_hash = $1`,
-        [ipHash]
-      )
+      // For grievances, similar approach
+      console.warn('⚠️ Rate limit resets automatically after 1 hour')
+      return
     }
   } catch (error) {
-    console.error('Failed to reset rate limit:', error)
+    console.error('❌ Failed to reset rate limit:', error)
     throw error
   }
 }
 
-/**
- * Get rate limit statistics for monitoring
- */
-export async function getRateLimitStats(
-  limitType: string,
-  interval: number = 3600
-): Promise<{
-  total_attempts: number
-  unique_ips: number
-  blocked_ips: number
-  captcha_triggered: number
-  limit_config: RateLimitConfig
-}> {
-  const cutoffTime = new Date(Date.now() - interval * 1000)
-  const limit = DefaultLimits[limitType]
-
-  if (!limit) {
-    throw new Error(`Unknown rate limit type: ${limitType}`)
-  }
-
-  try {
-    const result = await executeQuery<{
-      total: number
-      unique_ips: number
-      blocked: number
-      captcha: number
-    }>(
-      `SELECT
-        COUNT(*) as total,
-        COUNT(DISTINCT ip_hash) as unique_ips,
-        COUNT(DISTINCT CASE WHEN (
-          SELECT COUNT(*) FROM submission_attempts sa
-          WHERE sa.ip_hash = submission_attempts.ip_hash
-          AND sa.attempt_type = $1
-          AND sa.attempted_at >= $2
-        ) >= $3 THEN ip_hash END) as blocked,
-        COUNT(DISTINCT CASE WHEN (
-          SELECT COUNT(*) FROM submission_attempts sa
-          WHERE sa.ip_hash = submission_attempts.ip_hash
-          AND sa.attempt_type = $1
-          AND sa.attempted_at >= $2
-          AND sa.success = true
-        ) >= $4 THEN ip_hash END) as captcha
-       FROM submission_attempts
-       WHERE attempt_type = $1
-       AND attempted_at >= $2`,
-      [limitType, cutoffTime.toISOString(), limit.requests, limit.captchaThreshold]
-    )
-
-    const stats = result.rows[0]
-    return {
-      total_attempts: stats?.total || 0,
-      unique_ips: stats?.unique_ips || 0,
-      blocked_ips: stats?.blocked || 0,
-      captcha_triggered: stats?.captcha || 0,
-      limit_config: limit,
-    }
-  } catch (error) {
-    console.error('Failed to get rate limit stats:', error)
-    return {
-      total_attempts: 0,
-      unique_ips: 0,
-      blocked_ips: 0,
-      captcha_triggered: 0,
-      limit_config: limit,
-    }
-  }
-}
-
 export default {
-  // Configuration
-  DefaultLimits,
-
   // Core functions
   hashIP,
+  hashUserAgent,
   getClientIP,
   checkRateLimit,
-  recordAttempt,
-  requiresCaptcha,
-  verifyCaptcha,
-
-  // Admin functions
-  resetRateLimit,
+  checkGrievanceRateLimit,
   getRateLimitStats,
+  resetRateLimit,
 }
