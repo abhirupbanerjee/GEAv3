@@ -27,12 +27,13 @@ const VALID_REQUESTER_CATEGORIES = [
   'other'
 ];
 
-// Ticket priority mapping based on feedback rating
-function getPriorityFromRating(avgRating: number, grievanceFlag: boolean): string {
-  if (grievanceFlag) return 'high';
-  if (avgRating <= 1.5) return 'urgent';
-  if (avgRating <= 2.5) return 'high';
-  return 'medium';
+// Ticket priority mapping based on feedback rating (returns priority_id)
+function getPriorityIdFromRating(avgRating: number, grievanceFlag: boolean): number {
+  if (grievanceFlag) return 1; // URGENT
+  if (avgRating <= 1.5) return 1; // URGENT
+  if (avgRating <= 2.5) return 2; // HIGH
+  if (avgRating <= 3.5) return 3; // MEDIUM
+  return 4; // LOW
 }
 
 // Generate unique ticket number in format YYYYMM-XXXXXX
@@ -118,7 +119,6 @@ export async function POST(request: NextRequest) {
     const requiredFields = [
       'feedback_id',
       'service_id',
-      'entity_id',
       'q1_ease',
       'q2_clarity',
       'q3_timeliness',
@@ -162,7 +162,6 @@ export async function POST(request: NextRequest) {
     const {
       feedback_id,
       service_id,
-      entity_id,
       recipient_group,
       grievance_flag,
       comment_text,
@@ -172,12 +171,13 @@ export async function POST(request: NextRequest) {
       q4_trust,
       q5_overall_satisfaction
     } = body;
-    
+
     // ============================================
-    // STEP 1: Validate Service (FK validation)
+    // STEP 1: Validate Service and get entity_id (FK validation)
     // ============================================
     const service = await validateService(service_id);
-    console.log(`✓ Service validated: ${service.service_name}`);
+    const entity_id = service.entity_id || 'AGY-002'; // Fallback to default entity
+    console.log(`✓ Service validated: ${service.service_name}, Entity: ${entity_id}`);
     
     // ============================================
     // STEP 2: Check Mandatory Attachments
@@ -210,10 +210,20 @@ export async function POST(request: NextRequest) {
     
     // Map recipient_group to requester_category (NEW FIELD)
     const requesterCategory = mapRecipientGroupToCategory(recipient_group);
-    
-    // Determine priority based on grievance or low rating
-    const priority = getPriorityFromRating(avgRating, grievance_flag || false);
-    
+
+    // Determine priority_id based on grievance or low rating
+    const priority_id = getPriorityIdFromRating(avgRating, grievance_flag || false);
+
+    // Get priority name for description
+    const priorityName = priority_id === 1 ? 'URGENT' : priority_id === 2 ? 'HIGH' : priority_id === 3 ? 'MEDIUM' : 'LOW';
+
+    // Lookup status_id for 'open' status (status_code = '1')
+    const statusResult = await pool.query(
+      `SELECT status_id FROM ticket_status WHERE status_code = '1'`,
+      []
+    );
+    const status_id = statusResult.rows[0]?.status_id || 1;
+
     // Build ticket description from feedback
     const description = `
 Ticket created from citizen feedback
@@ -245,13 +255,14 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         service_id,
         entity_id,
         requester_category,
-        linked_feedback_id,
+        feedback_id,
         description,
-        priority,
-        status,
+        priority_id,
+        status_id,
+        created_by,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING ticket_id, ticket_number, created_at`,
       [
         ticketNumber,
@@ -260,8 +271,9 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         requesterCategory,
         feedback_id,
         description,
-        priority,
-        'open',
+        priority_id,
+        status_id,
+        'from-feedback-system',
         now,
         now
       ]
@@ -285,10 +297,13 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         ticket_id: ticket.ticket_id,
         ticket_number: ticket.ticket_number,
         service_id: service_id,
+        entity_id: entity_id,
         requester_category: requesterCategory,
         status: 'open',
-        priority: priority,
-        linked_feedback_id: feedback_id,
+        status_id: status_id,
+        priority: priorityName,
+        priority_id: priority_id,
+        feedback_id: feedback_id,
         created_at: ticket.created_at,
         avg_rating: parseFloat(avgRating.toFixed(2))
       },

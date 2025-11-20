@@ -101,9 +101,17 @@ export default function SuccessMessage({
                         #{ticket.ticketNumber}
                       </span>
                     </div>
-                    <p className="text-xs text-blue-700 mt-2">
-                      <strong>Reason:</strong> {ticket.reason}
-                    </p>
+                    {ticket.reason && (
+                      <p className="text-xs text-blue-700 mt-2">
+                        <strong>Reason:</strong> {ticket.reason}
+                      </p>
+                    )}
+                    <a
+                      href={`/helpdesk/ticket/${ticket.ticketNumber}`}
+                      className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
+                    >
+                      Track Ticket Status →
+                    </a>
                     <p className="text-xs text-blue-700 mt-2">
                       Our team will review your feedback and reach out if additional information is needed.
                     </p>
