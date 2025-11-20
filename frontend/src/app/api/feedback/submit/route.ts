@@ -353,41 +353,49 @@ const needsTicket = isGrievance || avgRating <= 2.5;
 
 if (needsTicket) {
   try {
-    // Call internal ticket creation endpoint
-    const ticketResponse = await fetch(
-      `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/tickets/from-feedback`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          feedback_id: feedbackId,
-          service_id: body.service_id,
-          entity_id: body.entity_id,
-          avg_rating: avgRating,
-          grievance_flag: isGrievance,
-          submitter_email: body.requester_email || null
-        })
-      }
-    );
+    const ticketApiUrl = `${process.env.API_BASE_URL || 'http://localhost:3000'}/api/tickets/from-feedback`;
+    
+    const ticketPayload = {
+      feedback_id: feedbackId,
+      service_id: body.service_id,
+      entity_id: body.entity_id,
+      avg_rating: avgRating,
+      grievance_flag: isGrievance,
+      submitter_email: body.requester_email || null
+    };
+    
+    console.log(`🔄 TICKET: Calling ${ticketApiUrl}`);
+    console.log(`🔄 TICKET: Payload =`, JSON.stringify(ticketPayload));
+    
+    const ticketResponse = await fetch(ticketApiUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(ticketPayload)
+    });
 
-    if (ticketResponse.ok) {
-      const ticketData = await ticketResponse.json();
-      if (ticketData.success && ticketData.ticket) {
-        ticketInfo = {
-          created: true,
-          ticketNumber: ticketData.ticket.ticket_number,
-          reason: isGrievance ? 'Formal grievance flagged' : `Low average rating (${avgRating.toFixed(1)}/5)`
-        };
-        console.log(`✅ Ticket created: ${ticketData.ticket.ticket_number}`);
-      }
+    console.log(`🔄 TICKET: Response status = ${ticketResponse.status}`);
+    
+    const ticketData = await ticketResponse.json();
+    console.log(`🔄 TICKET: Response body =`, JSON.stringify(ticketData, null, 2));
+
+    if (ticketResponse.ok && ticketData.success && ticketData.ticket) {
+      ticketInfo = {
+        created: true,
+        ticketNumber: ticketData.ticket.ticket_number,
+        reason: isGrievance ? 'Formal grievance flagged' : `Low average rating (${avgRating.toFixed(1)}/5)`
+      };
+      console.log(`✅ TICKET: Created with number ${ticketInfo.ticketNumber}`);
     } else {
-      const error = await ticketResponse.json();
-      console.warn('⚠️ Ticket creation failed (non-blocking):', error.error);
-      // Non-blocking: feedback already submitted, ticket failure doesn't affect response
+      console.error(`❌ TICKET: Creation failed - OK=${ticketResponse.ok}, success=${ticketData.success}, hasTicket=${!!ticketData.ticket}`);
+      if (ticketData.error) {
+        console.error(`❌ TICKET: Error details =`, JSON.stringify(ticketData.error, null, 2));
+      }
     }
   } catch (error) {
-    console.error('❌ Ticket creation error (non-blocking):', error);
-    // Non-blocking: ticket failure doesn't affect feedback submission
+    console.error(`❌ TICKET: Exception caught =`, error instanceof Error ? error.message : String(error));
+    if (error instanceof Error) {
+      console.error(`❌ TICKET: Stack =`, error.stack);
+    }
   }
 }
 
