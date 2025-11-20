@@ -15,12 +15,11 @@ import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
 import { sendEmail } from '@/lib/sendgrid';
-import { 
+import {
   getFeedbackSubmittedTemplate,
-  getFeedbackTicketAdminEmail 
+  getFeedbackTicketAdminEmail
 } from '@/lib/emailTemplates';
 import { config } from '@/config/env';
-import Error from 'next/error';
 
 // NEW: Valid requester categories (from new tickets.requester_category field)
 const VALID_REQUESTER_CATEGORIES = [
@@ -159,9 +158,12 @@ export async function POST(request: NextRequest) {
 
     if (body.recipient_group) {
       const mappedCategory = mapDisplayNameToCategory(body.recipient_group);
-      
+
       if (!VALID_REQUESTER_CATEGORIES.includes(mappedCategory)) {
-        return Error; 
+        return NextResponse.json(
+          { error: 'Invalid recipient_group category' },
+          { status: 400 }
+        );
       }
       // ✅ Store mapped value
       body.recipient_group = mappedCategory; // Now 'gov_employee'
