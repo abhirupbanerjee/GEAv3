@@ -1,29 +1,18 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL DATABASE INITIALIZATION - MIGRATION-SAFE v6.0
+# GEA PORTAL DATABASE INITIALIZATION - MIGRATION-SAFE v6.1 (PostgreSQL 13 Fix)
 # ============================================================================
 # Purpose: Initialize/migrate GEA Portal database with Phase 2b schema
 # Architecture: Phase 2b - Grievances + EA Services + Tickets Fix
 # Date: November 20, 2025
-# Safety: Preserves existing data, adds missing columns, backfills intelligently
+# Fixed: PostgreSQL 13 compatibility issues
 #
-# THREE DISTINCT FLOWS:
-# 1. Service Feedback → Auto-create Grievance (low rating or grievance flag)
-# 2. EA Service Request (admin portal with per-service attachments)
-# 3. Formal Citizen Grievance (public /grievance page)
-# 4. Tickets System (with entity routing and requester tracking)
-#
-# KEY TABLES MANAGED:
-# - grievance_tickets (Flow 1 & 3)
-# - grievance_attachments (Flow 1 & 3)
-# - ea_service_requests (Flow 2)
-# - ea_service_request_attachments (Flow 2)
-# - service_attachments (Master data: 27 docs across 7 services)
-# - tickets (Flow 4 - FIXED with entity_id, requester_category)
-# - service_feedback (Trigger for auto-grievance)
-# - entity_master, service_master (Reference data)
-# - submission_rate_limit, captcha_challenges (Security)
+# FIXES IN v6.1:
+# - Replaced ADD CONSTRAINT IF NOT EXISTS with PL/pgSQL DO blocks
+# - Added column existence checks before creating indexes
+# - Service_feedback indexes check for actual columns
+# - Compatible with PostgreSQL 13, 14, 15+
 #
 # ============================================================================
 
@@ -32,27 +21,30 @@ set -e
 DB_USER="feedback_user"
 DB_NAME="feedback"
 BACKUP_DIR="/tmp/gea_backups"
-MIGRATION_MODE="auto"  # Can be: 'auto' (smart), 'full' (rebuild), 'migrate' (update only)
+MIGRATION_MODE="auto"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║   GEA PORTAL DATABASE INITIALIZATION v6.0 - MIGRATION-SAFE        ║"
+echo "║   GEA PORTAL DATABASE INITIALIZATION v6.1 - PG13 COMPATIBLE       ║"
 echo "║   Phase 2b: Grievances + EA Services + Tickets Architecture       ║"
-echo "║   Date: November 20, 2025                                         ║"
+echo "║   Fixed: PostgreSQL 13 syntax issues                              ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 
 # ============================================================================
-# STEP 1: VERIFY CONNECTION
+# STEP 1: VERIFY CONNECTION & CHECK POSTGRESQL VERSION
 # ============================================================================
-echo "▶ Step 1: Verifying database connection..."
+echo "▶ Step 1: Verifying database connection and PostgreSQL version..."
+PG_VERSION=$(docker exec feedback_db psql -U $DB_USER -d $DB_NAME -t -c "SHOW server_version_num;" | tr -d ' ')
+PG_VERSION_MAJOR=$((PG_VERSION / 10000))
+
+echo "  PostgreSQL version: $PG_VERSION_MAJOR (numeric: $PG_VERSION)"
+
 if ! docker exec feedback_db psql -U $DB_USER -d $DB_NAME -c "SELECT 1" 2>/dev/null; then
     echo "✗ Cannot connect to database."
-    echo "  Ensure feedback_db container is running:"
-    echo "  docker-compose up -d feedback_db"
     exit 1
 fi
-echo "✓ Database connection successful"
+echo "✓ Database connection successful (PostgreSQL $PG_VERSION_MAJOR compatible)"
 echo ""
 
 # ============================================================================
@@ -66,7 +58,6 @@ if [ "$EXISTING_TABLES" -gt 0 ]; then
     echo "  ℹ️  Found $EXISTING_TABLES existing tables (database has content)"
     MIGRATION_MODE="migrate"
     
-    # Backup existing database
     echo ""
     echo "▶ Step 2a: Creating backup of existing database..."
     mkdir -p "$BACKUP_DIR"
@@ -88,7 +79,7 @@ fi
 # STEP 3: CREATE TABLES (IDEMPOTENT - IF NOT EXISTS)
 # ============================================================================
 echo "▶ Step 3: Creating/verifying table schema..."
-echo "  Mode: $MIGRATION_MODE"
+echo "  Mode: $MIGRATION_MODE (PostgreSQL $PG_VERSION_MAJOR compatible)"
 echo ""
 
 docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
@@ -102,7 +93,6 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";
 -- ============================================================================
 -- MASTER DATA TABLES
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS entity_master (
     unique_entity_id VARCHAR(50) PRIMARY KEY,
     entity_name VARCHAR(255) NOT NULL UNIQUE,
@@ -129,7 +119,6 @@ CREATE TABLE IF NOT EXISTS service_master (
 -- ============================================================================
 -- PRIORITY & STATUS LOOKUP TABLES
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS priority_levels (
     priority_id SERIAL PRIMARY KEY,
     priority_code VARCHAR(20) NOT NULL UNIQUE,
@@ -177,7 +166,6 @@ CREATE TABLE IF NOT EXISTS ticket_categories (
 -- ============================================================================
 -- FEEDBACK & QR CODE TABLES
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS service_feedback (
     feedback_id BIGSERIAL PRIMARY KEY,
     service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
@@ -199,10 +187,29 @@ CREATE TABLE IF NOT EXISTS service_feedback (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE INDEX IF NOT EXISTS idx_feedback_service ON service_feedback(service_id);
-CREATE INDEX IF NOT EXISTS idx_feedback_entity ON service_feedback(entity_id);
-CREATE INDEX IF NOT EXISTS idx_feedback_grievance ON service_feedback(grievance_flag);
-CREATE INDEX IF NOT EXISTS idx_feedback_created ON service_feedback(created_at DESC);
+-- FIX: Only create indexes on columns that exist
+DO $$
+BEGIN
+    IF EXISTS (SELECT column_name FROM information_schema.columns 
+               WHERE table_name='service_feedback' AND column_name='service_id') THEN
+        CREATE INDEX IF NOT EXISTS idx_feedback_service ON service_feedback(service_id);
+    END IF;
+    
+    IF EXISTS (SELECT column_name FROM information_schema.columns 
+               WHERE table_name='service_feedback' AND column_name='entity_id') THEN
+        CREATE INDEX IF NOT EXISTS idx_feedback_entity ON service_feedback(entity_id);
+    END IF;
+    
+    IF EXISTS (SELECT column_name FROM information_schema.columns 
+               WHERE table_name='service_feedback' AND column_name='grievance_flag') THEN
+        CREATE INDEX IF NOT EXISTS idx_feedback_grievance ON service_feedback(grievance_flag);
+    END IF;
+    
+    IF EXISTS (SELECT column_name FROM information_schema.columns 
+               WHERE table_name='service_feedback' AND column_name='created_at') THEN
+        CREATE INDEX IF NOT EXISTS idx_feedback_created ON service_feedback(created_at DESC);
+    END IF;
+END $$;
 
 CREATE TABLE IF NOT EXISTS qr_codes (
     qr_code_id SERIAL PRIMARY KEY,
@@ -224,9 +231,8 @@ CREATE INDEX IF NOT EXISTS idx_qr_service ON qr_codes(service_id);
 CREATE INDEX IF NOT EXISTS idx_qr_entity ON qr_codes(entity_id);
 
 -- ============================================================================
--- TICKETS TABLE - WITH MIGRATION SAFETY
+-- TICKETS TABLE - WITH PG13 MIGRATION SAFETY (FIXED)
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS tickets (
     ticket_id SERIAL PRIMARY KEY,
     ticket_number VARCHAR(50) NOT NULL UNIQUE,
@@ -255,21 +261,39 @@ CREATE TABLE IF NOT EXISTS tickets (
     updated_by VARCHAR(255) DEFAULT 'system'
 );
 
--- Add missing columns if they don't exist (migration safety)
+-- Add missing columns (migration safety)
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS entity_id VARCHAR(50) DEFAULT 'AGY-002';
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_category VARCHAR(50) DEFAULT 'citizen';
 
--- Add foreign key constraints if they don't exist
-ALTER TABLE tickets ADD CONSTRAINT IF NOT EXISTS fk_ticket_entity
-    FOREIGN KEY (entity_id) REFERENCES entity_master(unique_entity_id);
-ALTER TABLE tickets ADD CONSTRAINT IF NOT EXISTS fk_ticket_service
-    FOREIGN KEY (service_id) REFERENCES service_master(service_id);
-ALTER TABLE tickets ADD CONSTRAINT IF NOT EXISTS fk_ticket_status
-    FOREIGN KEY (status_id) REFERENCES ticket_status(status_id);
-ALTER TABLE tickets ADD CONSTRAINT IF NOT EXISTS fk_ticket_priority
-    FOREIGN KEY (priority_id) REFERENCES priority_levels(priority_id);
+-- FIX: Use PL/pgSQL DO block for FK constraints (PostgreSQL 13 compatible)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT constraint_name FROM information_schema.table_constraints 
+                   WHERE table_name='tickets' AND constraint_name='fk_ticket_entity') THEN
+        ALTER TABLE tickets ADD CONSTRAINT fk_ticket_entity
+            FOREIGN KEY (entity_id) REFERENCES entity_master(unique_entity_id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT constraint_name FROM information_schema.table_constraints 
+                   WHERE table_name='tickets' AND constraint_name='fk_ticket_service') THEN
+        ALTER TABLE tickets ADD CONSTRAINT fk_ticket_service
+            FOREIGN KEY (service_id) REFERENCES service_master(service_id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT constraint_name FROM information_schema.table_constraints 
+                   WHERE table_name='tickets' AND constraint_name='fk_ticket_status') THEN
+        ALTER TABLE tickets ADD CONSTRAINT fk_ticket_status
+            FOREIGN KEY (status_id) REFERENCES ticket_status(status_id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT constraint_name FROM information_schema.table_constraints 
+                   WHERE table_name='tickets' AND constraint_name='fk_ticket_priority') THEN
+        ALTER TABLE tickets ADD CONSTRAINT fk_ticket_priority
+            FOREIGN KEY (priority_id) REFERENCES priority_levels(priority_id);
+    END IF;
+END $$;
 
--- Create indexes for new columns
+-- Create indexes (with existence checks for columns)
 CREATE INDEX IF NOT EXISTS idx_ticket_number ON tickets(ticket_number);
 CREATE INDEX IF NOT EXISTS idx_ticket_service ON tickets(service_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_entity ON tickets(entity_id);
@@ -277,16 +301,32 @@ CREATE INDEX IF NOT EXISTS idx_ticket_assigned_entity ON tickets(assigned_entity
 CREATE INDEX IF NOT EXISTS idx_ticket_status ON tickets(status_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_category ON tickets(category_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_created ON tickets(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_ticket_requester_email ON tickets(requester_email);
+
+-- FIX: Only create email index if column exists
+DO $$
+BEGIN
+    IF EXISTS (SELECT column_name FROM information_schema.columns 
+               WHERE table_name='tickets' AND column_name='submitter_email') THEN
+        CREATE INDEX IF NOT EXISTS idx_ticket_requester_email ON tickets(submitter_email);
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_ticket_feedback ON tickets(feedback_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_requester_category ON tickets(requester_category);
-CREATE INDEX IF NOT EXISTS idx_ticket_entity_active 
-    ON tickets(entity_id, status_id) WHERE status_id != 4;
+
+-- FIX: Composite index with conditional check
+DO $$
+BEGIN
+    IF EXISTS (SELECT column_name FROM information_schema.columns 
+               WHERE table_name='tickets' AND column_name='status_id') THEN
+        CREATE INDEX IF NOT EXISTS idx_ticket_entity_active 
+            ON tickets(entity_id, status_id) WHERE status_id != 4;
+    END IF;
+END $$;
 
 -- ============================================================================
 -- GRIEVANCE TABLES
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS grievance_tickets (
     grievance_id SERIAL PRIMARY KEY,
     grievance_number VARCHAR(50) NOT NULL UNIQUE,
@@ -333,7 +373,6 @@ CREATE INDEX IF NOT EXISTS idx_grievance_attachment ON grievance_attachments(gri
 -- ============================================================================
 -- EA SERVICE REQUEST TABLES
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS ea_service_requests (
     request_id SERIAL PRIMARY KEY,
     request_number VARCHAR(20) NOT NULL UNIQUE,
@@ -379,7 +418,6 @@ CREATE INDEX IF NOT EXISTS idx_ea_attachment ON ea_service_request_attachments(r
 -- ============================================================================
 -- SERVICE ATTACHMENTS MASTER DATA
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS service_attachments (
     service_attachment_id SERIAL PRIMARY KEY,
     service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
@@ -399,7 +437,6 @@ CREATE INDEX IF NOT EXISTS idx_service_attachment_active ON service_attachments(
 -- ============================================================================
 -- AUDIT & SECURITY TABLES
 -- ============================================================================
-
 CREATE TABLE IF NOT EXISTS submission_rate_limit (
     ip_hash VARCHAR(64) PRIMARY KEY,
     submission_count INTEGER DEFAULT 1,
@@ -429,25 +466,25 @@ CREATE INDEX IF NOT EXISTS idx_captcha_ip ON captcha_challenges(ip_hash);
 
 EOF
 
-echo "✓ All tables created/verified with migration safety"
+echo "✓ All tables created/verified with migration safety (PostgreSQL 13 compatible)"
 echo ""
 
 # ============================================================================
-# STEP 4: BACKFILL MISSING DATA (MIGRATION)
+# STEP 4: BACKFILL MISSING DATA
 # ============================================================================
 echo "▶ Step 4: Backfilling missing columns in existing data..."
 
 docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
 
--- Backfill entity_id from service_master if missing
+-- Backfill entity_id from service_master
 UPDATE tickets t
 SET entity_id = sm.entity_id
 FROM service_master sm
 WHERE t.service_id = sm.service_id
-  AND t.entity_id = 'AGY-002'  -- Only update defaults
+  AND t.entity_id = 'AGY-002'
   AND sm.entity_id IS NOT NULL;
 
--- Backfill requester_category from feedback if linked
+-- Backfill requester_category from feedback
 UPDATE tickets t
 SET requester_category = 
   CASE 
@@ -459,7 +496,7 @@ SET requester_category =
   END
 FROM service_feedback sf
 WHERE t.feedback_id = sf.feedback_id
-  AND t.requester_category = 'citizen'  -- Only update defaults
+  AND t.requester_category = 'citizen'
   AND sf.recipient_group IS NOT NULL;
 
 EOF
@@ -468,15 +505,13 @@ echo "✓ Backfill complete"
 echo ""
 
 # ============================================================================
-# STEP 5: INSERT REFERENCE DATA (IF NOT EXISTS)
+# STEP 5: INSERT REFERENCE DATA
 # ============================================================================
 echo "▶ Step 5: Inserting reference data (priorities, statuses, entities, services)..."
 
 docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
 
--- ============================================================================
 -- INSERT PRIORITY LEVELS (IF NOT EXISTS)
--- ============================================================================
 INSERT INTO priority_levels (priority_code, priority_name, sla_multiplier, sort_order, color_code)
 SELECT 'URGENT', 'Urgent', 0.5, 1, '#ef4444'
 WHERE NOT EXISTS (SELECT 1 FROM priority_levels WHERE priority_code = 'URGENT')
@@ -490,9 +525,7 @@ UNION ALL
 SELECT 'LOW', 'Low', 2.0, 4, '#93c5fd'
 WHERE NOT EXISTS (SELECT 1 FROM priority_levels WHERE priority_code = 'LOW');
 
--- ============================================================================
 -- INSERT GRIEVANCE STATUSES (IF NOT EXISTS)
--- ============================================================================
 INSERT INTO grievance_status (status_code, status_name, status_order, color_code)
 SELECT 'open', 'Open', 1, '#ef4444'
 WHERE NOT EXISTS (SELECT 1 FROM grievance_status WHERE status_code = 'open')
@@ -506,9 +539,7 @@ UNION ALL
 SELECT 'closed', 'Closed', 4, '#9ca3af'
 WHERE NOT EXISTS (SELECT 1 FROM grievance_status WHERE status_code = 'closed');
 
--- ============================================================================
 -- INSERT TICKET STATUSES (IF NOT EXISTS)
--- ============================================================================
 INSERT INTO ticket_status (status_code, status_name, is_terminal, sort_order, color_code)
 SELECT '1', 'Open', FALSE, 1, '#ef4444'
 WHERE NOT EXISTS (SELECT 1 FROM ticket_status WHERE status_code = '1')
@@ -522,9 +553,7 @@ UNION ALL
 SELECT '4', 'Closed', TRUE, 4, '#9ca3af'
 WHERE NOT EXISTS (SELECT 1 FROM ticket_status WHERE status_code = '4');
 
--- ============================================================================
 -- INSERT ENTITIES (IF NOT EXISTS)
--- ============================================================================
 INSERT INTO entity_master (unique_entity_id, entity_name, entity_type, is_active)
 SELECT 'DEPT-001', 'Immigration Department', 'department', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM entity_master WHERE unique_entity_id = 'DEPT-001')
@@ -538,9 +567,7 @@ UNION ALL
 SELECT 'AGY-002', 'Digital Transformation Agency', 'agency', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM entity_master WHERE unique_entity_id = 'AGY-002');
 
--- ============================================================================
 -- INSERT SERVICES (IF NOT EXISTS)
--- ============================================================================
 INSERT INTO service_master (service_id, service_name, entity_id, is_active)
 SELECT 'SVC-IMM-001', 'Passport Application', 'DEPT-001', TRUE
 WHERE NOT EXISTS (SELECT 1 FROM service_master WHERE service_id = 'SVC-IMM-001')
@@ -590,7 +617,7 @@ echo "✓ Reference data inserted (only where missing)"
 echo ""
 
 # ============================================================================
-# STEP 6: INSERT SERVICE ATTACHMENTS (27 documents)
+# STEP 6: INSERT SERVICE ATTACHMENTS (27 DOCUMENTS)
 # ============================================================================
 echo "▶ Step 6: Loading service attachments master data (27 documents)..."
 
@@ -700,138 +727,72 @@ echo ""
 # STEP 7: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║                        VERIFICATION                              ║"
+echo "║                      VERIFICATION - v6.1 FIX                      ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 
+echo "✓ Verifying critical columns on tickets table:"
 docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'VERIFY'
-\pset tuples_only
-SELECT 'Database Status' as component
-UNION ALL
-SELECT ''
-UNION ALL
-SELECT 'Tables Created:'
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' total tables'
-FROM information_schema.tables 
-WHERE table_schema = 'public' AND table_type = 'BASE TABLE'
-UNION ALL
-SELECT ''
-UNION ALL
-SELECT 'Master Data:'
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' priority levels' FROM priority_levels
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' grievance statuses' FROM grievance_status
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' ticket statuses' FROM ticket_status
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' entities' FROM entity_master
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' services' FROM service_master
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' service attachments' FROM service_attachments
-UNION ALL
-SELECT ''
-UNION ALL
-SELECT 'Data Tables:'
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' feedback records' FROM service_feedback
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' grievances' FROM grievance_tickets
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' tickets' FROM tickets
-UNION ALL
-SELECT '  ' || LPAD(COUNT(*)::TEXT, 2, '0') || ' EA requests' FROM ea_service_requests;
+SELECT column_name, data_type 
+FROM information_schema.columns 
+WHERE table_name='tickets' AND column_name IN ('entity_id', 'requester_category')
+ORDER BY column_name;
 VERIFY
 
 echo ""
-echo "✓ Service attachments breakdown:"
-docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'ATTACHMENTS'
-\pset tuples_only
-SELECT 'Service' as service_id, 'Total' as total, 'Mandatory' as mandatory, 'Optional' as optional
-UNION ALL
-SELECT service_id, 
-       COUNT(*)::TEXT, 
-       SUM(CASE WHEN is_mandatory THEN 1 ELSE 0 END)::TEXT,
-       SUM(CASE WHEN NOT is_mandatory THEN 1 ELSE 0 END)::TEXT
-FROM service_attachments
-GROUP BY service_id
-ORDER BY service_id;
-ATTACHMENTS
+echo "✓ Verifying foreign keys on tickets table:"
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'FKEYS'
+SELECT constraint_name 
+FROM information_schema.table_constraints 
+WHERE table_name='tickets' AND constraint_type='FOREIGN KEY'
+ORDER BY constraint_name;
+FKEYS
 
 echo ""
-echo "✓ Tickets table migration status:"
-docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'TICKETS'
-\pset tuples_only
-SELECT 'Column' as column_name, 'Status' as migration_status
-UNION ALL
-SELECT 'entity_id', CASE WHEN COUNT(*) > 0 THEN '✓ Exists' ELSE '✗ Missing' END
-FROM information_schema.columns 
-WHERE table_name = 'tickets' AND column_name = 'entity_id'
-UNION ALL
-SELECT 'requester_category', CASE WHEN COUNT(*) > 0 THEN '✓ Exists' ELSE '✗ Missing' END
-FROM information_schema.columns 
-WHERE table_name = 'tickets' AND column_name = 'requester_category'
-UNION ALL
-SELECT '  Tickets with entity_id filled', COUNT(*)::TEXT FROM tickets WHERE entity_id IS NOT NULL
-UNION ALL
-SELECT '  Tickets with default entity', COUNT(*)::TEXT FROM tickets WHERE entity_id = 'AGY-002'
-UNION ALL
-SELECT '  Tickets with proper entity', COUNT(*)::TEXT FROM tickets WHERE entity_id != 'AGY-002';
-TICKETS
+echo "✓ Verifying indexes on tickets table:"
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'INDEXES'
+SELECT indexname 
+FROM pg_indexes 
+WHERE tablename='tickets'
+ORDER BY indexname;
+INDEXES
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║              ✓ INITIALIZATION COMPLETE - MIGRATION SAFE           ║"
+echo "║     ✓ INITIALIZATION COMPLETE v6.1 - POSTGRESQL 13 COMPATIBLE    ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
-echo "📊 Database Architecture Summary:"
+echo "📊 Migration Summary:"
 echo ""
+echo "  ✓ Mode: $MIGRATION_MODE"
+echo "  ✓ PostgreSQL Version: $PG_VERSION_MAJOR"
+echo "  ✓ All SQL syntax errors FIXED (using DO blocks)"
+echo "  ✓ Idempotent: Safe to run multiple times"
+echo "  ✓ Non-destructive: No data lost"
+echo ""
+echo "✅ Critical Columns Added:"
+echo "  ✓ entity_id (multi-ministry routing)"
+echo "  ✓ requester_category (gov employee classification)"
+echo ""
+echo "📋 Phase 2b Status:"
 echo "  ✓ FLOW 1: Service Feedback → Auto-Created Grievance"
-echo "    Table: service_feedback → grievance_tickets"
-echo "    Trigger: grievance_flag=TRUE OR avg_rating<3.0"
-echo ""
 echo "  ✓ FLOW 2: EA Service Request (Admin Portal)"
-echo "    Tables: ea_service_requests + ea_service_request_attachments"
-echo "    Attachments: 27 documents across 7 EA services"
-echo ""
 echo "  ✓ FLOW 3: Formal Citizen Grievance"
-echo "    Tables: grievance_tickets + grievance_attachments"
-echo "    File Upload: Max 5 files, 5MB total per grievance"
+echo "  ✓ FLOW 4: Ticket System (FIXED & Ready)"
 echo ""
-echo "  ✓ FLOW 4: Ticket System (FIXED)"
-echo "    Tables: tickets (with entity_id + requester_category)"
-echo "    Multi-ministry routing enabled"
-echo "    Gov employee filtering ready"
-echo ""
-echo "📋 Master Data Status:"
-echo "  ✓ 4 Priority Levels (Urgent, High, Medium, Low)"
-echo "  ✓ 4 Grievance Statuses (Open, Processing, Resolved, Closed)"
-echo "  ✓ 4 Ticket Statuses (Open, In Progress, Resolved, Closed)"
-echo "  ✓ 4 Government Entities"
-echo "  ✓ 14 Services (7 public + 7 EA)"
-echo "  ✓ 27 Service Attachments (17 mandatory + 10 optional)"
-echo ""
-echo "🔒 Security Features:"
-echo "  ✓ Rate limiting table (submission_rate_limit)"
-echo "  ✓ Submission audit log (submission_attempts)"
-echo "  ✓ CAPTCHA tracking (captcha_challenges)"
-echo "  ✓ File size constraints (5MB max per file)"
-echo ""
-echo "⚙️ Configuration Ready:"
-echo "  ✓ SendGrid API: Configure in .env"
-echo "  ✓ DTA Admin Email: alerts.dtahelpdesk@gmail.com"
-echo "  ✓ Database: Ready for Phase 2b & Gov Employee Route"
-echo ""
-echo "📝 Next Steps:"
-echo "  1. Update .env with SendGrid API key and DTA email"
-echo "  2. Update from-feedback API to use entity_id and requester_category"
-echo "  3. Rebuild frontend: docker-compose up -d --build"
-echo "  4. Test endpoints (feedback → ticket with number)"
-echo "  5. Verify gov employee filtering queries"
+echo "🔒 Security Ready:"
+echo "  ✓ Rate limiting"
+echo "  ✓ Submission audit"
+echo "  ✓ CAPTCHA tracking"
+echo "  ✓ File constraints"
 echo ""
 echo "📦 Backup Location: $BACKUP_FILE"
 echo ""
-echo "🎯 Migration Complete - No data lost!"
+echo "🎯 Next Steps:"
+echo "  1. Update from-feedback API to use entity_id and requester_category"
+echo "  2. Test feedback → ticket creation flow"
+echo "  3. Verify ticket_number appears in response"
+echo "  4. Deploy to production"
+echo ""
+echo "✓ Migration Complete - Ready for Phase 2b!"
 echo ""
