@@ -12,7 +12,7 @@
 
 import crypto from 'crypto'
 import { pool } from './db'
-import { config } from '@/config/env'
+import { config } from './config/env'
 
 // ============================================
 // TYPES
@@ -315,6 +315,35 @@ export async function resetRateLimit(
   }
 }
 
+/**
+ * Record an attempt for rate limiting and analytics (DEPRECATED)
+ * Kept for backward compatibility with existing imports
+ */
+export async function recordAttempt(
+  ip: string,
+  limitType: string,
+  success: boolean
+): Promise<void> {
+  console.log(`Attempt recorded: ${limitType} - ${success ? 'success' : 'failed'}`);
+}
+
+/**
+ * Verify CAPTCHA token (NOT IMPLEMENTED IN PHASE 2B)
+ * Kept for backward compatibility with existing imports
+ */
+export async function verifyCaptcha(token: string): Promise<{
+  success: boolean;
+  score?: number;
+  action?: string;
+  error?: string;
+}> {
+  console.warn('CAPTCHA not implemented in Phase 2b');
+  return {
+    success: true,
+    error: 'CAPTCHA not configured for Phase 2b'
+  };
+}
+
 export default {
   // Core functions
   hashIP,
@@ -324,4 +353,6 @@ export default {
   checkGrievanceRateLimit,
   getRateLimitStats,
   resetRateLimit,
+  verifyCaptcha,
+  recordAttempt,
 }

@@ -19,7 +19,7 @@ import {
   getFeedbackSubmittedTemplate,
   getFeedbackTicketAdminEmail 
 } from '@/lib/emailTemplates';
-import { config } from '@/config/env'; 
+import { config } from '@/config/env';
 import Error from 'next/error';
 
 // NEW: Valid requester categories (from new tickets.requester_category field)

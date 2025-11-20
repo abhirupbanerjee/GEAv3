@@ -27,6 +27,7 @@ import {
   checkRateLimit,
   recordAttempt,
   getClientIP,
+  hashIP,
 } from '@/lib/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -48,8 +49,9 @@ export async function GET(request: NextRequest) {
   
   try {
     // 1. EXTRACT CLIENT IP AND CHECK RATE LIMIT
-    const clientIP = getClientIP(request.headers)
-    const rateLimitStatus = await checkRateLimit(clientIP, 'ticket_categories')
+    const clientIP = getClientIP(request)
+    const ipHash = hashIP(clientIP)
+    const rateLimitStatus = await checkRateLimit(ipHash, 'feedback')
     
     if (!rateLimitStatus.allowed) {
       logRequest('GET', '/api/tickets/categories', 429, Date.now() - startTime, requestId, {
@@ -119,7 +121,7 @@ export async function GET(request: NextRequest) {
     }
     
     // 5. RECORD SUCCESSFUL ATTEMPT AND LOG
-    await recordAttempt(clientIP, 'ticket_categories', true)
+    await recordAttempt(ipHash, 'feedback', true)
     
     logRequest('GET', '/api/tickets/categories', 200, Date.now() - startTime, requestId, {
       total: result.rows.length,
