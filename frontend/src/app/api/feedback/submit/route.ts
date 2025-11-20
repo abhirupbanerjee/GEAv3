@@ -20,6 +20,7 @@ import {
   getFeedbackTicketAdminEmail 
 } from '@/lib/emailTemplates';
 import { config } from '@/config/env'; 
+import Error from 'next/error';
 
 // NEW: Valid requester categories (from new tickets.requester_category field)
 const VALID_REQUESTER_CATEGORIES = [
@@ -157,23 +158,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (body.recipient_group) {
-      // Map display name to category code
       const mappedCategory = mapDisplayNameToCategory(body.recipient_group);
       
-      // Check against valid categories
       if (!VALID_REQUESTER_CATEGORIES.includes(mappedCategory)) {
-        return NextResponse.json(
-          { 
-            error: 'Invalid recipient_group. Must be one of: Citizen, Business, Government Employee, Visitor/Tourist, Student, Officer',
-            provided_value: body.recipient_group,
-            valid_values: ['Citizen', 'Business', 'Government Employee', 'Visitor/Tourist', 'Student', 'Officer']
-          },
-          { status: 400 }
-        );
+        return Error; 
       }
-      
-      // Update body.recipient_group with mapped value
-      body.recipient_group = mappedCategory;
+      // ✅ Store mapped value
+      body.recipient_group = mappedCategory; // Now 'gov_employee'
     }
 
     // ============================================
@@ -398,7 +389,8 @@ if (needsTicket) {
       message: 'Thank you for your feedback!',
       ticket: ticketInfo.created ? {
         ticketNumber: ticketInfo.ticketNumber,
-        reason: ticketInfo.reason
+        reason: ticketInfo.reason,
+        created: true 
       } : undefined,
       metadata: {
         requester_category_validation: body.recipient_group ? 'passed' : 'not_provided',
