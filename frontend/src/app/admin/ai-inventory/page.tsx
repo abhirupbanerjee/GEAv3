@@ -127,6 +127,37 @@ export default function AIInventoryPage() {
         <p className="text-gray-600">Configure and monitor AI assistant integrations</p>
       </div>
 
+      {/* Summary Cards - Dashboard View */}
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-600">Active Bots</h3>
+            <span className="text-2xl">🟢</span>
+          </div>
+          <p className="text-3xl font-bold text-green-600">
+            {bots.filter((b) => b.status === 'active').length}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-600">Planned Bots</h3>
+            <span className="text-2xl">🟡</span>
+          </div>
+          <p className="text-3xl font-bold text-yellow-600">
+            {bots.filter((b) => b.status === 'planned').length}
+          </p>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-medium text-gray-600">Total Bots</h3>
+            <span className="text-2xl">🤖</span>
+          </div>
+          <p className="text-3xl font-bold text-blue-600">{bots.length}</p>
+        </div>
+      </div>
+
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
         <div className="flex items-center space-x-4">
@@ -271,37 +302,6 @@ export default function AIInventoryPage() {
           </div>
         </div>
       )}
-
-      {/* Summary Cards */}
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">Active Bots</h3>
-            <span className="text-2xl">🟢</span>
-          </div>
-          <p className="text-3xl font-bold text-green-600">
-            {bots.filter((b) => b.status === 'active').length}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">Planned Bots</h3>
-            <span className="text-2xl">🟡</span>
-          </div>
-          <p className="text-3xl font-bold text-yellow-600">
-            {bots.filter((b) => b.status === 'planned').length}
-          </p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-sm font-medium text-gray-600">Total Bots</h3>
-            <span className="text-2xl">🤖</span>
-          </div>
-          <p className="text-3xl font-bold text-blue-600">{bots.length}</p>
-        </div>
-      </div>
     </div>
   )
 }

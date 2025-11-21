@@ -34,6 +34,17 @@
       "category": "Feedback Collection"
     },
     {
+      "id": "gea-cyber-bot",
+      "name": "GEA Cyber Bot",
+      "url": "https://gea-cyber-bot.vercel.app/",
+      "description": "AI assistant for government staff to manage cybersecurity and cyber defense",
+      "status": "active",
+      "deployment": "Vercel",
+      "audience": "Government Staff",
+      "modality": "text",
+      "category": "General Support"
+    },
+    {
       "id": "ea-compliance-bot",
       "name": "EA Compliance Bot",
       "url": "",
