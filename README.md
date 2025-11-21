@@ -1,3 +1,5 @@
+https://sonarcloud.io/api/project_badges/measure?project=abhirupbanerjee_GEAv3&metric=alert_status
+
 # Grenada EA Portal
 
 **Enterprise Architecture Portal for the Government of Grenada**
