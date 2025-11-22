@@ -1,42 +1,25 @@
-import { NextRequest, NextResponse } from 'next/server'
+/**
+ * GEA Portal - Authentication Middleware
+ *
+ * This middleware protects admin and staff routes by checking for a valid
+ * NextAuth session. If no session exists, users are redirected to the sign-in page.
+ *
+ * Protected routes:
+ * - /admin/* - Admin portal (requires admin role)
+ * - /staff/* - Staff portal (requires staff role)
+ *
+ * Public routes:
+ * - /auth/* - Authentication pages
+ * - /api/auth/* - NextAuth API routes
+ * - / - Public homepage
+ * - /feedback - Public feedback form
+ */
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
-
-  // Only protect admin pages (not login)
-  if (!pathname.startsWith('/admin') || pathname === '/admin') {
-    return NextResponse.next()
-  }
-
-  // Check for session cookie
-  const sessionCookie = request.cookies.get('admin_session')
-  
-  if (!sessionCookie?.value) {
-    return NextResponse.redirect(new URL('/admin', request.url))
-  }
-
-  // Validate session
-  try {
-    const decoded = Buffer.from(sessionCookie.value, 'base64').toString('utf-8')
-    const [timestamp] = decoded.split('-')
-    const tokenAge = Date.now() - parseInt(timestamp, 10)
-    
-    // 2 hours = 7200000 ms
-    if (tokenAge >= 7200000) {
-      const response = NextResponse.redirect(new URL('/admin', request.url))
-      response.cookies.delete('admin_session')
-      return response
-    }
-    
-    return NextResponse.next()
-    
-  } catch (error) {
-    const response = NextResponse.redirect(new URL('/admin', request.url))
-    response.cookies.delete('admin_session')
-    return response
-  }
-}
+export { default } from 'next-auth/middleware';
 
 export const config = {
-  matcher: ['/admin/:path+'],
-}
+  matcher: [
+    '/admin/:path*',
+    '/staff/:path*',
+  ],
+};
