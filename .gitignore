@@ -4,38 +4,36 @@
 
 # Dependencies
 node_modules/
-frontend/node_modules/
+**/node_modules/
 .pnp/
 .pnp.js
+.yarn/
 
 # Testing
 coverage/
+.nyc_output/
+**/coverage/
 
 # Next.js
-frontend/.next/
-frontend/out/
-frontend/build/
-frontend/node_modules
-
-# Production builds
+.next/
+**/.next/
+out/
+**/out/
+build/
+**/build/
 dist/
-
-
-# docs
-
+**/dist/
 
 # Environment variables (NEVER COMMIT THESE!)
 .env
+.env.*
+.env.local
+.env.*.local
+!.env.example
 
-
-# Misc
-.DS_Store
-*.pem
-.idea/
-.vscode/
-*.swp
-*.swo
-*~
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
 
 # Logs
 logs/
@@ -44,48 +42,45 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
+pnpm-debug.log*
 
-
-# SSL certificates
+# SSL certificates & secrets
 acme.json
-
-
-# TypeScript
-*.tsbuildinfo
-next-env.d.ts
+*.pem
+*.key
+*.cert
+*.crt
 
 # Operating System
+.DS_Store
 Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE / Editors
+.idea/
+.vscode/
+*.sublime-workspace
+*.sublime-project
+.history/
 
 # Temporary files
 tmp/
 temp/
 *.tmp
+.cache/
 
-# Dependencies / builds
-node_modules/
-.next/
-dist/
-out/
-coverage/
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-pnpm-debug.log*
-
-# Env / secrets
-.env
-
-
-# OS / editor
-.DS_Store
-Thumbs.db
-.vscode/
-.idea/
-
-# Docker & misc
+# Docker
 docker-data/
+docker-compose.override.yml
+
+# Auto-generated files
+src/config/env.ts
+
+# Database backups (optional - keep if you want to ignore local backups)
+# database/*.sql
+# !database/seed-data.sql
 
 # ============================================
 # END OF GITIGNORE

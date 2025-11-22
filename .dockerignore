@@ -1,0 +1,92 @@
+# ============================================
+# GRENADA EA PORTAL - DOCKER IGNORE
+# ============================================
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# Node.js dependencies (will be installed in container)
+**/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Next.js build artifacts (will be built in container)
+**/.next/
+**/out/
+**/build/
+**/dist/
+**/.cache/
+
+# Testing
+coverage/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/__tests__/
+**/__mocks__/
+
+# Environment files (use build args instead)
+.env
+.env.*
+!.env.example
+
+# Documentation
+*.md
+!README.md
+docs/
+**/*.mdx
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Database files
+database/
+*.sql
+*.sqlite
+*.db
+
+# Docker files (not needed in image)
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+sonar-project.properties
+
+# Misc
+traefik.yml
+acme.json
+*.pem
+*.key
+*.cert
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# ============================================
+# END OF DOCKERIGNORE
+# ============================================
