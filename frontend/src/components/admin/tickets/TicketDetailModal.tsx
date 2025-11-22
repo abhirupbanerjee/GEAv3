@@ -9,8 +9,6 @@
 import React, { useState, useEffect } from 'react'
 import { useTicketDetail } from '@/hooks/useTicketDetail'
 import { useTicketUpdate } from '@/hooks/useTicketUpdate'
-import { StatusBadge } from './StatusBadge'
-import { PriorityBadge } from './PriorityBadge'
 import { ActivityTimeline } from './ActivityTimeline'
 import { CommentSection } from './CommentSection'
 
@@ -21,12 +19,21 @@ interface TicketDetailModalProps {
 }
 
 export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailModalProps) {
-  const { ticket, attachments, activities, isLoading, mutate } = useTicketDetail(ticketId)
+  const { ticket, attachments, activities, isLoading, isError, error, mutate } = useTicketDetail(ticketId)
   const { updateTicket, isUpdating } = useTicketUpdate()
 
   const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null)
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(null)
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Debug logging
+  useEffect(() => {
+    console.log('TicketDetailModal - ticketId:', ticketId)
+    console.log('TicketDetailModal - isLoading:', isLoading)
+    console.log('TicketDetailModal - isError:', isError)
+    console.log('TicketDetailModal - error:', error)
+    console.log('TicketDetailModal - ticket:', ticket)
+  }, [ticketId, isLoading, isError, error, ticket])
 
   // Sync local state with fetched ticket data
   useEffect(() => {
@@ -113,7 +120,7 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-semibold text-gray-900" id="modal-title">
-                {isLoading ? 'Loading...' : `Ticket ${ticket?.ticket_number}`}
+                {isLoading ? 'Loading Ticket Details...' : ticket ? `Ticket ${ticket.ticket_number}` : 'Ticket Details'}
               </h3>
               <button
                 onClick={onClose}
@@ -133,7 +140,21 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
               </div>
             )}
 
-            {!isLoading && ticket && (
+            {!isLoading && isError && (
+              <div className="text-center py-12">
+                <div className="text-red-600 text-5xl mb-4">⚠️</div>
+                <h4 className="text-lg font-semibold text-gray-900 mb-2">Failed to Load Ticket</h4>
+                <p className="text-sm text-gray-600 mb-4">{error || 'An unexpected error occurred'}</p>
+                <button
+                  onClick={() => mutate()}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700"
+                >
+                  Retry
+                </button>
+              </div>
+            )}
+
+            {!isLoading && !isError && ticket && (
               <div className="space-y-6">
                 {/* Ticket Information */}
                 <div>
