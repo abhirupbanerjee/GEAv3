@@ -1,14 +1,20 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL DATABASE INITIALIZATION - MIGRATION-SAFE v6.1 (PostgreSQL 13 Fix)
+# GEA PORTAL DATABASE INITIALIZATION - MIGRATION-SAFE v6.2 (Ticket Activity)
 # ============================================================================
 # Purpose: Initialize/migrate GEA Portal database with Phase 2b schema
-# Architecture: Phase 2b - Grievances + EA Services + Tickets Fix
-# Date: November 20, 2025
-# Fixed: PostgreSQL 13 compatibility issues
+# Architecture: Phase 2b - Grievances + EA Services + Tickets + Admin Dashboard
+# Date: November 22, 2025
+# Fixed: PostgreSQL 13 compatibility + ticket_activity table
 #
-# FIXES IN v6.1:
+# FIXES IN v6.2:
+# - Added ticket_activity table for admin dashboard
+# - Added ticket_attachments table
+# - Seed initial activity records for existing tickets
+# - Support for ticket activity timeline and internal notes
+#
+# PREVIOUS FIXES (v6.1):
 # - Replaced ADD CONSTRAINT IF NOT EXISTS with PL/pgSQL DO blocks
 # - Added column existence checks before creating indexes
 # - Service_feedback indexes check for actual columns
@@ -25,9 +31,9 @@ MIGRATION_MODE="auto"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║   GEA PORTAL DATABASE INITIALIZATION v6.1 - PG13 COMPATIBLE       ║"
-echo "║   Phase 2b: Grievances + EA Services + Tickets Architecture       ║"
-echo "║   Fixed: PostgreSQL 13 syntax issues                              ║"
+echo "║   GEA PORTAL DATABASE INITIALIZATION v6.2 - ADMIN DASHBOARD       ║"
+echo "║   Phase 2b: Grievances + EA Services + Tickets + Activity Log     ║"
+echo "║   Added: ticket_activity & ticket_attachments tables              ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -317,12 +323,58 @@ CREATE INDEX IF NOT EXISTS idx_ticket_requester_category ON tickets(requester_ca
 -- FIX: Composite index with conditional check
 DO $$
 BEGIN
-    IF EXISTS (SELECT column_name FROM information_schema.columns 
+    IF EXISTS (SELECT column_name FROM information_schema.columns
                WHERE table_name='tickets' AND column_name='status_id') THEN
-        CREATE INDEX IF NOT EXISTS idx_ticket_entity_active 
+        CREATE INDEX IF NOT EXISTS idx_ticket_entity_active
             ON tickets(entity_id, status_id) WHERE status_id != 4;
     END IF;
 END $$;
+
+-- ============================================================================
+-- TICKET ACTIVITY TABLE (Admin Dashboard Support)
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS ticket_activity (
+    activity_id SERIAL PRIMARY KEY,
+    ticket_id INTEGER NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+    activity_type VARCHAR(100) NOT NULL,
+    performed_by VARCHAR(255),
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create indexes for ticket_activity
+CREATE INDEX IF NOT EXISTS idx_ticket_activity_ticket ON ticket_activity(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_activity_created ON ticket_activity(created_at DESC);
+
+-- Seed initial activity records for existing tickets (one-time migration)
+INSERT INTO ticket_activity (ticket_id, activity_type, performed_by, description, created_at)
+SELECT
+    ticket_id,
+    'created' as activity_type,
+    'system' as performed_by,
+    'Ticket created' as description,
+    created_at
+FROM tickets
+WHERE NOT EXISTS (
+    SELECT 1 FROM ticket_activity WHERE ticket_activity.ticket_id = tickets.ticket_id
+);
+
+-- ============================================================================
+-- TICKET ATTACHMENTS TABLE
+-- ============================================================================
+CREATE TABLE IF NOT EXISTS ticket_attachments (
+    attachment_id SERIAL PRIMARY KEY,
+    ticket_id INTEGER NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    mimetype VARCHAR(100) NOT NULL,
+    file_content BYTEA NOT NULL,
+    file_size INTEGER NOT NULL,
+    uploaded_by VARCHAR(255) DEFAULT 'system',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_ticket_file_size CHECK (file_size > 0 AND file_size <= 5242880)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ticket_attachments_ticket ON ticket_attachments(ticket_id);
 
 -- ============================================================================
 -- GRIEVANCE TABLES
@@ -759,7 +811,7 @@ INDEXES
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║     ✓ INITIALIZATION COMPLETE v6.1 - POSTGRESQL 13 COMPATIBLE    ║"
+echo "║     ✓ INITIALIZATION COMPLETE v6.2 - ADMIN DASHBOARD READY       ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "📊 Migration Summary:"
