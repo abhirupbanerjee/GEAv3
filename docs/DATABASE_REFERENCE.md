@@ -1,9 +1,9 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 2.0
-**Last Updated:** November 20, 2025
+**Document Version:** 2.1
+**Last Updated:** November 22, 2025
 **Database:** PostgreSQL 15
-**Schema Version:** Phase 2b (v6.1)
+**Schema Version:** Phase 2b (v6.2 - Ticket Activity Tracking)
 
 ---
 
@@ -27,12 +27,12 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 13 |
+| **Tables** | 15 |
 | **Master Data Tables** | 7 |
-| **Transactional Tables** | 3 |
+| **Transactional Tables** | 5 |
 | **Security/Audit Tables** | 3 |
-| **Foreign Keys** | 15+ |
-| **Indexes** | 40+ |
+| **Foreign Keys** | 18+ |
+| **Indexes** | 44+ |
 | **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
 
 ### Connection Details
@@ -83,9 +83,10 @@ docker exec -it feedback_db /bin/bash /tmp/01-init-db.sh
 
 **Expected output:**
 - ✓ Database connection successful
-- ✓ Created 13 tables
-- ✓ Created 40+ indexes
+- ✓ Created 15 tables (including ticket_activity and ticket_attachments)
+- ✓ Created 44+ indexes
 - ✓ Inserted reference data (entities, services, statuses, etc.)
+- ✓ Seeded initial activity records for existing tickets
 - ✓ Verification checks passed
 
 ### 2. Load Test/Seed Data (Optional)
@@ -147,6 +148,8 @@ TRUNCATE TABLE grievance_attachments CASCADE;
 TRUNCATE TABLE ea_service_requests CASCADE;
 TRUNCATE TABLE ea_service_request_attachments CASCADE;
 TRUNCATE TABLE tickets CASCADE;
+TRUNCATE TABLE ticket_activity CASCADE;
+TRUNCATE TABLE ticket_attachments CASCADE;
 TRUNCATE TABLE submission_rate_limit CASCADE;
 TRUNCATE TABLE submission_attempts CASCADE;
 TRUNCATE TABLE captcha_challenges CASCADE;
@@ -158,6 +161,8 @@ ALTER SEQUENCE grievance_attachments_id_seq RESTART WITH 1;
 ALTER SEQUENCE ea_service_requests_id_seq RESTART WITH 1;
 ALTER SEQUENCE ea_service_request_attachments_id_seq RESTART WITH 1;
 ALTER SEQUENCE tickets_id_seq RESTART WITH 1;
+ALTER SEQUENCE ticket_activity_activity_id_seq RESTART WITH 1;
+ALTER SEQUENCE ticket_attachments_attachment_id_seq RESTART WITH 1;
 
 SELECT 'Data cleared. Master data (entities, services, statuses) preserved.' AS status;
 EOF
@@ -244,11 +249,14 @@ docker exec -i feedback_db psql -U feedback_user feedback_restore < schema_20251
 │  │   FEEDBACK   │    │    GRIEVANCES     │    │   TICKETS   │   │
 │  │              │    │                   │    │             │   │
 │  │ service_     │───▶│ grievance_tickets │    │   tickets   │   │
-│  │ feedback     │    │ (auto + manual)   │    │             │   │
-│  │              │    │        │          │    │             │   │
-│  │              │    │        ▼          │    │             │   │
-│  │              │    │ grievance_        │    │             │   │
-│  │              │    │ attachments       │    │             │   │
+│  │ feedback     │    │ (auto + manual)   │    │      │      │   │
+│  │              │    │        │          │    │      ▼      │   │
+│  │              │    │        ▼          │    │ ticket_     │   │
+│  │              │    │ grievance_        │    │ activity    │   │
+│  │              │    │ attachments       │    │      │      │   │
+│  │              │    │                   │    │      ▼      │   │
+│  │              │    │                   │    │ ticket_     │   │
+│  │              │    │                   │    │ attachments │   │
 │  └──────────────┘    └───────────────────┘    └─────────────┘   │
 │                                                                 │
 │  ┌──────────────────────────────────────────────────────────┐   │
@@ -1016,7 +1024,162 @@ EOF
 
 ---
 
-### 15. submission_rate_limit
+### 15. ticket_activity
+
+**Purpose:** Activity log for ticket timeline and audit trail
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| activity_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| ticket_id | INTEGER | FK → tickets(ticket_id), NOT NULL, ON DELETE CASCADE | Parent ticket |
+| activity_type | VARCHAR(100) | NOT NULL | created, status_change, priority_change, internal_note |
+| performed_by | VARCHAR(255) | | Username or 'system' |
+| description | TEXT | | Human-readable activity description |
+| created_at | TIMESTAMP | DEFAULT NOW() | Activity timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `activity_id`
+- INDEX on `ticket_id` (FK) - Fast lookup by ticket
+- INDEX on `created_at DESC` - Time-series queries
+
+**Activity Types:**
+- `created` - Ticket was created
+- `status_change` - Status was updated (e.g., "Status changed from New to In Progress")
+- `priority_change` - Priority was modified
+- `internal_note` - Admin comment (private, shown as "Resolution Comment" on resolved/closed tickets in public view)
+
+**Privacy Controls:**
+- **Public View** (citizens checking ticket status):
+  - Open/In-Progress tickets: `internal_note` activities are excluded
+  - Resolved/Closed tickets: Last `internal_note` is displayed as "Resolution Comment"
+- **Admin View**: All activities visible including all internal notes
+
+**Auto-Seeding:**
+- When a ticket is created, a "created" activity is automatically logged
+- Script `01-init-db.sh` seeds initial "Ticket created" activities for existing tickets
+
+**Commands:**
+```bash
+# View activity timeline for a ticket
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    ta.activity_id,
+    t.ticket_number,
+    ta.activity_type,
+    ta.performed_by,
+    ta.description,
+    ta.created_at
+FROM ticket_activity ta
+JOIN tickets t ON ta.ticket_id = t.ticket_id
+WHERE t.ticket_number = '202511-000123'
+ORDER BY ta.created_at DESC;
+EOF
+
+# Activity statistics by type
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    activity_type,
+    COUNT(*) AS total_count,
+    COUNT(DISTINCT ticket_id) AS tickets_affected,
+    MAX(created_at) AS last_activity
+FROM ticket_activity
+GROUP BY activity_type
+ORDER BY total_count DESC;
+EOF
+
+# Find tickets with recent activity
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    t.ticket_number,
+    t.subject,
+    ts.status_name,
+    ta.activity_type,
+    ta.description,
+    ta.created_at
+FROM ticket_activity ta
+JOIN tickets t ON ta.ticket_id = t.ticket_id
+JOIN ticket_status ts ON t.status_id = ts.status_id
+WHERE ta.created_at > NOW() - INTERVAL '24 hours'
+ORDER BY ta.created_at DESC
+LIMIT 20;
+EOF
+```
+
+---
+
+### 16. ticket_attachments
+
+**Purpose:** File attachments for tickets
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| attachment_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| ticket_id | INTEGER | FK → tickets(ticket_id), NOT NULL, ON DELETE CASCADE | Parent ticket |
+| filename | VARCHAR(255) | NOT NULL | Original filename |
+| mimetype | VARCHAR(100) | NOT NULL | MIME type (application/pdf, image/jpeg, etc.) |
+| file_content | BYTEA | NOT NULL | Binary file data |
+| file_size | INTEGER | NOT NULL, CHECK (>0 AND ≤5MB) | Size in bytes |
+| uploaded_by | VARCHAR(255) | DEFAULT 'system' | Uploader username |
+| created_at | TIMESTAMP | DEFAULT NOW() | Upload timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `attachment_id`
+- INDEX on `ticket_id` (FK)
+- INDEX on `created_at DESC`
+
+**Constraints:**
+- Maximum file size: 5MB (5,242,880 bytes)
+- Allowed types: PDF, JPEG, PNG, GIF, DOC, DOCX, XLS, XLSX
+
+**File Size Validation:**
+```sql
+CONSTRAINT check_ticket_file_size CHECK (file_size > 0 AND file_size <= 5242880)
+```
+
+**Commands:**
+```bash
+# List attachments for a ticket (metadata only)
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    t.ticket_number,
+    ta.filename,
+    ta.mimetype,
+    pg_size_pretty(ta.file_size::bigint) AS file_size,
+    ta.uploaded_by,
+    ta.created_at
+FROM ticket_attachments ta
+JOIN tickets t ON ta.ticket_id = t.ticket_id
+WHERE t.ticket_number = '202511-000123'
+ORDER BY ta.created_at;
+EOF
+
+# Storage usage by ticket attachments
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    COUNT(*) AS total_files,
+    pg_size_pretty(SUM(file_size)::bigint) AS total_storage,
+    pg_size_pretty(AVG(file_size)::bigint) AS avg_file_size,
+    pg_size_pretty(MAX(file_size)::bigint) AS max_file_size
+FROM ticket_attachments;
+EOF
+
+# Find tickets with attachments
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    t.ticket_number,
+    t.subject,
+    COUNT(ta.attachment_id) AS attachment_count,
+    pg_size_pretty(SUM(ta.file_size)::bigint) AS total_size
+FROM tickets t
+JOIN ticket_attachments ta ON t.ticket_id = ta.ticket_id
+GROUP BY t.ticket_id, t.ticket_number, t.subject
+ORDER BY COUNT(ta.attachment_id) DESC;
+EOF
+```
+
+---
+
+### 17. submission_rate_limit
 
 **Purpose:** Rate limiting enforcement
 
@@ -1116,6 +1279,8 @@ tickets (entity_id) → entity_master (unique_entity_id)
 tickets (category_id) → ticket_categories (category_id)
 tickets (priority_id) → priority_levels (priority_id)
 tickets (status_id) → ticket_status (status_id)
+ticket_activity (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
+ticket_attachments (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
 ```
 
 ### Foreign Key Commands
@@ -1547,6 +1712,8 @@ SELECT
     'service_feedback' AS table_name, COUNT(*) FROM service_feedback
 UNION ALL SELECT 'grievance_tickets', COUNT(*) FROM grievance_tickets
 UNION ALL SELECT 'tickets', COUNT(*) FROM tickets
+UNION ALL SELECT 'ticket_activity', COUNT(*) FROM ticket_activity
+UNION ALL SELECT 'ticket_attachments', COUNT(*) FROM ticket_attachments
 UNION ALL SELECT 'ea_service_requests', COUNT(*) FROM ea_service_requests;
 EOF
 

@@ -1,7 +1,7 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 2.0
-**Last Updated:** November 20, 2025
+**Document Version:** 2.1
+**Last Updated:** November 22, 2025
 **API Base URL:** `https://gea.abhirup.app` (Production)
 **Framework:** Next.js 14 App Router
 
@@ -847,7 +847,13 @@ List attachments for a ticket (metadata only).
 
 #### GET /api/helpdesk/ticket/[ticketNumber]
 
-Public ticket lookup (alternative to `/api/tickets/status`).
+Public ticket lookup with activity timeline.
+
+**Features:**
+- Returns ticket details and activity history
+- **Smart Privacy Controls:**
+  - Open/In-Progress tickets: Internal notes are hidden
+  - Resolved/Closed tickets: Last internal note shown as "Resolution Comment"
 
 **Path Parameters:**
 
@@ -860,34 +866,131 @@ Public ticket lookup (alternative to `/api/tickets/status`).
 GET /api/helpdesk/ticket/202511-000456
 ```
 
-**Success Response (200 OK):**
+**Success Response (200 OK) - Open/In-Progress Ticket:**
 ```json
 {
   "success": true,
-  "data": {
+  "ticket": {
     "ticket_number": "202511-000456",
     "status": "In Progress",
+    "status_code": "in_progress",
     "priority": "Medium",
+    "priority_code": "medium",
     "subject": "Unable to download work permit application form",
     "description": "The PDF link on the website returns a 404 error...",
-    "service": {
-      "id": "SVC-IMM-001",
-      "name": "Work Permit Application",
-      "category": "Immigration"
-    },
-    "entity": {
-      "id": "DEPT-001",
-      "name": "Department of Immigration"
-    },
-    "contact": {
-      "name": "Jane Smith",
-      "email": "jane@example.com",
-      "phone": "+1473555001"
-    },
+    "service_name": "Work Permit Application",
+    "service_id": "SVC-IMM-001",
+    "entity_name": "Department of Immigration",
+    "entity_id": "DEPT-001",
+    "requester_category": "citizen",
+    "feedback_id": null,
     "created_at": "2025-11-20T10:30:00Z",
-    "updated_at": "2025-11-20T14:15:00Z",
-    "sla_target": "2025-11-22T10:30:00Z"
+    "updated_at": "2025-11-20T14:15:00Z"
+  },
+  "activities": [
+    {
+      "activity_id": 2,
+      "activity_type": "status_change",
+      "display_type": "status_change",
+      "performed_by": "admin",
+      "description": "Status changed from New to In Progress",
+      "created_at": "2025-11-20T14:15:00Z"
+    },
+    {
+      "activity_id": 1,
+      "activity_type": "created",
+      "display_type": "created",
+      "performed_by": "system",
+      "description": "Ticket created",
+      "created_at": "2025-11-20T10:30:00Z"
+    }
+  ],
+  "metadata": {
+    "retrieved_at": "2025-11-22T10:00:00Z"
   }
+}
+```
+
+**Success Response (200 OK) - Resolved/Closed Ticket:**
+```json
+{
+  "success": true,
+  "ticket": {
+    "ticket_number": "202511-000456",
+    "status": "Resolved",
+    "status_code": "resolved",
+    "priority": "Medium",
+    "priority_code": "medium",
+    "subject": "Unable to download work permit application form",
+    "description": "The PDF link on the website returns a 404 error...",
+    "service_name": "Work Permit Application",
+    "service_id": "SVC-IMM-001",
+    "entity_name": "Department of Immigration",
+    "entity_id": "DEPT-001",
+    "requester_category": "citizen",
+    "feedback_id": null,
+    "created_at": "2025-11-20T10:30:00Z",
+    "updated_at": "2025-11-20T16:45:00Z"
+  },
+  "activities": [
+    {
+      "activity_id": 5,
+      "activity_type": "internal_note",
+      "display_type": "resolution_comment",
+      "performed_by": "admin",
+      "description": "The PDF link has been fixed. The form is now accessible at www.example.com/forms/work-permit.pdf. If you continue to experience issues, please submit a new ticket.",
+      "created_at": "2025-11-20T16:45:00Z"
+    },
+    {
+      "activity_id": 4,
+      "activity_type": "status_change",
+      "display_type": "status_change",
+      "performed_by": "admin",
+      "description": "Status changed from In Progress to Resolved",
+      "created_at": "2025-11-20T16:44:00Z"
+    },
+    {
+      "activity_id": 2,
+      "activity_type": "status_change",
+      "display_type": "status_change",
+      "performed_by": "admin",
+      "description": "Status changed from New to In Progress",
+      "created_at": "2025-11-20T14:15:00Z"
+    },
+    {
+      "activity_id": 1,
+      "activity_type": "created",
+      "display_type": "created",
+      "performed_by": "system",
+      "description": "Ticket created",
+      "created_at": "2025-11-20T10:30:00Z"
+    }
+  ],
+  "metadata": {
+    "retrieved_at": "2025-11-22T10:00:00Z"
+  }
+}
+```
+
+**Activity Types:**
+
+| Type | Display Type | Icon | Description |
+|------|-------------|------|-------------|
+| created | created | 🎫 | Ticket was created |
+| status_change | status_change | 🔄 | Status was updated |
+| priority_change | priority_change | ⚡ | Priority was modified |
+| internal_note | resolution_comment | ✅ | Admin's resolution comment (only shown on resolved/closed tickets) |
+
+**Privacy Rules:**
+- **Open/In-Progress**: `internal_note` activities are excluded
+- **Resolved/Closed**: Last `internal_note` is included and relabeled as `resolution_comment`
+
+**Not Found (404):**
+```json
+{
+  "error": "Ticket not found",
+  "message": "No ticket found with number: 202511-000456. Please check the ticket number and try again.",
+  "timestamp": "2025-11-22T10:00:00Z"
 }
 ```
 
@@ -900,7 +1003,272 @@ curl https://gea.abhirup.app/api/helpdesk/ticket/202511-000456
 
 ## Admin API Endpoints
 
-### 1. Authentication
+### 1. Ticket Management
+
+#### GET /api/admin/tickets/dashboard-stats
+
+Get ticket dashboard statistics and metrics.
+
+**Authentication:** Required (admin session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| entity_id | string | No | Filter by entity ID |
+
+**Example Request:**
+```
+GET /api/admin/tickets/dashboard-stats?entity_id=DEPT-001
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "total_tickets": 45,
+    "status_breakdown": {
+      "new": { "name": "New", "count": 12, "color": "#3B82F6" },
+      "in_progress": { "name": "In Progress", "count": 18, "color": "#8B5CF6" },
+      "resolved": { "name": "Resolved", "count": 10, "color": "#10B981" },
+      "closed": { "name": "Closed", "count": 5, "color": "#6B7280" }
+    },
+    "priority_breakdown": {
+      "low": { "name": "Low", "count": 15, "color": "#10B981" },
+      "medium": { "name": "Medium", "count": 20, "color": "#F59E0B" },
+      "high": { "name": "High", "count": 8, "color": "#EF4444" },
+      "urgent": { "name": "Urgent", "count": 2, "color": "#DC2626" }
+    },
+    "metrics": {
+      "overdue_tickets": 3,
+      "avg_resolution_time": "2.5 days",
+      "sla_compliance": "94%"
+    }
+  }
+}
+```
+
+---
+
+#### GET /api/admin/tickets/list
+
+Get paginated list of tickets with filtering and sorting.
+
+**Authentication:** Required (admin session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| entity_id | string | No | Filter by entity ID |
+| service_id | string | No | Filter by service ID |
+| status | string | No | Filter by status code |
+| priority | string | No | Filter by priority code |
+| search | string | No | Search in subject/description |
+| sort_by | string | No | Sort field (default: created_at) |
+| sort_order | string | No | asc or desc (default: desc) |
+| page | integer | No | Page number (default: 1) |
+| limit | integer | No | Results per page (default: 20, max: 100) |
+
+**Example Request:**
+```
+GET /api/admin/tickets/list?status=in_progress&sort_by=priority&page=1&limit=20
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "tickets": [
+      {
+        "ticket_id": 123,
+        "ticket_number": "202511-000123",
+        "subject": "Unable to download form",
+        "status": { "id": 2, "name": "In Progress", "code": "in_progress" },
+        "priority": { "id": 3, "name": "High", "code": "high" },
+        "service": { "id": "SVC-IMM-001", "name": "Work Permit Application" },
+        "entity": { "id": "DEPT-001", "name": "Department of Immigration" },
+        "requester": {
+          "category": "citizen",
+          "name": "Jane Smith",
+          "email": "jane@example.com"
+        },
+        "created_at": "2025-11-20T10:30:00Z",
+        "updated_at": "2025-11-20T14:15:00Z",
+        "sla_target": "2025-11-22T10:30:00Z",
+        "is_overdue": false
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total_pages": 3,
+      "total_count": 45,
+      "has_next": true,
+      "has_prev": false
+    },
+    "filters": {
+      "entity_id": null,
+      "status": "in_progress",
+      "priority": null,
+      "search": null
+    },
+    "sort": {
+      "by": "priority",
+      "order": "desc"
+    }
+  }
+}
+```
+
+---
+
+#### GET /api/admin/tickets/[id]/details
+
+Get complete ticket details with activity history and attachments.
+
+**Authentication:** Required (admin session)
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | Ticket ID (numeric) |
+
+**Example Request:**
+```
+GET /api/admin/tickets/123/details
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "ticket": {
+      "ticket_id": 123,
+      "ticket_number": "202511-000123",
+      "subject": "Unable to download form",
+      "description": "The PDF link on the website returns a 404 error...",
+      "status": { "id": 2, "name": "In Progress", "code": "in_progress" },
+      "priority": { "id": 3, "name": "High", "code": "high" },
+      "service": { "id": "SVC-IMM-001", "name": "Work Permit Application" },
+      "entity": { "id": "DEPT-001", "name": "Department of Immigration" },
+      "requester": {
+        "category": "citizen",
+        "name": "Jane Smith",
+        "email": "jane@example.com",
+        "phone": "+1473555001"
+      },
+      "created_at": "2025-11-20T10:30:00Z",
+      "updated_at": "2025-11-20T14:15:00Z",
+      "sla_target": "2025-11-22T10:30:00Z",
+      "feedback_id": null
+    },
+    "activities": [
+      {
+        "activity_id": 3,
+        "activity_type": "internal_note",
+        "performed_by": "admin",
+        "description": "Investigating the issue with the IT team",
+        "created_at": "2025-11-20T14:30:00Z"
+      },
+      {
+        "activity_id": 2,
+        "activity_type": "status_change",
+        "performed_by": "admin",
+        "description": "Status changed from New to In Progress",
+        "created_at": "2025-11-20T14:15:00Z"
+      },
+      {
+        "activity_id": 1,
+        "activity_type": "created",
+        "performed_by": "system",
+        "description": "Ticket created",
+        "created_at": "2025-11-20T10:30:00Z"
+      }
+    ],
+    "attachments": []
+  }
+}
+```
+
+---
+
+#### PATCH /api/admin/tickets/[id]/update
+
+Update ticket status, priority, or add internal notes.
+
+**Authentication:** Required (admin session)
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | Ticket ID (numeric) |
+
+**Request Body:**
+```json
+{
+  "status_id": 3,
+  "priority_id": 2,
+  "internal_note": "Issue has been escalated to IT department. Expected resolution within 24 hours.",
+  "performed_by": "admin"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| status_id | integer | No | New status ID |
+| priority_id | integer | No | New priority ID |
+| internal_note | string | No | Add internal note (max 5000 chars) |
+| performed_by | string | Yes | Username performing action |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "ticket_id": 123,
+    "ticket_number": "202511-000123",
+    "updated_fields": ["status_id", "internal_note"],
+    "new_status": "Resolved",
+    "new_priority": null,
+    "note_added": true,
+    "activities_created": 2,
+    "updated_at": "2025-11-20T16:45:00Z"
+  },
+  "message": "Ticket updated successfully"
+}
+```
+
+**Validation Error (400):**
+```json
+{
+  "error": "Validation failed",
+  "details": "Invalid status_id: Status not found"
+}
+```
+
+**Example cURL:**
+```bash
+curl -X PATCH https://gea.abhirup.app/api/admin/tickets/123/update \
+  -H "Content-Type: application/json" \
+  -b cookies.txt \
+  -d '{
+    "status_id": 3,
+    "internal_note": "Issue resolved. PDF link has been fixed.",
+    "performed_by": "admin"
+  }'
+```
+
+---
+
+### 2. Authentication
 
 #### POST /api/admin/auth/login
 
@@ -1843,25 +2211,54 @@ const RATE_LIMITS = {
 };
 ```
 
+### Recent API Enhancements (v2.1 - November 22, 2025)
+
+**Newly Implemented:**
+
+1. **Admin Ticket Management** ✅
+   - `GET /api/admin/tickets/dashboard-stats` - Dashboard metrics with status/priority breakdown
+   - `GET /api/admin/tickets/list` - Paginated ticket list with filtering and sorting
+   - `GET /api/admin/tickets/[id]/details` - Complete ticket details with activity history
+   - `PATCH /api/admin/tickets/[id]/update` - Update status/priority and add internal notes
+
+2. **Public Ticket Activity Timeline** ✅
+   - `GET /api/helpdesk/ticket/[ticketNumber]` - Enhanced with activity timeline
+   - **Smart Privacy Controls:**
+     - Open/In-Progress tickets: Internal notes hidden
+     - Resolved/Closed tickets: Last internal note shown as "Resolution Comment"
+
+3. **Database Schema Updates** ✅
+   - `ticket_activity` table for activity logging
+   - `ticket_attachments` table for file storage
+   - Activity types: created, status_change, priority_change, internal_note
+
 ### Future API Enhancements
 
 **Planned endpoints (not yet implemented):**
 
-1. **Admin Ticket Management**
-   - `GET /api/admin/tickets` - List all tickets with filters
-   - `GET /api/admin/tickets/:id` - Get complete ticket details
-   - `PUT /api/admin/tickets/:id` - Update ticket status/priority/assignment
-   - `POST /api/admin/tickets/:id/close` - Close/resolve ticket
-   - `POST /api/admin/tickets/:id/notes` - Add internal notes
+1. **Ticket Assignments**
+   - `PATCH /api/admin/tickets/:id/assign` - Assign ticket to user/team
+   - `GET /api/admin/tickets/my-assignments` - Get tickets assigned to current user
 
-2. **Analytics**
+2. **Advanced Analytics**
    - `GET /api/admin/analytics/sla-dashboard` - SLA compliance metrics
    - `GET /api/admin/analytics/service-performance` - Service-level metrics
    - `GET /api/admin/analytics/volume-trend` - Ticket volume trends
+   - `GET /api/admin/analytics/resolution-time-by-category` - Performance by category
 
-3. **Webhooks (Future)**
+3. **Bulk Operations**
+   - `PATCH /api/admin/tickets/bulk-update` - Update multiple tickets
+   - `POST /api/admin/tickets/bulk-close` - Close multiple tickets
+
+4. **Email Notifications**
+   - Automatic email on ticket creation
+   - Status change notifications to citizens
+   - Resolution emails with final comment
+
+5. **Webhooks**
    - `POST /api/webhooks/ticket-created` - Notify external systems
    - `POST /api/webhooks/ticket-resolved` - Resolution notifications
+   - `POST /api/webhooks/ticket-escalated` - SLA breach alerts
 
 ---
 
