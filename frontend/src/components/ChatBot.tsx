@@ -44,28 +44,12 @@ export default function ChatBot() {
 
       {/* Chatbot Overlay */}
       {isOpen && (
-        <div className="fixed bottom-24 right-6 z-50 w-96 h-[600px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
-          {/* Header */}
-          <div className="bg-blue-600 text-white p-4 flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <div className="text-xl">🇬🇩</div>
-              <span className="font-semibold">Grenada AI Assistant</span>
-            </div>
-            <button
-              onClick={toggleChat}
-              className="hover:bg-blue-700 rounded p-1 transition-colors"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-
+        <div className="fixed bottom-24 right-6 z-50 w-[480px] h-[700px] bg-white rounded-lg shadow-2xl overflow-hidden border border-gray-200">
           {/* Iframe */}
           <iframe
             key={iframeKey}
             src={config.CHATBOT_URL}
-            className="w-full h-[calc(100%-60px)]"
+            className="w-full h-full"
             title="Grenada AI Assistant"
             allow="microphone"
           />

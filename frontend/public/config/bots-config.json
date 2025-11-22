@@ -13,7 +13,7 @@
     },
     {
       "id": "change-management-bot",
-      "name": "Change Management Bot",
+      "name": "Change Navigator",
       "url": "https://cmb-jade.vercel.app/",
       "description": "Assists with government digital transformation change management processes",
       "status": "active",
