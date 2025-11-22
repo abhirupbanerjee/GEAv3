@@ -69,6 +69,58 @@ export async function GET(
 
     const ticket = result.rows[0];
 
+    // Fetch public activities (exclude internal notes UNLESS ticket is resolved/closed)
+    // For resolved/closed tickets, include the last internal note as resolution comment
+    const isResolvedOrClosed = ticket.status_code === 'resolved' || ticket.status_code === 'closed';
+
+    let activitiesResult;
+    if (isResolvedOrClosed) {
+      // Include all public activities + last internal note
+      activitiesResult = await pool.query(
+        `SELECT
+          activity_id,
+          activity_type,
+          performed_by,
+          description,
+          created_at,
+          CASE
+            WHEN activity_type = 'internal_note' THEN 'resolution_comment'
+            ELSE activity_type
+          END as display_type
+        FROM (
+          -- Get all public activities
+          SELECT * FROM ticket_activity
+          WHERE ticket_id = $1 AND activity_type != 'internal_note'
+
+          UNION
+
+          -- Get last internal note for resolved/closed tickets
+          SELECT * FROM ticket_activity
+          WHERE ticket_id = $1 AND activity_type = 'internal_note'
+          ORDER BY created_at DESC
+          LIMIT 1
+        ) as combined_activities
+        ORDER BY created_at DESC`,
+        [ticket.ticket_id]
+      );
+    } else {
+      // Only public activities for open/in-progress tickets
+      activitiesResult = await pool.query(
+        `SELECT
+          activity_id,
+          activity_type,
+          activity_type as display_type,
+          performed_by,
+          description,
+          created_at
+        FROM ticket_activity
+        WHERE ticket_id = $1
+          AND activity_type != 'internal_note'
+        ORDER BY created_at DESC`,
+        [ticket.ticket_id]
+      );
+    }
+
     // Return ticket details
     return NextResponse.json({
       success: true,
@@ -89,6 +141,7 @@ export async function GET(
         created_at: ticket.created_at,
         updated_at: ticket.updated_at
       },
+      activities: activitiesResult.rows,
       metadata: {
         retrieved_at: new Date().toISOString()
       }

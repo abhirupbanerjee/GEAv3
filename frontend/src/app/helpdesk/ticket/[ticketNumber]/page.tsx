@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { ActivityTimeline } from '@/components/admin/tickets/ActivityTimeline';
 
 interface TicketDetails {
   ticket_number: string;
@@ -21,12 +22,21 @@ interface TicketDetails {
   updated_at: string;
 }
 
+interface TicketActivity {
+  activity_id: number;
+  activity_type: string;
+  performed_by: string;
+  description: string;
+  created_at: string;
+}
+
 export default function TicketDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const ticketNumber = params.ticketNumber as string;
 
   const [ticket, setTicket] = useState<TicketDetails | null>(null);
+  const [activities, setActivities] = useState<TicketActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -40,13 +50,16 @@ export default function TicketDetailsPage() {
         if (!response.ok) {
           setError(data.message || data.error || 'Failed to fetch ticket');
           setTicket(null);
+          setActivities([]);
         } else {
           setTicket(data.ticket);
+          setActivities(data.activities || []);
           setError('');
         }
       } catch (err) {
         setError('An error occurred while fetching ticket details');
         setTicket(null);
+        setActivities([]);
       } finally {
         setLoading(false);
       }
@@ -306,6 +319,16 @@ export default function TicketDetailsPage() {
                 </p>
               </div>
             </div>
+
+            {/* Activity Timeline */}
+            {activities.length > 0 && (
+              <div className="pt-6 border-t border-gray-200">
+                <label className="text-sm font-medium text-gray-500 mb-3 block">
+                  Activity Timeline
+                </label>
+                <ActivityTimeline activities={activities} />
+              </div>
+            )}
 
             {/* Feedback Reference */}
             {ticket.feedback_id && (
