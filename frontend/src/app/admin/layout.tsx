@@ -1,34 +1,58 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
-import { SessionProvider } from 'next-auth/react'
+import { usePathname, useRouter } from 'next/navigation'
+import { SessionProvider, useSession } from 'next-auth/react'
+import { useEffect } from 'react'
 import Sidebar from '@/components/admin/Sidebar'
+
+function AdminLayoutContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname()
+  const router = useRouter()
+  const { data: session, status } = useSession()
+  const isLoginPage = pathname === '/admin'
+
+  useEffect(() => {
+    // Only redirect after authentication is resolved
+    if (status === 'loading') return
+
+    // If authenticated and on admin routes, check role
+    if (session?.user && !isLoginPage) {
+      const isStaff = session.user.roleType === 'staff'
+
+      // Redirect staff users from admin home to staff home
+      if (isStaff && pathname === '/admin/home') {
+        router.replace('/admin/staff/home')
+      }
+    }
+  }, [session, status, pathname, router, isLoginPage])
+
+  if (isLoginPage) {
+    // Login page - no sidebar, just the content
+    return <>{children}</>
+  }
+
+  // All other admin pages - show sidebar
+  return (
+    <div className="min-h-screen bg-gray-50 flex">
+      <Sidebar />
+      <div className="flex-1 overflow-auto">
+        <main className="p-6">
+          {children}
+        </main>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const pathname = usePathname()
-  const isLoginPage = pathname === '/admin'
-
   // Wrap everything with SessionProvider for NextAuth
   return (
     <SessionProvider>
-      {isLoginPage ? (
-        // Login page - no sidebar, just the content
-        <>{children}</>
-      ) : (
-        // All other admin pages - show sidebar
-        <div className="min-h-screen bg-gray-50 flex">
-          <Sidebar />
-          <div className="flex-1 overflow-auto">
-            <main className="p-6">
-              {children}
-            </main>
-          </div>
-        </div>
-      )}
+      <AdminLayoutContent>{children}</AdminLayoutContent>
     </SessionProvider>
   )
 }
