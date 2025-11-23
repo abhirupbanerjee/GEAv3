@@ -87,19 +87,23 @@ export async function GET(
       );
     }
 
-    // Fetch attachments
+    // Fetch attachments with service attachment details
     const attachmentsQuery = `
       SELECT
-        attachment_id,
-        filename,
-        mimetype,
-        file_size,
-        is_mandatory,
-        uploaded_by,
-        created_at
-      FROM ea_service_request_attachments
-      WHERE request_id = $1
-      ORDER BY created_at DESC
+        sra.attachment_id,
+        sra.request_id,
+        sra.service_attachment_id,
+        sra.file_name,
+        sra.file_type,
+        sra.file_size,
+        sra.uploaded_by,
+        sra.uploaded_at,
+        sa.filename as attachment_name,
+        sa.is_mandatory
+      FROM ea_service_request_attachments sra
+      LEFT JOIN service_attachments sa ON sra.service_attachment_id = sa.service_attachment_id
+      WHERE sra.request_id = $1
+      ORDER BY sra.uploaded_at DESC
     `;
 
     const attachmentsResult = await pool.query(attachmentsQuery, [requestId]);

@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/admin/service-requests
- * Create new service request
+ * Create new service request with file attachments
  */
 export async function POST(request: NextRequest) {
   try {
@@ -178,16 +178,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const body = await request.json();
-    const {
-      service_id,
-      entity_id,
-      requester_name,
-      requester_email,
-      requester_phone,
-      requester_ministry,
-      request_description,
-    } = body;
+    // Parse multipart form data
+    const formData = await request.formData();
+
+    const service_id = formData.get('service_id') as string;
+    const entity_id = formData.get('entity_id') as string;
+    const requester_name = formData.get('requester_name') as string;
+    const requester_email = formData.get('requester_email') as string;
+    const requester_phone = formData.get('requester_phone') as string;
+    const requester_ministry = formData.get('requester_ministry') as string;
+    const request_description = formData.get('request_description') as string;
+    const priority = formData.get('priority') as string;
 
     // Validate required fields
     if (!service_id || !entity_id || !requester_name || !requester_email) {
@@ -218,43 +219,184 @@ export async function POST(request: NextRequest) {
     const count = parseInt(countResult.rows[0].count) + 1;
     const requestNumber = `SR-${year}${month}-${String(count).padStart(4, '0')}`;
 
-    // Insert request
-    const result = await pool.query(
-      `INSERT INTO ea_service_requests (
-        request_number,
-        service_id,
-        entity_id,
-        requester_name,
-        requester_email,
-        requester_phone,
-        requester_ministry,
-        request_description,
-        status,
-        created_by,
-        created_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'submitted', $9, CURRENT_TIMESTAMP)
-      RETURNING *`,
-      [
-        requestNumber,
-        service_id,
-        entity_id,
-        requester_name,
-        requester_email,
-        requester_phone || null,
-        requester_ministry || null,
-        request_description || null,
-        session.user.email,
-      ]
-    );
+    // Begin transaction
+    await pool.query('BEGIN');
 
-    return NextResponse.json({
-      success: true,
-      data: {
-        request: result.rows[0],
-      },
-      message: 'Service request created successfully',
-      timestamp: new Date().toISOString(),
-    });
+    try {
+      // Insert request
+      const result = await pool.query(
+        `INSERT INTO ea_service_requests (
+          request_number,
+          service_id,
+          entity_id,
+          requester_name,
+          requester_email,
+          requester_phone,
+          requester_ministry,
+          request_description,
+          status,
+          created_by,
+          created_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'submitted', $9, CURRENT_TIMESTAMP)
+        RETURNING *`,
+        [
+          requestNumber,
+          service_id,
+          entity_id,
+          requester_name,
+          requester_email,
+          requester_phone || null,
+          requester_ministry || null,
+          request_description || null,
+          session.user.email,
+        ]
+      );
+
+      const requestId = result.rows[0].request_id;
+
+      // Process file attachments with validation
+      const attachmentKeys = Array.from(formData.keys()).filter((key) => key.startsWith('attachment_'));
+      let uploadedCount = 0;
+
+      // MIME type mapping for validation
+      const mimeTypeMap: Record<string, string[]> = {
+        '.pdf': ['application/pdf'],
+        '.doc': ['application/msword'],
+        '.docx': ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
+        '.xls': ['application/vnd.ms-excel'],
+        '.xlsx': ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+        '.jpg': ['image/jpeg'],
+        '.jpeg': ['image/jpeg'],
+        '.png': ['image/png'],
+        '.gif': ['image/gif'],
+      };
+
+      for (const key of attachmentKeys) {
+        const file = formData.get(key) as File;
+        if (!file) continue;
+
+        const attachmentId = parseInt(key.replace('attachment_', ''));
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          await pool.query('ROLLBACK');
+          return NextResponse.json(
+            { error: `File ${file.name} exceeds 5MB limit` },
+            { status: 400 }
+          );
+        }
+
+        // Fetch attachment requirements for validation
+        const attachmentReq = await pool.query(
+          `SELECT file_extension, is_mandatory, filename
+           FROM service_attachments
+           WHERE service_attachment_id = $1 AND service_id = $2 AND is_active = true`,
+          [attachmentId, service_id]
+        );
+
+        if (attachmentReq.rows.length === 0) {
+          await pool.query('ROLLBACK');
+          return NextResponse.json(
+            { error: `Invalid attachment ID: ${attachmentId}` },
+            { status: 400 }
+          );
+        }
+
+        const requirement = attachmentReq.rows[0];
+
+        // Validate file extension
+        const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+        const allowedExtensions = requirement.file_extension
+          .split(',')
+          .map((ext: string) => ext.trim().toLowerCase());
+
+        if (!allowedExtensions.includes(fileExtension)) {
+          await pool.query('ROLLBACK');
+          return NextResponse.json(
+            {
+              error: `File ${file.name} has invalid extension. Allowed: ${requirement.file_extension}`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Validate MIME type matches extension
+        const expectedMimes = mimeTypeMap[fileExtension] || [];
+        if (expectedMimes.length > 0 && !expectedMimes.includes(file.type)) {
+          await pool.query('ROLLBACK');
+          return NextResponse.json(
+            { error: `File ${file.name} MIME type mismatch` },
+            { status: 400 }
+          );
+        }
+
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        // Insert attachment
+        await pool.query(
+          `INSERT INTO ea_service_request_attachments (
+            request_id,
+            service_attachment_id,
+            file_name,
+            file_type,
+            file_size,
+            file_data,
+            uploaded_by,
+            uploaded_at
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+          [
+            requestId,
+            attachmentId,
+            file.name,
+            file.type,
+            file.size,
+            buffer,
+            session.user.email,
+          ]
+        );
+
+        uploadedCount++;
+      }
+
+      // Validate all mandatory attachments are uploaded
+      const mandatoryCheck = await pool.query(
+        `SELECT sa.service_attachment_id, sa.filename
+         FROM service_attachments sa
+         WHERE sa.service_id = $1 AND sa.is_mandatory = true AND sa.is_active = true
+         AND NOT EXISTS (
+           SELECT 1 FROM ea_service_request_attachments sra
+           WHERE sra.request_id = $2 AND sra.service_attachment_id = sa.service_attachment_id
+         )`,
+        [service_id, requestId]
+      );
+
+      if (mandatoryCheck.rows.length > 0) {
+        await pool.query('ROLLBACK');
+        const missingFiles = mandatoryCheck.rows.map((r) => r.filename).join(', ');
+        return NextResponse.json(
+          { error: `Missing mandatory attachments: ${missingFiles}` },
+          { status: 400 }
+        );
+      }
+
+      // Commit transaction
+      await pool.query('COMMIT');
+
+      return NextResponse.json({
+        success: true,
+        data: {
+          request: result.rows[0],
+          attachments_uploaded: uploadedCount,
+        },
+        message: 'Service request created successfully',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      // Rollback on error
+      await pool.query('ROLLBACK');
+      throw error;
+    }
   } catch (error) {
     console.error('Error creating service request:', error);
     return NextResponse.json(

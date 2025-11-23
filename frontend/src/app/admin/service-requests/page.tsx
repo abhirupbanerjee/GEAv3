@@ -12,10 +12,10 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import RequestStats from '@/components/admin/service-requests/RequestStats';
 import RequestTable from '@/components/admin/service-requests/RequestTable';
-import RequestForm from '@/components/admin/service-requests/RequestForm';
 
 interface ServiceRequest {
   request_id: number;
@@ -47,7 +47,6 @@ export default function ServiceRequestsPage() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
   const [filters, setFilters] = useState({
     status: '',
     service_id: '',
@@ -59,15 +58,7 @@ export default function ServiceRequestsPage() {
     total_count: 0,
   });
 
-  // Fetch requests when filters change
-  useEffect(() => {
-    if (status === 'authenticated') {
-      fetchRequests();
-      fetchStats();
-    }
-  }, [status, filters, pagination.page]);
-
-  const fetchRequests = async () => {
+  const fetchRequests = useCallback(async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams({
@@ -94,9 +85,9 @@ export default function ServiceRequestsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [pagination.page, filters]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/service-requests/stats');
       if (!response.ok) throw new Error('Failed to fetch stats');
@@ -106,7 +97,15 @@ export default function ServiceRequestsPage() {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  };
+  }, []);
+
+  // Fetch requests when filters change
+  useEffect(() => {
+    if (status === 'authenticated') {
+      fetchRequests();
+      fetchStats();
+    }
+  }, [status, fetchRequests, fetchStats]);
 
   const handleFilterChange = (newFilters: typeof filters) => {
     setFilters(newFilters);
@@ -115,12 +114,6 @@ export default function ServiceRequestsPage() {
 
   const handlePageChange = (newPage: number) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
-  const handleRequestCreated = () => {
-    setShowForm(false);
-    fetchRequests();
-    fetchStats();
   };
 
   if (status === 'loading' || loading) {
@@ -141,19 +134,23 @@ export default function ServiceRequestsPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Service Requests</h1>
           <p className="text-gray-600 mt-1">
-            Manage EA service requests
-            {session?.user?.roleType === 'staff' && ' for your entity'}
+            {session?.user?.roleType === 'admin'
+              ? 'Manage EA service requests from all entities'
+              : 'Submit and track EA service requests for your entity'}
           </p>
         </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>New Request</span>
-        </button>
+        {/* Only staff can create new requests */}
+        {session?.user?.roleType === 'staff' && (
+          <Link
+            href="/admin/service-requests/new"
+            className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>New Request</span>
+          </Link>
+        )}
       </div>
 
       {/* Statistics */}
@@ -168,15 +165,6 @@ export default function ServiceRequestsPage() {
         onPageChange={handlePageChange}
         loading={loading}
       />
-
-      {/* Request Form Modal */}
-      {showForm && (
-        <RequestForm
-          session={session}
-          onClose={() => setShowForm(false)}
-          onSuccess={handleRequestCreated}
-        />
-      )}
     </div>
   );
 }

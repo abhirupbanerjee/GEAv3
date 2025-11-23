@@ -6,7 +6,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -43,7 +43,6 @@ interface Comment {
 
 export default function ServiceRequestDetailPage() {
   const params = useParams();
-  const router = useRouter();
   const { data: session } = useSession();
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -58,14 +57,9 @@ export default function ServiceRequestDetailPage() {
   const isAdmin = session?.user?.roleType === 'admin';
   const requestId = params.id as string;
 
-  useEffect(() => {
-    if (requestId) {
-      fetchRequestDetails();
-      fetchComments();
-    }
-  }, [requestId]);
+  const fetchRequestDetails = useCallback(async () => {
+    if (!requestId) return;
 
-  const fetchRequestDetails = async () => {
     try {
       const response = await fetch(`/api/admin/service-requests/${requestId}`);
       if (!response.ok) throw new Error('Failed to fetch request');
@@ -77,9 +71,11 @@ export default function ServiceRequestDetailPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [requestId]);
 
-  const fetchComments = async () => {
+  const fetchComments = useCallback(async () => {
+    if (!requestId) return;
+
     try {
       const response = await fetch(`/api/admin/service-requests/${requestId}/comments`);
       if (!response.ok) throw new Error('Failed to fetch comments');
@@ -88,7 +84,14 @@ export default function ServiceRequestDetailPage() {
     } catch (error) {
       console.error('Error:', error);
     }
-  };
+  }, [requestId]);
+
+  useEffect(() => {
+    if (requestId) {
+      fetchRequestDetails();
+      fetchComments();
+    }
+  }, [requestId, fetchRequestDetails, fetchComments]);
 
   const handleStatusChange = async () => {
     if (!newStatus || newStatus === request?.status) {

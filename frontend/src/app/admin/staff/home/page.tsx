@@ -6,7 +6,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 
 interface EntityInfo {
@@ -31,16 +31,11 @@ export default function StaffHomePage() {
   const [stats, setStats] = useState<StaffStats | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (session?.user?.entityId) {
-      fetchEntityInfo();
-      fetchStats();
-    }
-  }, [session]);
+  const fetchEntityInfo = useCallback(async () => {
+    if (!session?.user?.entityId) return;
 
-  const fetchEntityInfo = async () => {
     try {
-      const response = await fetch(`/api/admin/entities/${session?.user?.entityId}`);
+      const response = await fetch(`/api/admin/entities/${session.user.entityId}`);
       if (response.ok) {
         const data = await response.json();
         setEntityInfo(data.data.entity);
@@ -48,9 +43,9 @@ export default function StaffHomePage() {
     } catch (error) {
       console.error('Error fetching entity info:', error);
     }
-  };
+  }, [session?.user?.entityId]);
 
-  const fetchStats = async () => {
+  const fetchStats = useCallback(async () => {
     try {
       const response = await fetch('/api/admin/service-requests/stats');
       if (response.ok) {
@@ -62,7 +57,14 @@ export default function StaffHomePage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (session?.user?.entityId) {
+      fetchEntityInfo();
+      fetchStats();
+    }
+  }, [session?.user?.entityId, fetchEntityInfo, fetchStats]);
 
   if (loading) {
     return (
