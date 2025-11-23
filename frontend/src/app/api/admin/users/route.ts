@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
         u.updated_at
       FROM users u
       JOIN user_roles r ON u.role_id = r.role_id
-      LEFT JOIN entity_master e ON u.entity_id = e.entity_id
+      LEFT JOIN entity_master e ON u.entity_id = e.unique_entity_id
       ORDER BY u.created_at DESC
     `);
 

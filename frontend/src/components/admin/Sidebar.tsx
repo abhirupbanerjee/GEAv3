@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
+import { signOut } from 'next-auth/react'
 
 const navigationItems = [
   {
@@ -33,6 +34,15 @@ const navigationItems = [
     ),
   },
   {
+    label: 'Manage Users',
+    href: '/admin/users',
+    icon: (
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+      </svg>
+    ),
+  },
+  {
     label: 'Manage Tickets',
     href: '/admin/tickets',
     icon: (
@@ -54,18 +64,16 @@ const navigationItems = [
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const router = useRouter()
   const [loggingOut, setLoggingOut] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   const handleLogout = async () => {
     if (!confirm('Are you sure you want to logout?')) return
-    
+
     setLoggingOut(true)
     try {
-      await fetch('/api/admin/auth/logout', { method: 'POST' })
-      // Force full page reload to clear all state
-      window.location.href = '/admin'
+      // Use NextAuth signOut
+      await signOut({ callbackUrl: '/auth/signin' })
     } catch (error) {
       console.error('Logout error:', error)
       alert('Failed to logout. Please try again.')

@@ -39,14 +39,10 @@ export async function GET(request: NextRequest) {
     // Fetch all entities
     const result = await pool.query(`
       SELECT
-        entity_id,
+        unique_entity_id as entity_id,
         entity_name,
         entity_type,
-        ministry_parent,
-        description,
-        contact_email,
-        contact_phone,
-        address,
+        parent_entity_id,
         is_active
       FROM entity_master
       WHERE is_active = true
