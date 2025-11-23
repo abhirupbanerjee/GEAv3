@@ -13,6 +13,7 @@ import Link from 'next/link';
 interface Service {
   service_id: string;
   service_name: string;
+  entity_id: string;
   description: string;
 }
 
@@ -57,10 +58,11 @@ export default function NewServiceRequestPage() {
 
   const fetchServices = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/services');
+      const response = await fetch('/api/managedata/services');
       if (response.ok) {
         const data = await response.json();
-        setServices(data.data.services);
+        // API returns array directly
+        setServices(Array.isArray(data) ? data : []);
       }
     } catch (error) {
       console.error('Error fetching services:', error);
@@ -296,11 +298,13 @@ export default function NewServiceRequestPage() {
                 required
               >
                 <option value="">Select a service...</option>
-                {services.map((service) => (
-                  <option key={service.service_id} value={service.service_id}>
-                    {service.service_name}
-                  </option>
-                ))}
+                {services
+                  .filter((service) => !isStaff || service.entity_id === userEntityId)
+                  .map((service) => (
+                    <option key={service.service_id} value={service.service_id}>
+                      {service.service_name}
+                    </option>
+                  ))}
               </select>
             </div>
 
