@@ -122,23 +122,29 @@ export default function NewServiceRequestPage() {
       );
 
       if (requirement) {
-        // Get file extension (with dot, e.g., '.pdf')
-        const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
-        // Get extension without dot (e.g., 'pdf')
-        const fileExtNoDot = fileExtension.substring(1);
+        // Get file extension without dot (e.g., 'pdf')
+        const fileExt = (file.name.split('.').pop()?.toLowerCase() || '');
 
-        // Parse allowed extensions from requirement (stored without dots)
+        // Parse allowed extensions from requirement (stored without dots in DB)
         const allowedExtensions = requirement.file_extension
           .split(',')
           .map((ext) => ext.trim().toLowerCase());
 
+        // Debug logging
+        console.log('File extension:', fileExt);
+        console.log('Allowed extensions:', allowedExtensions);
+        console.log('Match found:', allowedExtensions.includes(fileExt));
+
         // Check if file extension is allowed (compare without dots)
-        if (!allowedExtensions.includes(fileExtNoDot)) {
+        if (!allowedExtensions.includes(fileExt)) {
           alert(
-            `Invalid file type. Allowed types: ${requirement.file_extension}\nYou tried to upload: ${fileExtension}`
+            `Invalid file type.\n\nAllowed: ${allowedExtensions.join(', ')}\nYou uploaded: ${fileExt}\n\nPlease upload one of the allowed file types.`
           );
           return;
         }
+
+        // For MIME validation, we need the extension with dot
+        const fileExtWithDot = '.' + fileExt;
 
         // Validate MIME type for common file types
         const mimeTypeMap: Record<string, string[]> = {
@@ -157,7 +163,7 @@ export default function NewServiceRequestPage() {
           '.gif': ['image/gif'],
         };
 
-        const expectedMimes = mimeTypeMap[fileExtension] || [];
+        const expectedMimes = mimeTypeMap[fileExtWithDot] || [];
         if (expectedMimes.length > 0 && !expectedMimes.includes(file.type)) {
           alert(
             `File type mismatch. The file appears to be a different type than its extension suggests.`
