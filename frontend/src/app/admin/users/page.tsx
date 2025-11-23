@@ -20,6 +20,7 @@ interface User {
   id: string;
   email: string;
   name: string;
+  role_id: number;
   role_name: string;
   role_code: string;
   role_type: string;
@@ -50,6 +51,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Check if user is admin
@@ -273,6 +276,10 @@ export default function UsersPage() {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-2">
                       <button
+                        onClick={() => {
+                          setEditingUser(user);
+                          setShowEditModal(true);
+                        }}
                         className="text-blue-600 hover:text-blue-900"
                         title="Edit user"
                       >
@@ -321,6 +328,24 @@ export default function UsersPage() {
           onClose={() => setShowAddModal(false)}
           onSuccess={() => {
             setShowAddModal(false);
+            fetchUsers();
+          }}
+        />
+      )}
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <EditUserModal
+          user={editingUser}
+          roles={roles}
+          entities={entities}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
             fetchUsers();
           }}
         />
@@ -482,6 +507,164 @@ function AddUserModal({
               className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? 'Adding...' : 'Add User'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// Edit User Modal Component
+function EditUserModal({
+  user,
+  roles,
+  entities,
+  onClose,
+  onSuccess,
+}: {
+  user: User;
+  roles: Role[];
+  entities: Entity[];
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [formData, setFormData] = useState({
+    name: user.name || '',
+    role_id: user.role_id.toString(),
+    entity_id: user.entity_id || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const selectedRole = roles.find((r) => r.role_id.toString() === formData.role_id);
+  const requiresEntity = selectedRole?.role_type === 'staff';
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          role_id: parseInt(formData.role_id),
+          entity_id: formData.entity_id || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'Failed to update user');
+      }
+
+      onSuccess();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+      <div className="bg-white rounded-lg max-w-md w-full p-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Edit User</h2>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+            <p className="text-sm text-red-800">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Email
+            </label>
+            <input
+              type="email"
+              disabled
+              value={user.email}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
+            />
+            <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="John Doe"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Role
+            </label>
+            <select
+              required
+              value={formData.role_id}
+              onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">Select a role</option>
+              {roles.map((role) => (
+                <option key={role.role_id} value={role.role_id}>
+                  {role.role_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {requiresEntity && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Entity
+              </label>
+              <select
+                required
+                value={formData.entity_id}
+                onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select an entity</option>
+                {entities.map((entity) => (
+                  <option key={entity.entity_id} value={entity.entity_id}>
+                    {entity.entity_name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Staff users can only access data for their assigned entity
+              </p>
+            </div>
+          )}
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Updating...' : 'Update User'}
             </button>
           </div>
         </form>
