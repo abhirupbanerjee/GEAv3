@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     const completionData = completionResult.rows[0];
     const completionRate =
       completionData.total > 0
-        ? ((completionData.completed / completionData.total) * 100).toFixed(1)
+        ? parseFloat(((completionData.completed / completionData.total) * 100).toFixed(1))
         : 0;
 
     // 7. Weekly trend (last 8 weeks)
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
         top_services: serviceResult.rows,
         entity_distribution: entityResult.rows,
         average_processing_time: processingTimeResult.rows,
-        completion_rate: parseFloat(completionRate),
+        completion_rate: completionRate,
         completion_stats: {
           completed: parseInt(completionData.completed),
           in_progress: parseInt(completionData.in_progress),
