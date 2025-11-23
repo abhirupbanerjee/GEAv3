@@ -3,6 +3,7 @@ import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
 import ChatBot from '@/components/ChatBot'
+import SessionProvider from '@/components/providers/SessionProvider'
 import { validateEnvironment } from '@/lib/validateEnv'
 
 // Validate environment on app startup
@@ -21,12 +22,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <Header />
-        <main className="min-h-screen">
-          {children}
-        </main>
-        <Footer />
-        <ChatBot />
+        <SessionProvider>
+          <Header />
+          <main className="min-h-screen">
+            {children}
+          </main>
+          <Footer />
+          <ChatBot />
+        </SessionProvider>
       </body>
     </html>
   )

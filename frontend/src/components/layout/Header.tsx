@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 const navigationItems = [
   { label: 'About', href: '/about' },
@@ -12,6 +13,7 @@ const navigationItems = [
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const { data: session, status } = useSession()
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-40">
@@ -39,12 +41,14 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
-            <Link
-              href="/admin"
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
-            >
-              Login
-            </Link>
+            {!session && status !== 'loading' && (
+              <Link
+                href="/admin"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Login
+              </Link>
+            )}
           </nav>
 
           {/* Mobile menu button */}
@@ -73,13 +77,15 @@ export default function Header() {
                   {item.label}
                 </Link>
               ))}
-              <Link
-                href="/admin"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
-                onClick={() => setIsMenuOpen(false)}
-              >
-                Login
-              </Link>
+              {!session && status !== 'loading' && (
+                <Link
+                  href="/admin"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Login
+                </Link>
+              )}
             </nav>
           </div>
         )}

@@ -85,19 +85,35 @@ export default function Sidebar() {
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [entityName, setEntityName] = useState<string | null>(null)
 
+  // Debug logging
+  useEffect(() => {
+    console.log('[Sidebar] Session data:', {
+      name: session?.user?.name,
+      email: session?.user?.email,
+      roleType: session?.user?.roleType,
+      entityId: session?.user?.entityId
+    })
+  }, [session])
+
   // Fetch entity name for staff users
   useEffect(() => {
     const fetchEntityName = async () => {
       if (session?.user?.entityId) {
         try {
+          console.log('[Sidebar] Fetching entity for ID:', session.user.entityId)
           const response = await fetch(`/api/admin/entities/${session.user.entityId}`)
           if (response.ok) {
             const data = await response.json()
+            console.log('[Sidebar] Entity data received:', data)
             setEntityName(data.entity?.entity_name || null)
+          } else {
+            console.error('[Sidebar] Failed to fetch entity:', response.status, response.statusText)
           }
         } catch (error) {
-          console.error('Failed to fetch entity name:', error)
+          console.error('[Sidebar] Error fetching entity name:', error)
         }
+      } else {
+        console.log('[Sidebar] No entity ID in session:', session?.user)
       }
     }
 
