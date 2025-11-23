@@ -2,17 +2,12 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { config } from '@/config/env'
 
 const navigationItems = [
-  { label: 'About', href: '/about', type: 'internal' as const },
-  { label: 'Services', href: '/services', type: 'internal' as const },
-  { label: 'Feedback', href: '/feedback', type: 'internal' as const },
-  { label: 'Repository', href: config.DMS_URL, type: 'external' as const },
-  { label: 'Wiki', href: config.WIKI_URL, type: 'external' as const },
-  { label: 'Git', href: config.GIT_URL, type: 'external' as const },
-  { label: 'Helpdesk', href: '/helpdesk', type: 'internal' as const },
-  { label: 'Admin', href: '/admin', type: 'internal' as const },
+  { label: 'About', href: '/about' },
+  { label: 'Services', href: '/services' },
+  { label: 'Feedback', href: '/feedback' },
+  { label: 'Helpdesk', href: '/helpdesk' },
 ]
 
 export default function Header() {
@@ -33,29 +28,23 @@ export default function Header() {
             <div className="text-lg font-bold text-gray-900">EA Portal</div>
           </Link>
 
-          {/* Desktop Navigation - NO LOGIN/LOGOUT BUTTONS */}
+          {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
             {navigationItems.map((item) => (
-              item.type === 'internal' ? (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  {item.label}
-                </Link>
-              ) : (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-700 hover:text-blue-600 transition-colors"
-                >
-                  {item.label}
-                </a>
-              )
+              <Link
+                key={item.href}
+                href={item.href}
+                className="text-gray-700 hover:text-blue-600 transition-colors"
+              >
+                {item.label}
+              </Link>
             ))}
+            <Link
+              href="/admin"
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              Login
+            </Link>
           </nav>
 
           {/* Mobile menu button */}
@@ -70,32 +59,27 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Mobile Navigation - NO LOGIN/LOGOUT BUTTONS */}
+        {/* Mobile Navigation */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-3">
               {navigationItems.map((item) => (
-                item.type === 'internal' ? (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    className="text-gray-700 hover:text-blue-600 py-2"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    {item.label}
-                  </Link>
-                ) : (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-gray-700 hover:text-blue-600 py-2"
-                  >
-                    {item.label}
-                  </a>
-                )
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="text-gray-700 hover:text-blue-600 py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  {item.label}
+                </Link>
               ))}
+              <Link
+                href="/admin"
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
+                onClick={() => setIsMenuOpen(false)}
+              >
+                Login
+              </Link>
             </nav>
           </div>
         )}

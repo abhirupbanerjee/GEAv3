@@ -93,7 +93,7 @@ CREATE TABLE IF NOT EXISTS users (
     image TEXT,
     email_verified TIMESTAMP,
     role_id INTEGER NOT NULL REFERENCES user_roles(role_id),
-    entity_id VARCHAR(50) REFERENCES entity_master(entity_id),
+    entity_id VARCHAR(50) REFERENCES entity_master(unique_entity_id),
     is_active BOOLEAN DEFAULT true,
     provider VARCHAR(50),
     last_login TIMESTAMP,

@@ -80,7 +80,7 @@ UPDATE users
 SET
     role_id = (SELECT role_id FROM user_roles WHERE role_code = 'admin_dta'),
     is_active = true,
-    entity_id = 'DTA-001',
+    entity_id = 'AGY-002',
     updated_at = CURRENT_TIMESTAMP
 WHERE email = '$ADMIN_EMAIL';
 EOF
@@ -102,7 +102,7 @@ VALUES (
     '$ADMIN_EMAIL',
     '$ADMIN_NAME',
     (SELECT role_id FROM user_roles WHERE role_code = 'admin_dta'),
-    'DTA-001',
+    'AGY-002',
     true,
     'google'
 );
@@ -141,7 +141,7 @@ echo "📝 Admin User Details:"
 echo "  Email: $ADMIN_EMAIL"
 echo "  Name: $ADMIN_NAME"
 echo "  Role: DTA Administrator (admin_dta)"
-echo "  Entity: DTA-001"
+echo "  Entity: AGY-002"
 echo "  Status: Active"
 echo ""
 echo "🔑 Next Steps:"

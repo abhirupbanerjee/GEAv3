@@ -57,16 +57,6 @@ const navigationItems = [
     requiredRole: null, // Available to all
   },
   {
-    label: 'Request Analytics',
-    href: '/admin/service-requests/analytics',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-      </svg>
-    ),
-    requiredRole: null, // Available to all
-  },
-  {
     label: 'Manage Users',
     href: '/admin/users',
     icon: (
@@ -162,7 +152,7 @@ export default function Sidebar() {
       {/* Sidebar - Responsive */}
       <div
         className={`
-          fixed lg:static inset-y-0 left-0 z-40
+          fixed inset-y-0 left-0 z-30
           w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-screen
           transform transition-transform duration-300 ease-in-out
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}

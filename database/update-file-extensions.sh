@@ -38,7 +38,25 @@ run_sql() {
     docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME "$@"
 }
 
-echo "▶ Step 1: Checking current file extensions..."
+echo "▶ Step 1: Checking current file_extension column size..."
+run_sql << 'EOF'
+SELECT column_name, data_type, character_maximum_length
+FROM information_schema.columns
+WHERE table_name = 'service_attachments'
+  AND column_name = 'file_extension';
+EOF
+
+echo ""
+echo "▶ Step 2: Expanding file_extension column from VARCHAR(10) to VARCHAR(50)..."
+run_sql << 'EOF'
+ALTER TABLE service_attachments
+ALTER COLUMN file_extension TYPE VARCHAR(50);
+EOF
+
+echo -e "${GREEN}✓ Column expanded successfully${NC}"
+echo ""
+
+echo "▶ Step 3: Checking current file extensions..."
 run_sql << 'EOF'
 SELECT
     service_id,
@@ -51,7 +69,7 @@ ORDER BY service_id, sort_order;
 EOF
 
 echo ""
-echo "▶ Step 2: Updating DOCX files to allow PDF, DOCX, DOC..."
+echo "▶ Step 4: Updating DOCX files to allow PDF, DOCX, DOC..."
 DOCX_COUNT=$(run_sql -t -c "SELECT COUNT(*) FROM service_attachments WHERE file_extension = 'docx';" | xargs)
 echo "Found $DOCX_COUNT documents requiring DOCX"
 
@@ -64,7 +82,7 @@ EOF
 echo -e "${GREEN}✓ Updated DOCX files${NC}"
 echo ""
 
-echo "▶ Step 3: Updating XLSX files to allow PDF, XLSX, XLS, CSV..."
+echo "▶ Step 5: Updating XLSX files to allow PDF, XLSX, XLS, CSV..."
 XLSX_COUNT=$(run_sql -t -c "SELECT COUNT(*) FROM service_attachments WHERE file_extension = 'xlsx';" | xargs)
 echo "Found $XLSX_COUNT documents requiring XLSX"
 
@@ -77,7 +95,7 @@ EOF
 echo -e "${GREEN}✓ Updated XLSX files${NC}"
 echo ""
 
-echo "▶ Step 4: Verifying updates..."
+echo "▶ Step 6: Verifying updates..."
 run_sql << 'EOF'
 SELECT
     service_id,
