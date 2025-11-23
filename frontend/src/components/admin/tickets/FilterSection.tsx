@@ -125,118 +125,120 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
     currentFilters.search
 
   return (
-    <div className="bg-white rounded-lg shadow p-4 mb-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-4">
-        {/* Entity Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Entity
-          </label>
-          <select
-            value={currentFilters.entity_id || ''}
-            onChange={(e) => handleFilterChange('entity_id', e.target.value || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Entities</option>
-            {entities.map((entity) => (
-              <option key={entity.value} value={entity.value}>
-                {entity.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Service Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Service
-          </label>
-          <select
-            value={currentFilters.service_id || ''}
-            onChange={(e) => handleFilterChange('service_id', e.target.value || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Services</option>
-            {services.map((service) => (
-              <option key={service.value} value={service.value}>
-                {service.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Status Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Status
-          </label>
-          <select
-            value={currentFilters.status || ''}
-            onChange={(e) => handleFilterChange('status', e.target.value || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Statuses</option>
-            {statuses.map((status) => (
-              <option key={status.value} value={status.value}>
-                {status.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Priority Filter */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Priority
-          </label>
-          <select
-            value={currentFilters.priority || ''}
-            onChange={(e) => handleFilterChange('priority', e.target.value || null)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          >
-            <option value="">All Priorities</option>
-            {priorities.map((priority) => (
-              <option key={priority.value} value={priority.value}>
-                {priority.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Search */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            Search
-          </label>
-          <form onSubmit={handleSearchSubmit} className="flex gap-2">
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={handleSearchChange}
-              placeholder="Ticket #, subject..."
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <button
-              type="submit"
-              className="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
+    <div className="space-y-4 mb-6">
+      {/* Filters Section */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Filters</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Entity Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Entity
+            </label>
+            <select
+              value={currentFilters.entity_id || ''}
+              onChange={(e) => handleFilterChange('entity_id', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
-              Go
-            </button>
-          </form>
+              <option value="">All Entities</option>
+              {entities.map((entity) => (
+                <option key={entity.value} value={entity.value}>
+                  {entity.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Service Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Service
+            </label>
+            <select
+              value={currentFilters.service_id || ''}
+              onChange={(e) => handleFilterChange('service_id', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Services</option>
+              {services.map((service) => (
+                <option key={service.value} value={service.value}>
+                  {service.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={currentFilters.status || ''}
+              onChange={(e) => handleFilterChange('status', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Statuses</option>
+              {statuses.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priority
+            </label>
+            <select
+              value={currentFilters.priority || ''}
+              onChange={(e) => handleFilterChange('priority', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Priorities</option>
+              {priorities.map((priority) => (
+                <option key={priority.value} value={priority.value}>
+                  {priority.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={handleClearFilters}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Clear Filters Button */}
-      {hasActiveFilters && (
-        <div className="flex justify-end">
+      {/* Search Section */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Search</h3>
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by ticket #, subject, requester name or email..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
           <button
-            onClick={handleClearFilters}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
           >
-            Clear All Filters
+            Search
           </button>
-        </div>
-      )}
+        </form>
+      </div>
     </div>
   )
 }

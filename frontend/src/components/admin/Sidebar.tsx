@@ -152,33 +152,35 @@ export default function Sidebar() {
       {/* Sidebar - Responsive */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-30
+          fixed inset-y-0 left-0 z-20
           w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-screen
           transform transition-transform duration-300 ease-in-out
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
         {/* Header with User Profile */}
-        <div className="p-4 border-b border-gray-200 bg-white">
+        <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
           {/* User Profile Section */}
-          <div className="flex items-center space-x-3 mb-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
-              <span className="text-white font-semibold text-lg">
-                {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
-              </span>
+          <div className="mb-3">
+            <div className="flex items-center space-x-3 mb-2">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
+                <span className="text-white font-semibold text-lg">
+                  {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-900 break-words">
+                  {session?.user?.name || 'User'}
+                </p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-gray-900 truncate">
-                {session?.user?.name || 'User'}
-              </p>
-              <p className="text-xs text-gray-500 truncate">
-                {session?.user?.email || ''}
-              </p>
-            </div>
+            <p className="text-xs text-gray-500 truncate pl-0">
+              {session?.user?.email || ''}
+            </p>
           </div>
 
-          {/* Role Badge */}
-          <div className="mb-3">
+          {/* Role Badge and Entity */}
+          <div className="mb-3 space-y-2">
             {session?.user?.roleType === 'admin' ? (
               <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -187,12 +189,19 @@ export default function Sidebar() {
                 Administrator
               </span>
             ) : (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                </svg>
-                Staff {entityName ? `- ${entityName}` : ''}
-              </span>
+              <div className="flex flex-col space-y-1">
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
+                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                  </svg>
+                  Staff
+                </span>
+                {entityName && (
+                  <span className="text-xs text-gray-600 pl-1">
+                    {entityName}
+                  </span>
+                )}
+              </div>
             )}
           </div>
 
@@ -243,12 +252,6 @@ export default function Sidebar() {
           })}
         </nav>
 
-        {/* Footer */}
-        <div className="p-4 border-t border-gray-200 bg-white">
-          <p className="text-xs text-center text-gray-500">
-            © 2025 Government of Grenada
-          </p>
-        </div>
       </div>
     </>
   )

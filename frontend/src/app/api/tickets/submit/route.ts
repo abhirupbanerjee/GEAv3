@@ -173,6 +173,12 @@ if (!categoryRow) {
   return respondError(ErrorCodes.CATEGORY_NOT_FOUND, { requestId })
 }
 
+// Get the correct status_id for 'Open' status (code '1')
+const openStatusResult = await executeQuery(
+  `SELECT status_id FROM ticket_status WHERE status_code = '1' AND is_active = TRUE LIMIT 1`
+)
+const openStatusId = openStatusResult.rows[0]?.status_id || 1
+
 const insertResult = await executeQuery<TicketCreationResult>(
   `INSERT INTO tickets (
     service_id,
@@ -187,7 +193,7 @@ const insertResult = await executeQuery<TicketCreationResult>(
     source,
     created_at
   ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
-  RETURNING 
+  RETURNING
     ticket_id,
     ticket_number,
     status_id,
@@ -198,7 +204,7 @@ const insertResult = await executeQuery<TicketCreationResult>(
     ticketData.service_id,
     ticketData.entity_id,
     categoryRow.category_id,  // ← CORRECT: integer ID from lookup
-    1,  // status_id for 'OPEN'
+    openStatusId,  // status_id for 'Open' (code '1')
     2,  // priority_id for 'MEDIUM' (adjust as needed)
     ticketData.subject,
     ticketData.description,
