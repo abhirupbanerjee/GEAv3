@@ -305,23 +305,32 @@ export async function POST(request: NextRequest) {
         const requirement = attachmentReq.rows[0];
 
         // Validate file extension
-        const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+        // Extract extension without dot (e.g., 'pdf' not '.pdf')
+        const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
         const allowedExtensions = requirement.file_extension
           .split(',')
           .map((ext: string) => ext.trim().toLowerCase());
 
-        if (!allowedExtensions.includes(fileExtension)) {
+        console.log('[File Validation]', {
+          fileName: file.name,
+          fileExt,
+          allowedExtensions,
+          requirement: requirement.file_extension,
+        });
+
+        if (!allowedExtensions.includes(fileExt)) {
           await pool.query('ROLLBACK');
           return NextResponse.json(
             {
-              error: `File ${file.name} has invalid extension. Allowed: ${requirement.file_extension}`,
+              error: `File ${file.name} has invalid extension. Allowed: ${allowedExtensions.join(', ')}`,
             },
             { status: 400 }
           );
         }
 
-        // Validate MIME type matches extension
-        const expectedMimes = mimeTypeMap[fileExtension] || [];
+        // Validate MIME type matches extension (MIME map uses extension with dot)
+        const fileExtWithDot = '.' + fileExt;
+        const expectedMimes = mimeTypeMap[fileExtWithDot] || [];
         if (expectedMimes.length > 0 && !expectedMimes.includes(file.type)) {
           await pool.query('ROLLBACK');
           return NextResponse.json(
