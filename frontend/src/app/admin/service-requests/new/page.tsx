@@ -122,16 +122,18 @@ export default function NewServiceRequestPage() {
       );
 
       if (requirement) {
-        // Get file extension
+        // Get file extension (with dot, e.g., '.pdf')
         const fileExtension = '.' + (file.name.split('.').pop()?.toLowerCase() || '');
+        // Get extension without dot (e.g., 'pdf')
+        const fileExtNoDot = fileExtension.substring(1);
 
-        // Parse allowed extensions from requirement
+        // Parse allowed extensions from requirement (stored without dots)
         const allowedExtensions = requirement.file_extension
           .split(',')
           .map((ext) => ext.trim().toLowerCase());
 
-        // Check if file extension is allowed
-        if (!allowedExtensions.includes(fileExtension)) {
+        // Check if file extension is allowed (compare without dots)
+        if (!allowedExtensions.includes(fileExtNoDot)) {
           alert(
             `Invalid file type. Allowed types: ${requirement.file_extension}\nYou tried to upload: ${fileExtension}`
           );
