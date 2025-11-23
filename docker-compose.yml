@@ -107,6 +107,23 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_SESSION_SECRET=${ADMIN_SESSION_SECRET}
 
+      # NextAuth environment variables (runtime only)
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      # Microsoft OAuth
+      - MICROSOFT_CLIENT_ID=${MICROSOFT_CLIENT_ID}
+      - MICROSOFT_CLIENT_SECRET=${MICROSOFT_CLIENT_SECRET}
+      - MICROSOFT_TENANT_ID=${MICROSOFT_TENANT_ID}
+
+      # Database connection for NextAuth (using same DB as feedback)
+      - DB_HOST=feedback_db
+      - DB_PORT=5432
+      - DB_NAME=feedback
+      - DB_USER=feedback_user
+      - DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
+
     depends_on:
       feedback_db:
         condition: service_healthy

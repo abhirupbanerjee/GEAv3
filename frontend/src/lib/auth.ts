@@ -21,7 +21,8 @@
 
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
-import { PostgresAdapter } from '@auth/pg-adapter';
+import AzureADProvider from 'next-auth/providers/azure-ad';
+import PostgresAdapter from '@auth/pg-adapter';
 import { Pool } from 'pg';
 import type { Adapter } from 'next-auth/adapters';
 
@@ -147,12 +148,11 @@ export const authOptions: NextAuthOptions = {
         },
       },
     }),
-    // Uncomment to enable Microsoft OAuth
-    // MicrosoftProvider({
-    //   clientId: process.env.MICROSOFT_CLIENT_ID!,
-    //   clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
-    //   tenantId: process.env.MICROSOFT_TENANT_ID || 'common',
-    // }),
+    AzureADProvider({
+      clientId: process.env.MICROSOFT_CLIENT_ID!,
+      clientSecret: process.env.MICROSOFT_CLIENT_SECRET!,
+      tenantId: process.env.MICROSOFT_TENANT_ID || 'common',
+    }),
   ],
 
   // Custom pages

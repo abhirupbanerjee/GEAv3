@@ -14,7 +14,6 @@ import { signIn } from 'next-auth/react';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { FcGoogle } from 'react-icons/fc';
-import { SiMicrosoft } from 'react-icons/si';
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
@@ -124,17 +123,22 @@ export default function SignInPage() {
               </span>
             </button>
 
-            {/* Microsoft Sign In - Commented out until configured */}
-            {/* <button
+            {/* Microsoft Sign In */}
+            <button
               onClick={() => handleSignIn('microsoft')}
               disabled={isLoading !== null}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
-              <SiMicrosoft className="h-5 w-5 text-[#00A4EF]" />
+              <svg className="h-5 w-5" viewBox="0 0 21 21" fill="none">
+                <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
+                <rect x="1" y="11" width="9" height="9" fill="#00a4ef"/>
+                <rect x="11" y="1" width="9" height="9" fill="#7fba00"/>
+                <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
+              </svg>
               <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
                 {isLoading === 'microsoft' ? 'Signing in...' : 'Continue with Microsoft'}
               </span>
-            </button> */}
+            </button>
           </div>
 
           {/* Info message */}
