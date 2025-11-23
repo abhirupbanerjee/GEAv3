@@ -22,9 +22,7 @@
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from 'next-auth/providers/azure-ad';
-import PostgresAdapter from '@auth/pg-adapter';
 import { Pool } from 'pg';
-import type { Adapter } from 'next-auth/adapters';
 
 // ============================================================================
 // DATABASE CONNECTION POOL
@@ -113,28 +111,11 @@ async function isUserAuthorized(email: string): Promise<{
   }
 }
 
-/**
- * Updates user's last login timestamp
- */
-async function updateLastLogin(email: string): Promise<void> {
-  try {
-    await pool.query(
-      'UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE email = $1',
-      [email]
-    );
-  } catch (error) {
-    console.error('Error updating last login:', error);
-  }
-}
-
 // ============================================================================
 // NEXTAUTH CONFIGURATION
 // ============================================================================
 
 export const authOptions: NextAuthOptions = {
-  // Database adapter for NextAuth
-  adapter: PostgresAdapter(pool) as Adapter,
-
   // OAuth providers configuration
   providers: [
     GoogleProvider({
@@ -184,6 +165,8 @@ export const authOptions: NextAuthOptions = {
      */
     async signIn({ user, account, profile }) {
       const email = user.email;
+      const name = user.name;
+      const image = user.image;
 
       if (!email) {
         console.error('No email provided by OAuth provider');
@@ -199,8 +182,20 @@ export const authOptions: NextAuthOptions = {
         return `/auth/unauthorized?error=${encodeURIComponent(authCheck.error || 'not_authorized')}`;
       }
 
-      // Update last login timestamp
-      await updateLastLogin(email);
+      // Update user's name and image from OAuth provider if they've changed
+      try {
+        await pool.query(
+          `UPDATE users
+           SET name = COALESCE($1, name),
+               image = COALESCE($2, image),
+               last_login = CURRENT_TIMESTAMP,
+               email_verified = CURRENT_TIMESTAMP
+           WHERE email = $3`,
+          [name, image, email]
+        );
+      } catch (error) {
+        console.error('Error updating user profile:', error);
+      }
 
       console.log(`Authorized sign-in: ${email} (${authCheck.user?.roleCode})`);
       return true;
