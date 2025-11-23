@@ -337,21 +337,20 @@ export async function POST(request: NextRequest) {
         await pool.query(
           `INSERT INTO ea_service_request_attachments (
             request_id,
-            service_attachment_id,
-            file_name,
-            file_type,
+            filename,
+            mimetype,
             file_size,
-            file_data,
-            uploaded_by,
-            uploaded_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, CURRENT_TIMESTAMP)`,
+            file_content,
+            is_mandatory,
+            uploaded_by
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
           [
             requestId,
-            attachmentId,
             file.name,
             file.type,
             file.size,
             buffer,
+            requirement.is_mandatory,
             session.user.email,
           ]
         );
@@ -360,22 +359,31 @@ export async function POST(request: NextRequest) {
       }
 
       // Validate all mandatory attachments are uploaded
-      const mandatoryCheck = await pool.query(
-        `SELECT sa.service_attachment_id, sa.filename
+      // Count mandatory requirements vs uploaded mandatory files
+      const mandatoryReqCount = await pool.query(
+        `SELECT COUNT(*) as count
          FROM service_attachments sa
-         WHERE sa.service_id = $1 AND sa.is_mandatory = true AND sa.is_active = true
-         AND NOT EXISTS (
-           SELECT 1 FROM ea_service_request_attachments sra
-           WHERE sra.request_id = $2 AND sra.service_attachment_id = sa.service_attachment_id
-         )`,
-        [service_id, requestId]
+         WHERE sa.service_id = $1 AND sa.is_mandatory = true AND sa.is_active = true`,
+        [service_id]
       );
 
-      if (mandatoryCheck.rows.length > 0) {
+      const mandatoryUploadCount = await pool.query(
+        `SELECT COUNT(*) as count
+         FROM ea_service_request_attachments sra
+         WHERE sra.request_id = $1 AND sra.is_mandatory = true`,
+        [requestId]
+      );
+
+      const requiredCount = parseInt(mandatoryReqCount.rows[0].count);
+      const uploadedCount = parseInt(mandatoryUploadCount.rows[0].count);
+
+      if (uploadedCount < requiredCount) {
         await pool.query('ROLLBACK');
-        const missingFiles = mandatoryCheck.rows.map((r) => r.filename).join(', ');
         return NextResponse.json(
-          { error: `Missing mandatory attachments: ${missingFiles}` },
+          {
+            error: `Missing mandatory attachments. Required: ${requiredCount}, Uploaded: ${uploadedCount}`,
+            details: 'Please ensure all mandatory documents are uploaded'
+          },
           { status: 400 }
         );
       }
