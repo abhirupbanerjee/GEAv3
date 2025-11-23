@@ -22,7 +22,7 @@ function SignInContent() {
 
   const [isLoading, setIsLoading] = useState<string | null>(null);
 
-  const handleSignIn = async (provider: 'google' | 'microsoft') => {
+  const handleSignIn = async (provider: 'google' | 'azure-ad') => {
     setIsLoading(provider);
     try {
       await signIn(provider, {
@@ -125,7 +125,7 @@ function SignInContent() {
 
             {/* Microsoft Sign In */}
             <button
-              onClick={() => handleSignIn('microsoft')}
+              onClick={() => handleSignIn('azure-ad')}
               disabled={isLoading !== null}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
@@ -136,7 +136,7 @@ function SignInContent() {
                 <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
               </svg>
               <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                {isLoading === 'microsoft' ? 'Signing in...' : 'Continue with Microsoft'}
+                {isLoading === 'azure-ad' ? 'Signing in...' : 'Continue with Microsoft'}
               </span>
             </button>
           </div>
