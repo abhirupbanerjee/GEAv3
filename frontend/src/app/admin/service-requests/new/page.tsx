@@ -299,7 +299,7 @@ export default function NewServiceRequestPage() {
               >
                 <option value="">Select a service...</option>
                 {services
-                  .filter((service) => !isStaff || service.entity_id === userEntityId)
+                  .filter((service) => service.entity_id === 'AGY-002')
                   .map((service) => (
                     <option key={service.service_id} value={service.service_id}>
                       {service.service_name}
