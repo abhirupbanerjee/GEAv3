@@ -375,13 +375,13 @@ export async function POST(request: NextRequest) {
       );
 
       const requiredCount = parseInt(mandatoryReqCount.rows[0].count);
-      const uploadedCount = parseInt(mandatoryUploadCount.rows[0].count);
+      const mandatoryUploaded = parseInt(mandatoryUploadCount.rows[0].count);
 
-      if (uploadedCount < requiredCount) {
+      if (mandatoryUploaded < requiredCount) {
         await pool.query('ROLLBACK');
         return NextResponse.json(
           {
-            error: `Missing mandatory attachments. Required: ${requiredCount}, Uploaded: ${uploadedCount}`,
+            error: `Missing mandatory attachments. Required: ${requiredCount}, Uploaded: ${mandatoryUploaded}`,
             details: 'Please ensure all mandatory documents are uploaded'
           },
           { status: 400 }
