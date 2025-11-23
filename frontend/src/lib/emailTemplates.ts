@@ -253,3 +253,100 @@ export function getFeedbackSubmittedTemplate(
   
   return html;
 }
+/**
+ * Service Request Status Change Email Template
+ * Sent to requester when status changes
+ */
+export function getServiceRequestStatusChangeEmail(
+  requestNumber: string,
+  requesterName: string,
+  serviceName: string,
+  oldStatus: string,
+  newStatus: string,
+  comment: string | null,
+  statusLink: string
+): string {
+  const statusColors: Record<string, string> = {
+    submitted: '#f59e0b',
+    in_progress: '#3b82f6',
+    under_review: '#8b5cf6',
+    completed: '#10b981',
+    rejected: '#ef4444',
+  };
+
+  const statusColor = statusColors[newStatus] || '#6b7280';
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; }
+          .content { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          .header { border-bottom: 3px solid ${statusColor}; padding-bottom: 20px; margin-bottom: 20px; }
+          .header h1 { color: ${statusColor}; margin: 0; font-size: 24px; }
+          .status-change { background: #f3f4f6; border-left: 4px solid ${statusColor}; padding: 20px; margin: 20px 0; border-radius: 4px; }
+          .status-badge { display: inline-block; padding: 6px 12px; border-radius: 16px; font-size: 14px; font-weight: 600; text-transform: uppercase; }
+          .status-old { background: #fee2e2; color: #991b1b; }
+          .status-new { background-color: ${statusColor}; color: white; }
+          .comment-box { background: #fffbeb; border: 1px solid #fbbf24; padding: 15px; margin: 20px 0; border-radius: 4px; }
+          .button { display: inline-block; background: ${statusColor}; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="content">
+            <div class="header">
+              <h1>📋 Service Request Status Update</h1>
+            </div>
+
+            <p>Dear ${requesterName},</p>
+
+            <p>The status of your service request has been updated.</p>
+
+            <div class="status-change">
+              <p><strong>Request Number:</strong> ${requestNumber}</p>
+              <p><strong>Service:</strong> ${serviceName}</p>
+              <p style="margin-top: 15px;">
+                <span class="status-badge status-old">${oldStatus.replace('_', ' ')}</span>
+                →
+                <span class="status-badge status-new">${newStatus.replace('_', ' ')}</span>
+              </p>
+            </div>
+
+            ${
+              comment
+                ? `
+            <div class="comment-box">
+              <p style="margin: 0 0 10px 0; font-weight: bold; color: #92400e;">📝 Update Notes:</p>
+              <p style="margin: 0; color: #78350f;">${comment}</p>
+            </div>
+            `
+                : ''
+            }
+
+            <p>You can view the full details of your request using the link below:</p>
+
+            <p style="text-align: center;">
+              <a href="${statusLink}" class="button">View Request Details</a>
+            </p>
+
+            <p>If you have any questions about this update, please contact the DTA team.</p>
+
+            <p>Best regards,<br/>Government of Grenada<br/>Digital Transformation Agency</p>
+
+            <div class="footer">
+              <p>This is an automated notification. Please do not reply to this email.</p>
+              <p>For assistance, contact: alerts.dtahelpdesk@gmail.com</p>
+              <p style="margin-top: 20px; color: #9ca3af;">© Government of Grenada - All Rights Reserved</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+
+  return html;
+}
