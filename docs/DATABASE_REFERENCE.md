@@ -1,9 +1,9 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 2.1
-**Last Updated:** November 22, 2025
+**Document Version:** 3.0
+**Last Updated:** November 24, 2025
 **Database:** PostgreSQL 15
-**Schema Version:** Phase 2b (v6.2 - Ticket Activity Tracking)
+**Schema Version:** Phase 2c (v7.0 - Authentication & User Management)
 
 ---
 
@@ -27,12 +27,13 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 15 |
+| **Tables** | 23 |
 | **Master Data Tables** | 7 |
 | **Transactional Tables** | 5 |
 | **Security/Audit Tables** | 3 |
-| **Foreign Keys** | 18+ |
-| **Indexes** | 44+ |
+| **Authentication/User Tables** | 8 |
+| **Foreign Keys** | 26+ |
+| **Indexes** | 52+ |
 | **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
 
 ### Connection Details
@@ -88,6 +89,24 @@ docker exec -it feedback_db /bin/bash /tmp/01-init-db.sh
 - ✓ Inserted reference data (entities, services, statuses, etc.)
 - ✓ Seeded initial activity records for existing tickets
 - ✓ Verification checks passed
+
+### 1b. Authentication Setup (Required for Admin Access)
+
+**Run authentication migration:**
+
+```bash
+# Create authentication tables (8 new tables)
+./database/04-nextauth-users.sh
+
+# Add initial admin user
+ADMIN_EMAIL="your@email.com" ADMIN_NAME="Your Name" ./database/05-add-initial-admin.sh
+```
+
+**Expected output:**
+- ✓ Created 8 authentication tables (users, user_roles, accounts, sessions, etc.)
+- ✓ Created user management indexes
+- ✓ Inserted 3 default roles (admin, staff, public)
+- ✓ Admin user added successfully
 
 ### 2. Load Test/Seed Data (Optional)
 
@@ -152,7 +171,6 @@ TRUNCATE TABLE ticket_activity CASCADE;
 TRUNCATE TABLE ticket_attachments CASCADE;
 TRUNCATE TABLE submission_rate_limit CASCADE;
 TRUNCATE TABLE submission_attempts CASCADE;
-TRUNCATE TABLE captcha_challenges CASCADE;
 
 -- Reset sequences
 ALTER SEQUENCE service_feedback_id_seq RESTART WITH 1;
@@ -271,7 +289,21 @@ docker exec -i feedback_db psql -U feedback_user feedback_restore < schema_20251
 │                  SECURITY & AUDIT LAYER                         │
 ├─────────────────────────────────────────────────────────────────┤
 │  submission_rate_limit  │  submission_attempts                  │
-│  captcha_challenges                                             │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│            AUTHENTICATION & USER MANAGEMENT LAYER               │
+├─────────────────────────────────────────────────────────────────┤
+│  users (central auth) ──▶ user_roles                            │
+│    │                      │                                      │
+│    ├──▶ accounts (OAuth) │                                      │
+│    ├──▶ sessions         │                                      │
+│    ├──▶ entity_user_assignments ──▶ entity_master              │
+│    ├──▶ user_permissions (future)                               │
+│    └──▶ user_audit_log                                          │
+│                                                                 │
+│  verification_tokens (email verification)                        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -1238,6 +1270,223 @@ EOF
 
 ---
 
+## Authentication & User Management Tables
+
+### 18. users
+
+**Purpose:** Central authentication and user management table
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique user identifier |
+| email | VARCHAR(255) | UNIQUE, NOT NULL | User email (OAuth) |
+| name | VARCHAR(255) | | Display name |
+| image | TEXT | | Profile picture URL (from OAuth) |
+| email_verified | TIMESTAMP | | Email verification timestamp |
+| role_id | INTEGER | FK → user_roles | User role |
+| entity_id | VARCHAR(50) | FK → entity_master | Assigned entity (for staff) |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| last_login | TIMESTAMP | | Last sign-in timestamp |
+| created_at | TIMESTAMP | DEFAULT NOW() | Account creation |
+| updated_at | TIMESTAMP | DEFAULT NOW() | Last update |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- UNIQUE INDEX on `email`
+- INDEX on `role_id` (FK)
+- INDEX on `entity_id` (FK)
+- INDEX on `is_active`
+
+**Key Features:**
+- Email must match OAuth account for sign-in
+- `is_active = FALSE` immediately revokes access
+- Staff users must have `entity_id` assigned
+
+**Commands:**
+```bash
+# List all users
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT u.email, u.name, r.role_name, u.entity_id, u.is_active, u.last_login
+FROM users u
+JOIN user_roles r ON u.role_id = r.role_id
+ORDER BY u.created_at DESC;
+EOF
+
+# Add user
+ADMIN_EMAIL="user@gov.gd" ADMIN_NAME="User Name" ./database/05-add-initial-admin.sh
+
+# Activate/deactivate user
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
+```
+
+---
+
+### 19. user_roles
+
+**Purpose:** Role definitions for access control
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| role_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| role_code | VARCHAR(50) | UNIQUE, NOT NULL | Code identifier |
+| role_name | VARCHAR(100) | NOT NULL | Display name |
+| role_type | VARCHAR(20) | NOT NULL | admin, staff, public |
+| description | TEXT | | Role description |
+| created_at | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+
+**Pre-loaded Roles:**
+```
+1 | admin_dta  | DTA Administrator  | admin  | Full system access
+2 | staff_mda  | MDA Staff Officer  | staff  | Entity-specific access
+3 | public_user| Public User        | public | Limited access (future)
+```
+
+---
+
+### 20. accounts
+
+**Purpose:** OAuth provider data (NextAuth managed)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Account ID |
+| user_id | UUID | FK → users(id), ON DELETE CASCADE | User reference |
+| type | VARCHAR(255) | NOT NULL | oauth |
+| provider | VARCHAR(255) | NOT NULL | google, azure-ad |
+| provider_account_id | TEXT | NOT NULL | OAuth provider user ID |
+| refresh_token | TEXT | | OAuth refresh token |
+| access_token | TEXT | | OAuth access token |
+| expires_at | INTEGER | | Token expiration |
+| token_type | VARCHAR(255) | | Bearer |
+| scope | TEXT | | OAuth scopes |
+| id_token | TEXT | | ID token |
+| session_state | TEXT | | Session state |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- UNIQUE INDEX on `(provider, provider_account_id)`
+- INDEX on `user_id` (FK)
+
+---
+
+### 21. sessions
+
+**Purpose:** Active user sessions (NextAuth managed)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Session ID |
+| session_token | VARCHAR(255) | UNIQUE, NOT NULL | Session token |
+| user_id | UUID | FK → users(id), ON DELETE CASCADE | User reference |
+| expires | TIMESTAMP | NOT NULL | Session expiration |
+
+**Session Timeout:** 2 hours (configurable in NextAuth)
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- UNIQUE INDEX on `session_token`
+- INDEX on `user_id` (FK)
+
+---
+
+### 22. verification_tokens
+
+**Purpose:** Email verification tokens (NextAuth)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| identifier | VARCHAR(255) | NOT NULL | Email address |
+| token | VARCHAR(255) | UNIQUE, NOT NULL | Verification token |
+| expires | TIMESTAMP | NOT NULL | Token expiration |
+
+**Primary Key:** Composite `(identifier, token)`
+
+---
+
+### 23. entity_user_assignments
+
+**Purpose:** Many-to-many user-entity mapping (future use)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| assignment_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| user_id | UUID | FK → users(id), NOT NULL | User reference |
+| entity_id | VARCHAR(50) | FK → entity_master, NOT NULL | Entity reference |
+| assigned_at | TIMESTAMP | DEFAULT NOW() | Assignment date |
+| assigned_by | VARCHAR(255) | | Admin who assigned |
+
+**Future Use:** Allows users to access multiple entities
+
+---
+
+### 24. user_permissions
+
+**Purpose:** Fine-grained permissions (future use)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| permission_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| user_id | UUID | FK → users(id), NOT NULL | User reference |
+| permission_code | VARCHAR(100) | NOT NULL | Permission identifier |
+| resource_type | VARCHAR(50) | | tickets, analytics, etc. |
+| granted_at | TIMESTAMP | DEFAULT NOW() | Grant date |
+
+**Future Use:** Granular access control beyond roles
+
+---
+
+### 25. user_audit_log
+
+**Purpose:** User activity audit trail
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| log_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| user_id | UUID | FK → users(id) | User reference |
+| action | VARCHAR(100) | NOT NULL | login, logout, user_created, user_updated |
+| details | JSONB | | Action details (JSON) |
+| ip_address | INET | | User IP address |
+| user_agent | TEXT | | Browser/client info |
+| created_at | TIMESTAMP | DEFAULT NOW() | Action timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `log_id`
+- INDEX on `user_id` (FK)
+- INDEX on `action`
+- INDEX on `created_at DESC`
+
+**Common Actions:**
+- `login` - User signed in via OAuth
+- `logout` - User signed out
+- `user_created` - New user added by admin
+- `user_updated` - User details changed
+- `user_deactivated` - User access revoked
+
+**Commands:**
+```bash
+# View recent sign-ins
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT u.email, al.action, al.created_at, al.ip_address
+FROM user_audit_log al
+JOIN users u ON al.user_id = u.id
+WHERE al.action = 'login'
+ORDER BY al.created_at DESC
+LIMIT 10;
+EOF
+
+# Count actions by user
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT u.email, COUNT(*) as activity_count, MAX(al.created_at) as last_activity
+FROM user_audit_log al
+JOIN users u ON al.user_id = u.id
+GROUP BY u.email
+ORDER BY activity_count DESC;
+EOF
+```
+
+---
+
 ## Relationships & Foreign Keys
 
 ### Entity-Service Hierarchy
@@ -1281,6 +1530,18 @@ tickets (priority_id) → priority_levels (priority_id)
 tickets (status_id) → ticket_status (status_id)
 ticket_activity (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
 ticket_attachments (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
+```
+
+### Authentication Flow
+```
+users (role_id) → user_roles (role_id)
+users (entity_id) → entity_master (unique_entity_id)
+accounts (user_id) → users (id) [ON DELETE CASCADE]
+sessions (user_id) → users (id) [ON DELETE CASCADE]
+entity_user_assignments (user_id) → users (id)
+entity_user_assignments (entity_id) → entity_master (unique_entity_id)
+user_permissions (user_id) → users (id)
+user_audit_log (user_id) → users (id)
 ```
 
 ### Foreign Key Commands
@@ -1762,4 +2023,29 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 
 ---
 
-**Document End**
+## See Also
+
+### Related Documentation
+
+- **[API Reference](API_REFERENCE.md)** - All API endpoints with examples
+- **[Authentication Guide](AUTHENTICATION.md)** - Complete OAuth setup, user management, and quick commands
+- **[Complete Documentation Index](index.md)** - Overview of all documentation
+
+### Database Management
+
+- **Backup Strategy:** Regular `pg_dump` backups recommended (see Backup & Restore section)
+- **Monitoring:** Track table sizes, index usage, and connection statistics
+- **Maintenance:** Run `VACUUM ANALYZE` regularly on high-traffic tables
+
+### External Resources
+
+- **[PostgreSQL 15 Documentation](https://www.postgresql.org/docs/15/)** - Official PostgreSQL docs
+- **[PostgreSQL Performance Tuning](https://wiki.postgresql.org/wiki/Performance_Optimization)** - Optimization guide
+- **[pg_stat_statements](https://www.postgresql.org/docs/current/pgstatstatements.html)** - Query performance analysis
+
+---
+
+**Document Version:** 3.0
+**Last Updated:** November 24, 2025
+**Schema Version:** Phase 2c (v7.0 - Authentication & User Management)
+**Maintained By:** GEA Portal Development Team

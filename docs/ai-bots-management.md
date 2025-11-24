@@ -4,7 +4,7 @@ Complete guide for managing AI bots in the EA Portal's AI Inventory system.
 
 ## Overview
 
-The AI Inventory system (accessible at [https://gea.abhirup.app/admin/ai-inventory](https://gea.abhirup.app/admin/ai-inventory)) provides a centralized view of all AI assistant integrations used across government services. The system currently manages 7 bots with different categories, statuses, and target audiences.
+The AI Inventory system (accessible at `/admin/ai-inventory` in your deployment) provides a centralized view of all AI assistant integrations used across government services. The system currently manages 7 bots with different categories, statuses, and target audiences.
 
 ## System Architecture
 
@@ -120,7 +120,7 @@ Since there is no UI for creating bots, you must manually edit the configuration
    ```
 
 6. **Verify the bot appears:**
-   - Navigate to [https://gea.abhirup.app/admin/ai-inventory](https://gea.abhirup.app/admin/ai-inventory)
+   - Navigate to `/admin/ai-inventory` in your deployment
    - Check that your bot is listed
    - Click "View" to test the iframe preview
    - Click "Open" to test the direct link
@@ -373,6 +373,17 @@ For feature requests or issues, contact the development team.
 
 ---
 
-**Last Updated:** November 20, 2025
+**Last Updated:** November 24, 2025
 **Maintainer:** EA Portal Development Team
-**Related Documentation:** [Admin Portal Guide](./admin-portal.md)
+
+---
+
+## See Also
+
+### Related Documentation
+
+- **[Complete Documentation Index](index.md)** - Overview of all documentation
+- **[API Reference](API_REFERENCE.md)** - Admin API endpoints
+- **[Database Reference](DATABASE_REFERENCE.md)** - Database schema
+
+---

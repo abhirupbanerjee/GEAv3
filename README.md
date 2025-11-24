@@ -1,24 +1,24 @@
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=abhirupbanerjee_GEAv3&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=abhirupbanerjee_GEAv3)
 
-# Grenada EA Portal
+# Grenada EA Portal v3
 
 **Enterprise Architecture Portal for the Government of Grenada**
 
-A modern, containerized web platform supporting digital transformation initiatives across Ministries, Departments, and Agencies (MDAs).
+A modern, full-stack web platform supporting digital transformation initiatives across Ministries, Departments, and Agencies (MDAs). Built with Next.js 14, PostgreSQL, and containerized with Docker for seamless deployment.
 
 ---
 
 ## 🎯 What's This?
 
 Complete digital portal system with:
-- **Frontend Portal** - Public-facing Next.js website
-- **Wiki.js** - Knowledge management & documentation
-- **Paperless-ngx** - Document management system (DMS)
-- **FreeScout** - Service request management
-- **AI Chatbot** - Integrated citizen assistance
-- **Traefik** - Automated SSL & reverse proxy
+- **Service Feedback System** - 5-point rating with auto-grievance creation
+- **Native Ticketing System** - Citizen grievances and EA service requests with SLA tracking
+- **Admin Portal** - Ticket management, analytics, and master data administration
+- **Staff Portal** - Entity-specific access for ministry/department officers
+- **AI Chatbot Integration** - Centralized AI bot inventory and management
+- **OAuth Authentication** - Google & Microsoft sign-in with role-based access control
 
-**Status:** ✅ Production-ready | **Version:** 1.0
+**Status:** ✅ Production-ready | **Version:** 3.0 (Phase 2b + Authentication)
 
 ---
 
@@ -26,26 +26,35 @@ Complete digital portal system with:
 
 ### Prerequisites
 - Linux server (Ubuntu 20.04+ recommended)
-- Docker & Docker Compose installed
+- Docker 24.x+ & Docker Compose 2.x+
 - Domain with DNS access
-- 2GB RAM minimum (4GB recommended)
+- 4GB RAM minimum (8GB recommended)
+- PostgreSQL 15 (included in Docker setup)
 
-### Deploy in 3 Steps
+### Deploy in 5 Steps
 
 ```bash
-# 1. Clone & configure
-git clone <repository-url>
-cd grenada-ea-portal
-cp .env.example .env.dev
+# 1. Clone repository
+git clone https://github.com/abhirupbanerjee/GEAv3.git
+cd GEAv3
 
-# 2. Update .env.dev with your values
-nano .env.dev  # Set passwords & domains
+# 2. Configure environment
+cp .env.example .env
+nano .env  # Set passwords, domains, and API keys
 
-# 3. Deploy
+# 3. Initialize database
+docker-compose up -d feedback_db
+./database/01-init-db.sh
+
+# 4. Set up OAuth authentication
+./database/04-nextauth-users.sh
+ADMIN_EMAIL="admin@gov.gd" ADMIN_NAME="Admin Name" ./database/05-add-initial-admin.sh
+
+# 5. Deploy application
 docker-compose up -d
 ```
 
-**That's it!** Services will be available at your configured domains with auto-SSL.
+**That's it!** Portal will be available at your configured domain with auto-SSL.
 
 ---
 
@@ -53,58 +62,117 @@ docker-compose up -d
 
 ### System Components
 
-| Service | Purpose | URL Example | Port |
-|---------|---------|-------------|------|
-| **Frontend** | Main portal website | gea.domain.com | 443 |
-| **Wiki.js** | Documentation & knowledge base | wiki.gea.domain.com | 443 |
-| **Paperless-ngx** | Document management | dms.gea.domain.com | 443 |
-| **FreeScout** | Service requests | services.gea.domain.com | 443 |
-| **Traefik** | Reverse proxy & SSL | - | 80/443 |
-| **PostgreSQL** | Wiki database | Internal | 5432 |
-| **MariaDB** | FreeScout database | Internal | 3306 |
-| **Redis** | Paperless cache | Internal | 6379 |
+| Component | Technology | Purpose | URL Example |
+|-----------|-----------|---------|-------------|
+| **Frontend** | Next.js 14 (App Router) | Main portal & admin UI | gea.domain.com |
+| **Database** | PostgreSQL 15 | Data storage & user management | Internal:5432 |
+| **Reverse Proxy** | Traefik v3.0 | SSL termination & routing | - |
+| **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | /api/auth/* |
 
 ### Technology Stack
 
 **Frontend:**
-- Next.js 14 (TypeScript)
-- Tailwind CSS
-- Static Site Generation (SSG)
-- Nginx web server
+- Next.js 14 (TypeScript) with App Router
+- React 18 with Server Components
+- Tailwind CSS for styling
+- Zod for schema validation
+- NextAuth for authentication
 
-**Backend Services:**
-- Wiki.js 2.x
-- Paperless-ngx (latest)
-- FreeScout (latest)
+**Backend:**
+- Next.js API Routes (RESTful)
+- PostgreSQL 15 database
+- node-postgres (pg) driver
+- SendGrid for email notifications
 
 **Infrastructure:**
 - Docker & Docker Compose
-- Traefik v3.0 (reverse proxy)
-- Let's Encrypt (SSL automation)
+- Traefik v3.0 (reverse proxy & SSL)
+- Let's Encrypt (auto-SSL)
+- Nginx (static file serving in production)
 
 ---
 
 ## 📁 Project Structure
 
 ```
-grenada-ea-portal/
-├── frontend/                 # Next.js portal application
-│   ├── src/
-│   │   ├── app/             # Pages (home, about)
-│   │   ├── components/      # React components
-│   │   └── config/          # Configuration files
-│   ├── public/images/       # ⚠️ ADD YOUR IMAGES HERE
-│   ├── Dockerfile           # Frontend build
-│   └── nginx.conf           # Web server config
+gogeaportal/v3/
 │
-├── paperless/               # Document folders
-│   ├── consume/            # Upload documents here
-│   └── export/             # Export location
+├── 📄 Documentation
+│   ├── README.md                          # This file
+│   ├── .env.example                       # Environment template
+│   └── docs/
+│       ├── index.md                       # Complete documentation index
+│       ├── API_REFERENCE.md               # All API endpoints
+│       ├── DATABASE_REFERENCE.md          # Database schema & setup
+│       ├── AUTHENTICATION.md              # OAuth setup & configuration
+│       └── ai-bots-management.md          # AI bot inventory management
 │
-├── docker-compose.yml       # Service orchestration
-├── traefik.yml             # Reverse proxy config
-├── .env.example            # Configuration template
-└── README.md               # This file
+├── 🗄️ Database
+│   └── database/
+│       ├── 01-init-db.sh                  # Main database initialization
+│       ├── 02-load-seed-data.sh           # Test data generation (optional)
+│       ├── 03-verify-analytics.sh         # Data verification
+│       ├── 04-nextauth-users.sh           # Authentication tables setup
+│       └── 05-add-initial-admin.sh        # Add first admin user
+│
+├── ⚙️ Configuration Files
+│   ├── .env.example                       # Environment variables template
+│   ├── .env                               # Your config (create from template)
+│   ├── docker-compose.yml                 # Service orchestration
+│   └── traefik.yml                        # Reverse proxy config
+│
+└── 🎨 Frontend Application
+    └── frontend/
+        ├── Dockerfile                     # Multi-stage production build
+        ├── nginx.conf                     # Web server configuration
+        ├── package.json                   # Dependencies
+        ├── next.config.js                 # Next.js configuration
+        ├── tailwind.config.js             # Tailwind CSS config
+        ├── tsconfig.json                  # TypeScript config
+        │
+        ├── public/
+        │   ├── images/                    # Static images
+        │   └── config/
+        │       └── bots-config.json       # AI bot inventory
+        │
+        └── src/
+            ├── app/
+            │   ├── api/                   # API Routes (32+ endpoints)
+            │   │   ├── auth/              # NextAuth endpoints
+            │   │   ├── feedback/          # Service feedback APIs
+            │   │   ├── tickets/           # Public ticket APIs
+            │   │   ├── helpdesk/          # Ticket lookup APIs
+            │   │   ├── admin/             # Admin management APIs
+            │   │   └── managedata/        # Master data CRUD
+            │   │
+            │   ├── layout.tsx             # Root layout
+            │   ├── page.tsx               # Home page
+            │   ├── about/                 # About page
+            │   ├── auth/                  # Sign-in & error pages
+            │   ├── admin/                 # Admin portal (protected)
+            │   ├── staff/                 # Staff portal (entity-specific)
+            │   ├── helpdesk/              # Public ticket lookup
+            │   └── feedback/              # Feedback forms
+            │
+            ├── components/                # React components
+            │   ├── layout/                # Header, Footer, Navigation
+            │   ├── home/                  # Homepage components
+            │   └── admin/                 # Admin UI components
+            │
+            ├── lib/                       # Utilities & configurations
+            │   ├── auth.ts                # NextAuth configuration
+            │   ├── db.ts                  # Database connection pool
+            │   ├── db/                    # Database helpers
+            │   ├── schemas/               # Zod validation schemas
+            │   ├── utils/                 # Helper functions
+            │   └── admin-auth.ts          # Authorization helpers
+            │
+            ├── config/
+            │   ├── env.ts                 # Environment configuration
+            │   ├── content.ts             # Static content
+            │   └── navigation.ts          # Navigation items
+            │
+            └── middleware.ts              # Route protection & auth
 ```
 
 ---
@@ -113,41 +181,60 @@ grenada-ea-portal/
 
 ### Required: Environment Variables
 
-Copy `.env.example` to `.env.dev` and update:
+Copy `.env.example` to `.env` and configure:
 
 ```bash
-# Domains (CHANGE THESE!)
-DOMAIN=gea.abhirup.app
-WIKI_DOMAIN=wiki.gea.abhirup.app
-DMS_DOMAIN=dms.gea.abhirup.app
-SERVICES_DOMAIN=services.gea.abhirup.app
+# === Domain Configuration ===
+BASE_DOMAIN=your-domain.com
+FRONTEND_DOMAIN=gea.your-domain.com
 
-# Security (GENERATE STRONG PASSWORDS!)
-WIKI_DB_PASSWORD=your_secure_password_here
-PAPERLESS_ADMIN_USER=admin
-PAPERLESS_ADMIN_PASSWORD=your_secure_password_here
-PAPERLESS_SECRET_KEY=your_50_char_random_key_here
-FREESCOUT_DB_ROOT_PASSWORD=your_secure_password_here
-FREESCOUT_DB_PASSWORD=your_secure_password_here
-FREESCOUT_ADMIN_EMAIL=admin@yourdomain.com
-FREESCOUT_ADMIN_PASSWORD=your_secure_password_here
+# === SSL Configuration ===
+LETS_ENCRYPT_EMAIL=your-email@your-domain.com
 
-# Contact
-CONTACT_EMAIL=eservices@gov.gd
-LETS_ENCRYPT_EMAIL=your-email@domain.com
+# === Database Configuration ===
+FEEDBACK_DB_PASSWORD=generate_secure_password_here
+FEEDBACK_DB_HOST=feedback_db
+FEEDBACK_DB_PORT=5432
+FEEDBACK_DB_NAME=feedback
+FEEDBACK_DB_USER=feedback_user
+
+# === NextAuth Configuration ===
+NEXTAUTH_URL=https://gea.your-domain.com
+NEXTAUTH_SECRET=generate_with_openssl_rand_base64_32
+
+# === Google OAuth ===
+GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-client-secret
+
+# === Microsoft OAuth (Optional) ===
+MICROSOFT_CLIENT_ID=your-client-id
+MICROSOFT_CLIENT_SECRET=your-client-secret
+MICROSOFT_TENANT_ID=common
+
+# === Email Notifications (SendGrid) ===
+SENDGRID_API_KEY=SG.your_api_key_here
+SENDGRID_FROM_EMAIL=noreply@your-domain.com
+SENDGRID_FROM_NAME=GEA Portal
+SERVICE_ADMIN_EMAIL=admin@your-domain.com
+
+# === Rate Limiting ===
+EA_SERVICE_RATE_LIMIT=3
+GRIEVANCE_RATE_LIMIT=3
+
+# === File Uploads ===
+MAX_FILE_SIZE=5242880
+MAX_TOTAL_UPLOAD_SIZE=26214400
 ```
 
-### Required: Add Images
+### Generate Secure Passwords
 
-Place these images in `frontend/public/images/`:
+```bash
+# Database password
+openssl rand -base64 32
 
-1. **grenada-coastal.jpg** - Hero banner (1920x500px)
-2. **digital-strategy.jpg** - Vision section (800x600px)
-3. **build-our-people.jpg** - Strategy card
-4. **simplify-life.jpg** - Strategy card
-5. **boost-resilience.jpg** - Strategy card
-
-**Don't have images?** Use free stock photos from Unsplash or Pexels.
+# NextAuth secret
+openssl rand -base64 32
+```
 
 ---
 
@@ -162,38 +249,135 @@ docker-compose up -d
 # Stop all services
 docker-compose down
 
-# View logs
-docker-compose logs -f [service-name]
+# View logs (all services)
+docker-compose logs -f
+
+# View logs (specific service)
+docker-compose logs -f frontend
+docker-compose logs -f feedback_db
 
 # Restart a service
-docker-compose restart [service-name]
+docker-compose restart frontend
 
-# Check status
+# Check service status
 docker-compose ps
 
-# Update images
-docker-compose pull
+# Update and rebuild
+docker-compose build --no-cache frontend
 docker-compose up -d
 ```
 
-### First-Time Setup
+### Database Management
 
-After deployment, configure each service:
+```bash
+# Connect to database
+docker exec -it feedback_db psql -U feedback_user -d feedback
 
-1. **Wiki.js** (wiki.domain.com)
-   - First visit triggers setup wizard
-   - Create admin account
-   - Configure storage & authentication
+# Backup database
+docker exec feedback_db pg_dump -U feedback_user feedback > backup_$(date +%Y%m%d).sql
 
-2. **Paperless-ngx** (dms.domain.com)
-   - Login: `PAPERLESS_ADMIN_USER` / `PAPERLESS_ADMIN_PASSWORD`
-   - Configure document types & tags
-   - Set up OCR languages
+# Restore database
+docker exec -i feedback_db psql -U feedback_user feedback < backup_20251124.sql
 
-3. **FreeScout** (services.domain.com)
-   - Login: `FREESCOUT_ADMIN_EMAIL` / `FREESCOUT_ADMIN_PASSWORD`
-   - Configure mailboxes & workflows
-   - Add team members
+# View table counts
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT 'service_feedback' AS table_name, COUNT(*) FROM service_feedback
+UNION ALL SELECT 'tickets', COUNT(*) FROM tickets
+UNION ALL SELECT 'users', COUNT(*) FROM users;"
+```
+
+### User Management
+
+```bash
+# Add admin user
+ADMIN_EMAIL="user@gov.gd" ADMIN_NAME="User Name" ./database/05-add-initial-admin.sh
+
+# List users
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT email, name, role_code, is_active FROM users
+JOIN user_roles ON users.role_id = user_roles.role_id;"
+
+# Deactivate user
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+UPDATE users SET is_active=false WHERE email='user@example.com';"
+```
+
+---
+
+## 🔒 Security
+
+### Authentication & Authorization
+- **OAuth-Only:** Google & Microsoft sign-in (no passwords stored)
+- **Role-Based Access:** Admin (full access) vs Staff (entity-specific)
+- **Email Whitelist:** Database-backed user authorization
+- **Session Management:** JWT tokens with 2-hour expiration
+- **Audit Logging:** All sign-ins and administrative actions tracked
+
+### Data Protection
+- **IP Hashing:** SHA256 hashing for privacy (no PII storage)
+- **Rate Limiting:** IP-based submission throttling (5 per hour)
+- **File Validation:** Type and size checks on uploads (5MB max)
+- **SQL Injection Prevention:** Parameterized queries throughout
+
+### SSL/HTTPS
+- Automatic certificate issuance via Let's Encrypt
+- Auto-renewal (certificates refresh before expiry)
+- HTTP → HTTPS redirect enabled
+- Modern TLS configuration via Traefik
+
+### Firewall Configuration
+
+```bash
+# Allow only necessary ports
+sudo ufw allow 80/tcp    # HTTP (redirects to HTTPS)
+sudo ufw allow 443/tcp   # HTTPS
+sudo ufw enable
+```
+
+---
+
+## 📊 Features
+
+### Core Infrastructure ✅
+- Next.js 14 App Router with TypeScript
+- Tailwind CSS responsive design
+- Docker containerization with Traefik reverse proxy
+- Automated SSL certificates via Let's Encrypt
+- PostgreSQL 15 database (23 tables, 44+ indexes)
+- Public portal pages (Home, About)
+
+### Service Feedback & Analytics ✅
+- 5-point rating system for government services
+- QR code integration for physical locations
+- Multi-channel feedback (web, QR, mobile)
+- Real-time analytics dashboard
+- Auto-grievance creation for low ratings (≤2.5)
+
+### Ticketing & Grievance Management ✅
+- Citizen grievance submission with attachments
+- EA service request management
+- Native ticketing system with SLA tracking
+- Ticket activity timeline with resolution tracking
+- IP-based rate limiting protection
+- Email notifications via SendGrid integration
+- Master data management (entities, services, QR codes)
+- Admin ticket management dashboard
+
+### Authentication & Authorization ✅
+- NextAuth v4 with OAuth providers (Google, Microsoft)
+- Role-based access control (Admin, Staff, Public)
+- Entity-based data filtering for staff users
+- Admin user management UI
+- Session management with JWT (2-hour expiration)
+- Audit logging system
+- Email whitelist authorization
+
+### AI Integration ✅
+- Centralized AI bot inventory
+- File-based bot configuration
+- Category-based organization
+- Status tracking (active/planned)
+- Iframe preview capability
 
 ---
 
@@ -201,41 +385,27 @@ After deployment, configure each service:
 
 ### Update Portal Content
 
-Edit `frontend/src/config/content.ts`:
+Edit configuration files in `frontend/src/config/`:
 
 ```typescript
+// content.ts - Update homepage content
 export const heroContent = {
   title: "Your Title",
   description: "Your description..."
 };
 
-export const aboutContent = {
-  dta: {
-    title: "Your Title",
-    description: "Your description..."
-  }
-  // ... more sections
-};
-```
-
-### Update Navigation
-
-Edit `frontend/src/config/navigation.ts`:
-
-```typescript
+// navigation.ts - Update menu items
 export const navigationItems: NavItem[] = [
   {
     label: 'About',
     href: '/about',
     type: 'internal'
   },
-  // Add more menu items
+  // Add more items
 ];
 ```
 
-### Rebuild Frontend
-
-After content changes:
+### Rebuild After Changes
 
 ```bash
 docker-compose up -d --build frontend
@@ -243,29 +413,62 @@ docker-compose up -d --build frontend
 
 ---
 
-## 🔒 Security
+## 🐛 Troubleshooting
 
-### SSL/HTTPS
-- Automatic via Let's Encrypt
-- Certificates auto-renew
-- HTTP → HTTPS redirect enabled
-
-### Passwords
-- Never commit `.env.dev` to git
-- Use strong, unique passwords (20+ characters)
-- Change default passwords immediately
-
-### Firewall
+### Services won't start
 ```bash
-# Allow only necessary ports
-ufw allow 80/tcp
-ufw allow 443/tcp
-ufw enable
+# Check logs
+docker-compose logs frontend
+docker-compose logs feedback_db
+
+# Verify .env file exists
+cat .env
+
+# Check ports aren't in use
+netstat -tuln | grep -E '80|443'
+```
+
+### SSL certificate issues
+```bash
+# Check Traefik logs
+docker-compose logs traefik
+
+# Verify DNS
+dig +short gea.your-domain.com
+
+# Force certificate refresh
+rm -f traefik_acme/acme.json
+docker-compose restart traefik
+```
+
+### Database connection errors
+```bash
+# Check database is running
+docker-compose ps feedback_db
+
+# Test connection
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "SELECT 1"
+
+# Restart database
+docker-compose restart feedback_db
+```
+
+### Authentication issues
+```bash
+# Verify user exists
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT email, is_active FROM users WHERE email='user@example.com';"
+
+# Check OAuth configuration
+docker exec frontend env | grep -E "NEXTAUTH|GOOGLE|MICROSOFT"
+
+# View auth logs
+docker-compose logs frontend | grep -i "nextauth"
 ```
 
 ---
 
-## 📊 Monitoring
+## 📈 Monitoring
 
 ### Health Checks
 
@@ -278,81 +481,118 @@ docker stats
 
 # Disk usage
 du -sh ./
+df -h
 
-# Logs by service
-docker-compose logs -f frontend
-docker-compose logs -f wiki
-docker-compose logs -f paperless
+# Database size
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 ```
 
 ### Key Metrics to Watch
 - Container health status
-- Disk space (documents grow over time)
-- Memory usage (especially Paperless OCR)
-- SSL certificate expiry (auto-renews)
-
----
-
-## 🐛 Troubleshooting
-
-### Services won't start
-```bash
-# Check logs
-docker-compose logs [service-name]
-
-# Verify .env.dev exists and has values
-cat .env.dev
-
-# Ensure ports aren't in use
-netstat -tuln | grep -E '80|443'
-```
-
-### SSL certificate issues
-```bash
-# Check Traefik logs
-docker-compose logs traefik
-
-# Verify DNS points to your server
-dig +short gea.yourdomain.com
-
-# Delete acme.json and restart (will re-issue)
-rm -f traefik_acme/acme.json
-docker-compose restart traefik
-```
-
-### Frontend not building
-```bash
-# Rebuild with no cache
-docker-compose build --no-cache frontend
-docker-compose up -d frontend
-
-# Check build logs
-docker-compose logs frontend
-```
-
-### Database connection errors
-```bash
-# Restart database and dependent service
-docker-compose restart wiki_db wiki
-docker-compose restart freescout_db freescout
-```
+- Database disk space (grows with documents/tickets)
+- Memory usage (especially during peak hours)
+- SSL certificate expiry (auto-renews 30 days before)
+- Failed login attempts (check audit logs)
 
 ---
 
 ## 🆘 Support
 
+### Documentation
+- **Complete Guide:** `docs/index.md`
+- **API Reference:** `docs/API_REFERENCE.md`
+- **Database Schema:** `docs/DATABASE_REFERENCE.md`
+- **Authentication Setup:** `docs/AUTHENTICATION_GUIDE.md`
+
 ### Contact
-- **Email:** eservices@gov.gd
-- **Portal:** https://gea.abhirup.app
-- **Ticket:** https://services.gea.abhirup.app
+- **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
+- **Issues:** https://github.com/abhirupbanerjee/GEAv3/issues
+- **Demo Portal:** https://your-portal-domain.com
+- **Email:** contact@your-domain.com
 
-
-### Resources
+### External Resources
 - [Next.js Documentation](https://nextjs.org/docs)
+- [PostgreSQL Documentation](https://www.postgresql.org/docs/15/)
 - [Docker Documentation](https://docs.docker.com/)
 - [Traefik Documentation](https://doc.traefik.io/traefik/)
-- [Wiki.js Documentation](https://docs.requarks.io/)
-- [Paperless-ngx Documentation](https://docs.paperless-ngx.com/)
+- [NextAuth Documentation](https://next-auth.js.org/)
+
+---
+
+## ✅ Pre-Deployment Checklist
+
+Before going live:
+
+**Configuration:**
+- [ ] Environment variables configured in `.env`
+- [ ] Strong passwords generated for database
+- [ ] NextAuth secret generated (`openssl rand -base64 32`)
+- [ ] OAuth credentials obtained (Google/Microsoft)
+- [ ] SendGrid API key configured
+
+**Infrastructure:**
+- [ ] DNS records configured for domain
+- [ ] Ports 80 and 443 available
+- [ ] Firewall rules configured
+- [ ] Docker and Docker Compose installed
+- [ ] Sufficient disk space (20GB+ recommended)
+
+**Database:**
+- [ ] Database initialized (`01-init-db.sh`)
+- [ ] Authentication tables created (`04-nextauth-users.sh`)
+- [ ] Admin user added (`05-add-initial-admin.sh`)
+- [ ] Backup strategy configured
+
+**Testing:**
+- [ ] All containers running: `docker-compose ps`
+- [ ] Frontend accessible via HTTPS
+- [ ] SSL certificate issued successfully
+- [ ] OAuth sign-in working (Google/Microsoft)
+- [ ] Admin portal accessible
+- [ ] Ticket submission working
+- [ ] Email notifications sending
+
+---
+
+## 📊 Project Statistics
+
+### Current Implementation
+- **Total API Endpoints:** 35+ (public + admin + auth)
+- **Database Tables:** 23 (master data, transactional, auth, audit)
+- **Database Indexes:** 44+
+- **Foreign Keys:** 18+
+- **Lines of Code:** ~20,000+
+- **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
+- **Authentication Providers:** 2 (Google, Microsoft)
+
+### Performance
+- **Build Time:** ~3-5 minutes (first build)
+- **Deployment Time:** ~10-15 minutes (first deployment)
+- **Memory Usage:** ~2GB (all services under load)
+- **Disk Usage:** ~3GB (including database with sample data)
+
+---
+
+## 🎓 Learning Resources
+
+### For Developers
+1. Review API documentation: `docs/API_REFERENCE.md`
+2. Study database schema: `docs/DATABASE_REFERENCE.md`
+3. Explore source code in `frontend/src/app/api/`
+4. Check validation schemas in `frontend/src/lib/schemas/`
+
+### For DevOps/SysAdmin
+1. Follow deployment guide in this README
+2. Use troubleshooting section for common issues
+3. Set up monitoring with `docker stats`
+4. Configure automated backups
+
+### For Database Administrators
+1. Review complete schema: `docs/DATABASE_REFERENCE.md`
+2. Use provided SQL queries for management
+3. Schedule regular backups: `pg_dump` via cron
+4. Monitor disk usage and index performance
 
 ---
 
@@ -362,23 +602,57 @@ docker-compose restart freescout_db freescout
 
 ---
 
-## ✅ Pre-Deployment Checklist
+## 🚧 Roadmap
 
-Before going live:
+### Completed ✅
+- Service feedback system with 5-point rating
+- Auto-grievance creation for low ratings
+- Native ticketing system with SLA tracking
+- Admin portal with comprehensive management
+- OAuth authentication (Google & Microsoft)
+- Role-based access control
+- User management system
+- AI bot inventory
+- Email notifications via SendGrid
 
-- [ ] Update all passwords in `.env.dev`
-- [ ] Add all required images to `frontend/public/images/`
-- [ ] Configure DNS records for all domains
-- [ ] Test on staging/development environment first
-- [ ] Set up regular backups (volumes + `.env.dev`)
-- [ ] Configure firewall rules
-- [ ] Document admin credentials securely
-- [ ] Test SSL certificates on all domains
-- [ ] Verify email settings in FreeScout
-- [ ] Configure Wiki.js authentication
-
-**Estimated Setup Time:** 1-2 hours for first deployment
+### In Progress 🔄
+- Staff portal (entity-specific access)
+- Advanced analytics dashboard with charts
+- Mobile-responsive improvements
 
 ---
 
-**Last Updated:** November 2, 2025 | **Version:** 1.0
+**Last Updated:** November 24, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
+
+---
+
+## Quick Links
+
+- 📖 [Complete Documentation](docs/index.md)
+- 🏗️ [**Solution Architecture**](docs/SOLUTION_ARCHITECTURE.md) - System overview
+- 🔌 [API Reference](docs/API_REFERENCE.md)
+- 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
+- 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
+- 🤖 [AI Bots Management](docs/ai-bots-management.md)
+
+---
+
+## See Also
+
+### For Architects & Tech Leads
+- [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - Complete system architecture and design
+- [Complete Documentation Index](docs/index.md) - Overview of all features and roadmap
+
+### For Developers
+- [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
+- [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
+- [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
+
+### For System Administrators
+- [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - Deployment and infrastructure architecture
+- [Database Reference](docs/DATABASE_REFERENCE.md) - Database setup and maintenance
+- [Authentication Guide](docs/AUTHENTICATION.md) - User management and troubleshooting commands
+
+### For Project Managers
+- [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - System capabilities and roadmap
+- [Complete Documentation Index](docs/index.md) - Overview of all features

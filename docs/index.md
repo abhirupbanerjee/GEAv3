@@ -1,8 +1,8 @@
 # 📚 Grenada EA Portal v3 - Complete Documentation Index
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-**Version:** 3.0 (Phase 2b)
-**Last Updated:** November 20, 2025
+**Version:** 3.0 (Phase 2b + Authentication)
+**Last Updated:** November 24, 2025
 **Status:** ✅ Production Ready
 
 ---
@@ -11,12 +11,16 @@
 
 **New to this project?**
 1. Read this index (10 min) - Overview and setup
-2. Review [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) (20 min) - Database architecture
-3. Review [API_REFERENCE.md](API_REFERENCE.md) (30 min) - API endpoints
-4. Check [../.env.example](../.env.example) - Environment configuration
+2. Review [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) (20 min) - **Complete system overview**
+3. Review [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) (30 min) - Database architecture
+4. Review [API_REFERENCE.md](API_REFERENCE.md) (30 min) - API endpoints
+5. Review [AUTHENTICATION.md](AUTHENTICATION.md) (25 min) - OAuth setup & commands
+6. Check [../.env.example](../.env.example) - Environment configuration
 
 **Quick reference?**
-→ See sections below for commands and troubleshooting
+→ [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) for system overview
+→ [AUTHENTICATION.md](AUTHENTICATION.md) has quick commands section at the end
+→ See sections below for deployment and troubleshooting
 
 ---
 
@@ -33,26 +37,35 @@
 - ✅ 5-point rating system for government services
 - ✅ QR code integration for physical locations
 - ✅ Multi-channel feedback (web, QR, mobile)
-- ✅ Real-time analytics dashboard
+- ✅ Analytics dashboard with entity filtering
 - ✅ Auto-grievance creation for low ratings (≤2.5)
 
 ### Phase 2b: Grievance & Ticketing System
-- ✅ PostgreSQL 15 database (13 tables, 40+ indexes)
+- ✅ PostgreSQL 15 database (23 tables, 44+ indexes)
 - ✅ Citizen grievance submission with attachments
 - ✅ EA service request management (admin portal)
 - ✅ Native ticketing system with SLA tracking
-- ✅ Rate limiting & CAPTCHA protection
+- ✅ Ticket activity timeline with resolution comments
+- ✅ IP-based rate limiting protection
 - ✅ Email notifications (SendGrid)
 - ✅ IP hashing for privacy (SHA256)
 - ✅ Master data management (entities, services, QR codes)
-- ✅ Admin authentication with session management
-- ✅ Comprehensive API (32 endpoints)
+- ✅ Admin ticket management dashboard
+- ✅ Comprehensive API (35+ endpoints)
+
+### Phase 2c: Authentication & Authorization
+- ✅ NextAuth v4 with OAuth providers (Google, Microsoft)
+- ✅ Role-based access control (Admin, Staff, Public)
+- ✅ Entity-based data filtering for staff users
+- ✅ Admin user management UI
+- ✅ Session management with JWT (2-hour expiration)
+- ✅ Audit logging system
+- ✅ Email whitelist authorization
 
 ### Security Features
+- ✅ OAuth-only authentication (no password storage)
 - ✅ IP-based rate limiting (5 submissions/hour)
-- ✅ CAPTCHA verification (hCaptcha)
 - ✅ SHA256 IP hashing (no PII storage)
-- ✅ Session-based admin authentication
 - ✅ File upload validation (5MB limit, type checking)
 - ✅ SQL injection protection (parameterized queries)
 - ✅ XSS prevention (input sanitization)
@@ -69,6 +82,7 @@
 | Tailwind CSS | 3.x | Utility-first CSS framework |
 | React | 18.x | UI library |
 | Zod | 3.x | Schema validation |
+| NextAuth | 4.x | OAuth authentication |
 
 ### Backend
 | Technology | Version | Purpose |
@@ -77,6 +91,7 @@
 | PostgreSQL | 15 | Primary database |
 | node-postgres (pg) | 8.x | Database driver |
 | SendGrid | Latest | Email notifications |
+| NextAuth | 4.x | Authentication & session management |
 
 ### Infrastructure
 | Technology | Version | Purpose |
@@ -178,8 +193,10 @@ gogeaportal/v3/
 | Document | Purpose | Read Time |
 |----------|---------|-----------|
 | [index.md](index.md) | This file - Complete overview | 15 min |
+| [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) | **System architecture & component overview** | 20 min |
 | [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) | Database architecture, setup, tables | 30 min |
 | [API_REFERENCE.md](API_REFERENCE.md) | All API endpoints with examples | 30 min |
+| [AUTHENTICATION.md](AUTHENTICATION.md) | OAuth setup, user management & quick commands | 25 min |
 | [../.env.example](../.env.example) | Environment configuration template | 10 min |
 | [../README.md](../README.md) | Project overview | 10 min |
 
@@ -265,13 +282,7 @@ nano .env
    SERVICE_ADMIN_EMAIL=admin@your-domain.com
    ```
 
-5. **hCaptcha keys** (get from https://www.hcaptcha.com):
-   ```env
-   NEXT_PUBLIC_HCAPTCHA_SITEKEY=your_sitekey
-   HCAPTCHA_SECRET=your_secret
-   ```
-
-6. **SSL certificate email:**
+5. **SSL certificate email:**
    ```env
    LETS_ENCRYPT_EMAIL=your-email@your-domain.com
    ```
@@ -725,17 +736,18 @@ docker system prune -a
 
 ## 📊 Project Statistics
 
-### Current Implementation (Phase 2b)
-- **Total API Endpoints:** 32 (11 public, 3 admin auth, 15 master data, 3 internal)
-- **Database Tables:** 13 (7 master, 3 transactional, 3 security/audit)
-- **Database Indexes:** 40+
-- **Foreign Keys:** 15+
-- **Lines of Code:** ~15,000+
+### Current Implementation (Phase 2b + Authentication)
+- **Total API Endpoints:** 35+ (11 public, 6 admin APIs, 15 master data, 3+ auth)
+- **Database Tables:** 23 (7 master, 5 transactional, 3 security/audit, 8 auth/user management)
+- **Database Indexes:** 44+
+- **Foreign Keys:** 18+
+- **Lines of Code:** ~20,000+
 - **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
+- **Authentication Providers:** 2 (Google, Microsoft)
 - **Build Time:** ~3-5 minutes (first build)
-- **Deployment Time:** ~10-20 minutes (first deployment)
-- **Memory Usage:** ~1.5GB (all services)
-- **Disk Usage:** ~2GB (including database)
+- **Deployment Time:** ~10-15 minutes (first deployment)
+- **Memory Usage:** ~2GB (all services under load)
+- **Disk Usage:** ~3GB (including database with auth tables)
 
 ### Test Data (when seeded)
 - **Entities:** 4
@@ -752,6 +764,7 @@ docker system prune -a
 ### Technology Documentation
 - **Next.js 14:** https://nextjs.org/docs
 - **PostgreSQL 15:** https://www.postgresql.org/docs/15/
+- **NextAuth v4:** https://next-auth.js.org/
 - **Docker:** https://docs.docker.com/
 - **Docker Compose:** https://docs.docker.com/compose/
 - **Traefik v3:** https://doc.traefik.io/traefik/
@@ -771,8 +784,8 @@ docker system prune -a
 
 - **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
 - **Issues:** https://github.com/abhirupbanerjee/GEAv3/issues
-- **Production Portal:** https://gea.abhirup.app
-- **Email:** gogdta2025@gmail.com
+- **Demo Portal:** https://your-portal-domain.com
+- **Email:** contact@your-domain.com
 
 ---
 
@@ -804,21 +817,30 @@ docker system prune -a
 
 ## 📈 Roadmap
 
-### Completed (Phase 2b)
+### Completed (Phase 2b + Authentication)
 - ✅ Service feedback system with 5-point rating
 - ✅ Auto-grievance creation for low ratings
 - ✅ Citizen grievance submission with attachments
 - ✅ EA service request management
 - ✅ Native ticketing system with SLA tracking
+- ✅ Ticket activity timeline with resolution comments
 - ✅ Master data management (entities, services, QR codes)
-- ✅ Admin portal with authentication
-- ✅ Comprehensive API (32 endpoints)
+- ✅ Admin ticket management dashboard
+- ✅ Admin portal with OAuth authentication
+- ✅ NextAuth integration (Google & Microsoft)
+- ✅ User management system with roles
+- ✅ Entity-based access control
+- ✅ Comprehensive API (35+ endpoints)
 - ✅ Rate limiting & CAPTCHA protection
 - ✅ Email notifications via SendGrid
+- ✅ Audit logging system
+- ✅ AI bot inventory management
+
+### In Progress
+- 🔄 Staff portal (entity-specific access for MDAs)
+- 🔄 Advanced analytics dashboard with charts
 
 ### Future Enhancements (Phase 3)
-- [ ] Admin ticket management dashboard
-- [ ] Advanced analytics with charts
 - [ ] Ticket assignment workflow
 - [ ] Multi-level approval for EA requests
 - [ ] SMS notifications
@@ -827,10 +849,11 @@ docker system prune -a
 - [ ] Real-time dashboard updates (WebSockets)
 - [ ] Advanced reporting (PDF export)
 - [ ] Service catalog improvements
+- [ ] Public user self-service portal
 
 ---
 
-**Last Updated:** November 20, 2025
-**Version:** 3.0 (Phase 2b)
+**Last Updated:** November 24, 2025
+**Version:** 3.0 (Phase 2b + Authentication)
 **Status:** ✅ Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git

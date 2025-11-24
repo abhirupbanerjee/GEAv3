@@ -1,9 +1,10 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 2.1
-**Last Updated:** November 22, 2025
-**API Base URL:** `https://gea.abhirup.app` (Production)
+**Document Version:** 3.0
+**Last Updated:** November 24, 2025
+**API Base URL:** `https://gea.your-domain.com` (Production)
 **Framework:** Next.js 14 App Router
+**Authentication:** NextAuth v4 with OAuth (Google, Microsoft)
 
 ---
 
@@ -29,10 +30,11 @@ The GEA Portal v3 uses **Next.js 14 App Router API Routes** for all backend func
 
 ```
 /frontend/src/app/api/
+├── auth/              # NextAuth OAuth endpoints
 ├── feedback/          # Public service feedback endpoints
 ├── tickets/           # Public & internal ticket endpoints
 ├── helpdesk/          # Public ticket lookup
-├── admin/             # Admin authentication
+├── admin/             # Admin management APIs (users, roles, etc.)
 └── managedata/        # Master data CRUD (admin)
 ```
 
@@ -44,13 +46,14 @@ The GEA Portal v3 uses **Next.js 14 App Router API Routes** for all backend func
 | Database | PostgreSQL 15 |
 | Database Driver | node-postgres (pg) |
 | Validation | Zod schemas |
-| Authentication | Session-based (admin), IP-based rate limiting (public) |
+| Authentication | NextAuth v4 with OAuth (Google, Microsoft) |
+| Authorization | Role-based (Admin, Staff, Public) + Entity filtering |
 | File Storage | PostgreSQL BYTEA |
 | Email | SendGrid API |
 
 ### Base URL
 
-**Production:** `https://gea.abhirup.app`
+**Production:** `https://gea.your-domain.com`
 **Development:** `http://localhost:3000`
 
 ### API Versioning
@@ -61,58 +64,119 @@ Currently v1 (no version prefix in URL). Future versions will use `/api/v2/` pre
 
 ## Authentication & Authorization
 
+### Overview
+
+The GEA Portal uses **NextAuth v4** for authentication with OAuth providers. All authentication is handled via OAuth - no passwords are stored.
+
+**Supported Providers:**
+- Google OAuth 2.0
+- Microsoft Azure AD (optional)
+
+**Key Features:**
+- OAuth-only authentication (no password storage)
+- Role-based access control (Admin, Staff, Public)
+- Entity-based data filtering for staff users
+- Email whitelist authorization
+- JWT session tokens (2-hour expiration)
+- Comprehensive audit logging
+
 ### Public Endpoints
 
 **No authentication required** for:
 - Service feedback submission
-- Ticket status checking
+- Grievance ticket submission
+- Ticket status checking (with ticket number)
 - QR code lookups
 - Service/entity listing
 
 **Security measures:**
-- IP-based rate limiting
-- SHA256 IP hashing for privacy
-- CAPTCHA after threshold failures
+- IP-based rate limiting (5 requests/hour)
+- SHA256 IP hashing for privacy (no PII stored)
 - Request ID tracking
 
-### Admin Endpoints
+### Protected Endpoints
 
-**Session-based authentication** for:
-- Master data management (entities, services, QR codes)
-- Future: Ticket management, analytics
+**OAuth authentication required** for:
+- Admin portal (`/admin/*`)
+- Staff portal (`/staff/*`)
+- User management APIs (`/api/admin/users/*`)
+- Master data management (`/api/managedata/*`)
 
 **Authentication flow:**
-1. POST `/api/admin/auth/login` with password
-2. Receive session token (HTTP-only cookie)
-3. Middleware validates token on protected routes (`/admin/:path*`)
-4. Session expires after 2 hours of inactivity
+1. User visits protected route (e.g., `/admin`)
+2. Middleware checks for valid session
+3. If no session → Redirect to `/auth/signin`
+4. User selects OAuth provider (Google or Microsoft)
+5. OAuth consent flow
+6. NextAuth validates email against `users` table
+7. If authorized → Create JWT session with role & entity data
+8. If unauthorized → Redirect to `/auth/unauthorized`
 
-**Headers required:**
-```
-Cookie: admin_session=<token>
+**Authorization checks:**
+- **Email Whitelist:** User email must exist in `users` table
+- **Active Status:** `is_active = TRUE` required
+- **Role Check:** Admin vs Staff vs Public roles
+- **Entity Filtering:** Staff users see only their entity's data
+
+### Session Structure
+
+When authenticated, the session object contains:
+
+```typescript
+session = {
+  user: {
+    id: "uuid",                        // User UUID
+    email: "user@gov.gd",              // OAuth email
+    name: "User Name",                 // Display name
+    image: "https://...",              // OAuth profile picture
+    roleId: 1,                         // Role ID
+    roleCode: "admin_dta",             // Role code
+    roleType: "admin",                 // admin | staff | public
+    entityId: "MIN-001" | null,        // Entity ID (null for admin)
+    isActive: true                     // Active status
+  },
+  expires: "2025-11-24T12:00:00Z"      // Session expiration (2 hours)
+}
 ```
 
-### Admin Session Management
+### Using Authentication in API Routes
 
-**Login:**
-```bash
-curl -X POST https://gea.abhirup.app/api/admin/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"password": "your_admin_password"}' \
-  -c cookies.txt
+```typescript
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+
+export async function GET(request: NextRequest) {
+  const session = await getServerSession(authOptions);
+
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check role
+  if (session.user.roleType !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Use session data
+  return NextResponse.json({ user: session.user });
+}
 ```
 
-**Check session:**
-```bash
-curl https://gea.abhirup.app/api/admin/auth/check \
-  -b cookies.txt
+### NextAuth API Endpoints
+
+**Authentication handled by NextAuth:**
+
+```
+GET  /api/auth/signin           # Sign-in page (redirects to OAuth)
+GET  /api/auth/signout          # Sign-out
+GET  /api/auth/session          # Get current session
+GET  /api/auth/csrf             # CSRF token
+GET  /api/auth/providers        # List OAuth providers
+POST /api/auth/callback/google  # Google OAuth callback
+POST /api/auth/callback/azure-ad # Microsoft OAuth callback
 ```
 
-**Logout:**
-```bash
-curl -X POST https://gea.abhirup.app/api/admin/auth/logout \
-  -b cookies.txt
-```
+**Note:** These endpoints are managed by NextAuth. For manual authentication testing, use the web interface at `/auth/signin`.
 
 ---
 
@@ -120,11 +184,11 @@ curl -X POST https://gea.abhirup.app/api/admin/auth/logout \
 
 ### Configuration
 
-| Endpoint Type | Limit | Window | CAPTCHA Trigger |
-|--------------|-------|--------|-----------------|
-| Feedback Submission | 5 requests | 1 hour | After 3 failures |
-| Grievance Submission | 3 requests | 1 hour | After 2 failures |
-| Ticket Submission | 5 requests | 1 hour | After 3 failures |
+| Endpoint Type | Limit | Window |
+|--------------|-------|--------|
+| Feedback Submission | 5 requests | 1 hour |
+| Grievance Submission | 3 requests | 1 hour |
+| Ticket Submission | 5 requests | 1 hour |
 | Ticket Status Check | 10 requests | 1 hour | N/A |
 | Category List | 30 requests | 1 hour | N/A |
 
@@ -251,7 +315,7 @@ Submit service feedback with 5-point rating.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/feedback/submit \
+curl -X POST https://gea.your-domain.com/api/feedback/submit \
   -H "Content-Type: application/json" \
   -d '{
     "service_id": "SVC-IMM-001",
@@ -305,7 +369,7 @@ GET /api/feedback/search?q=work
 
 **Example cURL:**
 ```bash
-curl "https://gea.abhirup.app/api/feedback/search?q=work"
+curl "https://gea.your-domain.com/api/feedback/search?q=work"
 ```
 
 ---
@@ -427,7 +491,7 @@ GET /api/feedback/stats?start_date=2025-11-01&end_date=2025-11-30&service_id=SVC
 
 **Example cURL:**
 ```bash
-curl "https://gea.abhirup.app/api/feedback/stats?start_date=2025-11-01&end_date=2025-11-30"
+curl "https://gea.your-domain.com/api/feedback/stats?start_date=2025-11-01&end_date=2025-11-30"
 ```
 
 ---
@@ -477,7 +541,7 @@ GET /api/feedback/qr/QR-DTA-001
 
 **Example cURL:**
 ```bash
-curl https://gea.abhirup.app/api/feedback/qr/QR-DTA-001
+curl https://gea.your-domain.com/api/feedback/qr/QR-DTA-001
 ```
 
 ---
@@ -508,7 +572,7 @@ Increment scan count for QR code analytics.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/feedback/qr/QR-DTA-001/scan
+curl -X POST https://gea.your-domain.com/api/feedback/qr/QR-DTA-001/scan
 ```
 
 ---
@@ -532,8 +596,7 @@ Public endpoint for citizens to submit new tickets.
   "description": "The PDF link on the website returns a 404 error. I need to submit my application by next week.",
   "contact_name": "Jane Smith",
   "contact_email": "jane@example.com",
-  "contact_phone": "+1473555001",
-  "captcha_token": "abc123xyz"
+  "contact_phone": "+1473555001"
 }
 ```
 
@@ -564,7 +627,7 @@ Public endpoint for citizens to submit new tickets.
     "priority": "Medium",
     "sla_target": "2025-11-22T10:30:00Z",
     "created_at": "2025-11-20T10:30:00Z",
-    "tracking_url": "https://gea.abhirup.app/helpdesk/ticket/202511-000456"
+    "tracking_url": "https://gea.your-domain.com/helpdesk/ticket/202511-000456"
   },
   "message": "Your ticket has been created successfully. Please save your ticket number: 202511-000456"
 }
@@ -584,7 +647,7 @@ Public endpoint for citizens to submit new tickets.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/tickets/submit \
+curl -X POST https://gea.your-domain.com/api/tickets/submit \
   -H "Content-Type: application/json" \
   -d '{
     "service_id": "SVC-IMM-001",
@@ -661,7 +724,7 @@ GET /api/tickets/status/202511-000456
 
 **Example cURL:**
 ```bash
-curl https://gea.abhirup.app/api/tickets/status/202511-000456
+curl https://gea.your-domain.com/api/tickets/status/202511-000456
 ```
 
 ---
@@ -725,7 +788,7 @@ GET /api/tickets/categories?service_id=SVC-IMM-001
 
 **Example cURL:**
 ```bash
-curl https://gea.abhirup.app/api/tickets/categories
+curl https://gea.your-domain.com/api/tickets/categories
 ```
 
 ---
@@ -812,7 +875,7 @@ Upload file attachments to a ticket.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/tickets/456/attachments \
+curl -X POST https://gea.your-domain.com/api/tickets/456/attachments \
   -F "file=@screenshot.png" \
   -b cookies.txt
 ```
@@ -996,14 +1059,260 @@ GET /api/helpdesk/ticket/202511-000456
 
 **Example cURL:**
 ```bash
-curl https://gea.abhirup.app/api/helpdesk/ticket/202511-000456
+curl https://gea.your-domain.com/api/helpdesk/ticket/202511-000456
 ```
 
 ---
 
 ## Admin API Endpoints
 
-### 1. Ticket Management
+### 1. User Management
+
+#### GET /api/admin/users
+
+List all users with their roles and entity assignments.
+
+**Authentication:** Required (admin session with `admin` role)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| search | string | No | Search by email or name |
+| role_type | string | No | Filter by role type (admin, staff, public) |
+| is_active | boolean | No | Filter by active status |
+
+**Example Request:**
+```
+GET /api/admin/users?role_type=staff&is_active=true
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "users": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "email": "admin@your-domain.com",
+      "name": "Admin User",
+      "image": "https://lh3.googleusercontent.com/...",
+      "role_id": 1,
+      "role_code": "admin_dta",
+      "role_name": "DTA Administrator",
+      "role_type": "admin",
+      "entity_id": null,
+      "entity_name": null,
+      "is_active": true,
+      "last_login": "2025-11-24T10:30:00Z",
+      "created_at": "2025-11-20T08:00:00Z"
+    },
+    {
+      "id": "660e8400-e29b-41d4-a716-446655440001",
+      "email": "staff@ministry.gd",
+      "name": "Ministry Staff",
+      "image": null,
+      "role_id": 2,
+      "role_code": "staff_mda",
+      "role_name": "MDA Staff Officer",
+      "role_type": "staff",
+      "entity_id": "MIN-001",
+      "entity_name": "Ministry of Digital Transformation",
+      "is_active": true,
+      "last_login": "2025-11-23T15:45:00Z",
+      "created_at": "2025-11-21T09:00:00Z"
+    }
+  ]
+}
+```
+
+---
+
+#### POST /api/admin/users
+
+Add a new user to the system.
+
+**Authentication:** Required (admin session with `admin` role)
+
+**Request Body:**
+```json
+{
+  "email": "newuser@gov.gd",
+  "name": "New User",
+  "role_id": 2,
+  "entity_id": "MIN-001"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| email | string | Yes | User email (must match OAuth account) |
+| name | string | Yes | Full name |
+| role_id | integer | Yes | Role ID (1=Admin, 2=Staff, 3=Public) |
+| entity_id | string | Conditional | Required if role is Staff |
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "User added successfully",
+  "user": {
+    "id": "770e8400-e29b-41d4-a716-446655440002",
+    "email": "newuser@gov.gd",
+    "name": "New User",
+    "role_code": "staff_mda",
+    "entity_id": "MIN-001",
+    "is_active": true,
+    "created_at": "2025-11-24T11:00:00Z"
+  }
+}
+```
+
+**Validation Errors (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": "Email already exists" | "Invalid role_id" | "Entity required for staff role"
+}
+```
+
+---
+
+#### PATCH /api/admin/users/[id]
+
+Update user details (activate/deactivate, change role, reassign entity).
+
+**Authentication:** Required (admin session with `admin` role)
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | User UUID |
+
+**Request Body:**
+```json
+{
+  "is_active": false,
+  "role_id": 2,
+  "entity_id": "DEPT-001"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| is_active | boolean | No | Activate/deactivate user |
+| role_id | integer | No | Change role |
+| entity_id | string | No | Change entity assignment |
+| name | string | No | Update display name |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "User updated successfully"
+}
+```
+
+---
+
+#### DELETE /api/admin/users/[id]
+
+Deactivate a user (soft delete - sets `is_active = FALSE`).
+
+**Authentication:** Required (admin session with `admin` role)
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | User UUID |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "User deactivated successfully"
+}
+```
+
+---
+
+#### GET /api/admin/roles
+
+List all available user roles.
+
+**Authentication:** Required (admin session)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "roles": [
+    {
+      "role_id": 1,
+      "role_code": "admin_dta",
+      "role_name": "DTA Administrator",
+      "role_type": "admin",
+      "description": "Full system access for DTA administrators"
+    },
+    {
+      "role_id": 2,
+      "role_code": "staff_mda",
+      "role_name": "MDA Staff Officer",
+      "role_type": "staff",
+      "description": "Entity-specific access for ministry/department staff"
+    },
+    {
+      "role_id": 3,
+      "role_code": "public_user",
+      "role_name": "Public User",
+      "role_type": "public",
+      "description": "Limited public access (future use)"
+    }
+  ]
+}
+```
+
+---
+
+#### GET /api/admin/entities
+
+List all entities for entity assignment (used when adding/editing staff users).
+
+**Authentication:** Required (admin session)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "entities": [
+    {
+      "unique_entity_id": "MIN-001",
+      "entity_name": "Ministry of Digital Transformation",
+      "entity_type": "ministry"
+    },
+    {
+      "unique_entity_id": "DEPT-001",
+      "entity_name": "Department of e-Government",
+      "entity_type": "department"
+    },
+    {
+      "unique_entity_id": "AGY-001",
+      "entity_name": "Digital Transformation Agency",
+      "entity_type": "agency"
+    }
+  ]
+}
+```
+
+---
+
+### 2. Ticket Management
 
 #### GET /api/admin/tickets/dashboard-stats
 
@@ -1256,7 +1565,7 @@ Update ticket status, priority, or add internal notes.
 
 **Example cURL:**
 ```bash
-curl -X PATCH https://gea.abhirup.app/api/admin/tickets/123/update \
+curl -X PATCH https://gea.your-domain.com/api/admin/tickets/123/update \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1331,7 +1640,7 @@ Set-Cookie: admin_session=<encrypted_token>; HttpOnly; Secure; SameSite=Strict; 
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/admin/auth/login \
+curl -X POST https://gea.your-domain.com/api/admin/auth/login \
   -H "Content-Type: application/json" \
   -d '{"password": "SecureP@ssw0rd123"}' \
   -c cookies.txt
@@ -1366,7 +1675,7 @@ Check authentication status.
 
 **Example cURL:**
 ```bash
-curl https://gea.abhirup.app/api/admin/auth/check \
+curl https://gea.your-domain.com/api/admin/auth/check \
   -b cookies.txt
 ```
 
@@ -1386,7 +1695,7 @@ Destroy admin session.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/admin/auth/logout \
+curl -X POST https://gea.your-domain.com/api/admin/auth/logout \
   -b cookies.txt
 ```
 
@@ -1437,7 +1746,7 @@ List all entities (ministries, departments, agencies).
 
 **Example cURL:**
 ```bash
-curl https://gea.abhirup.app/api/managedata/entities \
+curl https://gea.your-domain.com/api/managedata/entities \
   -b cookies.txt
 ```
 
@@ -1503,7 +1812,7 @@ Create new entity.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/managedata/entities \
+curl -X POST https://gea.your-domain.com/api/managedata/entities \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1554,7 +1863,7 @@ Update entity details.
 
 **Example cURL:**
 ```bash
-curl -X PUT https://gea.abhirup.app/api/managedata/entities/DEPT-001 \
+curl -X PUT https://gea.your-domain.com/api/managedata/entities/DEPT-001 \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1596,7 +1905,7 @@ GET /api/managedata/entities/next-id?type=department
 
 **Example cURL:**
 ```bash
-curl "https://gea.abhirup.app/api/managedata/entities/next-id?type=department" \
+curl "https://gea.your-domain.com/api/managedata/entities/next-id?type=department" \
   -b cookies.txt
 ```
 
@@ -1683,7 +1992,7 @@ Create new service.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/managedata/services \
+curl -X POST https://gea.your-domain.com/api/managedata/services \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -1852,7 +2161,7 @@ Create new QR code.
 
 **Example cURL:**
 ```bash
-curl -X POST https://gea.abhirup.app/api/managedata/qrcodes \
+curl -X POST https://gea.your-domain.com/api/managedata/qrcodes \
   -H "Content-Type: application/json" \
   -b cookies.txt \
   -d '{
@@ -2081,7 +2390,7 @@ For endpoints returning large datasets:
 
 **Set base URL:**
 ```bash
-BASE_URL="https://gea.abhirup.app"
+BASE_URL="https://gea.your-domain.com"
 ```
 
 **Test feedback submission:**
@@ -2117,7 +2426,7 @@ curl $BASE_URL/api/managedata/entities \
 **Import collection:** (Future: Provide Postman collection export)
 
 1. Set environment variables:
-   - `BASE_URL`: `https://gea.abhirup.app`
+   - `BASE_URL`: `https://gea.your-domain.com`
    - `ADMIN_PASSWORD`: Your admin password
 
 2. Test endpoints:
@@ -2180,7 +2489,7 @@ SENDGRID_FROM_NAME=GEA Portal
 # Admin
 ADMIN_PASSWORD=<bcrypt_hashed_password>
 ADMIN_SESSION_SECRET=<secret>
-SERVICE_ADMIN_EMAIL=admin@gov.gd
+SERVICE_ADMIN_EMAIL=admin@your-domain.com
 
 # Rate Limiting
 EA_SERVICE_RATE_LIMIT=3
@@ -2192,8 +2501,8 @@ MAX_TOTAL_UPLOAD_SIZE=26214400
 ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx
 
 # API URLs
-API_BASE_URL=https://gea.abhirup.app
-NEXT_PUBLIC_API_BASE_URL=https://gea.abhirup.app
+API_BASE_URL=https://gea.your-domain.com
+NEXT_PUBLIC_API_BASE_URL=https://gea.your-domain.com
 ```
 
 ### API Rate Limit Configuration
@@ -2262,4 +2571,24 @@ const RATE_LIMITS = {
 
 ---
 
-**Document End**
+## See Also
+
+### Related Documentation
+
+- **[Database Reference](DATABASE_REFERENCE.md)** - Complete database schema with all tables and relationships
+- **[Authentication Guide](AUTHENTICATION.md)** - Comprehensive OAuth setup and user management guide
+- **[Authentication Quick Reference](AUTHENTICATION.md)** - Quick commands for user management
+- **[Complete Documentation Index](index.md)** - Overview of all documentation
+
+### External Resources
+
+- **[Next.js API Routes Documentation](https://nextjs.org/docs/app/building-your-application/routing/route-handlers)** - Official Next.js API docs
+- **[NextAuth Documentation](https://next-auth.js.org/)** - OAuth authentication library
+- **[PostgreSQL Documentation](https://www.postgresql.org/docs/15/)** - Database reference
+- **[Zod Schema Validation](https://zod.dev/)** - Input validation library
+
+---
+
+**Document Version:** 3.0
+**Last Updated:** November 24, 2025
+**Maintained By:** GEA Portal Development Team
