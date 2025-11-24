@@ -492,11 +492,11 @@ export default function ServiceManager() {
                   >
                     Service Name {getSortIcon('service_name')}
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('entity_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Entity {getSortIcon('entity_name')}
+                    Service Entity {getSortIcon('entity_name')}
                   </th>
                   <th 
                     onClick={() => handleSort('service_category')}
