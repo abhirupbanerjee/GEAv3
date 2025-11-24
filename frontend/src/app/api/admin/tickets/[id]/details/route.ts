@@ -14,13 +14,32 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { executeQuery } from '@/lib/db'
+import { getEntityFilter } from '@/lib/entity-filter'
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required'
+          },
+          timestamp: new Date().toISOString()
+        },
+        { status: 401 }
+      )
+    }
+
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
@@ -99,6 +118,22 @@ export async function GET(
     }
 
     const ticket = ticketResult.rows[0]
+
+    // Validate entity access for staff users
+    const entityFilter = getEntityFilter(session)
+    if (entityFilter && ticket.assigned_entity_id !== entityFilter) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You do not have access to this ticket'
+          },
+          timestamp: new Date().toISOString()
+        },
+        { status: 403 }
+      )
+    }
 
     // Query 2: Get attachments
     const attachmentsQuery = `

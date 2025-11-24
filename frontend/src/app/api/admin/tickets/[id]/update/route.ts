@@ -18,13 +18,32 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { executeQuery, withTransaction } from '@/lib/db'
+import { getEntityFilter } from '@/lib/entity-filter'
 
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required'
+          },
+          timestamp: new Date().toISOString()
+        },
+        { status: 401 }
+      )
+    }
+
     const ticketId = parseInt(params.id)
 
     if (isNaN(ticketId)) {
@@ -38,6 +57,43 @@ export async function PUT(
           timestamp: new Date().toISOString()
         },
         { status: 400 }
+      )
+    }
+
+    // Check if ticket exists and validate entity access
+    const checkQuery = `
+      SELECT assigned_entity_id FROM tickets WHERE ticket_id = $1
+    `
+    const checkResult = await executeQuery(checkQuery, [ticketId])
+
+    if (checkResult.rows.length === 0) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'NOT_FOUND',
+            message: `Ticket with ID ${ticketId} not found`
+          },
+          timestamp: new Date().toISOString()
+        },
+        { status: 404 }
+      )
+    }
+
+    // Validate entity access for staff users
+    const entityFilter = getEntityFilter(session)
+    const ticketEntity = checkResult.rows[0].assigned_entity_id
+    if (entityFilter && ticketEntity !== entityFilter) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'FORBIDDEN',
+            message: 'You do not have access to update this ticket'
+          },
+          timestamp: new Date().toISOString()
+        },
+        { status: 403 }
       )
     }
 

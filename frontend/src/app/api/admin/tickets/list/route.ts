@@ -18,14 +18,33 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { executeQuery } from '@/lib/db'
+import { getEntityFilter } from '@/lib/entity-filter'
 
 export async function GET(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'UNAUTHORIZED',
+            message: 'Authentication required'
+          }
+        },
+        { status: 401 }
+      )
+    }
+
     const { searchParams } = new URL(request.url)
 
-    // Parse query parameters
-    const entityId = searchParams.get('entity_id')
+    // Apply entity filter for staff users - override entity_id parameter
+    const entityFilter = getEntityFilter(session)
+    const entityId = entityFilter || searchParams.get('entity_id')
     const serviceId = searchParams.get('service_id')
     const status = searchParams.get('status')
     const priority = searchParams.get('priority')
