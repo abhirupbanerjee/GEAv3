@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
+import UserProfileDropdown from './UserProfileDropdown'
 
 const navigationItems = [
   { label: 'About', href: '/about' },
@@ -16,7 +17,7 @@ export default function Header() {
   const { data: session, status } = useSession()
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-40">
+    <header className="bg-white shadow-sm sticky top-0 z-50">
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
@@ -41,14 +42,17 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
-            {!session && status !== 'loading' && (
+            {/* Show Profile Dropdown if authenticated, otherwise show Login button */}
+            {session ? (
+              <UserProfileDropdown />
+            ) : status !== 'loading' ? (
               <Link
                 href="/admin"
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Login
               </Link>
-            )}
+            ) : null}
           </nav>
 
           {/* Mobile menu button */}
@@ -77,7 +81,12 @@ export default function Header() {
                   {item.label}
                 </Link>
               ))}
-              {!session && status !== 'loading' && (
+              {/* Mobile: Show Profile Dropdown or Login */}
+              {session ? (
+                <div className="pt-2">
+                  <UserProfileDropdown />
+                </div>
+              ) : status !== 'loading' ? (
                 <Link
                   href="/admin"
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
@@ -85,7 +94,7 @@ export default function Header() {
                 >
                   Login
                 </Link>
-              )}
+              ) : null}
             </nav>
           </div>
         )}

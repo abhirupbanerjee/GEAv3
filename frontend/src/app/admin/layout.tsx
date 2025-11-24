@@ -4,6 +4,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { SessionProvider, useSession } from 'next-auth/react'
 import { useEffect } from 'react'
 import Sidebar from '@/components/admin/Sidebar'
+import AdminContentWrapper from '@/components/admin/AdminContentWrapper'
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -33,13 +34,11 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
 
   // All other admin pages - show sidebar
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pt-16">
       <Sidebar />
-      <div className="lg:pl-64">
-        <main className="p-6">
-          {children}
-        </main>
-      </div>
+      <AdminContentWrapper>
+        {children}
+      </AdminContentWrapper>
     </div>
   )
 }

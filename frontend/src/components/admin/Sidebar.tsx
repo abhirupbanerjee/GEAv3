@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useState, useEffect } from 'react'
-import { signOut, useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 
 const navigationItems = [
   {
@@ -81,64 +81,44 @@ const navigationItems = [
 export default function Sidebar() {
   const pathname = usePathname()
   const { data: session } = useSession()
-  const [loggingOut, setLoggingOut] = useState(false)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [entityName, setEntityName] = useState<string | null>(null)
+  const [isCollapsed, setIsCollapsed] = useState(false)
 
-  // Debug logging
+  // Load collapse state from localStorage
   useEffect(() => {
-    console.log('[Sidebar] Session data:', {
-      name: session?.user?.name,
-      email: session?.user?.email,
-      roleType: session?.user?.roleType,
-      entityId: session?.user?.entityId
-    })
-  }, [session])
+    const savedState = localStorage.getItem('ea-portal-sidebar-collapsed')
+    if (savedState !== null) {
+      setIsCollapsed(savedState === 'true')
+    }
+  }, [])
 
-  // Fetch entity name for staff users
+  // Save collapse state to localStorage
+  const toggleCollapse = () => {
+    const newState = !isCollapsed
+    setIsCollapsed(newState)
+    localStorage.setItem('ea-portal-sidebar-collapsed', String(newState))
+    // Dispatch custom event to notify other components
+    window.dispatchEvent(new Event('sidebar-toggled'))
+  }
+
+  // Keyboard shortcut: Ctrl/Cmd + B to toggle sidebar
   useEffect(() => {
-    const fetchEntityName = async () => {
-      if (session?.user?.entityId) {
-        try {
-          console.log('[Sidebar] Fetching entity for ID:', session.user.entityId)
-          const response = await fetch(`/api/admin/entities/${session.user.entityId}`)
-          if (response.ok) {
-            const data = await response.json()
-            console.log('[Sidebar] Entity data received:', data)
-            setEntityName(data.entity?.entity_name || null)
-          } else {
-            console.error('[Sidebar] Failed to fetch entity:', response.status, response.statusText)
-          }
-        } catch (error) {
-          console.error('[Sidebar] Error fetching entity name:', error)
-        }
-      } else {
-        console.log('[Sidebar] No entity ID in session:', session?.user)
+    const handleKeyboard = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'b') {
+        e.preventDefault()
+        toggleCollapse()
       }
     }
 
-    fetchEntityName()
-  }, [session?.user?.entityId])
+    window.addEventListener('keydown', handleKeyboard)
+    return () => window.removeEventListener('keydown', handleKeyboard)
+  }, [isCollapsed])
 
   // Filter navigation items based on user role
   const visibleMenuItems = navigationItems.filter((item) => {
     if (!item.requiredRole) return true // Available to all
     return session?.user?.roleType === item.requiredRole
   })
-
-  const handleLogout = async () => {
-    if (!confirm('Are you sure you want to logout?')) return
-
-    setLoggingOut(true)
-    try {
-      // Use NextAuth signOut
-      await signOut({ callbackUrl: '/auth/signin' })
-    } catch (error) {
-      console.error('Logout error:', error)
-      alert('Failed to logout. Please try again.')
-      setLoggingOut(false)
-    }
-  }
 
   return (
     <>
@@ -160,114 +140,82 @@ export default function Sidebar() {
       {/* Overlay for mobile */}
       {isMobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 top-16"
           onClick={() => setIsMobileOpen(false)}
         />
       )}
 
-      {/* Sidebar - Responsive */}
+      {/* Sidebar - Responsive with collapse */}
       <div
         className={`
-          fixed inset-y-0 left-0 z-20
-          w-64 bg-gray-50 border-r border-gray-200 flex flex-col h-screen
-          transform transition-transform duration-300 ease-in-out
+          fixed left-0 top-16 z-30 bg-gray-50 border-r border-gray-200 flex flex-col
+          transform transition-all duration-200 ease-in-out
+          h-[calc(100vh-4rem)]
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+          ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
+          w-64
         `}
       >
-        {/* Header with User Profile */}
-        <div className="p-4 border-b border-gray-200 bg-white flex-shrink-0">
-          {/* User Profile Section */}
-          <div className="mb-3">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm flex-shrink-0">
-                <span className="text-white font-semibold text-lg">
-                  {session?.user?.name?.charAt(0)?.toUpperCase() || 'U'}
-                </span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-900 break-words">
-                  {session?.user?.name || 'User'}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-gray-500 truncate pl-0">
-              {session?.user?.email || ''}
-            </p>
-          </div>
-
-          {/* Role Badge and Entity */}
-          <div className="mb-3 space-y-2">
-            {session?.user?.roleType === 'admin' ? (
-              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                </svg>
-                Administrator
-              </span>
-            ) : (
-              <div className="flex flex-col space-y-1">
-                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 w-fit">
-                  <svg className="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                  </svg>
-                  Staff
-                </span>
-                {entityName && (
-                  <span className="text-xs text-gray-600 pl-1">
-                    {entityName}
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Logout Button */}
+        {/* Collapse Toggle Button - Desktop Only */}
+        <div className="hidden lg:flex items-center justify-end p-2 border-b border-gray-200 bg-white">
           <button
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="w-full flex items-center justify-center space-x-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium shadow-sm"
+            onClick={toggleCollapse}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
           >
-            {loggingOut ? (
-              <>
-                <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Logging out...</span>
-              </>
-            ) : (
-              <>
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                <span>Logout</span>
-              </>
-            )}
+            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isCollapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              )}
+            </svg>
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {visibleMenuItems.map((item) => {
             const isActive = pathname === item.href
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileOpen(false)}
-                className={`flex items-center space-x-3 px-4 py-3 rounded-lg transition-all ${
-                  isActive
-                    ? 'bg-blue-50 text-blue-700 font-medium border border-blue-200'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
-              >
-                {item.icon}
-                <span>{item.label}</span>
-              </Link>
+              <div key={item.href} className="relative group">
+                <Link
+                  href={item.href}
+                  onClick={() => setIsMobileOpen(false)}
+                  className={`flex items-center rounded-lg transition-all ${
+                    isCollapsed
+                      ? 'justify-center p-3'
+                      : 'space-x-3 px-4 py-3'
+                  } ${
+                    isActive
+                      ? isCollapsed
+                        ? 'bg-blue-100 text-blue-700'
+                        : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
+                      : 'text-gray-700 hover:bg-gray-100'
+                  }`}
+                  aria-label={isCollapsed ? item.label : undefined}
+                  title={isCollapsed ? item.label : undefined}
+                >
+                  <span className={isCollapsed ? '' : 'flex-shrink-0'}>
+                    {item.icon}
+                  </span>
+                  {!isCollapsed && <span>{item.label}</span>}
+                </Link>
+
+                {/* Tooltip for collapsed state - Desktop only */}
+                {isCollapsed && (
+                  <div className="hidden lg:group-hover:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
+                    <div className="bg-gray-800 text-white text-sm px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+                      {item.label}
+                      <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )
           })}
         </nav>
-
       </div>
     </>
   )
