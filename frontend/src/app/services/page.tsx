@@ -1,7 +1,5 @@
 'use client'
 
-import { config } from '@/config/env'
-
 // EA Service types
 interface EAService {
   id: string
@@ -179,10 +177,8 @@ export default function Services() {
 
           {/* Action Buttons */}
           <div className="flex flex-col sm:flex-row justify-center gap-4 mt-8">
-            <a 
-              href={config.HELPDESK_URL}
-              target="_blank"
-              rel="noopener noreferrer"
+            <a
+              href="/admin/service-requests"
               className="inline-flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors shadow-md"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -190,8 +186,8 @@ export default function Services() {
               </svg>
               Submit Service Request
             </a>
-            <a 
-              href={`mailto:${config.CONTACT_EMAIL}`}
+            <a
+              href="mailto:eservices@gov.gd"
               className="inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-8 rounded-lg transition-colors shadow-md"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
