@@ -74,7 +74,7 @@ export default function ServiceRequestsPage() {
   const isAdmin = session?.user?.roleType === 'admin';
   const isStaff = session?.user?.roleType === 'staff';
 
-  // Load entities for all users (admin and staff)
+  // Load entities (admin: all, staff: only service request entity)
   useEffect(() => {
     if (isAdmin || isStaff) {
       const loadEntities = async () => {
@@ -82,7 +82,16 @@ export default function ServiceRequestsPage() {
           const response = await fetch('/api/managedata/entities');
           if (response.ok) {
             const data = await response.json();
-            setEntities(data.filter((e: Entity) => e.is_active !== false));
+            let filteredEntities = data.filter((e: Entity) => e.is_active !== false);
+
+            // For staff users, only show the service request entity (AGY-005)
+            if (isStaff) {
+              filteredEntities = filteredEntities.filter(
+                (e: Entity) => e.unique_entity_id === config.SERVICE_REQUEST_ENTITY_ID
+              );
+            }
+
+            setEntities(filteredEntities);
           }
         } catch (error) {
           console.error('Error loading entities:', error);

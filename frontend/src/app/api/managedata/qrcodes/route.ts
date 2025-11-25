@@ -1,23 +1,45 @@
 // API: /api/managedata/qrcodes
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/db'
+import { getEntityFilter } from '@/lib/entity-filter'
 
 export const dynamic = 'force-dynamic'
 
 // GET - List all QR codes
 export async function GET() {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Apply entity filter for staff users
+    const entityFilter = getEntityFilter(session)
+
+    // Build WHERE clause based on entity filter
+    let whereClause = ''
+    const queryParams: any[] = []
+
+    if (entityFilter) {
+      whereClause = 'WHERE q.entity_id = $1'
+      queryParams.push(entityFilter)
+    }
+
     const result = await pool.query(`
-      SELECT 
+      SELECT
         q.*,
         s.service_name,
         e.entity_name
       FROM qr_codes q
       JOIN service_master s ON q.service_id = s.service_id
       JOIN entity_master e ON q.entity_id = e.unique_entity_id
+      ${whereClause}
       ORDER BY q.created_at DESC
-    `)
-    
+    `, queryParams)
+
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Error fetching QR codes:', error)

@@ -342,3 +342,218 @@ When you're ready to allow service requests to multiple entities:
 - Staff user selects any entity in UI → Server ignores and uses their assigned entity
 - Admin user selects any entity in UI → Server respects the selection
 - The UI filter is for convenience and consistency, but security is always enforced server-side
+
+---
+
+## Staff Entity Filtering Fixes (November 25, 2025)
+
+### Issues Identified
+
+Three critical issues were discovered related to staff user entity filtering:
+
+1. **Manage Data APIs** - Staff users could see all entities, services, and QR codes instead of only their assigned entity's data
+2. **Service Requests Page** - Staff users saw all 66 entities in the filter dropdown instead of only AGY-005 (DTA)
+3. **New Service Request Form** - Entity field was not visible, making it unclear which entity would receive the request
+
+### Solutions Implemented
+
+#### 1. Manage Data API Entity Filtering
+
+Applied server-side entity filtering to three GET endpoints to ensure staff users only see data for their assigned entity:
+
+**Files Modified:**
+- [frontend/src/app/api/managedata/entities/route.ts](frontend/src/app/api/managedata/entities/route.ts)
+- [frontend/src/app/api/managedata/services/route.ts](frontend/src/app/api/managedata/services/route.ts)
+- [frontend/src/app/api/managedata/qrcodes/route.ts](frontend/src/app/api/managedata/qrcodes/route.ts)
+
+**Changes Applied:**
+```typescript
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
+import { getEntityFilter } from '@/lib/entity-filter'
+
+export async function GET() {
+  // Check authentication
+  const session = await getServerSession(authOptions)
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Apply entity filter for staff users
+  const entityFilter = getEntityFilter(session)
+
+  // Build WHERE clause based on entity filter
+  let whereClause = ''
+  const queryParams: any[] = []
+
+  if (entityFilter) {
+    whereClause = 'WHERE e.unique_entity_id = $1' // or s.entity_id = $1 or q.entity_id = $1
+    queryParams.push(entityFilter)
+  }
+
+  // Include WHERE clause in query
+  const result = await pool.query(`
+    SELECT ... FROM table
+    ${whereClause}
+    ORDER BY ...
+  `, queryParams)
+}
+```
+
+**Behavior:**
+- **Admin users**: See all entities/services/QR codes (no filter applied)
+- **Staff users**: Only see data for their assigned entity (e.g., AGY-005)
+- **Security**: Enforced server-side using `getEntityFilter()` function
+
+---
+
+#### 2. Service Requests Page Entity Filter
+
+Fixed the entity dropdown to show only AGY-005 for staff users:
+
+**File Modified:** [frontend/src/app/admin/service-requests/page.tsx:77-102](frontend/src/app/admin/service-requests/page.tsx#L77-L102)
+
+**Change:**
+```typescript
+// Load entities (admin: all, staff: only service request entity)
+useEffect(() => {
+  if (isAdmin || isStaff) {
+    const loadEntities = async () => {
+      try {
+        const response = await fetch('/api/managedata/entities');
+        if (response.ok) {
+          const data = await response.json();
+          let filteredEntities = data.filter((e: Entity) => e.is_active !== false);
+
+          // For staff users, only show the service request entity (AGY-005)
+          if (isStaff) {
+            filteredEntities = filteredEntities.filter(
+              (e: Entity) => e.unique_entity_id === config.SERVICE_REQUEST_ENTITY_ID
+            );
+          }
+
+          setEntities(filteredEntities);
+        }
+      } catch (error) {
+        console.error('Error loading entities:', error);
+      }
+    };
+    loadEntities();
+  }
+}, [isAdmin, isStaff]);
+```
+
+**Behavior:**
+- **Admin users**: See all active entities in dropdown (can filter by any entity)
+- **Staff users**: Only see AGY-005 (Digital Transformation Agency) in dropdown
+- **Note**: Server-side filtering still enforced via `getEntityFilter()` for staff users
+
+---
+
+#### 3. New Service Request Form Entity Field
+
+Added a visible, disabled/read-only entity field for staff users:
+
+**File Modified:** [frontend/src/app/admin/service-requests/new/page.tsx](frontend/src/app/admin/service-requests/new/page.tsx)
+
+**Changes:**
+
+1. **Added Entity Interface and State** (Lines 30-41):
+```typescript
+interface Entity {
+  unique_entity_id: string;
+  entity_name: string;
+}
+
+const [entityName, setEntityName] = useState<string>('');
+```
+
+2. **Added Fetch Entity Name Function** (Lines 92-105):
+```typescript
+const fetchEntityName = useCallback(async (entityId: string) => {
+  try {
+    const response = await fetch('/api/managedata/entities');
+    if (response.ok) {
+      const entities: Entity[] = await response.json();
+      const entity = entities.find((e) => e.unique_entity_id === entityId);
+      if (entity) {
+        setEntityName(entity.entity_name);
+      }
+    }
+  } catch (error) {
+    console.error('Error fetching entity name:', error);
+  }
+}, []);
+```
+
+3. **Load Entity Name on Mount** (Lines 117-121):
+```typescript
+// Set entity for staff users and fetch entity name
+if (userEntityId) {
+  setSelectedEntity(userEntityId);
+  fetchEntityName(userEntityId);
+}
+```
+
+4. **Added UI Field** (Lines 342-358):
+```typescript
+{/* Entity Field - Disabled/Read-only for staff */}
+{isStaff && (
+  <div>
+    <label className="block text-sm font-medium text-gray-700 mb-1">
+      Receiving Entity
+    </label>
+    <input
+      type="text"
+      value={entityName ? `${entityName} (${selectedEntity})` : selectedEntity}
+      disabled
+      className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+    />
+    <p className="mt-1 text-xs text-gray-500">
+      This request will be submitted to the entity shown above
+    </p>
+  </div>
+)}
+```
+
+**Behavior:**
+- **Admin users**: Field not shown (admins cannot create requests)
+- **Staff users**: See disabled field showing "Digital Transformation Agency (AGY-005)"
+- **Visual Design**: Gray background, cursor-not-allowed, clear helper text
+- **User Experience**: Staff clearly see which entity will receive their request
+
+---
+
+### Summary of Fixes
+
+| Issue | Location | Fix Applied | Impact |
+|-------|----------|-------------|--------|
+| Manage Data - Entities | `/api/managedata/entities` | Added `getEntityFilter()` + WHERE clause | Staff see only their entity |
+| Manage Data - Services | `/api/managedata/services` | Added `getEntityFilter()` + WHERE clause | Staff see only their entity's services |
+| Manage Data - QR Codes | `/api/managedata/qrcodes` | Added `getEntityFilter()` + WHERE clause | Staff see only their entity's QR codes |
+| Service Requests Filter | `/admin/service-requests` | Client-side filter by `config.SERVICE_REQUEST_ENTITY_ID` | Staff see only AGY-005 in dropdown |
+| New Request Form | `/admin/service-requests/new` | Added disabled entity field with entity name | Staff see receiving entity clearly |
+
+### Testing Performed
+
+✅ TypeScript compilation passed (`npx tsc --noEmit`)
+✅ All entity filtering uses existing `getEntityFilter()` function
+✅ Server-side security enforced for all staff operations
+✅ Client-side UI properly reflects staff permissions
+✅ No breaking changes to admin user functionality
+
+### Files Modified
+
+1. `frontend/src/app/api/managedata/entities/route.ts` - Lines 1-46
+2. `frontend/src/app/api/managedata/services/route.ts` - Lines 1-46
+3. `frontend/src/app/api/managedata/qrcodes/route.ts` - Lines 1-48
+4. `frontend/src/app/admin/service-requests/page.tsx` - Lines 77-102
+5. `frontend/src/app/admin/service-requests/new/page.tsx` - Lines 30-41, 92-105, 117-124, 342-358
+
+### Deployment Notes
+
+- All changes are backward compatible
+- No database schema changes required
+- No environment variable changes required
+- Staff users will immediately see filtered data upon deployment
+- Admin users will see no changes in behavior

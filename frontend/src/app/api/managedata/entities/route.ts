@@ -1,21 +1,43 @@
 // API: /api/managedata/entities
 import { NextRequest, NextResponse } from 'next/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { pool } from '@/lib/db'
+import { getEntityFilter } from '@/lib/entity-filter'
 
 export const dynamic = 'force-dynamic'
 
 // GET - List all entities
 export async function GET() {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    // Apply entity filter for staff users
+    const entityFilter = getEntityFilter(session)
+
+    // Build WHERE clause based on entity filter
+    let whereClause = ''
+    const queryParams: any[] = []
+
+    if (entityFilter) {
+      whereClause = 'WHERE e.unique_entity_id = $1'
+      queryParams.push(entityFilter)
+    }
+
     const result = await pool.query(`
-      SELECT 
+      SELECT
         e.*,
         p.entity_name as parent_entity_name
       FROM entity_master e
       LEFT JOIN entity_master p ON e.parent_entity_id = p.unique_entity_id
+      ${whereClause}
       ORDER BY e.entity_type, e.entity_name
-    `)
-    
+    `, queryParams)
+
     return NextResponse.json(result.rows)
   } catch (error) {
     console.error('Error fetching entities:', error)

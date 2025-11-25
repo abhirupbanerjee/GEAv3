@@ -27,12 +27,18 @@ interface ServiceAttachment {
   description: string;
 }
 
+interface Entity {
+  unique_entity_id: string;
+  entity_name: string;
+}
+
 export default function NewServiceRequestPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
   const [services, setServices] = useState<Service[]>([]);
   const [attachmentRequirements, setAttachmentRequirements] = useState<ServiceAttachment[]>([]);
+  const [entityName, setEntityName] = useState<string>('');
 
   // Form state
   const [selectedService, setSelectedService] = useState('');
@@ -83,6 +89,21 @@ export default function NewServiceRequestPage() {
     }
   }, []);
 
+  const fetchEntityName = useCallback(async (entityId: string) => {
+    try {
+      const response = await fetch('/api/managedata/entities');
+      if (response.ok) {
+        const entities: Entity[] = await response.json();
+        const entity = entities.find((e) => e.unique_entity_id === entityId);
+        if (entity) {
+          setEntityName(entity.entity_name);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching entity name:', error);
+    }
+  }, []);
+
   useEffect(() => {
     // Only initialize for staff users
     if (!isStaff) return;
@@ -93,13 +114,14 @@ export default function NewServiceRequestPage() {
       setRequesterEmail(session.user.email || '');
     }
 
-    // Set entity for staff users
+    // Set entity for staff users and fetch entity name
     if (userEntityId) {
       setSelectedEntity(userEntityId);
+      fetchEntityName(userEntityId);
     }
 
     fetchServices();
-  }, [session, isStaff, userEntityId, fetchServices]);
+  }, [session, isStaff, userEntityId, fetchServices, fetchEntityName]);
 
   useEffect(() => {
     if (selectedService) {
@@ -316,6 +338,24 @@ export default function NewServiceRequestPage() {
                   ))}
               </select>
             </div>
+
+            {/* Entity Field - Disabled/Read-only for staff */}
+            {isStaff && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Receiving Entity
+                </label>
+                <input
+                  type="text"
+                  value={entityName ? `${entityName} (${selectedEntity})` : selectedEntity}
+                  disabled
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  This request will be submitted to the entity shown above
+                </p>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
