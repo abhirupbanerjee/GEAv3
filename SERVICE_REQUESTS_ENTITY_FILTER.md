@@ -233,6 +233,7 @@ All hardcoded references to `AGY-005` have been replaced with an environment var
 1. **`.env.example`** - Added variable with documentation
 2. **`frontend/src/config/env.ts`** - Exports the configuration value
 3. **`docker-compose.yml`** - Passes environment variable to container
+4. **`frontend/Dockerfile`** - Added ARG and generation script for env.ts
 
 ### Code Changes
 

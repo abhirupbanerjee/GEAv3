@@ -40,6 +40,7 @@ ARG ALLOWED_FILE_TYPES
 ARG EA_SERVICE_RATE_LIMIT
 ARG GRIEVANCE_RATE_LIMIT
 ARG API_BASE_URL
+ARG NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID=AGY-005
 
 # Set as environment variables during build
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
@@ -86,6 +87,7 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  ALLOWED_FILE_TYPES: '${ALLOWED_FILE_TYPES}'," >> src/config/env.ts && \
     echo "  EA_SERVICE_RATE_LIMIT: ${EA_SERVICE_RATE_LIMIT}," >> src/config/env.ts && \
     echo "  GRIEVANCE_RATE_LIMIT: ${GRIEVANCE_RATE_LIMIT}," >> src/config/env.ts && \
+    echo "  SERVICE_REQUEST_ENTITY_ID: '${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID}'," >> src/config/env.ts && \
     echo "  API_BASE_URL: '${API_BASE_URL}'," >> src/config/env.ts && \
     echo "};" >> src/config/env.ts && \
     echo "export type Config = typeof config;" >> src/config/env.ts
