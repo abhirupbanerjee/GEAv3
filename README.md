@@ -44,7 +44,13 @@ nano .env  # Set passwords, domains, and API keys
 
 # 3. Initialize database
 docker-compose up -d feedback_db
+
+# Option A: Quick setup with production data + synthetic test data
+./database/99-consolidated-setup.sh --reload
+
+# Option B: Manual initialization (production - no test data)
 ./database/01-init-db.sh
+./database/scripts/11-load-master-data.sh
 
 # 4. Set up OAuth authentication
 ./database/04-nextauth-users.sh
@@ -109,11 +115,20 @@ gogeaportal/v3/
 │
 ├── 🗄️ Database
 │   └── database/
+│       ├── README.md                      # Complete DBA guide
+│       ├── 99-consolidated-setup.sh       # Main orchestrator (--reload, --verify, etc.)
+│       ├── config.sh                      # Shared configuration
 │       ├── 01-init-db.sh                  # Main database initialization
-│       ├── 02-load-seed-data.sh           # Test data generation (optional)
-│       ├── 03-verify-analytics.sh         # Data verification
 │       ├── 04-nextauth-users.sh           # Authentication tables setup
-│       └── 05-add-initial-admin.sh        # Add first admin user
+│       ├── 05-add-initial-admin.sh        # Add first admin user
+│       ├── scripts/                       # Database management scripts
+│       │   ├── 10-clear-all-data.sh       # Clear all data
+│       │   ├── 11-load-master-data.sh     # Load production master data
+│       │   ├── 12-generate-synthetic-data.sh  # Generate test data
+│       │   └── 13-verify-master-data.sh   # Comprehensive data verification
+│       ├── lib/                           # Shared functions
+│       ├── sql/                           # SQL templates
+│       └── master-data/                   # Production data files
 │
 ├── ⚙️ Configuration Files
 │   ├── .env.example                       # Environment variables template
@@ -269,7 +284,24 @@ docker-compose up -d
 
 ### Database Management
 
+**For complete database management guide, see:** [database/README.md](database/README.md)
+
 ```bash
+# Quick data reload (clear + reload production data + synthetic test data)
+./database/99-consolidated-setup.sh --reload
+
+# Verify data integrity
+./database/99-consolidated-setup.sh --verify
+
+# Load production master data only
+./database/scripts/11-load-master-data.sh
+
+# Generate synthetic test data
+./database/scripts/12-generate-synthetic-data.sh
+
+# Clear all data
+./database/scripts/10-clear-all-data.sh
+
 # Connect to database
 docker exec -it feedback_db psql -U feedback_user -d feedback
 
@@ -279,11 +311,8 @@ docker exec feedback_db pg_dump -U feedback_user feedback > backup_$(date +%Y%m%
 # Restore database
 docker exec -i feedback_db psql -U feedback_user feedback < backup_20251124.sql
 
-# View table counts
-docker exec -it feedback_db psql -U feedback_user -d feedback -c "
-SELECT 'service_feedback' AS table_name, COUNT(*) FROM service_feedback
-UNION ALL SELECT 'tickets', COUNT(*) FROM tickets
-UNION ALL SELECT 'users', COUNT(*) FROM users;"
+# View comprehensive data report
+./database/scripts/13-verify-master-data.sh
 ```
 
 ### User Management
@@ -540,8 +569,10 @@ Before going live:
 
 **Database:**
 - [ ] Database initialized (`01-init-db.sh`)
+- [ ] Master data loaded (`scripts/11-load-master-data.sh` or `99-consolidated-setup.sh --reload`)
 - [ ] Authentication tables created (`04-nextauth-users.sh`)
 - [ ] Admin user added (`05-add-initial-admin.sh`)
+- [ ] Data integrity verified (`scripts/13-verify-master-data.sh`)
 - [ ] Backup strategy configured
 
 **Testing:**
@@ -589,10 +620,11 @@ Before going live:
 4. Configure automated backups
 
 ### For Database Administrators
-1. Review complete schema: `docs/DATABASE_REFERENCE.md`
-2. Use provided SQL queries for management
-3. Schedule regular backups: `pg_dump` via cron
-4. Monitor disk usage and index performance
+1. Review complete DBA guide: `database/README.md`
+2. Review schema documentation: `docs/DATABASE_REFERENCE.md`
+3. Use consolidated setup script: `99-consolidated-setup.sh`
+4. Schedule regular backups: `pg_dump` via cron
+5. Monitor disk usage and index performance
 
 ---
 
@@ -603,7 +635,7 @@ Before going live:
 ---
 
 
-**Last Updated:** November 24, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
+**Last Updated:** November 25, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
 ** Note: ** This project has been co-developed with AI (Claude) for documentation, generation of synthetic data and test scenarios. 
 ---
 
@@ -631,7 +663,8 @@ Before going live:
 
 ### For System Administrators
 - [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - Deployment and infrastructure architecture
-- [Database Reference](docs/DATABASE_REFERENCE.md) - Database setup and maintenance
+- [Database Administrator Guide](database/README.md) - Complete database management commands
+- [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and setup
 - [Authentication Guide](docs/AUTHENTICATION.md) - User management and troubleshooting commands
 
 ### For Project Managers
