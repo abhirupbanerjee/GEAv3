@@ -41,7 +41,7 @@ VALUES (
     '$ADMIN_EMAIL',
     '$ADMIN_NAME',
     (SELECT role_id FROM user_roles WHERE role_code = 'admin_dta'),
-    'AGY-002',
+    'AGY-005',
     true,
     'google'
 );" > /dev/null 2>&1; then
@@ -51,7 +51,7 @@ VALUES (
     echo "  Possible causes:"
     echo "  - users table does not exist (run: ./database/scripts/04-nextauth-users.sh)"
     echo "  - user_roles table is empty (run: ./database/scripts/04-nextauth-users.sh)"
-    echo "  - entity 'AGY-002' does not exist (run: ./database/scripts/11-load-master-data.sh)"
+    echo "  - entity 'AGY-005' does not exist (run: ./database/scripts/11-load-master-data.sh)"
     exit 1
 fi
 

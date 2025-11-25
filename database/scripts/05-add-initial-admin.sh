@@ -1,10 +1,13 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL - ADD INITIAL ADMIN USER v2.0
+# GEA PORTAL - ADD INITIAL ADMIN USER v2.1
 # ============================================================================
 # Purpose: Add the first admin user for OAuth authentication
 # Date: November 25, 2025
+#
+# CHANGES IN v2.1:
+# - Corrected entity_id from AGY-002 to AGY-005 (Digital Transformation Agency)
 #
 # CHANGES IN v2.0:
 # - Removed `set -e` for better error control
@@ -101,7 +104,7 @@ UPDATE users
 SET
     role_id = (SELECT role_id FROM user_roles WHERE role_code = 'admin_dta'),
     is_active = true,
-    entity_id = 'AGY-002',
+    entity_id = 'AGY-005',
     updated_at = CURRENT_TIMESTAMP
 WHERE email = '$ADMIN_EMAIL';" > /dev/null 2>&1; then
             echo "  ✓ User updated to admin role"
@@ -127,7 +130,7 @@ VALUES (
     '$ADMIN_EMAIL',
     '$ADMIN_NAME',
     (SELECT role_id FROM user_roles WHERE role_code = 'admin_dta'),
-    'AGY-002',
+    'AGY-005',
     true,
     'google'
 );" > /dev/null 2>&1; then
@@ -137,7 +140,7 @@ VALUES (
     echo "  Possible causes:"
     echo "  - users table does not exist (run: ./database/scripts/04-nextauth-users.sh)"
     echo "  - user_roles table is empty (run: ./database/scripts/04-nextauth-users.sh)"
-    echo "  - entity 'AGY-002' does not exist (run: ./database/scripts/11-load-master-data.sh)"
+    echo "  - entity 'AGY-005' does not exist (run: ./database/scripts/11-load-master-data.sh)"
     exit 1
 fi
 
@@ -189,7 +192,7 @@ echo "📝 Admin User Details:"
 echo "  Email: $ADMIN_EMAIL"
 echo "  Name: $ADMIN_NAME"
 echo "  Role: DTA Administrator (admin_dta)"
-echo "  Entity: AGY-002"
+echo "  Entity: AGY-005 (Digital Transformation Agency)"
 echo "  Status: Active"
 echo ""
 echo "🔑 Next Steps:"
