@@ -27,12 +27,17 @@ load_entity_master() {
         return 1
     fi
 
-    if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/load-entities.sql > /dev/null 2>&1; then
+    # Execute SQL with error output visible
+    local output=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/load-entities.sql 2>&1)
+    local exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
         local count=$(get_row_count "entity_master")
         log_success "Entity master loaded ($count entities)"
         return 0
     else
         log_error "Failed to load entity master"
+        echo "$output" | head -20  # Show first 20 lines of error
         return 1
     fi
 }
@@ -56,12 +61,17 @@ load_service_master() {
         return 1
     fi
 
-    if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/load-services.sql > /dev/null 2>&1; then
+    # Execute SQL with error output visible
+    local output=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/load-services.sql 2>&1)
+    local exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
         local count=$(get_row_count "service_master")
         log_success "Service master loaded ($count services)"
         return 0
     else
         log_error "Failed to load service master"
+        echo "$output" | head -20  # Show first 20 lines of error
         return 1
     fi
 }
@@ -85,12 +95,17 @@ load_service_attachments() {
         return 1
     fi
 
-    if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/load-attachments.sql > /dev/null 2>&1; then
+    # Execute SQL with error output visible
+    local output=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -f /tmp/load-attachments.sql 2>&1)
+    local exit_code=$?
+
+    if [ $exit_code -eq 0 ]; then
         local count=$(get_row_count "service_attachments")
         log_success "Service attachments loaded ($count attachments)"
         return 0
     else
         log_error "Failed to load service attachments"
+        echo "$output" | head -20  # Show first 20 lines of error
         return 1
     fi
 }

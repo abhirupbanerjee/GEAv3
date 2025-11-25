@@ -30,9 +30,10 @@
 
 set -e
 
-DB_USER="feedback_user"
-DB_NAME="feedback"
-BACKUP_DIR="/tmp/gea_backups"
+# Source shared configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DB_ROOT="$(dirname "$SCRIPT_DIR")"
+source "$DB_ROOT/config.sh"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -83,7 +84,7 @@ echo "▶ Step 3: Running main schema initialization..."
 echo "  (This will take a moment...)"
 echo ""
 
-./database/01-init-db.sh
+"$SCRIPTS_DIR/01-init-db.sh"
 
 echo "  ✓ Main schema initialized"
 echo ""
@@ -94,7 +95,7 @@ echo ""
 echo "▶ Step 4: Setting up NextAuth user management..."
 echo ""
 
-./database/04-nextauth-users.sh
+"$SCRIPTS_DIR/04-nextauth-users.sh"
 
 echo "  ✓ NextAuth tables created"
 echo ""
@@ -105,7 +106,7 @@ echo ""
 echo "▶ Step 5: Adding service request comments/notes..."
 echo ""
 
-./database/07-service-request-enhancements.sh
+"$SCRIPTS_DIR/07-service-request-enhancements.sh"
 
 echo "  ✓ Service request enhancements added"
 echo ""
@@ -116,7 +117,7 @@ echo ""
 echo "▶ Step 6: Adding production-specific tables (SLA, activities, notes)..."
 echo ""
 
-./database/09-add-missing-production-tables.sh
+"$SCRIPTS_DIR/09-add-missing-production-tables.sh"
 
 echo "  ✓ Production tables added"
 echo ""

@@ -375,6 +375,63 @@ setup_fresh() {
     # Run fresh setup with error handling
     if "$SCRIPT_DIR/scripts/00-master-init.sh"; then
         log_success "Fresh database setup completed!"
+        echo ""
+
+        # ========================================================================
+        # LOAD PRODUCTION MASTER DATA
+        # ========================================================================
+        log_section "LOADING PRODUCTION MASTER DATA"
+        log_info "Loading entities, services, and attachments from CSV files..."
+        echo ""
+
+        if "$SCRIPTS_DIR/11-load-master-data.sh" --clear; then
+            log_success "Production master data loaded successfully!"
+            echo ""
+        else
+            log_error "Failed to load production master data"
+            log_warn "You can load it manually later with:"
+            echo "  ./database/scripts/11-load-master-data.sh"
+            echo ""
+        fi
+
+        # ========================================================================
+        # CREATE ADMIN USER
+        # ========================================================================
+        log_section "ADMIN USER SETUP"
+        log_info "At least one admin user is required to log in to the system"
+        echo ""
+
+        read -p "Do you want to create an admin user now? (yes/NO): " create_admin_choice
+        echo ""
+
+        if [[ $create_admin_choice =~ ^[Yy][Ee][Ss]$ ]]; then
+            # Prompt for admin details
+            read -p "Enter admin email: " admin_email
+            read -p "Enter admin name: " admin_name
+
+            if [ -n "$admin_email" ] && [ -n "$admin_name" ]; then
+                log_info "Creating admin user..."
+                if ADMIN_EMAIL="$admin_email" ADMIN_NAME="$admin_name" "$SCRIPTS_DIR/05-add-initial-admin.sh"; then
+                    log_success "Admin user created successfully!"
+                    log_info "Email: $admin_email"
+                    echo ""
+                else
+                    log_error "Failed to create admin user"
+                    log_warn "You can create it manually later with:"
+                    echo "  ADMIN_EMAIL=\"your@email.com\" ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
+                    echo ""
+                fi
+            else
+                log_warn "Admin email or name is empty. Skipping admin creation."
+                echo ""
+            fi
+        else
+            log_info "Skipping admin user creation"
+            log_warn "You can create an admin user later with:"
+            echo "  ADMIN_EMAIL=\"your@email.com\" ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
+            echo ""
+        fi
+
     else
         log_error "Fresh database setup FAILED!"
 

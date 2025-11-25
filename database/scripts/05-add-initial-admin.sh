@@ -1,19 +1,25 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL - ADD INITIAL ADMIN USER
+# GEA PORTAL - ADD INITIAL ADMIN USER v2.0
 # ============================================================================
 # Purpose: Add the first admin user for OAuth authentication
-# Date: November 22, 2025
+# Date: November 25, 2025
+#
+# CHANGES IN v2.0:
+# - Removed `set -e` for better error control
+# - Replaced HEREDOC with -c flag for explicit error detection
+# - Added error checking after database operations
+# - Fixed silent INSERT failures
 #
 # IMPORTANT: Update the EMAIL variable below with your actual admin email
 # This email must match the Google/Microsoft account you'll use to sign in
 # ============================================================================
 
-set -e
-
+# NOTE: Do NOT use `set -e` - we handle errors explicitly
 DB_USER="feedback_user"
 DB_NAME="feedback"
+DB_CONTAINER="feedback_db"
 
 # ============================================================================
 # CONFIGURE YOUR ADMIN EMAIL HERE
@@ -36,7 +42,7 @@ if [ "$ADMIN_EMAIL" = "gogdtaservices@gmail.com" ]; then
     echo "⚠️  WARNING: Using default email (gogdtaservices@gmail.com)"
     echo ""
     echo "To use a different email, run:"
-    echo "  ADMIN_EMAIL=your@email.com ADMIN_NAME=\"Your Name\" ./database/05-add-initial-admin.sh"
+    echo "  ADMIN_EMAIL=your@email.com ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
     echo ""
     read -p "Continue with default email? (y/N): " -n 1 -r
     echo
@@ -52,14 +58,28 @@ echo ""
 # ============================================================================
 # CHECK IF USER EXISTS
 # ============================================================================
-USER_EXISTS=$(docker exec feedback_db psql -U $DB_USER -d $DB_NAME -t -c \
-    "SELECT COUNT(*) FROM users WHERE email = '$ADMIN_EMAIL';" | tr -d ' ')
+USER_EXISTS=$(docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -t -c \
+    "SELECT COUNT(*) FROM users WHERE email = '$ADMIN_EMAIL';" 2>/dev/null | tr -d ' ')
+
+# Check if command succeeded
+if [ $? -ne 0 ]; then
+    echo "  ✗ Failed to check if user exists"
+    echo "  ERROR: Could not query users table"
+    exit 1
+fi
+
+if [ -z "$USER_EXISTS" ]; then
+    echo "  ✗ Failed to check user existence (empty result)"
+    exit 1
+fi
 
 if [ "$USER_EXISTS" -gt 0 ]; then
     echo "  ℹ️  User already exists with email: $ADMIN_EMAIL"
     echo ""
     echo "  Current user details:"
-    docker exec feedback_db psql -U $DB_USER -d $DB_NAME << EOF
+
+    # Show user details with -c flag
+    docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
 SELECT
     u.email,
     u.name,
@@ -69,22 +89,26 @@ SELECT
     u.created_at
 FROM users u
 JOIN user_roles r ON u.role_id = r.role_id
-WHERE u.email = '$ADMIN_EMAIL';
-EOF
+WHERE u.email = '$ADMIN_EMAIL';"
+
     echo ""
     read -p "Update this user to admin role? (y/N): " -n 1 -r
     echo
+
     if [[ $REPLY =~ ^[Yy]$ ]]; then
-        docker exec feedback_db psql -U $DB_USER -d $DB_NAME << EOF
+        if docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
 UPDATE users
 SET
     role_id = (SELECT role_id FROM user_roles WHERE role_code = 'admin_dta'),
     is_active = true,
     entity_id = 'AGY-002',
     updated_at = CURRENT_TIMESTAMP
-WHERE email = '$ADMIN_EMAIL';
-EOF
-        echo "  ✓ User updated to admin role"
+WHERE email = '$ADMIN_EMAIL';" > /dev/null 2>&1; then
+            echo "  ✓ User updated to admin role"
+        else
+            echo "  ✗ Failed to update user"
+            exit 1
+        fi
     else
         echo "  Skipped update"
     fi
@@ -96,7 +120,8 @@ fi
 # ============================================================================
 echo "  ▶ Creating new admin user..."
 
-docker exec feedback_db psql -U $DB_USER -d $DB_NAME << EOF
+# Use -c flag instead of HEREDOC for proper error detection
+if ! docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
 INSERT INTO users (email, name, role_id, entity_id, is_active, provider)
 VALUES (
     '$ADMIN_EMAIL',
@@ -105,8 +130,16 @@ VALUES (
     'AGY-002',
     true,
     'google'
-);
-EOF
+);" > /dev/null 2>&1; then
+    echo "  ✗ Failed to create admin user"
+    echo "  ERROR: INSERT command failed"
+    echo ""
+    echo "  Possible causes:"
+    echo "  - users table does not exist (run: ./database/scripts/04-nextauth-users.sh)"
+    echo "  - user_roles table is empty (run: ./database/scripts/04-nextauth-users.sh)"
+    echo "  - entity 'AGY-002' does not exist (run: ./database/scripts/11-load-master-data.sh)"
+    exit 1
+fi
 
 echo "  ✓ Admin user created successfully"
 echo ""
@@ -117,7 +150,8 @@ echo ""
 echo "▶ Verifying admin user:"
 echo ""
 
-docker exec feedback_db psql -U $DB_USER -d $DB_NAME << EOF
+# Verify using -c flag
+if ! docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
 SELECT
     u.id,
     u.email,
@@ -129,8 +163,22 @@ SELECT
     u.created_at
 FROM users u
 JOIN user_roles r ON u.role_id = r.role_id
-WHERE u.email = '$ADMIN_EMAIL';
-EOF
+WHERE u.email = '$ADMIN_EMAIL';"; then
+    echo ""
+    echo "  ✗ Failed to verify admin user (but user may still have been created)"
+    exit 1
+fi
+
+# Double-check that user was actually created
+USER_COUNT=$(docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -t -c \
+    "SELECT COUNT(*) FROM users WHERE email = '$ADMIN_EMAIL';" 2>/dev/null | tr -d ' ')
+
+if [ "$USER_COUNT" != "1" ]; then
+    echo ""
+    echo "  ✗ Admin user verification failed"
+    echo "  ERROR: User was not created in database"
+    exit 1
+fi
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -162,3 +210,6 @@ echo "     - Provider: Google OAuth"
 echo ""
 echo "✓ Ready for NextAuth implementation!"
 echo ""
+
+# Exit with success
+exit 0
