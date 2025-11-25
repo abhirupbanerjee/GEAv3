@@ -21,7 +21,10 @@
 # - Pre-production cleanup
 #
 # USAGE:
-#   ./database/10-clear-all-data.sh
+#   ./database/scripts/10-clear-all-data.sh [--yes]
+#
+# OPTIONS:
+#   --yes    Skip confirmation prompt (for automation)
 #
 # WARNING: This will DELETE ALL BUSINESS DATA. Cannot be undone without backup.
 # ============================================================================
@@ -30,6 +33,12 @@ set -e
 
 DB_USER="feedback_user"
 DB_NAME="feedback"
+
+# Parse arguments
+AUTO_CONFIRM=false
+if [ "$1" = "--yes" ]; then
+    AUTO_CONFIRM=true
+fi
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -73,10 +82,14 @@ ORDER BY table_name;
 EOF
 
 echo ""
-read -p "⚠️  Proceed with clearing all data? (yes/no): " CONFIRM
-if [ "$CONFIRM" != "yes" ]; then
-    echo "❌ Operation cancelled by user"
-    exit 0
+if [ "$AUTO_CONFIRM" = false ]; then
+    read -p "⚠️  Proceed with clearing all data? (yes/no): " CONFIRM
+    if [ "$CONFIRM" != "yes" ]; then
+        echo "❌ Operation cancelled by user"
+        exit 0
+    fi
+else
+    echo "⚠️  Auto-confirmed (--yes flag provided)"
 fi
 echo ""
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL - CONSOLIDATED DATABASE SETUP v8.0
+# GEA PORTAL - CONSOLIDATED DATABASE SETUP v9.0
 # ============================================================================
 # Purpose: Single consolidated script for all database setup needs
 # Features:
@@ -11,7 +11,8 @@
 #   - Automatic backup before changes
 #   - Comprehensive verification
 #   - Flexible data loading options
-# Date: November 24, 2025
+#   - NEW: Master data management (--load-master, --clear-data, --reload)
+# Date: November 25, 2025
 # ============================================================================
 
 set -e  # Exit on error
@@ -19,77 +20,21 @@ set -e  # Exit on error
 # ============================================================================
 # CONFIGURATION
 # ============================================================================
-DB_USER="${DB_USER:-feedback_user}"
-DB_NAME="${DB_NAME:-feedback}"
-DB_CONTAINER="${DB_CONTAINER:-feedback_db}"
-BACKUP_DIR="/tmp/gea_backups"
+
+# Source shared configuration
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+source "$SCRIPT_DIR/config.sh"
+source "$SCRIPT_DIR/lib/csv-loader.sh"
 
 # ============================================================================
-# HELPER FUNCTIONS
+# SCRIPT-SPECIFIC FUNCTIONS
 # ============================================================================
-
-log_info() {
-    echo -e "${BLUE}ℹ${NC} $1"
-}
-
-log_success() {
-    echo -e "${GREEN}✓${NC} $1"
-}
-
-log_warn() {
-    echo -e "${YELLOW}⚠${NC} $1"
-}
-
-log_error() {
-    echo -e "${RED}✗${NC} $1"
-}
-
-log_section() {
-    echo ""
-    echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC} $1"
-    echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════════╝${NC}"
-    echo ""
-}
-
-# Run SQL command
-run_sql() {
-    docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" "$@"
-}
-
-# Check if container is running
-check_container() {
-    if ! docker ps | grep -q "$DB_CONTAINER"; then
-        log_error "Container '$DB_CONTAINER' is not running!"
-        echo ""
-        echo "Available containers:"
-        docker ps
-        exit 1
-    fi
-}
-
-# Get table count
-get_table_count() {
-    run_sql -t -c "SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';" | tr -d ' '
-}
-
-# Get row count for a table
-get_row_count() {
-    local table=$1
-    run_sql -t -c "SELECT count(*) FROM $table;" 2>/dev/null | tr -d ' ' || echo "0"
-}
+# Note: Common helper functions are now in config.sh
 
 # Create backup
 create_backup() {
+    local mandatory="${1:-false}"  # First argument: is backup mandatory?
+
     log_info "Creating backup..."
     mkdir -p "$BACKUP_DIR"
     local backup_file="$BACKUP_DIR/feedback_backup_$(date +%Y%m%d_%H%M%S)_consolidated.sql"
@@ -97,9 +42,153 @@ create_backup() {
     if docker exec "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" > "$backup_file" 2>/dev/null; then
         log_success "Backup created: $backup_file ($(du -h "$backup_file" | cut -f1))"
         echo "$backup_file"
+        return 0
     else
-        log_warn "Backup creation had issues, but continuing..."
+        if [ "$mandatory" = "true" ]; then
+            log_error "Backup creation FAILED! Cannot proceed with destructive operation."
+            log_error "Fix the backup issue before running --fresh"
+            exit 1
+        else
+            log_warn "Backup creation had issues, but continuing..."
+            echo ""
+            return 1
+        fi
+    fi
+}
+
+# Restore from backup
+restore_backup() {
+    log_section "DATABASE RESTORE"
+
+    # Check if backup directory exists
+    if [ ! -d "$BACKUP_DIR" ]; then
+        log_error "Backup directory does not exist: $BACKUP_DIR"
+        exit 1
+    fi
+
+    # List available backups (most recent first)
+    local backups=($(ls -t "$BACKUP_DIR"/feedback_backup_*.sql 2>/dev/null))
+
+    if [ ${#backups[@]} -eq 0 ]; then
+        log_error "No backup files found in $BACKUP_DIR"
+        exit 1
+    fi
+
+    log_info "Available backups (most recent first):"
+    echo ""
+
+    # Display backups with numbers
+    local i=1
+    for backup in "${backups[@]}"; do
+        local filename=$(basename "$backup")
+        local filesize=$(du -h "$backup" | cut -f1)
+        local timestamp=$(echo "$filename" | grep -oP '\d{8}_\d{6}')
+        local formatted_date=$(date -d "${timestamp:0:8} ${timestamp:9:2}:${timestamp:11:2}:${timestamp:13:2}" "+%Y-%m-%d %H:%M:%S" 2>/dev/null || echo "$timestamp")
+
+        printf "  %2d) %s  [%s]  (%s)\n" "$i" "$formatted_date" "$filesize" "$filename"
+        i=$((i+1))
+    done
+
+    echo ""
+    echo -e "${YELLOW}⚠ WARNING: Restoring will OVERWRITE the current database!${NC}"
+    echo ""
+
+    # Get user selection
+    local selection
+    read -p "Select backup number to restore (1-${#backups[@]}) or 'q' to quit: " selection
+
+    if [ "$selection" = "q" ] || [ "$selection" = "Q" ]; then
+        log_info "Restore cancelled by user"
+        exit 0
+    fi
+
+    # Validate selection
+    if ! [[ "$selection" =~ ^[0-9]+$ ]] || [ "$selection" -lt 1 ] || [ "$selection" -gt ${#backups[@]} ]; then
+        log_error "Invalid selection. Must be between 1 and ${#backups[@]}"
+        exit 1
+    fi
+
+    # Get selected backup file
+    local selected_backup="${backups[$((selection-1))]}"
+    local selected_filename=$(basename "$selected_backup")
+
+    echo ""
+    log_info "Selected backup: $selected_filename"
+    echo ""
+
+    # Final confirmation
+    read -p "Are you sure you want to restore this backup? This will OVERWRITE current data! (yes/no): " confirm
+
+    if [ "$confirm" != "yes" ]; then
+        log_info "Restore cancelled by user"
+        exit 0
+    fi
+
+    echo ""
+    log_info "Creating safety backup of current database before restore..."
+
+    # Create a safety backup before restoring
+    local safety_backup="$BACKUP_DIR/feedback_backup_$(date +%Y%m%d_%H%M%S)_pre_restore.sql"
+    if docker exec "$DB_CONTAINER" pg_dump -U "$DB_USER" "$DB_NAME" > "$safety_backup" 2>/dev/null; then
+        log_success "Safety backup created: $safety_backup"
+    else
+        log_warn "Could not create safety backup"
+        read -p "Continue without safety backup? (yes/no): " continue_anyway
+        if [ "$continue_anyway" != "yes" ]; then
+            log_info "Restore cancelled"
+            exit 0
+        fi
+    fi
+
+    echo ""
+    log_info "Restoring database from backup..."
+
+    # Drop existing database and recreate
+    docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d postgres << EOF
+DROP DATABASE IF EXISTS $DB_NAME;
+CREATE DATABASE $DB_NAME OWNER $DB_USER;
+EOF
+
+    # Restore from backup file
+    if docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$selected_backup" > /dev/null 2>&1; then
+        log_success "Database restored successfully!"
         echo ""
+
+        # Show summary of restored data
+        log_info "Restored database summary:"
+        echo ""
+        run_sql -c "SELECT
+            (SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public') as tables,
+            (SELECT count(*) FROM users) as users,
+            (SELECT count(*) FROM ea_service_requests) as ea_requests,
+            (SELECT count(*) FROM grievance_tickets) as grievances,
+            (SELECT count(*) FROM service_feedback) as feedback;"
+
+        echo ""
+        log_success "Restore complete!"
+
+        if [ -f "$safety_backup" ]; then
+            echo ""
+            log_info "Your previous database was backed up to:"
+            echo "  $safety_backup"
+        fi
+    else
+        log_error "Failed to restore database!"
+        echo ""
+        log_info "Attempting to restore from safety backup..."
+
+        if [ -f "$safety_backup" ]; then
+            docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d postgres << EOF
+DROP DATABASE IF EXISTS $DB_NAME;
+CREATE DATABASE $DB_NAME OWNER $DB_USER;
+EOF
+            docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$safety_backup" > /dev/null 2>&1
+            log_success "Restored from safety backup"
+        else
+            log_error "No safety backup available!"
+        fi
+
+        exit 1
     fi
 }
 
@@ -107,36 +196,56 @@ create_backup() {
 show_usage() {
     cat << 'USAGE'
 ╔═══════════════════════════════════════════════════════════════════╗
-║  GEA PORTAL - CONSOLIDATED DATABASE SETUP v8.0                    ║
+║  GEA PORTAL - CONSOLIDATED DATABASE SETUP v9.0                    ║
 ╚═══════════════════════════════════════════════════════════════════╝
 
 USAGE:
   ./99-consolidated-setup.sh [OPTIONS]
 
-OPTIONS:
+SCHEMA & SETUP OPTIONS:
   --fresh             Complete fresh setup (drops and recreates)
   --update            Incremental update (safe, checks existing)
-  --verify            Verify current database state
+
+DATA MANAGEMENT OPTIONS (NEW):
+  --reload            Complete data reload (clear → load master → generate → verify)
+  --clear-data        Clear all master and transactional data
+  --load-master       Load production master data (entities, services, attachments)
+  --generate-data     Generate synthetic transactional data for testing
+
+LEGACY DATA OPTIONS:
   --load-basic        Load basic reference data only
   --load-test         Load general test data (50 items)
   --load-dta          Load DTA operational data (recommended)
-  --create-admin      Create admin user interactively
+
+BACKUP & VERIFICATION:
   --backup            Create backup only
+  --restore           Restore from a backup (interactive)
+  --verify            Verify current database state
   --compare           Compare with production state
+
+OTHER:
+  --create-admin      Create admin user interactively
   --help              Show this help message
 
-EXAMPLES:
-  # Fresh setup with DTA data
-  ./99-consolidated-setup.sh --fresh --load-dta --create-admin
+COMMON WORKFLOWS:
 
-  # Safe incremental update
-  ./99-consolidated-setup.sh --update --load-basic
+  🔄 First Time Setup:
+  ./99-consolidated-setup.sh --fresh --load-master --generate-data --create-admin
 
-  # Verify existing database
+  🔄 Quick Data Reload:
+  ./99-consolidated-setup.sh --reload
+
+  🔄 Update Schema Only:
+  ./99-consolidated-setup.sh --update
+
+  🔄 Load Fresh Master Data:
+  ./99-consolidated-setup.sh --clear-data --load-master
+
+  💾 Backup Before Changes:
+  ./99-consolidated-setup.sh --backup
+
+  ✅ Verify Database:
   ./99-consolidated-setup.sh --verify
-
-  # Create backup and compare
-  ./99-consolidated-setup.sh --backup --compare
 
 ENVIRONMENT VARIABLES:
   DB_USER             Database user (default: feedback_user)
@@ -238,6 +347,7 @@ setup_fresh() {
     log_section "FRESH DATABASE SETUP"
 
     local table_count=$(get_table_count)
+    local safety_backup=""
 
     if [ "$table_count" -gt 0 ]; then
         log_warn "Database has $table_count existing tables"
@@ -248,13 +358,59 @@ setup_fresh() {
             exit 0
         fi
 
-        create_backup
+        # Create mandatory backup before destructive operation
+        safety_backup=$(create_backup "true")  # "true" makes backup mandatory
+
+        if [ -z "$safety_backup" ]; then
+            log_error "Backup failed. Aborting fresh setup for safety."
+            exit 1
+        fi
+
+        log_info "Safety backup created successfully"
+        echo ""
     fi
 
     log_info "Running master initialization..."
-    "$SCRIPT_DIR/00-master-init.sh"
 
-    log_success "Fresh database setup completed!"
+    # Run fresh setup with error handling
+    if "$SCRIPT_DIR/scripts/00-master-init.sh"; then
+        log_success "Fresh database setup completed!"
+    else
+        log_error "Fresh database setup FAILED!"
+
+        # If we have a safety backup, offer to restore
+        if [ -n "$safety_backup" ] && [ -f "$safety_backup" ]; then
+            echo ""
+            log_warn "A safety backup was created before the operation"
+            read -p "Do you want to restore from safety backup? (yes/no): " restore_choice
+
+            if [ "$restore_choice" = "yes" ]; then
+                log_info "Restoring from safety backup: $(basename "$safety_backup")"
+
+                # Drop and recreate database
+                docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d postgres << EOF
+DROP DATABASE IF EXISTS $DB_NAME;
+CREATE DATABASE $DB_NAME OWNER $DB_USER;
+EOF
+
+                # Restore from safety backup
+                if docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$safety_backup" > /dev/null 2>&1; then
+                    log_success "Database restored from safety backup"
+                    log_info "Your database is back to the state before fresh setup was attempted"
+                else
+                    log_error "Failed to restore from safety backup!"
+                    log_error "Backup file location: $safety_backup"
+                fi
+            else
+                log_info "Database left in current state"
+                log_info "To restore manually, run:"
+                echo "  ./database/99-consolidated-setup.sh --restore"
+                echo "  Then select: $(basename "$safety_backup")"
+            fi
+        fi
+
+        exit 1
+    fi
 }
 
 setup_incremental() {
@@ -272,7 +428,7 @@ setup_incremental() {
     create_backup
 
     log_info "Running incremental updates..."
-    "$SCRIPT_DIR/00-master-init.sh"
+    "$SCRIPT_DIR/scripts/00-master-init.sh"
 
     log_success "Incremental update completed!"
 }
@@ -297,13 +453,13 @@ load_basic_data() {
 load_test_data() {
     log_section "LOADING TEST DATA"
 
-    if [ ! -f "$SCRIPT_DIR/02-load-seed-data.sh" ]; then
+    if [ ! -f "$SCRIPT_DIR/scripts/02-load-seed-data.sh" ]; then
         log_error "Test data script not found!"
         exit 1
     fi
 
     log_info "Loading general test data (50 feedback items, grievances, etc.)..."
-    "$SCRIPT_DIR/02-load-seed-data.sh"
+    "$SCRIPT_DIR/scripts/02-load-seed-data.sh"
 
     log_success "Test data loaded!"
 }
@@ -311,13 +467,13 @@ load_test_data() {
 load_dta_data() {
     log_section "LOADING DTA OPERATIONAL DATA"
 
-    if [ ! -f "$SCRIPT_DIR/06-load-dta-seed-data.sh" ]; then
+    if [ ! -f "$SCRIPT_DIR/scripts/06-load-dta-seed-data.sh" ]; then
         log_error "DTA data script not found!"
         exit 1
     fi
 
     log_info "Loading DTA operational data (staff users, EA requests, etc.)..."
-    "$SCRIPT_DIR/06-load-dta-seed-data.sh"
+    "$SCRIPT_DIR/scripts/06-load-dta-seed-data.sh"
 
     log_success "DTA operational data loaded!"
 }
@@ -325,20 +481,94 @@ load_dta_data() {
 create_admin_user() {
     log_section "CREATING ADMIN USER"
 
-    if [ ! -f "$SCRIPT_DIR/05-add-initial-admin.sh" ]; then
+    if [ ! -f "$SCRIPT_DIR/scripts/05-add-initial-admin.sh" ]; then
         log_error "Admin creation script not found!"
         exit 1
     fi
 
     if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_NAME" ]; then
         log_info "Using environment variables for admin user..."
-        ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_NAME="$ADMIN_NAME" "$SCRIPT_DIR/05-add-initial-admin.sh"
+        ADMIN_EMAIL="$ADMIN_EMAIL" ADMIN_NAME="$ADMIN_NAME" "$SCRIPT_DIR/scripts/05-add-initial-admin.sh"
     else
         log_info "Creating admin user interactively..."
-        "$SCRIPT_DIR/05-add-initial-admin.sh"
+        "$SCRIPT_DIR/scripts/05-add-initial-admin.sh"
     fi
 
     log_success "Admin user created/updated!"
+}
+
+# NEW: Clear all data (master + transactional)
+do_clear_data() {
+    log_section "CLEARING ALL DATA"
+
+    if [ ! -f "$SCRIPT_DIR/scripts/10-clear-all-data.sh" ]; then
+        log_error "Clear data script not found!"
+        exit 1
+    fi
+
+    log_info "Running data clearing script..."
+    "$SCRIPT_DIR/scripts/10-clear-all-data.sh" --yes
+
+    log_success "All data cleared!"
+}
+
+# NEW: Load master data
+do_load_master() {
+    log_section "LOADING MASTER DATA"
+
+    if [ ! -f "$SCRIPT_DIR/scripts/11-load-master-data.sh" ]; then
+        log_error "Load master data script not found!"
+        exit 1
+    fi
+
+    log_info "Loading master data (entities, services, attachments)..."
+    "$SCRIPT_DIR/scripts/11-load-master-data.sh" --clear
+
+    log_success "Master data loaded!"
+}
+
+# NEW: Generate synthetic data
+do_generate_data() {
+    log_section "GENERATING SYNTHETIC DATA"
+
+    if [ ! -f "$SCRIPT_DIR/scripts/12-generate-synthetic-data.sh" ]; then
+        log_error "Generate data script not found!"
+        exit 1
+    fi
+
+    log_info "Generating synthetic transactional data..."
+    "$SCRIPT_DIR/scripts/12-generate-synthetic-data.sh"
+
+    log_success "Synthetic data generated!"
+}
+
+# NEW: Complete reload workflow
+do_reload() {
+    log_section "COMPLETE DATA RELOAD WORKFLOW"
+
+    log_info "This will: clear data → load master → generate synthetic → verify"
+    echo ""
+
+    # Step 1: Clear data
+    do_clear_data
+    echo ""
+
+    # Step 2: Load master data
+    do_load_master
+    echo ""
+
+    # Step 3: Generate synthetic data
+    do_generate_data
+    echo ""
+
+    # Step 4: Verify
+    if [ -f "$SCRIPT_DIR/scripts/13-verify-master-data.sh" ]; then
+        log_info "Running verification..."
+        "$SCRIPT_DIR/scripts/13-verify-master-data.sh"
+    fi
+
+    log_section "✓ COMPLETE RELOAD FINISHED"
+    log_success "Database reloaded with fresh master and synthetic data!"
 }
 
 compare_with_current() {
@@ -389,6 +619,10 @@ main() {
     local do_create_admin=false
     local do_backup=false
     local do_compare=false
+    local do_reload=false
+    local do_clear_data=false
+    local do_load_master=false
+    local do_generate_data=false
 
     while [[ $# -gt 0 ]]; do
         case $1 in
@@ -402,6 +636,22 @@ main() {
                 ;;
             --verify)
                 do_verify=true
+                shift
+                ;;
+            --reload)
+                do_reload=true
+                shift
+                ;;
+            --clear-data)
+                do_clear_data=true
+                shift
+                ;;
+            --load-master)
+                do_load_master=true
+                shift
+                ;;
+            --generate-data)
+                do_generate_data=true
                 shift
                 ;;
             --load-basic)
@@ -422,6 +672,10 @@ main() {
                 ;;
             --backup)
                 do_backup=true
+                shift
+                ;;
+            --restore)
+                do_restore=true
                 shift
                 ;;
             --compare)
@@ -445,7 +699,7 @@ main() {
     clear
     echo ""
     echo -e "${CYAN}╔═══════════════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${CYAN}║${NC}  ${GREEN}GEA PORTAL - CONSOLIDATED DATABASE SETUP v8.0${NC}                 ${CYAN}║${NC}"
+    echo -e "${CYAN}║${NC}  ${GREEN}GEA PORTAL - CONSOLIDATED DATABASE SETUP v9.0${NC}                 ${CYAN}║${NC}"
     echo -e "${CYAN}╚═══════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 
@@ -459,12 +713,36 @@ main() {
         create_backup
     fi
 
+    if [ "$do_restore" = true ]; then
+        restore_backup
+        exit 0  # Exit after restore (don't run other operations)
+    fi
+
+    # NEW: Complete reload workflow (exit after completion)
+    if [ "$do_reload" = true ]; then
+        do_reload
+        exit 0
+    fi
+
     if [ "$do_fresh" = true ]; then
         setup_fresh
     fi
 
     if [ "$do_update" = true ]; then
         setup_incremental
+    fi
+
+    # NEW: Data management operations
+    if [ "$do_clear_data" = true ]; then
+        do_clear_data
+    fi
+
+    if [ "$do_load_master" = true ]; then
+        do_load_master
+    fi
+
+    if [ "$do_generate_data" = true ]; then
+        do_generate_data
     fi
 
     if [ "$do_load_basic" = true ]; then

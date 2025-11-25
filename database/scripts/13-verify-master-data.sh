@@ -51,7 +51,7 @@ echo "╚═══════════════════════�
 echo ""
 
 echo "✓ Master Data Tables:"
-docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME -c "
 SELECT
     'entity_master' AS table_name,
     COUNT(*) AS rows,
@@ -87,11 +87,11 @@ SELECT
 FROM service_attachments
 
 ORDER BY table_name;
-EOF
+"
 
 echo ""
 echo "✓ Transactional Data Tables:"
-docker exec feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME -c "
 SELECT
     'service_feedback' AS table_name,
     COUNT(*) AS rows,
@@ -107,7 +107,7 @@ UNION ALL SELECT 'ticket_activity', COUNT(*), CASE WHEN COUNT(*) > 0 THEN '✓' 
 UNION ALL SELECT 'ticket_attachments', COUNT(*), CASE WHEN COUNT(*) > 0 THEN '✓' ELSE '○ Empty' END FROM ticket_attachments
 
 ORDER BY table_name;
-EOF
+"
 
 echo ""
 
@@ -753,6 +753,188 @@ SELECT COUNT(*) AS total_tables
 FROM information_schema.tables
 WHERE table_schema = 'public';
 EOF
+
+echo ""
+echo "╔═══════════════════════════════════════════════════════════════════╗"
+echo "║              CONSOLIDATED VERIFICATION REPORT                     ║"
+echo "╚═══════════════════════════════════════════════════════════════════╝"
+echo ""
+
+# ============================================================================
+# COMPREHENSIVE SUMMARY REPORT
+# ============================================================================
+
+echo "📊 TABLE ROW COUNTS:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME -t -c "
+SELECT
+    '  ' || table_name || ': ' || rows || ' rows ' || status as summary
+FROM (
+    SELECT 'entity_master' AS table_name, COUNT(*) AS rows,
+        CASE WHEN COUNT(*) >= 50 THEN '✓' ELSE '⚠ LOW' END AS status
+    FROM entity_master
+    UNION ALL
+    SELECT 'service_master', COUNT(*),
+        CASE WHEN COUNT(*) >= 100 THEN '✓' ELSE '⚠ LOW' END
+    FROM service_master
+    UNION ALL
+    SELECT 'service_attachments', COUNT(*),
+        CASE WHEN COUNT(*) >= 50 THEN '✓' ELSE '⚠ LOW' END
+    FROM service_attachments
+    UNION ALL
+    SELECT 'service_feedback', COUNT(*),
+        CASE WHEN COUNT(*) > 0 THEN '✓' ELSE '○ Empty' END
+    FROM service_feedback
+    UNION ALL
+    SELECT 'grievance_tickets', COUNT(*),
+        CASE WHEN COUNT(*) > 0 THEN '✓' ELSE '○ Empty' END
+    FROM grievance_tickets
+    UNION ALL
+    SELECT 'tickets', COUNT(*),
+        CASE WHEN COUNT(*) > 0 THEN '✓' ELSE '○ Empty' END
+    FROM tickets
+) counts
+ORDER BY table_name;
+"
+
+echo ""
+echo "🔗 FOREIGN KEY INTEGRITY:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME -t -c "
+SELECT '  ' || relationship || ': ' || orphaned_records || ' orphans ' || status as summary
+FROM (
+    SELECT 'Services → Entities' AS relationship, COUNT(*) AS orphaned_records,
+        CASE WHEN COUNT(*) = 0 THEN '✓ PASS' ELSE '✗ FAIL' END AS status
+    FROM service_master s
+    LEFT JOIN entity_master e ON s.entity_id = e.unique_entity_id
+    WHERE e.unique_entity_id IS NULL
+    UNION ALL
+    SELECT 'Service Attachments → Services', COUNT(*),
+        CASE WHEN COUNT(*) = 0 THEN '✓ PASS' ELSE '✗ FAIL' END
+    FROM service_attachments sa
+    LEFT JOIN service_master s ON sa.service_id = s.service_id
+    WHERE s.service_id IS NULL
+    UNION ALL
+    SELECT 'Service Feedback → Services', COUNT(*),
+        CASE WHEN COUNT(*) = 0 THEN '✓ PASS' ELSE '✗ FAIL' END
+    FROM service_feedback sf
+    LEFT JOIN service_master s ON sf.service_id = s.service_id
+    WHERE s.service_id IS NULL
+) integrity;
+"
+
+echo ""
+echo "📈 DATA QUALITY METRICS:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME -t -c "
+SELECT
+    '  Entity types: ' ||
+    (SELECT COUNT(DISTINCT entity_type) FROM entity_master) ||
+    ' types, ' ||
+    (SELECT COUNT(*) FROM entity_master WHERE parent_entity_id IS NULL) ||
+    ' top-level entities'
+UNION ALL
+SELECT
+    '  Service categories: ' ||
+    COUNT(DISTINCT service_category) ||
+    ' categories, avg ' ||
+    ROUND(AVG(services_per_category), 1) ||
+    ' services/category'
+FROM (
+    SELECT service_category, COUNT(*) as services_per_category
+    FROM service_master
+    GROUP BY service_category
+) cat_stats
+UNION ALL
+SELECT
+    '  Attachment requirements: ' ||
+    COUNT(DISTINCT service_id) ||
+    ' services with docs, ' ||
+    COUNT(CASE WHEN is_mandatory THEN 1 END) ||
+    ' mandatory docs'
+FROM service_attachments
+UNION ALL
+SELECT
+    CASE
+        WHEN (SELECT COUNT(*) FROM service_feedback) = 0 THEN '  Feedback ratings: (no feedback data yet)'
+        ELSE (SELECT '  Feedback ratings: avg ' ||
+            ROUND(AVG(q5_overall_satisfaction), 2) ||
+            '/5, ' ||
+            COUNT(CASE WHEN q5_overall_satisfaction <= 2 THEN 1 END) ||
+            ' low ratings (<= 2)'
+            FROM service_feedback)
+    END
+UNION ALL
+SELECT
+    CASE
+        WHEN (SELECT COUNT(*) FROM grievance_tickets) = 0 THEN '  Grievance status: (no grievances yet)'
+        ELSE (SELECT '  Grievance status: ' ||
+            COUNT(*) || ' total'
+            FROM grievance_tickets gt)
+    END
+UNION ALL
+SELECT
+    CASE
+        WHEN (SELECT COUNT(*) FROM tickets) = 0 THEN '  Ticket status: (no tickets yet)'
+        ELSE (SELECT '  Ticket status: ' ||
+            COUNT(*) || ' total'
+            FROM tickets t)
+    END;
+"
+
+echo ""
+echo "✅ VALIDATION STATUS:"
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+docker exec feedback_db psql -U $DB_USER -d $DB_NAME -t -c "
+SELECT '  ' || check_category || ': ' || status as summary
+FROM (
+    SELECT 'Master Data Loaded' AS check_category,
+        CASE
+            WHEN (SELECT COUNT(*) FROM entity_master) >= 50
+             AND (SELECT COUNT(*) FROM service_master) >= 100
+             AND (SELECT COUNT(*) FROM service_attachments) >= 50
+            THEN '✓ PASS'
+            ELSE '✗ FAIL'
+        END AS status
+    UNION ALL
+    SELECT 'Foreign Keys Valid',
+        CASE
+            WHEN NOT EXISTS (
+                SELECT 1 FROM service_master s
+                LEFT JOIN entity_master e ON s.entity_id = e.unique_entity_id
+                WHERE e.unique_entity_id IS NULL
+            )
+            THEN '✓ PASS'
+            ELSE '✗ FAIL'
+        END
+    UNION ALL
+    SELECT 'Transactional Data Generated',
+        CASE
+            WHEN (SELECT COUNT(*) FROM service_feedback) > 0
+             AND (SELECT COUNT(*) FROM grievance_tickets) > 0
+             AND (SELECT COUNT(*) FROM tickets) > 0
+            THEN '✓ PASS'
+            ELSE '⚠ EMPTY'
+        END
+    UNION ALL
+    SELECT 'Activity Logs Complete',
+        CASE
+            WHEN (SELECT COUNT(DISTINCT ticket_id) FROM ticket_activity) = (SELECT COUNT(*) FROM tickets)
+            THEN '✓ PASS'
+            ELSE '⚠ INCOMPLETE'
+        END
+    UNION ALL
+    SELECT 'File Size Constraints',
+        CASE
+            WHEN NOT EXISTS (SELECT 1 FROM grievance_attachments WHERE file_size > 5242880)
+             AND NOT EXISTS (SELECT 1 FROM ea_service_request_attachments WHERE file_size > 5242880)
+             AND NOT EXISTS (SELECT 1 FROM ticket_attachments WHERE file_size > 5242880)
+            THEN '✓ PASS'
+            ELSE '✗ FAIL'
+        END
+) validation_results
+ORDER BY check_category;
+"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
