@@ -1,9 +1,9 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL - LOAD MASTER DATA v2.0
+# GEA PORTAL - LOAD MASTER DATA v2.1
 # ============================================================================
-# Version: 2.0
+# Version: 2.1
 # Purpose: Load cleaned master data from CSV files
 # Date: November 25, 2025
 #
@@ -12,8 +12,14 @@
 # ✓ Loads service_master (167 government services)
 # ✓ Loads service_attachments (177 document requirements)
 # ✓ Auto-detects and clears default sample data
+# ✓ Auto-migrates schema if contact columns missing (NEW in v2.1)
 # ✓ Validates foreign key relationships
 # ✓ Verifies data integrity after load
+#
+# CHANGES IN v2.1:
+# - Added automatic schema migration for contact_email and contact_phone columns
+# - Fixes Azure VM schema mismatch issue transparently
+# - No user interaction needed for schema updates
 #
 # USAGE:
 #   ./database/scripts/11-load-master-data.sh            # Interactive (prompts if data exists)
@@ -53,7 +59,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo ""
-log_section "GEA PORTAL - LOAD MASTER DATA v2.0"
+log_section "GEA PORTAL - LOAD MASTER DATA v2.1"
 echo "  Loading: Entities, Services, Service Attachments"
 echo ""
 
@@ -131,6 +137,50 @@ if [ "$ENTITY_COUNT" -gt 0 ] || [ "$SERVICE_COUNT" -gt 0 ]; then
     fi
 else
     log_success "Master tables are empty - ready to load"
+fi
+echo ""
+
+# ============================================================================
+# STEP 2.5: VERIFY ENTITY_MASTER SCHEMA (AUTO-MIGRATION)
+# ============================================================================
+echo "▶ Step 2.5: Verifying entity_master schema..."
+
+# Check if contact_email and contact_phone columns exist
+CONTACT_EMAIL_EXISTS=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_name='entity_master' AND column_name='contact_email';" 2>/dev/null | tr -d ' ')
+
+CONTACT_PHONE_EXISTS=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_name='entity_master' AND column_name='contact_phone';" 2>/dev/null | tr -d ' ')
+
+# Auto-migrate if columns are missing
+if [ "$CONTACT_EMAIL_EXISTS" = "0" ] || [ "$CONTACT_PHONE_EXISTS" = "0" ]; then
+    log_warn "Schema migration required: Adding contact columns to entity_master"
+
+    if [ "$CONTACT_EMAIL_EXISTS" = "0" ]; then
+        if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+            "ALTER TABLE entity_master ADD COLUMN IF NOT EXISTS contact_email VARCHAR(100);" > /dev/null 2>&1; then
+            log_success "Added contact_email column"
+        else
+            log_error "Failed to add contact_email column"
+            exit 1
+        fi
+    fi
+
+    if [ "$CONTACT_PHONE_EXISTS" = "0" ]; then
+        if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+            "ALTER TABLE entity_master ADD COLUMN IF NOT EXISTS contact_phone VARCHAR(20);" > /dev/null 2>&1; then
+            log_success "Added contact_phone column"
+        else
+            log_error "Failed to add contact_phone column"
+            exit 1
+        fi
+    fi
+
+    log_success "Schema migration completed successfully"
+else
+    log_success "Schema is up to date (contact columns present)"
 fi
 echo ""
 
