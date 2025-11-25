@@ -3,9 +3,13 @@
 # ============================================================================
 # GEA PORTAL - GENERATE SYNTHETIC TRANSACTIONAL DATA
 # ============================================================================
-# Version: 2.0
+# Version: 2.1
 # Purpose: Generate realistic test data based on loaded master data
 # Date: November 25, 2025
+#
+# CHANGES IN v2.1:
+# - Added automatic schema migration for service_feedback tracking columns
+# - Fixes Azure VM schema mismatch for submitted_ip_hash and submitted_user_agent
 #
 # WHAT THIS SCRIPT GENERATES:
 # ✓ 200 Service Feedback records (distributed across all services)
@@ -32,7 +36,7 @@ DB_ROOT="$(dirname "$SCRIPT_DIR")"
 source "$DB_ROOT/config.sh"
 
 echo ""
-log_section "GEA PORTAL - GENERATE SYNTHETIC DATA v2.0"
+log_section "GEA PORTAL - GENERATE SYNTHETIC DATA v2.1"
 echo "  Creating realistic test data for all modules"
 echo ""
 
@@ -55,6 +59,50 @@ fi
 
 log_success "Database connection successful"
 log_success "Master data loaded ($ENTITY_COUNT entities, $SERVICE_COUNT services)"
+echo ""
+
+# ============================================================================
+# STEP 1.5: VERIFY SERVICE_FEEDBACK SCHEMA (AUTO-MIGRATION)
+# ============================================================================
+echo "▶ Step 1.5: Verifying service_feedback schema..."
+
+# Check if submitted_ip_hash and submitted_user_agent columns exist
+SUBMITTED_IP_EXISTS=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_name='service_feedback' AND column_name='submitted_ip_hash';" 2>/dev/null | tr -d ' ')
+
+SUBMITTED_UA_EXISTS=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_name='service_feedback' AND column_name='submitted_user_agent';" 2>/dev/null | tr -d ' ')
+
+# Auto-migrate if columns are missing
+if [ "$SUBMITTED_IP_EXISTS" = "0" ] || [ "$SUBMITTED_UA_EXISTS" = "0" ]; then
+    log_warn "Schema migration required: Adding tracking columns to service_feedback"
+
+    if [ "$SUBMITTED_IP_EXISTS" = "0" ]; then
+        if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+            "ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS submitted_ip_hash VARCHAR(64);" > /dev/null 2>&1; then
+            log_success "Added submitted_ip_hash column"
+        else
+            log_error "Failed to add submitted_ip_hash column"
+            exit 1
+        fi
+    fi
+
+    if [ "$SUBMITTED_UA_EXISTS" = "0" ]; then
+        if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+            "ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS submitted_user_agent TEXT;" > /dev/null 2>&1; then
+            log_success "Added submitted_user_agent column"
+        else
+            log_error "Failed to add submitted_user_agent column"
+            exit 1
+        fi
+    fi
+
+    log_success "Schema migration completed successfully"
+else
+    log_success "Schema is up to date (tracking columns present)"
+fi
 echo ""
 
 # ============================================================================
