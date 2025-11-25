@@ -1,0 +1,67 @@
+unique_entity_id,entity_name,entity_type,parent_entity_id,contact_email,contact_phone,is_active
+MIN-001,"Ministry of Carriacou and Petite Martinique Affairs & Local Government",ministry,,,TRUE
+MIN-002,"Ministry of Blue Economy and Marine Affairs",ministry,,,TRUE
+MIN-003,"Ministry of Education",ministry,,,TRUE
+MIN-004,"Ministry of Youth and Sports",ministry,,,TRUE
+MIN-005,"Ministry of Finance",ministry,,,TRUE
+MIN-006,"Ministry of Foreign Affairs, Trade & Export Development",ministry,,,TRUE
+MIN-007,"Ministry of Health",ministry,,,TRUE
+MIN-008,"Ministry of Mental Health, Wellness & Religious Affairs",ministry,,,TRUE
+MIN-009,"Ministry of Infrastructure & Physical Development, Public Utilities, Civil Aviation & Transportation",ministry,,,TRUE
+MIN-010,"Office of the Attorney General and Ministry of Legal Affairs, Labour & Consumer Affairs",ministry,,,TRUE
+MIN-011,"Ministry of Tourism, Creative Economy and Culture",ministry,,,TRUE
+MIN-012,"Ministry of Social & Community Development, Housing and Gender Affairs",ministry,,,TRUE
+MIN-013,"Ministry of National Security, Home Affairs, Public Administration, Information and Disaster Management",ministry,,,TRUE
+MIN-014,"Ministry of Economic Development, Planning, Agriculture & Lands, Forestry & Marine Resources",ministry,,,TRUE
+MIN-015,"Ministry of Climate Resilience, the Environment and Renewable Energy",ministry,,,TRUE
+MIN-016,"Ministry of Mobilisation, Implementation and Transformation",ministry,,,TRUE
+AGY-001,"Office of the Governor-General",agency,,,TRUE
+AGY-002,"Royal Grenada Police Force",agency,MIN-013,,TRUE
+AGY-003,"Houses of Parliament",agency,MIN-016,,TRUE
+AGY-005,"Digital Transformation Agency",agency,MIN-016,,TRUE
+AGY-006,"Grenada Development Bank",agency,MIN-005,,TRUE
+AGY-007,"Grenada Investment Development Corporation (GIDC)",agency,MIN-014,,TRUE
+AGY-010,"Grenada Tourism Authority",agency,MIN-011,,TRUE
+AGY-011,"Grenada Airports Authority",agency,MIN-009,,TRUE
+AGY-012,"National Water and Sewerage Authority (NAWASA)",agency,MIN-009,,TRUE
+AGY-013,"Grenada Electricity Services Ltd. (GRENLEC)",agency,MIN-009,,TRUE
+AGY-014,"Grenada Bureau of Standards (GNBS)",regulator,MIN-014,,TRUE
+AGY-015,"National Telecommunications Regulatory Commission (NTRC)",regulator,MIN-013,,TRUE
+AGY-016,"Grenada Food and Nutrition Council",agency,MIN-014,,TRUE
+AGY-017,"Grenada Cultural Foundation",agency,MIN-011,,TRUE
+AGY-018,"Child Protection Authority",agency,MIN-012,,TRUE
+AGY-019,"Grenada Authority for the Regulation of Financial Institutions (GARFIN)",regulator,MIN-005,,TRUE
+AGY-020,"National Insurance Scheme (NIS)",agency,MIN-005,,TRUE
+DEP-001,"Cabinet Office",department,MIN-016,,TRUE
+DEP-002,"Accountant General’s Department",department,MIN-005,,TRUE
+DEP-003,"Department of Audit",department,MIN-005,,TRUE
+DEP-004,"Supreme Court Registry",department,MIN-010,,TRUE
+DEP-005,"Magistracy Department",department,MIN-010,,TRUE
+DEP-006,"Office of the Director of Public Prosecutions",department,MIN-010,,TRUE
+DEP-007,"Office of the Public Service Commission",department,MIN-016,,TRUE
+DEP-008,"Parliamentary Elections Office",department,MIN-016,,TRUE
+DEP-009,"Immigration Department",department,MIN-013,,TRUE
+DEP-010,"Inland Revenue Division",department,MIN-005,,TRUE
+DEP-011,"Customs & Excise Division",department,MIN-005,,TRUE
+DEP-012,"Department of Labour",department,MIN-010,,TRUE
+DEP-013,"Civil Registry & Deeds",department,MIN-007,,TRUE
+DEP-014,"Central Statistical Office (CSO)",department,MIN-005,,TRUE
+DEP-015,"Prison Services / His Majesty's Prison",department,MIN-013,,TRUE
+DEP-016,"Consumer Affairs Unit",department,MIN-010,,TRUE
+DEP-017,"Environmental Health Department",department,MIN-007,,TRUE
+DEP-018,"Vector Control Department",department,MIN-007,,TRUE
+DEP-019,"Community Health Services",department,MIN-007,,TRUE
+DEP-020,"Cultural Secretariat",department,MIN-011,,TRUE
+DEP-021,"Examinations Unit",department,MIN-003,,TRUE
+DEP-022,"Tertiary Education Unit",department,MIN-003,,TRUE
+DEP-023,"School Administration Division",department,MIN-003,,TRUE
+DEP-024,"Gender Affairs Division",department,MIN-012,,TRUE
+DEP-025,"Housing Division",department,MIN-012,,TRUE
+DEP-026,"Poverty Alleviation & Social Services Division",department,MIN-012,,TRUE
+DEP-027,"Lands & Survey Division",department,MIN-014,,TRUE
+DEP-028,"Fisheries Division",department,MIN-014,,TRUE
+DEP-029,"Forestry Department",department,MIN-014,,TRUE
+DEP-030,"Cooperatives Division",department,MIN-014,,TRUE
+DEP-031,"Building & Planning Authority (Physical Development)",department,MIN-009,,TRUE
+DEP-032,"Transport Division",department,MIN-009,,TRUE
+DEP-033,"Public Works Division",department,MIN-009,,TRUE

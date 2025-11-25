@@ -111,9 +111,20 @@ echo "  ✓ Service request enhancements added"
 echo ""
 
 # ============================================================================
-# STEP 6: FIX FILE EXTENSION COLUMN SIZE
+# STEP 6: ADD MISSING PRODUCTION TABLES
 # ============================================================================
-echo "▶ Step 6: Updating file_extension column size for multi-format support..."
+echo "▶ Step 6: Adding production-specific tables (SLA, activities, notes)..."
+echo ""
+
+./database/09-add-missing-production-tables.sh
+
+echo "  ✓ Production tables added"
+echo ""
+
+# ============================================================================
+# STEP 7: FIX FILE EXTENSION COLUMN SIZE
+# ============================================================================
+echo "▶ Step 7: Updating file_extension column size for multi-format support..."
 
 docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
 -- Expand file_extension column from VARCHAR(10) to VARCHAR(50)
@@ -152,7 +163,7 @@ echo "  ✓ File extensions updated to support multiple formats"
 echo ""
 
 # ============================================================================
-# STEP 7: VERIFICATION
+# STEP 8: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
 echo "║                    VERIFICATION SUMMARY                           ║"
@@ -180,6 +191,9 @@ WHERE table_schema = 'public'
     'ea_service_request_comments',
     'grievance_tickets',
     'tickets',
+    'ticket_activity',
+    'ticket_notes',
+    'sla_breaches',
     'users',
     'user_roles',
     'accounts',

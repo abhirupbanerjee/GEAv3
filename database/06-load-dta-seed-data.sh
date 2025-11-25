@@ -38,8 +38,8 @@ BEGIN
     -- Immigration Department Staff
     INSERT INTO users (email, name, role_id, entity_id, is_active, provider)
     VALUES (
-        'immigration.staff@gov.gd',
-        'Sarah Johnson',
+        'immigration.staff@example.com',
+        'Jane Doe',
         staff_role_id,
         'DEPT-001',
         true,
@@ -49,8 +49,8 @@ BEGIN
     -- Inland Revenue Division Staff
     INSERT INTO users (email, name, role_id, entity_id, is_active, provider)
     VALUES (
-        'revenue.staff@gov.gd',
-        'Michael Thompson',
+        'revenue.staff@example.com',
+        'John Smith',
         staff_role_id,
         'DEPT-002',
         true,
@@ -60,8 +60,8 @@ BEGIN
     -- Civil Registry Staff
     INSERT INTO users (email, name, role_id, entity_id, is_active, provider)
     VALUES (
-        'registry.staff@gov.gd',
-        'Patricia Williams',
+        'registry.staff@example.com',
+        'Alice Brown',
         staff_role_id,
         'DEPT-004',
         true,
@@ -71,8 +71,8 @@ BEGIN
     -- DTA Staff (secondary user for testing)
     INSERT INTO users (email, name, role_id, entity_id, is_active, provider)
     VALUES (
-        'dta.staff@gov.gd',
-        'Robert Martinez',
+        'dta.staff@example.com',
+        'Bob Wilson',
         staff_role_id,
         'AGY-002',
         true,
@@ -106,11 +106,11 @@ VALUES (
     'digital-roadmap',
     'DEPT-001',
     'submitted',
-    'Dr. James Patterson',
-    'j.patterson@immigration.gov.gd',
-    '+1-473-444-5000',
-    'Ministry of Immigration and Border Protection',
-    'We are seeking support to develop a comprehensive digital transformation roadmap for our passport services. Our current system is outdated and we need guidance on modernization priorities, technology stack selection, and phased implementation strategy. This aligns with our ministry''s 2026-2030 strategic plan.',
+    'Jane Doe',
+    'jane.doe@example.com',
+    '+1-555-0001',
+    'Sample Ministry A',
+    'Sample request for digital transformation roadmap consultation. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '2 days',
     'staff_mda'
 );
@@ -126,11 +126,11 @@ VALUES (
     'ea-framework-review',
     'DEPT-002',
     'process',
-    'Ms. Catherine Moore',
-    'c.moore@revenue.gov.gd',
-    '+1-473-444-6000',
-    'Ministry of Finance - Inland Revenue Division',
-    'Request for review of our proposed tax filing system architecture against the Grenada EA Framework. Specifically need assessment of our business process domain and application architecture layers. We have draft documentation ready for review.',
+    'John Smith',
+    'john.smith@example.com',
+    '+1-555-0002',
+    'Sample Ministry B',
+    'Sample request for EA framework review consultation. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '5 days',
     CURRENT_TIMESTAMP - INTERVAL '3 days',
     'staff_mda'
@@ -147,11 +147,11 @@ VALUES (
     'maturity-assessment',
     'DEPT-004',
     'submitted',
-    'Mr. Anthony Rodriguez',
-    'a.rodriguez@registry.gov.gd',
-    '+1-473-444-7000',
-    'Ministry of Legal Affairs - Civil Registry & Deeds',
-    'We are proposing a new online birth certificate issuance system and need an EA maturity assessment before approaching MoF for budget approval. This assessment will help us demonstrate readiness and compliance with government IT standards.',
+    'Alice Brown',
+    'alice.brown@example.com',
+    '+1-555-0003',
+    'Sample Ministry C',
+    'Sample request for maturity assessment consultation. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '1 day',
     'staff_mda'
 );
@@ -167,11 +167,11 @@ VALUES (
     'repository-access',
     'DEPT-001',
     'submitted',
-    'Ms. Grace Lee',
-    'g.lee@immigration.gov.gd',
-    '+1-473-444-5100',
-    'Ministry of Immigration and Border Protection',
-    'Our IT architects need access to the Grenada EA Repository to review reference architectures and best practices for identity management systems. Request for 12-month access for 3 technical staff members.',
+    'Bob Wilson',
+    'bob.wilson@example.com',
+    '+1-555-0004',
+    'Sample Ministry D',
+    'Sample request for repository access. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '3 days',
     'staff_mda'
 );
@@ -187,11 +187,11 @@ VALUES (
     'compliance-review',
     'DEPT-002',
     'resolved',
-    'Mr. William Brown',
-    'w.brown@revenue.gov.gd',
-    '+1-473-444-6100',
-    'Ministry of Finance - Inland Revenue Division',
-    'Completed compliance review request for our new e-filing platform. The solution architecture has been validated against GEA framework requirements. All documentation has been reviewed and approved by DTA architects.',
+    'Carol Davis',
+    'carol.davis@example.com',
+    '+1-555-0005',
+    'Sample Ministry E',
+    'Sample completed compliance review request. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '15 days',
     CURRENT_TIMESTAMP - INTERVAL '2 days',
     CURRENT_TIMESTAMP - INTERVAL '2 days',
@@ -209,11 +209,11 @@ VALUES (
     'portfolio-review',
     'AGY-002',
     'submitted',
-    'Ms. Diana Prince',
-    'd.prince@dta.gov.gd',
-    '+1-473-444-8000',
-    'Digital Transformation Agency',
-    'Internal DTA request: Comprehensive review of all government IT systems portfolio to identify consolidation opportunities, redundant systems, and cloud migration candidates. This is part of our annual strategic planning process.',
+    'David Miller',
+    'david.miller@example.com',
+    '+1-555-0006',
+    'Sample Agency F',
+    'Sample request for portfolio review. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '4 days',
     'admin_dta'
 );
@@ -229,11 +229,11 @@ VALUES (
     'training-capacity',
     'AGY-002',
     'process',
-    'Mr. Thomas King',
-    't.king@dta.gov.gd',
-    '+1-473-444-8100',
-    'Digital Transformation Agency',
-    'Coordinating EA training program for government IT staff across 5 ministries. Program will cover EA fundamentals, framework navigation, and compliance requirements. Target audience: 25 IT professionals from various MDAs. Duration: 3-day workshop.',
+    'Emily Johnson',
+    'emily.johnson@example.com',
+    '+1-555-0007',
+    'Sample Agency G',
+    'Sample request for training and capacity building. This is test data for demonstration purposes only.',
     CURRENT_TIMESTAMP - INTERVAL '7 days',
     CURRENT_TIMESTAMP - INTERVAL '1 day',
     'admin_dta'
@@ -254,18 +254,18 @@ docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
 -- Sample attachments for completed/processing requests
 -- Note: Using minimal sample data for file_content
 
--- Request 1: Digital Roadmap - Immigration
+-- Request 1: Digital Roadmap - Sample
 INSERT INTO ea_service_request_attachments (
     request_id, filename, mimetype, file_content, file_size, is_mandatory, uploaded_by
 )
 SELECT
     r.request_id,
-    'senior_leadership_approval_immigration.pdf',
+    'sample_approval_document.pdf',
     'application/pdf',
-    'SAMPLE PDF: Senior Leadership Approval Letter - Immigration Department'::bytea,
+    'SAMPLE PDF: Test approval document for demonstration purposes only'::bytea,
     245000,
     true,
-    'j.patterson@immigration.gov.gd'
+    'jane.doe@example.com'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-DR-001';
 
@@ -274,27 +274,27 @@ INSERT INTO ea_service_request_attachments (
 )
 SELECT
     r.request_id,
-    'digital_vision_document.docx',
+    'sample_vision_document.docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'SAMPLE DOCX: Immigration Digital Vision 2026-2030'::bytea,
+    'SAMPLE DOCX: Test vision document for demonstration purposes only'::bytea,
     156000,
     true,
-    'j.patterson@immigration.gov.gd'
+    'jane.doe@example.com'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-DR-001';
 
--- Request 2: EA Framework Review - Revenue (in progress)
+-- Request 2: EA Framework Review - Sample (in progress)
 INSERT INTO ea_service_request_attachments (
     request_id, filename, mimetype, file_content, file_size, is_mandatory, uploaded_by
 )
 SELECT
     r.request_id,
-    'senior_govt_approval_revenue.pdf',
+    'sample_approval_letter.pdf',
     'application/pdf',
-    'SAMPLE PDF: Ministry of Finance Approval - Tax System Review'::bytea,
+    'SAMPLE PDF: Test approval letter for demonstration purposes only'::bytea,
     198000,
     true,
-    'c.moore@revenue.gov.gd'
+    'john.smith@example.com'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-EA-001';
 
@@ -303,27 +303,27 @@ INSERT INTO ea_service_request_attachments (
 )
 SELECT
     r.request_id,
-    'tax_system_architecture_details.docx',
+    'sample_architecture_document.docx',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'SAMPLE DOCX: Proposed Tax Filing System Architecture'::bytea,
+    'SAMPLE DOCX: Test architecture document for demonstration purposes only'::bytea,
     234000,
     true,
-    'c.moore@revenue.gov.gd'
+    'john.smith@example.com'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-EA-001';
 
--- Request 3: Maturity Assessment - Civil Registry
+-- Request 3: Maturity Assessment - Sample
 INSERT INTO ea_service_request_attachments (
     request_id, filename, mimetype, file_content, file_size, is_mandatory, uploaded_by
 )
 SELECT
     r.request_id,
-    'mof_budget_request_letter.pdf',
+    'sample_budget_request.pdf',
     'application/pdf',
-    'SAMPLE PDF: Budget Request to Ministry of Finance - Birth Certificate System'::bytea,
+    'SAMPLE PDF: Test budget request for demonstration purposes only'::bytea,
     189000,
     true,
-    'a.rodriguez@registry.gov.gd'
+    'alice.brown@example.com'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-MA-001';
 
@@ -333,9 +333,9 @@ INSERT INTO ea_service_request_attachments (
 )
 SELECT
     r.request_id,
-    'final_compliance_report.pdf',
+    'sample_compliance_report.pdf',
     'application/pdf',
-    'SAMPLE PDF: EA Compliance Review Report - Tax E-Filing Platform - APPROVED'::bytea,
+    'SAMPLE PDF: Test compliance report for demonstration purposes only'::bytea,
     567000,
     true,
     'system'
@@ -361,12 +361,12 @@ INSERT INTO ea_service_request_comments (
 )
 SELECT
     r.request_id,
-    'Request received and assigned to Senior EA Architect for initial review.',
+    'Sample status change comment. This is test data for demonstration purposes only.',
     'status_change',
     true,
     'submitted',
     'process',
-    'admin@dta.gov.gd',
+    'admin@example.com',
     CURRENT_TIMESTAMP - INTERVAL '3 days'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-EA-001';
@@ -376,9 +376,9 @@ INSERT INTO ea_service_request_comments (
 )
 SELECT
     r.request_id,
-    'Initial review completed. Architecture documentation is comprehensive. Scheduling technical review meeting with Revenue IT team for next week.',
+    'Sample internal note comment. This is test data for demonstration purposes only.',
     'internal_note',
-    'admin@dta.gov.gd',
+    'admin@example.com',
     CURRENT_TIMESTAMP - INTERVAL '2 days'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-EA-001';
@@ -390,12 +390,12 @@ INSERT INTO ea_service_request_comments (
 )
 SELECT
     r.request_id,
-    'Compliance review completed successfully. All EA framework requirements met. Final report generated and shared with requesting ministry.',
+    'Sample completion comment. This is test data for demonstration purposes only.',
     'status_change',
     true,
     'process',
     'resolved',
-    'admin@dta.gov.gd',
+    'admin@example.com',
     CURRENT_TIMESTAMP - INTERVAL '2 days'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-CR-001';
@@ -407,12 +407,12 @@ INSERT INTO ea_service_request_comments (
 )
 SELECT
     r.request_id,
-    'Training program approved. Coordinating with HR departments across ministries to confirm participant availability.',
+    'Sample approval comment. This is test data for demonstration purposes only.',
     'status_change',
     true,
     'submitted',
     'process',
-    'admin@dta.gov.gd',
+    'admin@example.com',
     CURRENT_TIMESTAMP - INTERVAL '1 day'
 FROM ea_service_requests r
 WHERE r.request_number = 'REQ-2025-TC-001';
@@ -532,18 +532,20 @@ echo "╚═══════════════════════�
 echo ""
 echo "📊 Summary:"
 echo "  ✓ 4 staff users created (one per ministry/agency)"
-echo "  ✓ 7 realistic EA service requests"
-echo "  ✓ Sample attachments with realistic file types"
-echo "  ✓ Comments and status history"
+echo "  ✓ 7 sample EA service requests (test data only)"
+echo "  ✓ Sample attachments with test file types"
+echo "  ✓ Comments and status history (test data)"
 echo "  ✓ Multiple request statuses (submitted, processing, resolved)"
 echo ""
 echo "🎯 Ready for Testing:"
-echo "  1. Staff login: immigration.staff@gov.gd (DEPT-001)"
-echo "  2. Staff login: revenue.staff@gov.gd (DEPT-002)"
-echo "  3. Staff login: registry.staff@gov.gd (DEPT-004)"
-echo "  4. Staff login: dta.staff@gov.gd (AGY-002)"
+echo "  1. Staff login: immigration.staff@example.com (DEPT-001)"
+echo "  2. Staff login: revenue.staff@example.com (DEPT-002)"
+echo "  3. Staff login: registry.staff@example.com (DEPT-004)"
+echo "  4. Staff login: dta.staff@example.com (AGY-002)"
 echo ""
 echo "  All staff can access EA services and create new requests!"
 echo ""
-echo "✓ DTA operational data ready!"
+echo "ℹ️  NOTE: All data is fictitious for testing purposes only"
+echo ""
+echo "✓ DTA test data ready!"
 echo ""

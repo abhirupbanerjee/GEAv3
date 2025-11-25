@@ -1,0 +1,168 @@
+service_id,service_name,entity_id,service_category,service_description,is_active
+SVC-IMM-001,Passport Application,DEP-009,immigration_passports_and_travel,Apply for a new Grenadian passport.,TRUE
+SVC-IMM-002,Passport Renewal,DEP-009,immigration_passports_and_travel,Renew an existing Grenadian passport.,TRUE
+SVC-IMM-003,Visa / Entry Permit Application,DEP-009,immigration_passports_and_travel,Apply for or extend visas or entry permits to enter or remain in Grenada.,TRUE
+SVC-LBR-001,Work Permit Application,DEP-012,business_and_commerce,Apply for a work permit for foreign nationals to work in Grenada.,TRUE
+SVC-TAX-001,"Business Registration (Taxpayer Registration Number - TRN)",DEP-010,taxation_duties_and_revenue,Register a new business or taxpayer with the Inland Revenue Division to obtain a Taxpayer Registration Number.,TRUE
+SVC-TAX-002,Personal Income Tax Filing,DEP-010,taxation_duties_and_revenue,File personal income tax returns with the Inland Revenue Division.,TRUE
+SVC-TAX-003,Corporate Income Tax Filing,DEP-010,taxation_duties_and_revenue,File corporate income tax returns with the Inland Revenue Division.,TRUE
+SVC-TAX-004,Tax Clearance Certificate,DEP-010,taxation_duties_and_revenue,Apply for a tax clearance certificate for personal or business purposes.,TRUE
+SVC-TAX-005,E-User Registration (Tax e-Filing System),DEP-010,taxation_duties_and_revenue,Register as an e-user to access Grenada’s online tax e-filing system through the tax portal.,TRUE
+SVC-TAX-006,Property Tax Payment,DEP-010,taxation_duties_and_revenue,Pay annual property tax using Inland Revenue payment channels including the online tax portal.,TRUE
+SVC-TAX-007,Vehicle Licence Fee Payment,DEP-010,taxation_duties_and_revenue,Pay annual vehicle licence fees using Inland Revenue payment channels.,TRUE
+SVC-TAX-008,Value Added Tax (VAT) Registration,DEP-010,taxation_duties_and_revenue,Register for Value Added Tax (VAT) as required under Grenada’s tax laws.,TRUE
+SVC-TAX-009,VAT Return Filing,DEP-010,taxation_duties_and_revenue,Submit VAT returns and declarations to the Inland Revenue Division.,TRUE
+SVC-TAX-010,Withholding Tax Filing and Payment,DEP-010,taxation_duties_and_revenue,File and pay withholding tax withheld from relevant payments.,TRUE
+SVC-TAX-011,Annual Stamp Tax Filing,DEP-010,taxation_duties_and_revenue,File and pay Annual Stamp Tax where applicable.,TRUE
+SVC-TAX-012,Gaming Tax Filing,DEP-010,taxation_duties_and_revenue,File and pay Gaming Tax for licensed gaming activities.,TRUE
+SVC-TAX-013,Refreshment House Licence Application,DEP-010,taxation_duties_and_revenue,Apply for a Refreshment House Licence as required under tax and licensing regulations.,TRUE
+SVC-TAX-014,Property Transfer Tax Payment,DEP-010,taxation_duties_and_revenue,Pay Property Transfer Tax when property is transferred in Grenada.,TRUE
+SVC-CUS-001,Import Declaration (ASYCUDA),DEP-011,taxation_duties_and_revenue,Submit import declarations for goods entering Grenada via the ASYCUDA World customs system.,TRUE
+SVC-CUS-002,Export Declaration (ASYCUDA),DEP-011,taxation_duties_and_revenue,Submit export declarations for goods leaving Grenada via the ASYCUDA World customs system.,TRUE
+SVC-CUS-003,Electronic Customs Declaration Services (ASYCUDA World),DEP-011,taxation_duties_and_revenue,Use ASYCUDA World to submit and manage electronic customs declarations and supporting documents.,TRUE
+SVC-REG-001,Birth Certificate – Copy/Extract,DEP-013,identity_and_civil_registration,Request certified copies or extracts of birth records from the Civil Registry & Deeds.,TRUE
+SVC-REG-002,Marriage Certificate – Copy/Extract,DEP-013,identity_and_civil_registration,Request certified copies of marriage records from the Civil Registry & Deeds.,TRUE
+SVC-REG-003,Death Certificate – Copy/Extract,DEP-013,identity_and_civil_registration,Request certified copies of death records from the Civil Registry & Deeds.,TRUE
+SVC-REG-004,Marriage Licence Application,DEP-001,governance_elections_and_public_administration,Apply to the Cabinet Office for a marriage licence in Grenada.,TRUE
+SVC-POL-001,Police Certificate of Character,AGY-002,justice_legal_affairs_and_law_enforcement,Request a police certificate of character from the Royal Grenada Police Force for employment visas or other purposes.,TRUE
+SVC-WAT-001,New Water Connection,AGY-012,utilities_and_public_infrastructure,Apply to the National Water and Sewerage Authority (NAWASA) for a new domestic or commercial water connection.,TRUE
+SVC-WAT-002,Water Bill Payment,AGY-012,utilities_and_public_infrastructure,Pay water bills through NAWASA’s payment channels (office or approved agents and any available online options).,TRUE
+SVC-ELC-001,New Electricity Connection,AGY-013,utilities_and_public_infrastructure,Apply to Grenada Electricity Services Ltd (GRENLEC) for a new electricity supply connection.,TRUE
+SVC-ELC-002,Electricity Bill Payment,AGY-013,utilities_and_public_infrastructure,Pay electricity bills via GRENLEC customer service centres or online payment channels where available.,TRUE
+SVC-TRM-001,Tour Operator Licence,AGY-010,tourism_culture_and_events,Apply to the Grenada Tourism Authority for a tour operator licence to operate a tourism enterprise.,TRUE
+SVC-TRM-002,Hotel / Accommodation Registration,AGY-010,tourism_culture_and_events,Register hotels guest houses and other tourist accommodation facilities with the Grenada Tourism Authority.,TRUE
+SVC-TRM-003,Tourist Vendor Licence,AGY-010,tourism_culture_and_events,Apply for or renew a tourist vendor’s licence in accordance with tourism and beach vending regulations.,TRUE
+SVC-TRM-004,Tourist Guide Licence,AGY-010,tourism_culture_and_events,Apply for a Tourist Guide Licence using the official tourism enterprise application form.,TRUE
+SVC-TRM-005,Water Sports Services Licence,AGY-010,tourism_culture_and_events,Apply for a Water Sports Services Licence to operate water-based tourism enterprises.,TRUE
+SVC-AIR-001,Airport Concession / Lease Application,AGY-011,transport_vehicles_and_civil_aviation,Apply to the Grenada Airports Authority for commercial concessions or leases at airports.,TRUE
+SVC-NIS-001,NIS Employer Registration,AGY-020,social_protection_and_insurance,Register an employer with the National Insurance Scheme to remit NIS contributions on behalf of employees.,TRUE
+SVC-NIS-010,NIS Sickness Benefit Claim,AGY-020,social_protection_and_insurance,Submit a claim for Sickness Benefit under the National Insurance Scheme.,TRUE
+SVC-NIS-011,NIS Maternity Benefit Claim,AGY-020,social_protection_and_insurance,Submit a claim for Maternity Benefit under the National Insurance Scheme.,TRUE
+SVC-NIS-012,NIS Unemployment Benefit Claim,AGY-020,social_protection_and_insurance,Submit a claim for Unemployment Benefit under the National Insurance Scheme.,TRUE
+SVC-NIS-013,NIS Funeral Benefit Claim,AGY-020,social_protection_and_insurance,Submit a claim for Funeral Benefit to support funeral expenses.,TRUE
+SVC-NIS-014,NIS Age Benefit (Pension) Claim,AGY-020,social_protection_and_insurance,Submit a claim for Age/retirement benefit (pension) from the National Insurance Scheme.,TRUE
+SVC-NIS-015,NIS Survivors Benefit Claim,AGY-020,social_protection_and_insurance,Submit a claim for Survivors Benefit for eligible dependants of a deceased insured person.,TRUE
+SVC-NIS-016,NIS Employment Injury Benefit Claim,AGY-020,social_protection_and_insurance,Submit a claim for Employment Injury-related benefits under the National Insurance Scheme.,TRUE
+SVC-SOC-001,Support for Education Empowerment and Development (SEED) Cash Transfer,MIN-012,social_protection_cash_transfers,"Flagship social safety net programme providing regular cash transfers to the poorest and most vulnerable households in Grenada, Carriacou and Petite Martinique.",TRUE
+SVC-SOC-002,Public Assistance (legacy programmes merged into SEED),MIN-012,social_protection_cash_transfers,"Legacy cash assistance schemes such as Public Assistance and related funds that were consolidated under the unified SEED Programme.",TRUE
+SVC-SOC-003,Counselling and Psycho-social Support for Vulnerable Persons,MIN-012,social_protection_and_family_support,"Counselling and psycho-social support services for survivors of violence, vulnerable households and persons in need, coordinated by Social & Community Development units.",TRUE
+SVC-SOC-004,Social Protection Case Management / Beneficiary Management,MIN-012,social_protection_and_family_support,Intake assessment and case management service that registers and manages beneficiary households for social safety net programmes such as SEED.,TRUE
+SVC-SOC-005,Senior Citizens / Elderly Support Assistance,DEP-026,social_protection_and_family_support,Social protection and support services targeted at elderly and senior citizens including assistance with basic needs and referrals to relevant programmes.,TRUE
+SVC-SOC-006,Disability Support Grant Application,DEP-026,social_protection_and_family_support,Application for disability-related support or grants managed by Social Services for eligible persons with disabilities.,TRUE
+SVC-SOC-007,Emergency Household Assistance (Shocks and Disasters),DEP-026,social_protection_and_family_support,Provision of short-term emergency assistance to households affected by shocks disasters or sudden loss of income managed through social services casework.,TRUE
+SVC-SOC-008,Gender-Based Violence Response and Referral,DEP-024,social_protection_and_family_support,Support and referral services for survivors of gender-based violence including access to shelters counselling and justice-sector referrals.,TRUE
+SVC-HOU-001,China-aided Low-Income Housing Units – Application,DEP-025,housing_support,Application for allocation of China-aided low-income housing units through the Housing Division / Housing Authority processes.,TRUE
+SVC-HOU-002,Soft Loan / Affordable Housing Support,DEP-025,housing_support,Financial housing support such as soft loans or related facilities to assist eligible households to access adequate housing.,TRUE
+SVC-STA-001,Official Statistics / Data Request,DEP-014,statistics_and_data,Request official statistics and datasets from the Central Statistical Office via its data request channels.,TRUE
+SVC-STA-002,Statistical Publications & Reports Access,DEP-014,statistics_and_data,Access statistical publications bulletins survey reports and census outputs produced by the Central Statistical Office.,TRUE
+SVC-INV-001,Application for Fiscal / Investment Incentives,AGY-007,investment_and_business_support,Submit applications for fiscal and other investment incentives through the Grenada Investment Development Corporation (GIDC).,TRUE
+SVC-INV-002,Business Development Training Registration,AGY-007,investment_and_business_support,Register for entrepreneurship and business development training programmes offered or coordinated by GIDC.,TRUE
+SVC-INV-003,Conference / Meeting Room Booking,AGY-007,investment_and_business_support,Book conference and meeting rooms managed by GIDC for businesses development partners and government agencies.,TRUE
+SVC-STD-001,Standards Testing and Certification Application,AGY-014,standards_quality_and_safety,Apply to the Grenada Bureau of Standards for testing inspection and certification services that support national quality infrastructure.,TRUE
+SVC-STD-002,Laboratory Testing Services,AGY-014,standards_quality_and_safety,Access laboratory testing services (e.g. analytical chemistry and product quality) provided by the Grenada Bureau of Standards.,TRUE
+SVC-STD-003,Standards Purchase / Access,AGY-014,standards_quality_and_safety,Obtain national and international standards documents through the Grenada Bureau of Standards.,TRUE
+SVC-FIN-REG-001,Licence to Operate Money Services Business,AGY-019,financial_regulation_and_licensing,Apply to GARFIN for a licence to operate a Money Services Business under the Money Services Business Act.,TRUE
+SVC-FIN-REG-002,Insurance Company Licence / Registration,AGY-019,financial_regulation_and_licensing,Apply for authorisation and licensing of insurance companies and pension plans under the Insurance Act supervised by GARFIN.,TRUE
+SVC-FIN-REG-003,Non-Bank Financial Institution Registration,AGY-019,financial_regulation_and_licensing,Register and maintain licences for non-bank financial institutions (e.g. credit unions certain investment entities) supervised by GARFIN.,TRUE
+SVC-HE-ENV-001,Food Handler Training & Certification,DEP-017,public_health_and_sanitation,Attend food handler training and obtain certification and badges from the Environmental Health Department.,TRUE
+SVC-HE-ENV-002,Food Handler Badge Renewal,DEP-017,public_health_and_sanitation,Renew existing Food Handler badges issued by the Environmental Health Department.,TRUE
+SVC-HE-ENV-003,Food Establishment Certification (Fish Processing Facilities),DEP-017,public_health_and_sanitation,Seek certification for fish processing and similar food establishments through application inspection and licensing by the Environmental Health Department.,TRUE
+SVC-HE-ENV-004,Public Health Inspection Request (Premises or Events),DEP-017,public_health_and_sanitation,Request public health inspections of food premises public events or facilities to ensure compliance with environmental health standards.,TRUE
+SVC-HE-COM-001,Community Health Clinic Appointment / Registration,DEP-019,health_services_and_clinics,Register for or request appointments at community health clinics providing primary healthcare services.,TRUE
+SVC-HE-COM-002,Community Health Outreach / Screening Programme Registration,DEP-019,health_services_and_clinics,Register individuals or communities to participate in outreach clinics vaccination drives or screening programmes organised by Community Health Services.,TRUE
+SVC-YTH-001,Community Support Grant Fund – Youth Projects,MIN-004,youth_and_community_development,Apply for Community Support Grant funding for youth-led community projects under the Division of Youth / Ministry of Youth & Sports.,TRUE
+SVC-YTH-002,Youth Project Proposal Submission & Review,MIN-004,youth_and_community_development,Submit youth project proposals for review and possible support under Ministry of Youth & Sports programmes.,TRUE
+SVC-AGR-001,Agricultural Land Lease / Tenancy Application,DEP-027,land_administration_and_cadastre,Apply for the lease or tenancy of agricultural lands managed by the Lands & Survey Division / Ministry of Agriculture & Lands.,TRUE
+SVC-AGR-002,Survey Plan Request / Cadastral Survey,DEP-027,land_administration_and_cadastre,Request cadastral surveys and the preparation of survey plans for parcels of land through the Lands & Survey Division.,TRUE
+SVC-AGR-003,Fisheries Vessel Registration & Licensing,DEP-028,fisheries_and_marine_resources,Register fishing vessels and obtain appropriate licences and markings through the Fisheries Division.,TRUE
+SVC-AGR-004,Fisherfolk / Fishing Enterprise Registration,DEP-028,fisheries_and_marine_resources,Register fishers and fishing enterprises with the Fisheries Division for inclusion in official records and eligibility for support programmes.,TRUE
+SVC-AGR-005,Forest Produce / Tree Cutting Permit,DEP-029,forestry_and_wildlife_management,Apply for permits to cut trees or harvest forest produce in accordance with forestry laws and regulations.,TRUE
+SVC-AGR-006,Co-operative Society Registration,DEP-030,cooperatives_and_producer_organizations,Register new co-operative societies with the Cooperatives Division including submission of required documentation and by-laws.,TRUE
+SVC-AGR-007,Co-operative Society Annual Return Filing,DEP-030,cooperatives_and_producer_organizations,Submit annual returns and required reports for registered co-operative societies to the Cooperatives Division.,TRUE
+SVC-AGR-008,Farm Support / Agricultural Assistance Programme Application,MIN-014,agriculture_and_rural_development,Apply for farm support or agricultural assistance programmes offered under the Ministry of Agriculture & Lands Forestry & Marine Resources (e.g. inputs technical support).,TRUE
+SVC-EDU-001,Regional / External Examination Registration,DEP-021,education_exams_and_assessment,Register candidates for regional or external examinations administered through the Examinations Unit.,TRUE
+SVC-EDU-002,National Examination / Assessment Registration,DEP-021,education_exams_and_assessment,Register students for national examinations or assessments coordinated by the Examinations Unit.,TRUE
+SVC-EDU-003,Replacement of Examination Certificates / Statements,DEP-021,education_exams_and_assessment,Request replacement copies of examination certificates or statements of results through the Examinations Unit.,TRUE
+SVC-EDU-004,Government Scholarship Application,DEP-022,education_scholarships_and_financial_aid,Apply for government scholarships or bursaries for tertiary or overseas study coordinated by the Tertiary Education Unit.,TRUE
+SVC-EDU-005,Study Leave / Tuition Support Application,DEP-022,education_scholarships_and_financial_aid,Apply for study leave or tuition support schemes for eligible students or public officers via the Tertiary Education Unit.,TRUE
+SVC-EDU-006,School Transfer Request (Primary / Secondary),DEP-023,education_school_administration,Submit requests to transfer students between primary or secondary schools managed by the School Administration Division.,TRUE
+SVC-EDU-007,School Placement / Admission Request,DEP-023,education_school_administration,Request school placements or admission for students entering the school system or changing schools managed by the School Administration Division.,TRUE
+SVC-PLN-001,Building Permit Application,DEP-031,land_use_planning_and_building_control,Apply to the Building & Planning Authority for permission to construct extend or modify buildings.,TRUE
+SVC-PLN-002,Subdivision / Lot Development Approval,DEP-031,land_use_planning_and_building_control,Apply for approval to subdivide land or undertake lot development projects.,TRUE
+SVC-PLN-003,Change of Use / Planning Permission,DEP-031,land_use_planning_and_building_control,Apply for planning permission to change the use of land or buildings in accordance with planning regulations.,TRUE
+SVC-PLN-004,Certificate of Occupancy Request,DEP-031,land_use_planning_and_building_control,Request the issuance of a Certificate of Occupancy for buildings that have been completed and inspected.,TRUE
+SVC-EA-001,Public Sector Digital Roadmap Support,AGY-005,enterprise_architecture_services,Support ministries and agencies to develop a digital transformation roadmap aligned with Grenada’s Enterprise Architecture.,TRUE
+SVC-EA-002,Grenada EA Framework Review,AGY-005,enterprise_architecture_services,Request support to interpret update or extend the Grenada Enterprise Architecture framework for a specific initiative.,TRUE
+SVC-EA-003,Grenada EA Capability Maturity Assessment,AGY-005,enterprise_architecture_services,Request an assessment of EA capability and eGovernment maturity for an MDA especially where funding involves digital initiatives.,TRUE
+SVC-EA-004,Grenada EA Repository Access,AGY-005,enterprise_architecture_services,Request controlled access to Grenada’s national EA repository for authorised officers and partners.,TRUE
+SVC-EA-005,Grenada EA Compliance Review,AGY-005,enterprise_architecture_services,Request an EA compliance review of a solution or project against Grenada EA principles standards and guidelines.,TRUE
+SVC-EA-006,IT Portfolio Review,AGY-005,enterprise_architecture_services,Request a structured review of an MDA’s IT portfolio aligned with Grenada EA and digital transformation priorities.,TRUE
+SVC-EA-007,Grenada EA Training and Capacity Development,AGY-005,enterprise_architecture_services,Request training and capacity development on Grenada EA concepts framework and practical application.,TRUE
+SVC-DIG-001,EA Portal Support Request,AGY-005,digital_government_and_ict_services,Submit a technical or functional support request related to the Grenada EA Portal.,TRUE
+SVC-HE-COM-003,Immunization / Vaccination Services,DEP-019,health_services_and_clinics,Access immunization and vaccination services for children and adults at community health clinics.,TRUE
+SVC-HE-COM-004,Maternal and Child Health Services,DEP-019,health_services_and_clinics,Access antenatal postnatal and child health services provided by Community Health Centres.,TRUE
+SVC-HE-COM-005,Chronic Disease Clinic Registration,DEP-019,health_services_and_clinics,Register for scheduled chronic disease clinics (hypertension diabetes etc.) at community health facilities.,TRUE
+SVC-HE-COM-006,Home Visiting / District Nursing Services,DEP-019,health_services_and_clinics,Request district nursing or home-visiting services for eligible persons in the community health system.,TRUE
+SVC-HE-COM-007,Environmental Complaint Submission,DEP-017,public_health_and_sanitation,Submit complaints related to sanitation rodents nuisances or public health hazards for investigation.,TRUE
+SVC-HE-LIC-001,Application for Medical Facility Licence,DEP-017,health_facility_licensing,Apply for approval and licensing of private medical clinics dental clinics diagnostic labs or health facilities.,TRUE
+SVC-HE-LIC-002,Health Facility Renewal Inspection,DEP-017,health_facility_licensing,Request renewal inspection and certification for licensed private health facilities.,TRUE
+SVC-SOC-009,Child Protection Case Intake,DEP-024,social_protection_and_family_support,Submit requests or referrals for child protection assessments or support.,TRUE
+SVC-SOC-010,Foster Care Application,DEP-024,social_protection_and_family_support,Apply to become a foster parent under national foster care programmes.,TRUE
+SVC-SOC-011,Adoption Application Support Services,DEP-024,social_protection_and_family_support,Support services for families initiating adoption processes.,TRUE
+SVC-SOC-012,Home Help / Caregiver Support for Elderly,DEP-026,social_protection_and_family_support,Request caregiver or home-help support for elderly or disabled persons in vulnerable households.,TRUE
+SVC-SOC-013,Counselling Referral (Court / Police / Community),DEP-026,social_protection_and_family_support,Referral-based counselling for individuals or families referred through courts police or community services.,TRUE
+SVC-SOC-014,Disaster Response Household Assessment,DEP-026,disaster_support_and_assessment,Assessment of households affected by disasters for temporary support programmes.,TRUE
+SVC-PLN-005,Electrical Permit Application,DEP-031,land_use_planning_and_building_control,Apply for an electrical installation permit for new or existing buildings.,TRUE
+SVC-PLN-006,Plumbing / Sewer Connection Permit,DEP-031,land_use_planning_and_building_control,Apply for plumbing or sewer connection permits for construction projects.,TRUE
+SVC-PLN-007,Demolition Permit Application,DEP-031,land_use_planning_and_building_control,Apply for permission to demolish structures or buildings.,TRUE
+SVC-PLN-008,Development Control Consultation Request,DEP-031,land_use_planning_and_building_control,Request a consultation with the Planning Authority prior to submitting a development application.,TRUE
+SVC-SOC-015,Childcare Subsidy Application,DEP-026,social_protection_and_family_support,Apply for childcare subsidy assistance for low-income households.,TRUE
+SVC-SOC-016,Household Economic Assessment,DEP-026,social_protection_and_family_support,Request a socio-economic assessment for placement into social programmes.,TRUE
+SVC-SOC-017,Family Support Case Services,DEP-026,social_protection_and_family_support,Access casework services for families facing economic or social hardship.,TRUE
+SVC-SOC-018,Shelter Placement Request (Emergency),DEP-024,social_protection_and_family_support,Request emergency placement in women's or family shelters.,TRUE
+SVC-SOC-019,GBV Crisis Intervention Support,DEP-024,social_protection_and_family_support,Access crisis intervention for gender-based violence incidents.,TRUE
+SVC-SOC-020,Parenting Counseling Programme Registration,DEP-026,social_protection_and_family_support,Register for parenting and family strengthening programmes.,TRUE
+SVC-SOC-021,Youth-at-Risk Intervention Referral,DEP-026,social_protection_and_family_support,Referral service for youth at risk of violence or exploitation.,TRUE
+SVC-SOC-022,Public Guardian / Court-Mandated Social Reports,DEP-026,social_protection_and_family_support,Request preparation of social inquiries or reports mandated by courts.,TRUE
+SVC-HE-HOSP-001,Hospital Outpatient Registration,MIN-007,health_services_and_clinics,Register for outpatient visits at public hospitals.,TRUE
+SVC-HE-HOSP-002,Medical Records / Patient File Request,MIN-007,health_services_and_clinics,Request copies of medical records or imaging reports.,TRUE
+SVC-HE-HOSP-003,Laboratory Test Request (Outpatient Walk-in),MIN-007,health_services_and_clinics,Submit doctor’s referral for laboratory testing at public hospitals.,TRUE
+SVC-HE-HOSP-004,Radiology Appointment Booking,MIN-007,health_services_and_clinics,Request X-ray ultrasound or diagnostic imaging appointment.,TRUE
+SVC-HE-HOSP-005,Hospital Admission Request (Referral Based),MIN-007,health_services_and_clinics,Submit referral documents for hospital admission.,TRUE
+SVC-HE-HOSP-006,Ambulance Service Request,MIN-007,health_services_and_clinics,Request emergency ambulance support or non-emergency transport.,TRUE
+SVC-HE-HOSP-007,Surgery Scheduling (Referral Based),MIN-007,health_services_and_clinics,Submit referral for scheduling elective surgery at public hospitals.,TRUE
+SVC-HE-HOSP-008,Pharmacy Prescription Refill Request,MIN-007,health_services_and_clinics,Request medication refill for long-term therapy.,TRUE
+SVC-POL-002,Accident Report Request,AGY-002,justice_legal_affairs_and_law_enforcement,Request an official copy of a traffic accident report.,TRUE
+SVC-POL-003,Incident Report Request,AGY-002,justice_legal_affairs_and_law_enforcement,Request a police report for insurance legal or administrative purposes.,TRUE
+SVC-POL-004,Firearm Licence Application,AGY-002,justice_legal_affairs_and_law_enforcement,Apply for a firearm licence under national regulations.,TRUE
+SVC-POL-005,Firearm Licence Renewal,AGY-002,justice_legal_affairs_and_law_enforcement,Renew an existing firearm licence.,TRUE
+SVC-POL-006,Vehicle Accident Reconstruction Request,AGY-002,justice_legal_affairs_and_law_enforcement,Request specialized reconstruction services for major accidents.,TRUE
+SVC-POL-007,Noise / Nuisance Complaint Submission,AGY-002,justice_legal_affairs_and_law_enforcement,Submit complaints about noise public disturbance or nuisance.,TRUE
+SVC-POL-008,Missing Person Report,AGY-002,justice_legal_affairs_and_law_enforcement,File a missing person report at the nearest police station.,TRUE
+SVC-POL-009,Event Permission Request (Public Gathering),AGY-002,justice_legal_affairs_and_law_enforcement,Request permission to host public events/processions requiring police approval.,TRUE
+SVC-TRN-001,Driver’s Licence Application (New),DEP-032,transport_vehicles_and_civil_aviation,Apply for a new driver’s licence (theory + road test).,TRUE
+SVC-TRN-002,Driver’s Licence Renewal,DEP-032,transport_vehicles_and_civil_aviation,Renew a driver’s licence based on expiry cycle.,TRUE
+SVC-TRN-003,Learner’s Permit Application,DEP-032,transport_vehicles_and_civil_aviation,Apply for a learner’s permit to practice driving.,TRUE
+SVC-TRN-004,Vehicle Registration (New Vehicle),DEP-032,transport_vehicles_and_civil_aviation,Register new motor vehicles for use on public roads.,TRUE
+SVC-TRN-005,Vehicle Transfer of Ownership,DEP-032,transport_vehicles_and_civil_aviation,Transfer vehicle ownership between parties.,TRUE
+SVC-TRN-006,Vehicle Fitness / Roadworthiness Certificate,DEP-032,transport_vehicles_and_civil_aviation,Conduct vehicle inspection and issue roadworthiness certificate.,TRUE
+SVC-TRN-007,Duplicate Registration Certificate Request,DEP-032,transport_vehicles_and_civil_aviation,Request duplicate registration papers for vehicles.,TRUE
+SVC-TRN-008,Special Permit for Heavy Equipment,DEP-032,transport_vehicles_and_civil_aviation,Apply for a special permit for operating heavy equipment on public roads.,TRUE
+SVC-TRN-009,Route Operators Permit (Public Transport),DEP-032,transport_vehicles_and_civil_aviation,Apply for bus/taxi route permits.,TRUE
+SVC-LND-001,State Land Purchase Application,DEP-027,land_administration_and_cadastre,"Apply to purchase or lease designated state-owned lands through the Lands & Survey Division.",TRUE
+SVC-LND-002,Boundary Issue / Dispute Investigation Request,DEP-027,land_administration_and_cadastre,"Request investigation and review of land boundary issues or disputes.",TRUE
+SVC-LND-003,Topographic Survey Request,DEP-027,land_administration_and_cadastre,"Request official topographic or detailed land surveys from the Lands & Survey Division.",TRUE
+SVC-FSH-001,Aquaculture Licence Application,DEP-028,fisheries_and_marine_resources,"Apply for a licence to operate aquaculture ponds, tanks or related facilities.",TRUE
+SVC-FSH-002,Fishing Gear Licence Application,DEP-028,fisheries_and_marine_resources,"Apply for a licence for specified categories of fishing gear in marine or inland waters.",TRUE
+SVC-FOR-001,Hunting Licence Application,DEP-029,forestry_and_wildlife_management,"Apply for a hunting licence in accordance with forestry and wildlife regulations.",TRUE
+SVC-FOR-002,Wildlife Captivity Permit Application,DEP-029,forestry_and_wildlife_management,"Apply for permits to keep, display or rehabilitate wildlife in captivity.",TRUE
+SVC-FOR-003,Tree Planting / Reforestation Support Request,DEP-029,forestry_and_wildlife_management,"Request seedlings, technical advice or support for tree planting and reforestation activities.",TRUE
+SVC-COOP-001,Co-operative Audit Request,DEP-030,cooperatives_and_producer_organizations,"Request statutory or special audits for registered co-operative societies.",TRUE
+SVC-COOP-002,Co-operative By-law Amendment Submission,DEP-030,cooperatives_and_producer_organizations,"Submit proposed amendments to a co-operative society’s by-laws for review and approval.",TRUE
+SVC-EDU-008,Late Exam Registration,DEP-021,education_exams_and_assessment,"Submit a late registration request for approved national, regional or international examinations.",TRUE
+SVC-EDU-009,Special Exam Accommodation Request,DEP-021,education_exams_and_assessment,"Request special examination accommodations (e.g. extra time, separate room) for candidates with approved needs.",TRUE
+SVC-EDU-010,Bursary / Grant Application,DEP-022,education_scholarships_and_financial_aid,"Apply for bursaries or grants administered through the Tertiary Education Unit.",TRUE
+SVC-EDU-011,Transcript Request,DEP-022,education_scholarships_and_financial_aid,"Request official academic transcripts or statements of results from the Tertiary Education / related authority.",TRUE
+SVC-EDU-012,Teacher Registration,DEP-023,education_school_administration,"Register as a teacher within the national education system in accordance with Ministry of Education procedures.",TRUE
+SVC-EDU-013,Teacher Transfer Request,DEP-023,education_school_administration,"Request a transfer between schools or education districts for appointed teachers.",TRUE
+SVC-EDU-014,School Record Request,DEP-023,education_school_administration,"Request copies of official school records (e.g. attendance, performance summaries) for enrolled or former students.",TRUE

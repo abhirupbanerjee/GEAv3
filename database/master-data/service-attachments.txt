@@ -1,0 +1,250 @@
+service_id,filename,file_extension,is_mandatory,description,sort_order,is_active
+SVC-IMM-001,"Passport Application Form",pdf,TRUE,"Official form to apply for a new Grenadian passport.",1,TRUE
+SVC-IMM-001,"Birth Certificate (Copy)",pdf,TRUE,"Certified copy of applicant birth certificate.",2,TRUE
+SVC-IMM-001,"Supporting Documents for Citizenship Status",pdf,FALSE,"Supporting documents if required for citizenship proof.",3,TRUE
+
+SVC-IMM-002,"Passport Renewal Application Form",pdf,TRUE,"Form to renew an existing Grenadian passport.",1,TRUE
+SVC-IMM-002,"Existing Passport Booklet (Scan or Copy)",pdf,TRUE,"Copy of current/expired passport for renewal.",2,TRUE
+
+SVC-IMM-003,"Visa / Entry Permit Application Form",pdf,TRUE,"Official visa or entry permit application form.",1,TRUE
+SVC-IMM-003,"Support / Invitation Letter",pdf,FALSE,"Invitation letter or other supporting document where applicable.",2,TRUE
+
+SVC-LBR-001,"Work Permit Application Form",pdf,TRUE,"Application for work permit for non-nationals.",1,TRUE
+SVC-LBR-001,"Employment Contract or Offer Letter",pdf,TRUE,"Evidence of employment offer from local employer.",2,TRUE
+
+SVC-TAX-001,"Taxpayer Registration Application Form",pdf,TRUE,"Form to register as a taxpayer or business for TRN.",1,TRUE
+SVC-TAX-001,"Business Registration/Constitution Document",pdf,FALSE,"Evidence of business registration or incorporation where applicable.",2,TRUE
+
+SVC-TAX-004,"Tax Clearance Certificate Application Form",pdf,TRUE,"Form to request a tax clearance certificate.",1,TRUE
+
+SVC-TAX-005,"E-User Registration Form",pdf,TRUE,"Form to request access to the online tax e-filing portal.",1,TRUE
+
+SVC-TAX-008,"VAT Registration Application Form",pdf,TRUE,"Form to register for Value Added Tax (VAT).",1,TRUE
+
+SVC-TAX-009,"VAT Return Form (Template)",pdf,FALSE,"Standard template used to file VAT returns.",1,TRUE
+SVC-TAX-010,"Withholding Tax Return Form",pdf,FALSE,"Template used to file withholding tax returns.",1,TRUE
+SVC-TAX-011,"Annual Stamp Tax Return Form",pdf,FALSE,"Template used to file annual stamp tax.",1,TRUE
+SVC-TAX-012,"Gaming Tax Return Form",pdf,FALSE,"Template used to file gaming tax.",1,TRUE
+SVC-TAX-013,"Refreshment House Licence Application Form",pdf,TRUE,"Form for applying for a Refreshment House licence.",1,TRUE
+SVC-TAX-014,"Property Transfer Tax Declaration Form",pdf,TRUE,"Form used to declare and pay Property Transfer Tax.",1,TRUE
+
+SVC-CUS-001,"Import Declaration (CUSDEC) Form",pdf,TRUE,"Customs declaration form for imports (e.g., ASYCUDA CUSDEC).",1,TRUE
+SVC-CUS-002,"Export Declaration (CUSDEC) Form",pdf,TRUE,"Customs declaration form for exports.",1,TRUE
+
+SVC-REG-001,"Birth Certificate Application Form",pdf,TRUE,"Application to request certified copy of a birth certificate.",1,TRUE
+SVC-REG-002,"Marriage Certificate Application Form",pdf,TRUE,"Application to request certified copy of a marriage certificate.",1,TRUE
+SVC-REG-003,"Death Certificate Application Form",pdf,TRUE,"Application to request certified copy of a death certificate.",1,TRUE
+
+SVC-REG-004,"Marriage Licence Application Form",pdf,TRUE,"Form to apply for a marriage licence through the Cabinet Office.",1,TRUE
+
+SVC-POL-001,"Police Certificate of Character Application Form",pdf,TRUE,"Application form for a police certificate of character.",1,TRUE
+
+SVC-WAT-001,"New Water Connection Application Form",pdf,TRUE,"Form to request a new NAWASA water connection.",1,TRUE
+SVC-WAT-001,"Location Sketch / Site Plan",pdf,FALSE,"Sketch showing location of the property for connection.",2,TRUE
+
+SVC-ELC-001,"New Electricity Connection Application Form",pdf,TRUE,"Application for new GRENLEC electricity service.",1,TRUE
+SVC-ELC-001,"Electrical Installation Layout (Simple Plan)",pdf,FALSE,"Basic layout of proposed electrical installation.",2,TRUE
+
+SVC-TRM-001,"Tour Operator Licence Application Form",pdf,TRUE,"Official application form to operate as a tour operator.",1,TRUE
+SVC-TRM-002,"Accommodation Registration Form",pdf,TRUE,"Form to register hotels/guest houses/accommodation facilities.",1,TRUE
+SVC-TRM-003,"Tourist Vendor Licence Application Form",pdf,TRUE,"Form for applying for or renewing a tourist vendor licence.",1,TRUE
+SVC-TRM-004,"Tourist Guide Licence Application Form",pdf,TRUE,"Form to apply for a tourist guide licence.",1,TRUE
+SVC-TRM-005,"Water Sports Services Licence Application Form",pdf,TRUE,"Form to apply for a water sports service licence.",1,TRUE
+
+SVC-AIR-001,"Airport Concession / Lease Application Form",pdf,TRUE,"Form used to request commercial concession or lease at the airport.",1,TRUE
+
+SVC-NIS-001,"NIS Employer Registration Application Form",pdf,TRUE,"Form to register an employer with NIS.",1,TRUE
+
+SVC-NIS-010,"NIS Sickness Benefit Claim Form",pdf,TRUE,"Claim form for Sickness Benefit.",1,TRUE
+SVC-NIS-011,"NIS Maternity Benefit Claim Form",pdf,TRUE,"Claim form for Maternity Benefit.",1,TRUE
+SVC-NIS-012,"NIS Unemployment Benefit Claim Form",pdf,TRUE,"Claim form for Unemployment Benefit.",1,TRUE
+SVC-NIS-013,"NIS Funeral Benefit Claim Form",pdf,TRUE,"Claim form for Funeral Benefit.",1,TRUE
+SVC-NIS-014,"NIS Age Benefit (Pension) Claim Form",pdf,TRUE,"Claim form for Age/Retirement Pension Benefit.",1,TRUE
+SVC-NIS-015,"NIS Survivors Benefit Claim Form",pdf,TRUE,"Claim form for Survivors Benefit.",1,TRUE
+SVC-NIS-016,"NIS Employment Injury Benefit Claim Form",pdf,TRUE,"Claim form for Employment Injury Benefit.",1,TRUE
+
+SVC-SOC-001,"SEED Application Form",pdf,TRUE,"Application form for the SEED cash transfer programme.",1,TRUE
+SVC-SOC-004,"Social Protection Case Assessment Form",pdf,TRUE,"Standard case assessment form for social protection case management.",1,TRUE
+
+SVC-SOC-005,"Elderly Support Assessment Form",pdf,TRUE,"Assessment form for senior citizen assistance.",1,TRUE
+SVC-SOC-006,"Disability Support Assessment Form",pdf,TRUE,"Assessment form for disability-related support.",1,TRUE
+SVC-SOC-007,"Emergency Household Assistance Request Form",pdf,TRUE,"Form to request emergency assistance after shocks or disasters.",1,TRUE
+
+SVC-SOC-008,"Gender-Based Violence Support Referral Form",pdf,TRUE,"Form used to refer survivors of violence to support services.",1,TRUE
+
+SVC-HOU-001,"Low-Income Housing Application Form",pdf,TRUE,"Application form for China-aided low-income housing units.",1,TRUE
+SVC-HOU-002,"Housing Support / Soft Loan Application Form",pdf,TRUE,"Form to request soft loan or housing support options.",1,TRUE
+
+SVC-STA-001,"Official Statistics Data Request Form",pdf,TRUE,"Form used to request official statistics/data from CSO.",1,TRUE
+
+SVC-INV-001,"Investment Incentives Application Form",pdf,TRUE,"Form to apply for fiscal/investment incentives via GIDC.",1,TRUE
+SVC-INV-002,"Business Development Programme Registration Form",pdf,TRUE,"Registration form for business development training.",1,TRUE
+SVC-INV-003,"Conference / Meeting Room Booking Form",pdf,FALSE,"Standard form for booking GIDC conference/meeting facilities.",1,TRUE
+
+SVC-STD-001,"Standards, Testing and Certification Application Form",pdf,TRUE,"Form to request testing/inspection/certification services.",1,TRUE
+SVC-STD-002,"Laboratory Test Request Form",pdf,TRUE,"Form to request laboratory testing services.",1,TRUE
+SVC-STD-003,"Standards Purchase Order Form",pdf,FALSE,"Form to request purchase of standards documents.",1,TRUE
+
+SVC-FIN-REG-001,"Money Services Business Licence Application Form",pdf,TRUE,"Application form to be licensed as a Money Services Business.",1,TRUE
+SVC-FIN-REG-002,"Insurance Licence Application Form",pdf,TRUE,"Application for authorisation as an insurance company or pension plan.",1,TRUE
+SVC-FIN-REG-003,"Non-Bank Financial Institution Licence Application Form",pdf,TRUE,"Application form for non-bank financial institution registration.",1,TRUE
+
+SVC-HE-ENV-001,"Food Handler Training & Certification Application Form",pdf,TRUE,"Form to enroll in food handler training and certification.",1,TRUE
+SVC-HE-ENV-002,"Food Handler Badge Renewal Form",pdf,TRUE,"Form to renew food handler badges.",1,TRUE
+SVC-HE-ENV-003,"Food Establishment Certification Application (Fish Processing)",pdf,TRUE,"Form A – Application for certification of fish processing or similar establishments.",1,TRUE
+SVC-HE-ENV-004,"Public Health Inspection Request Form",pdf,TRUE,"Form to request public health inspection for premises/events.",1,TRUE
+SVC-HE-COM-001,"Clinic Registration/Appointment Form",pdf,TRUE,"Form used to register or schedule community health clinic visits.",1,TRUE
+SVC-HE-COM-002,"Outreach / Screening Programme Registration Form",pdf,FALSE,"Form used for community outreach or screening participation.",1,TRUE
+SVC-HE-COM-003,"Vaccination Card (Existing Record)",pdf,FALSE,"Previous immunization record if available.",1,TRUE
+SVC-HE-COM-004,"Prenatal / Medical Referral Slip",pdf,FALSE,"Referral issued for maternity services.",1,TRUE
+SVC-HE-COM-005,"Medical Referral or Clinic Card",pdf,FALSE,"Used to register for chronic disease clinic sessions.",1,TRUE
+SVC-HE-COM-006,"Community Health Referral Note",pdf,FALSE,"Referral from clinic for district nursing services.",1,TRUE
+SVC-HE-COM-007,"Environmental Complaint Details Form",pdf,TRUE,"Standard form capturing details of nuisance or environmental hazard.",1,TRUE
+SVC-HE-LIC-001,"Health Facility Licence Application Form",pdf,TRUE,"Official application form for medical facility licensing.",1,TRUE
+SVC-HE-LIC-001,"Floor Plan / Site Layout",pdf,TRUE,"Floor plan showing facility layout for inspection.",2,TRUE
+SVC-HE-LIC-001,"Facility Sanitation Plan",pdf,TRUE,"Required sanitation and waste-handling plan.",3,TRUE
+SVC-HE-LIC-001,"Medical Equipment List",pdf,TRUE,"List of equipment to be used by the clinic.",4,TRUE
+SVC-HE-LIC-002,"Facility Renewal Inspection Checklist",pdf,TRUE,"Checklist completed before renewal inspection.",1,TRUE
+
+SVC-YTH-001,"Community Support Grant Application Form",pdf,TRUE,"Application form for youth community support grants.",1,TRUE
+SVC-YTH-002,"Youth Project Proposal Template",pdf,TRUE,"Template used to submit youth project proposals.",1,TRUE
+
+SVC-AGR-001,"Agricultural Land Lease / Tenancy Application Form",pdf,TRUE,"Form to apply for agricultural land lease or tenancy.",1,TRUE
+SVC-AGR-002,"Survey / Boundary Assistance Request Form",pdf,TRUE,"Form to request boundary dispute or survey assistance.",1,TRUE
+SVC-AGR-003,"Fishing Vessel Registration & Licence Application",pdf,TRUE,"Form for registering and licensing fishing vessels.",1,TRUE
+SVC-AGR-004,"Fisherfolk / Fishing Enterprise Registration Form",pdf,TRUE,"Form to register fishers and fishing enterprises.",1,TRUE
+SVC-AGR-005,"Forest Produce / Tree Cutting Permit Application",pdf,TRUE,"Application form for permission to harvest forest produce.",1,TRUE
+SVC-AGR-006,"Co-operative Society Registration Application",pdf,TRUE,"Application form for registering a new co-operative society.",1,TRUE
+SVC-AGR-007,"Co-operative Society Annual Return Form",pdf,TRUE,"Standard annual return form for co-operative societies.",1,TRUE
+SVC-AGR-008,"Farm Support / Agricultural Assistance Application Form",pdf,TRUE,"Form to request farm support or assistance programmes.",1,TRUE
+
+SVC-LND-001,"State Land Purchase Application Form",pdf,TRUE,"Form required to apply for purchase of state land.",1,TRUE
+SVC-LND-001,"Parcel Sketch / Survey Extract",pdf,FALSE,"Map or description of the parcel.",2,TRUE
+SVC-LND-002,"Boundary Issue Report Form",pdf,TRUE,"Form to initiate a boundary dispute review process.",1,TRUE
+SVC-LND-003,"Topographic Survey Request Form",pdf,TRUE,"Application form for topographic survey.",1,TRUE
+
+SVC-FSH-001,"Aquaculture Licence Application Form",pdf,TRUE,"Required application to operate aquaculture facilities.",1,TRUE
+SVC-FSH-001,"Pond / Facility Layout Plan",pdf,TRUE,"Layout of aquaculture ponds or tanks.",2,TRUE
+SVC-FSH-002,"Fishing Gear Licence Application",pdf,TRUE,"Application for licensing specialized fishing gear.",1,TRUE
+
+SVC-FOR-001,"Hunting Licence Application Form",pdf,TRUE,"Standard hunting licence application.",1,TRUE
+SVC-FOR-001,"Certified Training Certificate (if applicable)",pdf,FALSE,"Proof of required training, if applicable.",2,TRUE
+SVC-FOR-002,"Wildlife Captivity Permit Form",pdf,TRUE,"Permit request to keep wildlife.",1,TRUE
+SVC-FOR-002,"Facility Inspection Report",pdf,FALSE,"Inspection note for wildlife facility.",2,TRUE
+SVC-FOR-003,"Tree Planting / Reforestation Support Request",pdf,FALSE,"Request for seedlings or reforestation support.",1,TRUE
+
+SVC-COOP-001,"Co-operative Audit Request Form",pdf,TRUE,"Form to request an official audit.",1,TRUE
+SVC-COOP-002,"By-law Amendment Submission Form",pdf,TRUE,"Form for submitting co-operative by-law amendments.",1,TRUE
+
+SVC-SOC-009,"Child Protection Referral Form",pdf,TRUE,"Form for initiating child protection case intake.",1,TRUE
+SVC-SOC-010,"Foster Care Application Form",pdf,TRUE,"Application to become a foster parent.",1,TRUE
+SVC-SOC-011,"Adoption Assistance Inquiry Form",pdf,TRUE,"Form used for adoption support inquiries.",1,TRUE
+SVC-SOC-012,"Home Help / Caregiver Request Form",pdf,TRUE,"Form to request assistance for elderly/disabled.",1,TRUE
+SVC-SOC-013,"Counselling Referral Form",pdf,TRUE,"Form used to initiate counselling referrals.",1,TRUE
+SVC-SOC-014,"Disaster Relief Needs Assessment Form",pdf,TRUE,"Assessment form for disaster-affected households.",1,TRUE
+
+SVC-PLN-001,"Building Permit Application Form",pdf,TRUE,"Application form for building permits.",1,TRUE
+SVC-PLN-001,"Building Plan / Architectural Drawings",pdf,TRUE,"Plans and drawings submitted for review.",2,TRUE
+SVC-PLN-002,"Subdivision / Lot Development Application Form",pdf,TRUE,"Application for subdivision or lot development approval.",1,TRUE
+SVC-PLN-003,"Change of Use / Planning Permission Application Form",pdf,TRUE,"Application form for change of use planning permission.",1,TRUE
+SVC-PLN-004,"Certificate of Occupancy Request Form",pdf,TRUE,"Form requesting Certificate of Occupancy after completion.",1,TRUE
+SVC-PLN-005,"Electrical Permit Application Form",pdf,TRUE,"Application required for electrical installation approval.",1,TRUE
+SVC-PLN-006,"Plumbing/Sewer Connection Permit Form",pdf,TRUE,"Required for plumbing or sewer connection permits.",1,TRUE
+SVC-PLN-007,"Demolition Permit Application Form",pdf,TRUE,"Form for requesting a demolition permit.",1,TRUE
+SVC-PLN-008,"Pre-Development Consultation Form",pdf,TRUE,"Form to request pre-submission consultation.",1,TRUE
+
+SVC-EDU-001,"External Examination Registration Form",pdf,TRUE,"Form used to register for regional/external exams.",1,TRUE
+SVC-EDU-002,"National Examination Registration Form",pdf,TRUE,"Form used to register for national exams.",1,TRUE
+SVC-EDU-003,"Certificate / Statement Replacement Request Form",pdf,TRUE,"Form to request replacement certificates/statements.",1,TRUE
+SVC-EDU-004,"Government Scholarship Application Form",pdf,TRUE,"Application for Government scholarship/bursary.",1,TRUE
+SVC-EDU-005,"Study Leave / Tuition Support Application Form",pdf,TRUE,"Form for study leave or tuition support requests.",1,TRUE
+SVC-EDU-006,"School Transfer Request Form",pdf,TRUE,"Request form for school transfer (primary/secondary).",1,TRUE
+SVC-EDU-007,"School Placement / Admission Request Form",pdf,TRUE,"Form for school placement/admission.",1,TRUE
+SVC-EDU-008,"Late Exam Registration Form",pdf,TRUE,"Form for late registration for regional/international exams.",1,TRUE
+SVC-EDU-009,"Special Exam Accommodation Request Form",pdf,TRUE,"Form to request special exam accommodations.",1,TRUE
+SVC-EDU-009,"Medical / Psychological Assessment Report",pdf,FALSE,"Assessment report where required for accommodations.",2,TRUE
+SVC-EDU-010,"Bursary / Grant Application Form",pdf,TRUE,"Form for local/regional bursary or grant applications.",1,TRUE
+SVC-EDU-011,"Transcript Request Form",pdf,TRUE,"Form used to request academic transcripts.",1,TRUE
+SVC-EDU-012,"Teacher Registration Form",pdf,TRUE,"Form for teacher registration/licensing.",1,TRUE
+SVC-EDU-013,"Teacher Transfer Request Form",pdf,TRUE,"Form for teacher transfer within the system.",1,TRUE
+SVC-EDU-014,"School Record Request Form",pdf,TRUE,"Form used to request replacement school records.",1,TRUE
+
+SVC-STA-002,"Publication / Report Order Form",pdf,FALSE,"Form used where printed publications are ordered.",1,TRUE
+
+SVC-EA-001,"EA Service Request Form – Digital Roadmap",pdf,FALSE,"Template to request public sector digital roadmap support.",1,TRUE
+SVC-EA-002,"EA Framework Review Request Form",pdf,FALSE,"Template for requesting EA framework review.",1,TRUE
+SVC-EA-003,"EA Capability Assessment Request Form",pdf,FALSE,"Form to request EA maturity assessment.",1,TRUE
+SVC-EA-004,"EA Repository Access Request Form",pdf,FALSE,"Form used to request access to the EA repository.",1,TRUE
+SVC-EA-005,"EA Compliance Review Submission Template",pdf,FALSE,"Template for submitting projects for EA compliance review.",1,TRUE
+SVC-EA-006,"IT Portfolio Review Request Form",pdf,FALSE,"Form for IT portfolio review requests.",1,TRUE
+SVC-EA-007,"EA Training / Capacity Development Request Form",pdf,FALSE,"Form to request EA training for staff.",1,TRUE
+
+SVC-DIG-001,"EA Portal Support Request Template",pdf,FALSE,"Suggested template used when submitting portal support requests.",1,TRUE
+
+SVC-SOC-015,"Childcare Subsidy Application Form",pdf,TRUE,"Application form for childcare subsidy assistance.",1,TRUE
+SVC-SOC-015,"Household Economic Assessment Form",pdf,TRUE,"Form used to assess household circumstances for subsidy eligibility.",2,TRUE
+
+SVC-SOC-016,"Household Economic Assessment Form",pdf,TRUE,"Standard socio-economic assessment form for social programme eligibility.",1,TRUE
+
+SVC-SOC-017,"Family Support Case Intake Form",pdf,TRUE,"Intake form used to open a family support case.",1,TRUE
+
+SVC-SOC-018,"Shelter Placement Request Form",pdf,TRUE,"Form used to request emergency shelter placement.",1,TRUE
+
+SVC-SOC-019,"GBV Crisis Intervention Request Form",pdf,TRUE,"Form used to document crisis intervention support for GBV cases.",1,TRUE
+
+SVC-SOC-020,"Parenting Programme Registration Form",pdf,TRUE,"Form to register for parenting and family strengthening programmes.",1,TRUE
+
+SVC-SOC-021,"Youth-at-Risk Referral Form",pdf,TRUE,"Referral form for youth-at-risk intervention services.",1,TRUE
+
+SVC-SOC-022,"Court / Public Guardian Social Report Request Form",pdf,TRUE,"Form used by authorised institutions to request social inquiry reports.",1,TRUE
+
+SVC-HE-HOSP-001,"Hospital Outpatient Registration Form",pdf,TRUE,"Form used to register outpatients at public hospitals.",1,TRUE
+
+SVC-HE-HOSP-002,"Medical Records Request Form",pdf,TRUE,"Form to request copies of medical records or reports.",1,TRUE
+
+SVC-HE-HOSP-003,"Laboratory Test Request Form",pdf,TRUE,"Form used to submit laboratory test requests based on referral.",1,TRUE
+
+SVC-HE-HOSP-004,"Radiology / Imaging Appointment Request Form",pdf,TRUE,"Form to request X-ray, ultrasound or other imaging appointments.",1,TRUE
+
+SVC-HE-HOSP-005,"Hospital Admission Referral Form",pdf,TRUE,"Referral form used to initiate hospital admission.",1,TRUE
+
+SVC-HE-HOSP-006,"Ambulance Service Request Form (Non-Emergency)",pdf,FALSE,"Form used for scheduled or non-emergency ambulance requests.",1,TRUE
+
+SVC-HE-HOSP-007,"Surgery Scheduling Referral Form",pdf,TRUE,"Form used by clinicians to schedule elective surgeries.",1,TRUE
+
+SVC-HE-HOSP-008,"Pharmacy Prescription Refill Request Form",pdf,TRUE,"Form used to request medication refills for ongoing treatment.",1,TRUE
+
+SVC-POL-002,"Accident Report Request Form",pdf,TRUE,"Form used to request a copy of a traffic accident report.",1,TRUE
+
+SVC-POL-003,"Incident Report Request Form",pdf,TRUE,"Form used to request a copy of an incident report.",1,TRUE
+
+SVC-POL-004,"Firearm Licence Application Form",pdf,TRUE,"Application form for an initial firearm licence.",1,TRUE
+
+SVC-POL-005,"Firearm Licence Renewal Application Form",pdf,TRUE,"Application form to renew an existing firearm licence.",1,TRUE
+
+SVC-POL-006,"Accident Reconstruction Service Request Form",pdf,TRUE,"Form used to request formal accident reconstruction services.",1,TRUE
+
+SVC-POL-007,"Noise / Nuisance Complaint Form",pdf,TRUE,"Form used to submit noise or nuisance complaints to the police.",1,TRUE
+
+SVC-POL-008,"Missing Person Report Form",pdf,TRUE,"Form used to file a missing person report.",1,TRUE
+
+SVC-POL-009,"Public Event / Procession Permission Request Form",pdf,TRUE,"Form to request permission for public events or processions.",1,TRUE
+
+SVC-TRN-001,"New Driver's Licence Application Form",pdf,TRUE,"Application form for a new driver's licence.",1,TRUE
+SVC-TRN-001,"Driving Test Booking Form",pdf,FALSE,"Form used to schedule driving tests.",2,TRUE
+
+SVC-TRN-002,"Driver's Licence Renewal Form",pdf,TRUE,"Form to renew a driver's licence upon expiry.",1,TRUE
+
+SVC-TRN-003,"Learner's Permit Application Form",pdf,TRUE,"Application form for a learner's driving permit.",1,TRUE
+
+SVC-TRN-004,"New Vehicle Registration Application Form",pdf,TRUE,"Application form for registration of new vehicles.",1,TRUE
+
+SVC-TRN-005,"Vehicle Transfer of Ownership Form",pdf,TRUE,"Form used to transfer vehicle ownership between parties.",1,TRUE
+
+SVC-TRN-006,"Vehicle Fitness / Roadworthiness Inspection Form",pdf,TRUE,"Form used to initiate vehicle inspection for roadworthiness.",1,TRUE
+
+SVC-TRN-007,"Duplicate Registration Certificate Request Form",pdf,TRUE,"Form to request a duplicate vehicle registration certificate.",1,TRUE
+
+SVC-TRN-008,"Heavy Equipment Special Permit Application Form",pdf,TRUE,"Application form for special permits for heavy equipment.",1,TRUE
+
+SVC-TRN-009,"Route Operators Permit Application Form",pdf,TRUE,"Form to apply for public transport route operator permits.",1,TRUE

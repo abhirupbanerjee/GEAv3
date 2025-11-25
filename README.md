@@ -602,28 +602,9 @@ Before going live:
 
 ---
 
-## 🚧 Roadmap
-
-### Completed ✅
-- Service feedback system with 5-point rating
-- Auto-grievance creation for low ratings
-- Native ticketing system with SLA tracking
-- Admin portal with comprehensive management
-- OAuth authentication (Google & Microsoft)
-- Role-based access control
-- User management system
-- AI bot inventory
-- Email notifications via SendGrid
-
-### In Progress 🔄
-- Staff portal (entity-specific access)
-- Advanced analytics dashboard with charts
-- Mobile-responsive improvements
-
----
 
 **Last Updated:** November 24, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
-
+** Note: ** This project has been co-developed with AI (Claude) for documentation, generation of synthetic data and test scenarios. 
 ---
 
 ## Quick Links

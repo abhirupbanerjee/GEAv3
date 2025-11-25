@@ -1,9 +1,9 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 3.0
+**Document Version:** 10.0
 **Last Updated:** November 24, 2025
-**Database:** PostgreSQL 15
-**Schema Version:** Phase 2c (v7.0 - Authentication & User Management)
+**Database:** PostgreSQL 15.15
+**Schema Version:** Production-Aligned v10.0 (30 tables)
 
 ---
 
@@ -27,14 +27,16 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 23 |
-| **Master Data Tables** | 7 |
-| **Transactional Tables** | 5 |
-| **Security/Audit Tables** | 3 |
-| **Authentication/User Tables** | 8 |
-| **Foreign Keys** | 26+ |
-| **Indexes** | 52+ |
-| **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
+| **Tables** | 30 |
+| **Reference Data** | 5 |
+| **Auth & Users** | 8 |
+| **Feedback & Grievances** | 4 |
+| **EA Service Requests** | 3 |
+| **Tickets & Activity** | 7 |
+| **Security** | 3 |
+| **Foreign Keys** | 30+ |
+| **Indexes** | 60+ |
+| **Extensions** | 1 (uuid-ossp) |
 
 ### Connection Details
 
@@ -1211,7 +1213,124 @@ EOF
 
 ---
 
-### 17. submission_rate_limit
+### 17. sla_breaches
+
+**Purpose:** SLA breach tracking for tickets
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| breach_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| ticket_id | INTEGER | FK → tickets(ticket_id), NOT NULL | Parent ticket |
+| breach_type | VARCHAR(20) | | response, resolution |
+| target_time | TIMESTAMP | NOT NULL | SLA target deadline |
+| actual_time | TIMESTAMP | | When action was actually completed |
+| breach_duration_hours | NUMERIC(10,2) | | Hours overdue (target - actual) |
+| is_active | BOOLEAN | DEFAULT TRUE | Currently breaching (for open tickets) |
+| detected_at | TIMESTAMP | DEFAULT NOW() | When breach was detected |
+
+**Indexes:**
+- PRIMARY KEY on `breach_id`
+- INDEX on `ticket_id` (FK)
+- INDEX on `breach_type`
+- INDEX on `is_active`
+
+**Breach Types:**
+- `response` - Failed to respond within SLA response time
+- `resolution` - Failed to resolve within SLA resolution time
+
+**Commands:**
+```bash
+# View active SLA breaches
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    t.ticket_number,
+    s.service_name,
+    sb.breach_type,
+    sb.target_time,
+    sb.breach_duration_hours,
+    p.priority_name
+FROM sla_breaches sb
+JOIN tickets t ON sb.ticket_id = t.ticket_id
+JOIN service_master s ON t.service_id = s.unique_service_id
+LEFT JOIN priority_levels p ON t.priority_id = p.priority_id
+WHERE sb.is_active = TRUE
+ORDER BY sb.breach_duration_hours DESC;
+EOF
+
+# SLA breach statistics by priority
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    p.priority_name,
+    sb.breach_type,
+    COUNT(*) AS total_breaches,
+    AVG(sb.breach_duration_hours)::NUMERIC(10,2) AS avg_breach_hours,
+    MAX(sb.breach_duration_hours)::NUMERIC(10,2) AS max_breach_hours
+FROM sla_breaches sb
+JOIN tickets t ON sb.ticket_id = t.ticket_id
+LEFT JOIN priority_levels p ON t.priority_id = p.priority_id
+GROUP BY p.priority_name, sb.breach_type
+ORDER BY p.priority_name, sb.breach_type;
+EOF
+```
+
+---
+
+### 18. ticket_notes
+
+**Purpose:** Internal notes for tickets (staff-only, private comments)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| note_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| ticket_id | INTEGER | FK → tickets(ticket_id), NOT NULL, ON DELETE CASCADE | Parent ticket |
+| note_text | TEXT | NOT NULL | Note content |
+| is_public | BOOLEAN | DEFAULT FALSE | Visible to ticket submitter |
+| created_by | VARCHAR(255) | DEFAULT 'system' | Staff username |
+| created_at | TIMESTAMP | DEFAULT NOW() | Note timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `note_id`
+- INDEX on `ticket_id` (FK)
+- INDEX on `created_at DESC`
+- INDEX on `created_by`
+
+**Key Features:**
+- `is_public = FALSE` - Internal staff notes (default)
+- `is_public = TRUE` - Visible to citizen checking ticket status
+- Used for collaboration between staff members
+- Audit trail of ticket discussions
+
+**Commands:**
+```bash
+# View notes for a ticket
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT
+    t.ticket_number,
+    tn.note_text,
+    tn.is_public,
+    tn.created_by,
+    tn.created_at
+FROM ticket_notes tn
+JOIN tickets t ON tn.ticket_id = t.ticket_id
+WHERE t.ticket_number = '202511-000123'
+ORDER BY tn.created_at DESC;
+EOF
+
+# Add internal note
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+INSERT INTO ticket_notes (ticket_id, note_text, is_public, created_by)
+VALUES (
+    (SELECT ticket_id FROM tickets WHERE ticket_number = '202511-000123'),
+    'Escalated to senior staff for review',
+    FALSE,
+    'admin@gov.gd'
+);
+EOF
+```
+
+---
+
+### 19. submission_rate_limit
 
 **Purpose:** Rate limiting enforcement
 
@@ -1230,7 +1349,7 @@ EOF
 
 ---
 
-### 16. submission_attempts
+### 20. submission_attempts
 
 **Purpose:** Audit trail for all submissions
 
@@ -1251,7 +1370,7 @@ EOF
 
 ---
 
-### 17. captcha_challenges
+### 21. captcha_challenges
 
 **Purpose:** CAPTCHA verification tracking
 
@@ -1272,7 +1391,7 @@ EOF
 
 ## Authentication & User Management Tables
 
-### 18. users
+### 22. users
 
 **Purpose:** Central authentication and user management table
 
@@ -1322,7 +1441,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 19. user_roles
+### 23. user_roles
 
 **Purpose:** Role definitions for access control
 
@@ -1344,7 +1463,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 20. accounts
+### 24. accounts
 
 **Purpose:** OAuth provider data (NextAuth managed)
 
@@ -1370,7 +1489,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 21. sessions
+### 25. sessions
 
 **Purpose:** Active user sessions (NextAuth managed)
 
@@ -1390,7 +1509,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 22. verification_tokens
+### 26. verification_tokens
 
 **Purpose:** Email verification tokens (NextAuth)
 
@@ -1404,7 +1523,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 23. entity_user_assignments
+### 27. entity_user_assignments
 
 **Purpose:** Many-to-many user-entity mapping (future use)
 
@@ -1420,7 +1539,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 24. user_permissions
+### 28. user_permissions
 
 **Purpose:** Fine-grained permissions (future use)
 
@@ -1436,7 +1555,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 25. user_audit_log
+### 29. user_audit_log
 
 **Purpose:** User activity audit trail
 
@@ -1530,6 +1649,8 @@ tickets (priority_id) → priority_levels (priority_id)
 tickets (status_id) → ticket_status (status_id)
 ticket_activity (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
 ticket_attachments (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
+ticket_notes (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
+sla_breaches (ticket_id) → tickets (ticket_id)
 ```
 
 ### Authentication Flow
@@ -1999,15 +2120,12 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 
 **1. uuid-ossp**
 - Provides UUID generation functions
-- Used for generating unique identifiers
+- Used for generating unique user identifiers in authentication system
+- Required for `users.id` UUID field with `DEFAULT gen_random_uuid()`
 
-**2. pgcrypto**
-- Cryptographic functions
-- Used for IP hashing (SHA256)
-
-**3. pg_trgm**
-- Trigram matching for fuzzy text search
-- Used in service search endpoint
+**Note:** Previously used extensions (pgcrypto, pg_trgm) have been removed in favor of application-level implementations:
+- IP hashing now done in application layer (SHA256)
+- Text search using PostgreSQL's built-in full-text search capabilities
 
 ### Character Encoding
 
@@ -2045,7 +2163,7 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 
 ---
 
-**Document Version:** 3.0
+**Document Version:** 10.0
 **Last Updated:** November 24, 2025
-**Schema Version:** Phase 2c (v7.0 - Authentication & User Management)
+**Schema Version:** Production-Aligned v10.0 (30 tables)
 **Maintained By:** GEA Portal Development Team
