@@ -16,6 +16,7 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import RequestStats from '@/components/admin/service-requests/RequestStats';
 import RequestTable from '@/components/admin/service-requests/RequestTable';
+import { config } from '@/config/env';
 
 interface ServiceRequest {
   request_id: number;
@@ -42,6 +43,12 @@ interface Stats {
   last_30_days: number;
 }
 
+interface Entity {
+  unique_entity_id: string;
+  entity_name: string;
+  is_active?: boolean;
+}
+
 export default function ServiceRequestsPage() {
   const { data: session, status } = useSession();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -51,12 +58,39 @@ export default function ServiceRequestsPage() {
     status: '',
     service_id: '',
     search: '',
+    entity_id: config.SERVICE_REQUEST_ENTITY_ID, // Default entity from config
   });
   const [pagination, setPagination] = useState({
     page: 1,
     total_pages: 0,
     total_count: 0,
   });
+
+  // Entity filter state (for admin users)
+  const [entities, setEntities] = useState<Entity[]>([]);
+  const [showEntityDropdown, setShowEntityDropdown] = useState(false);
+  const [entitySearchTerm, setEntitySearchTerm] = useState('');
+
+  const isAdmin = session?.user?.roleType === 'admin';
+  const isStaff = session?.user?.roleType === 'staff';
+
+  // Load entities for all users (admin and staff)
+  useEffect(() => {
+    if (isAdmin || isStaff) {
+      const loadEntities = async () => {
+        try {
+          const response = await fetch('/api/managedata/entities');
+          if (response.ok) {
+            const data = await response.json();
+            setEntities(data.filter((e: Entity) => e.is_active !== false));
+          }
+        } catch (error) {
+          console.error('Error loading entities:', error);
+        }
+      };
+      loadEntities();
+    }
+  }, [isAdmin, isStaff]);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -69,6 +103,8 @@ export default function ServiceRequestsPage() {
       if (filters.status) params.append('status', filters.status);
       if (filters.service_id) params.append('service_id', filters.service_id);
       if (filters.search) params.append('search', filters.search);
+      // Send entity_id for both admin and staff users
+      if (filters.entity_id) params.append('entity_id', filters.entity_id);
 
       const response = await fetch(`/api/admin/service-requests?${params}`);
       if (!response.ok) throw new Error('Failed to fetch requests');
@@ -89,7 +125,11 @@ export default function ServiceRequestsPage() {
 
   const fetchStats = useCallback(async () => {
     try {
-      const response = await fetch('/api/admin/service-requests/stats');
+      const params = new URLSearchParams();
+      // Send entity_id for both admin and staff users
+      if (filters.entity_id) params.append('entity_id', filters.entity_id);
+
+      const response = await fetch(`/api/admin/service-requests/stats?${params}`);
       if (!response.ok) throw new Error('Failed to fetch stats');
 
       const data = await response.json();
@@ -97,7 +137,7 @@ export default function ServiceRequestsPage() {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  }, []);
+  }, [filters.entity_id]);
 
   // Fetch requests when filters change
   useEffect(() => {
@@ -127,6 +167,19 @@ export default function ServiceRequestsPage() {
     );
   }
 
+  // Entity filter handlers
+  const handleEntityChange = (entityId: string) => {
+    setFilters(prev => ({ ...prev, entity_id: entityId }));
+    setPagination((prev) => ({ ...prev, page: 1 }));
+  };
+
+  const filteredEntities = entities.filter(e =>
+    e.entity_name.toLowerCase().includes(entitySearchTerm.toLowerCase()) ||
+    e.unique_entity_id.toLowerCase().includes(entitySearchTerm.toLowerCase())
+  );
+
+  const selectedEntity = entities.find(e => e.unique_entity_id === filters.entity_id);
+
   return (
     <div className="max-w-7xl mx-auto">
       {/* Header */}
@@ -152,6 +205,102 @@ export default function ServiceRequestsPage() {
           </Link>
         )}
       </div>
+
+      {/* Entity Filter (Admin and Staff) */}
+      {(isAdmin || isStaff) && (
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+          <div className="flex items-center gap-4">
+            <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
+              {isStaff ? 'Entity:' : 'Filter by Entity:'}
+            </label>
+            <div className="relative flex-1 max-w-md">
+              <button
+                onClick={() => setShowEntityDropdown(!showEntityDropdown)}
+                className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white flex items-center justify-between"
+              >
+                <span className="text-sm text-gray-900">
+                  {selectedEntity ? `${selectedEntity.entity_name} (${selectedEntity.unique_entity_id})` : 'Select Entity'}
+                </span>
+                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {/* Dropdown */}
+              {showEntityDropdown && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-96 overflow-hidden">
+                  {/* Search box */}
+                  <div className="p-2 border-b border-gray-200">
+                    <input
+                      type="text"
+                      placeholder="Search entities..."
+                      value={entitySearchTerm}
+                      onChange={(e) => setEntitySearchTerm(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-blue-500"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </div>
+
+                  {/* Options list */}
+                  <div className="overflow-y-auto max-h-64">
+                    {filteredEntities.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">No entities found</div>
+                    ) : (
+                      filteredEntities.map((entity) => (
+                        <button
+                          key={entity.unique_entity_id}
+                          onClick={() => {
+                            handleEntityChange(entity.unique_entity_id);
+                            setShowEntityDropdown(false);
+                            setEntitySearchTerm('');
+                          }}
+                          className={`w-full flex items-start gap-3 px-3 py-2 hover:bg-gray-50 text-left ${
+                            filters.entity_id === entity.unique_entity_id ? 'bg-blue-50' : ''
+                          }`}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-gray-900 truncate">
+                              {entity.entity_name}
+                            </div>
+                            <div className="text-xs text-gray-500 truncate">
+                              {entity.unique_entity_id}
+                            </div>
+                          </div>
+                          {filters.entity_id === entity.unique_entity_id && (
+                            <svg className="w-5 h-5 text-blue-600 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                            </svg>
+                          )}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Clear filter button (admin only) */}
+            {isAdmin && filters.entity_id && (
+              <button
+                onClick={() => {
+                  handleEntityChange('');
+                  setEntitySearchTerm('');
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-lg hover:bg-gray-50"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+
+          {/* Info note for staff users */}
+          {isStaff && (
+            <div className="mt-3 text-xs text-gray-600 bg-blue-50 border border-blue-200 rounded p-2">
+              <span className="font-medium">Note:</span> Your view is filtered to show requests for the selected entity. Server-side security ensures you only see authorized data.
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Statistics */}
       {stats && <RequestStats stats={stats} />}

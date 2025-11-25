@@ -86,7 +86,10 @@ services:
         # NEW - Phase 2b: Rate Limiting
         - EA_SERVICE_RATE_LIMIT=${EA_SERVICE_RATE_LIMIT}
         - GRIEVANCE_RATE_LIMIT=${GRIEVANCE_RATE_LIMIT}
-        
+
+        # Service Request Configuration
+        - NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID=${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID:-AGY-005}
+
         # NEW - Phase 2b: API Base URLs
         - API_BASE_URL=${API_BASE_URL}
         - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}

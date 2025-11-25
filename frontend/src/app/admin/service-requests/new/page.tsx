@@ -9,6 +9,7 @@ import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { config } from '@/config/env';
 
 interface Service {
   service_id: string;
@@ -307,7 +308,7 @@ export default function NewServiceRequestPage() {
               >
                 <option value="">Select a service...</option>
                 {services
-                  .filter((service) => service.entity_id === 'AGY-002')
+                  .filter((service) => service.entity_id === config.SERVICE_REQUEST_ENTITY_ID)
                   .map((service) => (
                     <option key={service.service_id} value={service.service_id}>
                       {service.service_name}

@@ -176,7 +176,7 @@ export async function POST(request: NextRequest) {
     // STEP 1: Validate Service and get entity_id (FK validation)
     // ============================================
     const service = await validateService(service_id);
-    const entity_id = service.entity_id || 'AGY-002'; // Fallback to default entity
+    const entity_id = service.entity_id || process.env.NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID || 'AGY-005'; // Fallback to configured entity
     console.log(`✓ Service validated: ${service.service_name}, Entity: ${entity_id}`);
     
     // ============================================

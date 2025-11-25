@@ -33,15 +33,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const searchParams = request.nextUrl.searchParams;
+    const entityIdParam = searchParams.get('entity_id');
+
     // Apply entity filter for staff users
     const entityFilter = getEntityFilter(session);
+    const finalEntityId = entityFilter || entityIdParam;
 
     const whereClauses: string[] = [];
     const queryParams: any[] = [];
+    let paramIndex = 1;
 
-    if (entityFilter) {
-      whereClauses.push('entity_id = $1');
-      queryParams.push(entityFilter);
+    if (finalEntityId) {
+      // Handle multiple entity IDs (comma-separated)
+      const entityIds = finalEntityId.split(',').filter(Boolean);
+      if (entityIds.length > 0) {
+        const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+        whereClauses.push(`entity_id IN (${placeholders})`);
+        queryParams.push(...entityIds);
+      }
     }
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';

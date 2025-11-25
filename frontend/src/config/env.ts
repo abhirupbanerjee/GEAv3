@@ -28,6 +28,9 @@ export const config = {
   EA_SERVICE_RATE_LIMIT: parseInt(process.env.EA_SERVICE_RATE_LIMIT || '5'),
   GRIEVANCE_RATE_LIMIT: parseInt(process.env.GRIEVANCE_RATE_LIMIT || '2'),
 
+  // Service Request Configuration
+  SERVICE_REQUEST_ENTITY_ID: process.env.NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID || 'AGY-005',
+
   // External URLs
   GOG_URL: process.env.NEXT_PUBLIC_GOG_URL || 'https://www.gov.gd',
   DMS_URL: process.env.NEXT_PUBLIC_DMS_URL || '#',

@@ -38,6 +38,7 @@ export async function GET(request: NextRequest) {
 
     // Apply entity filter for staff users
     const entityFilter = getEntityFilter(session);
+    const entityIdParam = searchParams.get('entity_id');
 
     // Parse filters
     const statusFilter = searchParams.get('status');
@@ -52,11 +53,16 @@ export async function GET(request: NextRequest) {
     const queryParams: any[] = [];
     let paramIndex = 1;
 
-    // Entity filter (mandatory for staff)
-    if (entityFilter) {
-      whereClauses.push(`r.entity_id = $${paramIndex}`);
-      queryParams.push(entityFilter);
-      paramIndex++;
+    // Entity filter (mandatory for staff, optional for admin)
+    const finalEntityId = entityFilter || entityIdParam;
+    if (finalEntityId) {
+      // Handle multiple entity IDs (comma-separated)
+      const entityIds = finalEntityId.split(',').filter(Boolean);
+      if (entityIds.length > 0) {
+        const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+        whereClauses.push(`r.entity_id IN (${placeholders})`);
+        queryParams.push(...entityIds);
+      }
     }
 
     // Status filter
