@@ -3,9 +3,12 @@
 # ============================================================================
 # GEA PORTAL - GENERATE SYNTHETIC TRANSACTIONAL DATA
 # ============================================================================
-# Version: 2.1
+# Version: 2.2
 # Purpose: Generate realistic test data based on loaded master data
 # Date: November 25, 2025
+#
+# CHANGES IN v2.2:
+# - Added automatic schema migration for created_at and updated_at timestamp columns
 #
 # CHANGES IN v2.1:
 # - Added automatic schema migration for service_feedback tracking columns
@@ -36,7 +39,7 @@ DB_ROOT="$(dirname "$SCRIPT_DIR")"
 source "$DB_ROOT/config.sh"
 
 echo ""
-log_section "GEA PORTAL - GENERATE SYNTHETIC DATA v2.1"
+log_section "GEA PORTAL - GENERATE SYNTHETIC DATA v2.2"
 echo "  Creating realistic test data for all modules"
 echo ""
 
@@ -102,6 +105,41 @@ if [ "$SUBMITTED_IP_EXISTS" = "0" ] || [ "$SUBMITTED_UA_EXISTS" = "0" ]; then
     log_success "Schema migration completed successfully"
 else
     log_success "Schema is up to date (tracking columns present)"
+fi
+
+# Also check for timestamp columns
+CREATED_AT_EXISTS=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_name='service_feedback' AND column_name='created_at';" 2>/dev/null | tr -d ' ')
+
+UPDATED_AT_EXISTS=$(docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -t -c \
+    "SELECT COUNT(*) FROM information_schema.columns
+     WHERE table_name='service_feedback' AND column_name='updated_at';" 2>/dev/null | tr -d ' ')
+
+if [ "$CREATED_AT_EXISTS" = "0" ] || [ "$UPDATED_AT_EXISTS" = "0" ]; then
+    log_warn "Adding timestamp columns to service_feedback"
+
+    if [ "$CREATED_AT_EXISTS" = "0" ]; then
+        if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+            "ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;" > /dev/null 2>&1; then
+            log_success "Added created_at column"
+        else
+            log_error "Failed to add created_at column"
+            exit 1
+        fi
+    fi
+
+    if [ "$UPDATED_AT_EXISTS" = "0" ]; then
+        if docker exec "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c \
+            "ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;" > /dev/null 2>&1; then
+            log_success "Added updated_at column"
+        else
+            log_error "Failed to add updated_at column"
+            exit 1
+        fi
+    fi
+
+    log_success "Timestamp columns added successfully"
 fi
 echo ""
 
