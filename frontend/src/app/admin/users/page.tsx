@@ -43,6 +43,7 @@
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { FiUserPlus, FiEdit2, FiCheckCircle, FiXCircle, FiTrash2, FiSearch } from 'react-icons/fi';
+import { useChatContext } from '@/hooks/useChatContext';
 
 interface User {
   id: string;
@@ -82,6 +83,9 @@ export default function UsersPage() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Chat context
+  const { openModal, closeModal } = useChatContext();
 
   // Check if user is admin
   const isAdmin = session?.user?.roleType === 'admin';
@@ -181,7 +185,13 @@ export default function UsersPage() {
           </p>
         </div>
         <button
-          onClick={() => setShowAddModal(true)}
+          onClick={() => {
+            setShowAddModal(true);
+            openModal('add-user', {
+              title: 'Add New User',
+              entityType: 'user',
+            });
+          }}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
         >
           <FiUserPlus />
@@ -307,6 +317,18 @@ export default function UsersPage() {
                         onClick={() => {
                           setEditingUser(user);
                           setShowEditModal(true);
+                          openModal('edit-user', {
+                            title: 'Edit User',
+                            entityType: 'user',
+                            entityId: user.id,
+                            entityName: user.name,
+                            data: {
+                              email: user.email,
+                              role: user.role_name,
+                              entity: user.entity_name,
+                              status: user.is_active ? 'Active' : 'Inactive',
+                            },
+                          });
                         }}
                         className="text-blue-600 hover:text-blue-900"
                         title="Edit user"
@@ -353,9 +375,13 @@ export default function UsersPage() {
         <AddUserModal
           roles={roles}
           entities={entities}
-          onClose={() => setShowAddModal(false)}
+          onClose={() => {
+            setShowAddModal(false);
+            closeModal();
+          }}
           onSuccess={() => {
             setShowAddModal(false);
+            closeModal();
             fetchUsers();
           }}
         />
@@ -370,10 +396,12 @@ export default function UsersPage() {
           onClose={() => {
             setShowEditModal(false);
             setEditingUser(null);
+            closeModal();
           }}
           onSuccess={() => {
             setShowEditModal(false);
             setEditingUser(null);
+            closeModal();
             fetchUsers();
           }}
         />

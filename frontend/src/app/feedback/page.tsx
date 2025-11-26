@@ -43,6 +43,7 @@ import { useSearchParams } from 'next/navigation'
 import ServiceSearch from '@/components/feedback/ServiceSearch'
 import RatingQuestions from '@/components/feedback/RatingQuestions'
 import SuccessMessage from '@/components/feedback/SuccessMessage'
+import { useChatContext } from '@/hooks/useChatContext'
 
 interface Service {
   service_id: string
@@ -69,7 +70,8 @@ interface FeedbackData {
 
 function FeedbackPageContent() {
   const searchParams = useSearchParams()
-  
+  const { updateFormProgress, clearForm } = useChatContext()
+
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [ratings, setRatings] = useState({
     q1_ease: 0,
@@ -78,7 +80,7 @@ function FeedbackPageContent() {
     q4_trust: 0,
     q5_overall_satisfaction: 0
   })
-  
+
   const [recipientGroup, setRecipientGroup] = useState('')
   const [comments, setComments] = useState('')
   const [grievanceFlag, setGrievanceFlag] = useState(false)
@@ -98,39 +100,86 @@ function FeedbackPageContent() {
   const [qrCodeId, setQrCodeId] = useState<string | null>(null)
 
   // Handle pre-filled service from URL parameters (QR code scans)
-          useEffect(() => {
-            const serviceId = searchParams.get('service')
-            const qrId = searchParams.get('qr')
+  useEffect(() => {
+    const serviceId = searchParams.get('service')
+    const qrId = searchParams.get('qr')
 
-            if (serviceId && !selectedService) {
-              setIsLoadingPrefilledService(true)
-              setQrCodeId(qrId)
+    if (serviceId && !selectedService) {
+      setIsLoadingPrefilledService(true)
+      setQrCodeId(qrId)
 
-              // Use public service lookup endpoint (no auth required for QR code scans)
-              fetch(`/api/feedback/service/${serviceId}`)
-                .then(res => {
-                  if (!res.ok) throw new Error('Service not found')
-                  return res.json()
-                })
-                .then(service => {
-                  // Service data is already in the correct format from the public API
-                  setSelectedService({
-                    service_id: service.service_id,
-                    service_name: service.service_name,
-                    service_description: service.service_description || '',
-                    entity_name: service.entity_name || '',
-                    entity_id: service.entity_id
-                  })
-                })
-                .catch(error => {
-                  console.error('Error loading pre-filled service:', error)
-                  setSubmitError('Unable to load service from QR code. Please search manually.')
-                })
-                .finally(() => {
-                  setIsLoadingPrefilledService(false)
-                })
-            }
-          }, [searchParams, selectedService])
+      // Use public service lookup endpoint (no auth required for QR code scans)
+      fetch(`/api/feedback/service/${serviceId}`)
+        .then(res => {
+          if (!res.ok) throw new Error('Service not found')
+          return res.json()
+        })
+        .then(service => {
+          // Service data is already in the correct format from the public API
+          setSelectedService({
+            service_id: service.service_id,
+            service_name: service.service_name,
+            service_description: service.service_description || '',
+            entity_name: service.entity_name || '',
+            entity_id: service.entity_id
+          })
+        })
+        .catch(error => {
+          console.error('Error loading pre-filled service:', error)
+          setSubmitError('Unable to load service from QR code. Please search manually.')
+        })
+        .finally(() => {
+          setIsLoadingPrefilledService(false)
+        })
+    }
+  }, [searchParams, selectedService])
+
+  // Track form progress for AI Bot
+  useEffect(() => {
+    const completedFields: string[] = []
+    const pendingFields: string[] = []
+
+    // Check service selection
+    if (selectedService) {
+      completedFields.push('service')
+    } else {
+      pendingFields.push('service')
+    }
+
+    // Check recipient group
+    if (recipientGroup) {
+      completedFields.push('recipient_group')
+    } else {
+      pendingFields.push('recipient_group')
+    }
+
+    // Check ratings
+    const ratingValues = Object.values(ratings)
+    const completedRatings = ratingValues.filter(r => r > 0).length
+    if (completedRatings === 5) {
+      completedFields.push('ratings')
+    } else {
+      pendingFields.push(`ratings (${completedRatings}/5 completed)`)
+    }
+
+    // Check comments (optional)
+    if (comments.trim()) {
+      completedFields.push('comments')
+    }
+
+    // Update AI Bot context
+    updateFormProgress('service-feedback', {
+      completedFields,
+      pendingFields,
+    })
+  }, [selectedService, recipientGroup, ratings, comments, updateFormProgress])
+
+  // Clear form context on unmount
+  useEffect(() => {
+    return () => {
+      clearForm()
+    }
+  }, [clearForm])
 
 
   // Reset form

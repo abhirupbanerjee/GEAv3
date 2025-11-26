@@ -7,9 +7,10 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useTickets } from '@/hooks/useTickets'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
+import { useChatContext } from '@/hooks/useChatContext'
 import type { TicketFilters, TicketSort } from '@/types/tickets'
 import { DashboardStats } from './DashboardStats'
 import { FilterSection } from './FilterSection'
@@ -31,6 +32,9 @@ export function TicketDashboard() {
   })
   const [page, setPage] = useState(1)
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+
+  // Chat context
+  const { openModal, closeModal } = useChatContext()
 
   // Data fetching
   const { stats, isLoading: statsLoading, mutate: refreshStats } = useDashboardStats(filters.entity_id || undefined)
@@ -68,10 +72,33 @@ export function TicketDashboard() {
 
   const handleEditTicket = (ticketId: number) => {
     setSelectedTicketId(ticketId)
+
+    // Find the ticket to get its details
+    const ticket = tickets.find(t => t.ticket_id === ticketId)
+
+    // Notify AI Bot about the modal
+    if (ticket) {
+      openModal('view-ticket', {
+        title: 'Ticket Details',
+        entityType: 'ticket',
+        entityId: ticket.ticket_number,
+        entityName: ticket.subject,
+        data: {
+          status: ticket.status.name,
+          priority: ticket.priority.name,
+          category: ticket.category?.name,
+          entity: ticket.entity?.name,
+          service: ticket.service?.name,
+          createdAt: ticket.created_at,
+        },
+      })
+    }
   }
 
   const handleCloseModal = () => {
     setSelectedTicketId(null)
+    // Notify AI Bot that modal is closed
+    closeModal()
     // Refresh tickets list and stats when modal closes to ensure any updates are reflected
     refreshTickets()
     refreshStats()

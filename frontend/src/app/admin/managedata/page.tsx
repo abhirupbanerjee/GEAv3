@@ -39,21 +39,34 @@
 
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
 import QRCodeManager from '@/components/managedata/QRCodeManager'
+import { useChatContext } from '@/hooks/useChatContext'
 
 type Tab = 'entities' | 'services' | 'qrcodes'
 
 export default function ManageDataPage() {
   const [activeTab, setActiveTab] = useState<Tab>('entities')
+  const { switchTab } = useChatContext()
 
   const tabs = [
     { id: 'entities' as Tab, label: 'Entities', icon: '🏛️', count: 'Ministries, Depts, Agencies' },
     { id: 'services' as Tab, label: 'Services', icon: '📋', count: 'Government Services' },
     { id: 'qrcodes' as Tab, label: 'QR Codes', icon: '📱', count: 'Physical Locations' }
   ]
+
+  // Initialize tab context on mount
+  useEffect(() => {
+    switchTab('managedata', activeTab, tabs.map(t => t.id))
+  }, [])
+
+  // Handle tab changes
+  const handleTabChange = (tabId: Tab) => {
+    setActiveTab(tabId)
+    switchTab('managedata', tabId, tabs.map(t => t.id))
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -76,7 +89,7 @@ export default function ManageDataPage() {
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => handleTabChange(tab.id)}
                   className={`
                     flex-1 py-4 px-6 text-center font-semibold transition-all
                     ${activeTab === tab.id
