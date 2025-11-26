@@ -4,7 +4,7 @@
   "description": "Grenada Enterprise Architecture Portal",
   "private": true,
   "scripts": {
-    "generate-contexts": "ts-node --project tsconfig.scripts.json scripts/generate-page-contexts.ts",
+    "generate-contexts": "node scripts/generate-page-contexts.js",
     "prebuild": "npm run generate-contexts",
     "dev": "npm run generate-contexts && next dev",
     "build": "next build",
