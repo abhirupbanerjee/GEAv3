@@ -79,18 +79,16 @@ export default function ServiceRequestsPage() {
     if (isAdmin || isStaff) {
       const loadEntities = async () => {
         try {
-          const response = await fetch('/api/managedata/entities');
+          // For staff, fetch the service request entity (AGY-005) specifically
+          // For admin, fetch all entities
+          const url = isStaff
+            ? `/api/managedata/entities?entity_id=${config.SERVICE_REQUEST_ENTITY_ID}`
+            : '/api/managedata/entities';
+
+          const response = await fetch(url);
           if (response.ok) {
             const data = await response.json();
-            let filteredEntities = data.filter((e: Entity) => e.is_active !== false);
-
-            // For staff users, only show the service request entity (AGY-005)
-            if (isStaff) {
-              filteredEntities = filteredEntities.filter(
-                (e: Entity) => e.unique_entity_id === config.SERVICE_REQUEST_ENTITY_ID
-              );
-            }
-
+            const filteredEntities = data.filter((e: Entity) => e.is_active !== false);
             setEntities(filteredEntities);
           }
         } catch (error) {
@@ -220,7 +218,7 @@ export default function ServiceRequestsPage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              {isStaff ? 'Entity:' : 'Filter by Entity:'}
+              {isStaff ? 'Service Owner:' : 'Filter by Service Owner:'}
             </label>
             <div className="relative flex-1 max-w-md">
               <button
