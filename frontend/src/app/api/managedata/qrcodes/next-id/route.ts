@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
-    const serviceId = searchParams.get('service_id')
+    const serviceId = searchParams.get('serviceId')
 
     if (!serviceId) {
       return NextResponse.json({ error: 'Service ID parameter required' }, { status: 400 })
@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Extract category prefix from service ID (e.g., SVC-IMM-001 -> IMM)
     const parts = serviceId.split('-')
     const categoryPrefix = parts[1] || 'GEN'
-    
+
     const qrPrefix = `QR-${categoryPrefix}`
 
     // Get highest number for this prefix

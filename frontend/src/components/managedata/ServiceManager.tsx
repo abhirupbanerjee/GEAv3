@@ -88,24 +88,24 @@ export default function ServiceManager() {
     loadData()
   }, [])
 
-  // Fetch suggested ID when category AND entity are selected
+  // Fetch suggested ID when category changes
   useEffect(() => {
-    if (formData.service_category && formData.entity_id && !editingService) {
+    if (formData.service_category && !editingService) {
       fetchSuggestedId()
     }
-  }, [formData.service_category, formData.entity_id, editingService])
+  }, [formData.service_category, editingService])
 
   const fetchSuggestedId = async () => {
     try {
       const response = await fetch(
-        `/api/managedata/services/next-id?category=${encodeURIComponent(formData.service_category)}&entityId=${encodeURIComponent(formData.entity_id)}`
+        `/api/managedata/services/next-id?category=${encodeURIComponent(formData.service_category)}`
       )
       const data = await response.json()
-      
-      if (data.success) {
-        setSuggestedId(data.suggestedId)
+
+      if (data.suggested_id) {
+        setSuggestedId(data.suggested_id)
         if (useAutoId) {
-          setFormData(prev => ({ ...prev, service_id: data.suggestedId }))
+          setFormData(prev => ({ ...prev, service_id: data.suggested_id }))
         }
       }
     } catch (err) {
@@ -362,6 +362,11 @@ export default function ServiceManager() {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Service ID *
+                  {!editingService && suggestedId && (
+                    <span className="ml-2 text-xs text-blue-600">
+                      💡 Suggested: {suggestedId}
+                    </span>
+                  )}
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -380,17 +385,12 @@ export default function ServiceManager() {
                     <button
                       type="button"
                       onClick={handleUseSuggestedId}
-                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
                     >
                       Use {suggestedId}
                     </button>
                   )}
                 </div>
-                {!editingService && suggestedId && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    💡 Suggested: <strong>{suggestedId}</strong>
-                  </p>
-                )}
               </div>
 
               {/* Service Name */}

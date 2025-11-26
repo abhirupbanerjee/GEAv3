@@ -111,24 +111,24 @@ export default function QRCodeManager() {
     loadData()
   }, [])
 
-  // Fetch suggested ID when location type changes
+  // Fetch suggested ID when service is selected
   useEffect(() => {
-    if (formData.location_type && !editingQR) {
+    if (formData.service_id && !editingQR) {
       fetchSuggestedId()
     }
-  }, [formData.location_type, editingQR])
+  }, [formData.service_id, editingQR])
 
   const fetchSuggestedId = async () => {
     try {
       const response = await fetch(
-        `/api/managedata/qrcodes/next-id?locationType=${encodeURIComponent(formData.location_type)}`
+        `/api/managedata/qrcodes/next-id?serviceId=${encodeURIComponent(formData.service_id)}`
       )
       const data = await response.json()
-      
-      if (data.success) {
-        setSuggestedId(data.suggestedId)
+
+      if (data.suggested_id) {
+        setSuggestedId(data.suggested_id)
         if (useAutoId) {
-          setFormData(prev => ({ ...prev, qr_code_id: data.suggestedId }))
+          setFormData(prev => ({ ...prev, qr_code_id: data.suggested_id }))
         }
       }
     } catch (err) {
@@ -562,7 +562,14 @@ export default function QRCodeManager() {
 
               {/* QR Code ID with Auto-suggestion */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">QR Code ID *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  QR Code ID *
+                  {!editingQR && suggestedId && (
+                    <span className="ml-2 text-xs text-blue-600">
+                      💡 Suggested: {suggestedId}
+                    </span>
+                  )}
+                </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -580,17 +587,12 @@ export default function QRCodeManager() {
                     <button
                       type="button"
                       onClick={handleUseSuggestedId}
-                      className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
                     >
                       Use {suggestedId}
                     </button>
                   )}
                 </div>
-                {!editingQR && suggestedId && (
-                  <p className="mt-1 text-sm text-gray-500">
-                    💡 Suggested: <strong>{suggestedId}</strong>
-                  </p>
-                )}
               </div>
 
               {/* Location Name */}
