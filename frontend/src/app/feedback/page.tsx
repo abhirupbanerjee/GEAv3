@@ -1,3 +1,41 @@
+/**
+ * @pageContext
+ * @title Service Feedback Form
+ * @purpose Citizens submit anonymous feedback and ratings for government services they have received
+ * @audience public
+ * @steps
+ *   - Select the government entity (ministry, department, or agency) and service from dropdown
+ *   - Select who you are (citizen, business, government employee, visitor, student, other)
+ *   - Rate your experience on 5 dimensions using star ratings (1-5): Ease of Access, Clarity of Information, Timeliness, Trust & Reliability, Overall Satisfaction
+ *   - Optionally add detailed text feedback (max 1000 characters)
+ *   - Check the grievance flag if this is a formal complaint requiring follow-up
+ *   - Click Submit to send your feedback
+ * @tips
+ *   - Rating scale: 1 (Poor) to 5 (Excellent)
+ *   - Your feedback is completely anonymous - no personal information is collected
+ *   - If your average rating is 2.0 or below, a grievance ticket is automatically created
+ *   - You will receive a ticket number if a grievance is created, which you can use to track status at /helpdesk
+ *   - QR code scans pre-fill the service information for faster feedback submission
+ * @features
+ *   - Entity and service dropdown with search functionality
+ *   - Six recipient group options for categorizing feedback source
+ *   - Five-star rating component for each service quality dimension
+ *   - Character counter for text feedback (1000 char limit)
+ *   - Automatic grievance ticket creation for low ratings
+ *   - Form validation before submission
+ *   - QR code support for location-based feedback
+ * @relatedPages
+ *   - /helpdesk: Track your grievance ticket status using ticket number
+ *   - /services: Learn about EA services offered by DTA
+ *   - /: Return to homepage
+ * @permissions
+ *   - public: Full access - no authentication required
+ * @troubleshooting
+ *   - Issue: Service dropdown is empty | Solution: Make sure you selected an entity first - services are filtered by entity
+ *   - Issue: Cannot submit form | Solution: Ensure all star ratings are filled and a recipient group is selected
+ *   - Issue: QR code scan not working | Solution: The service should auto-populate - if not, you can search manually
+ */
+
 'use client'
 
 import { useState, useEffect, Suspense } from 'react'

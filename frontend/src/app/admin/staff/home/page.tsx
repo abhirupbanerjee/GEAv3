@@ -1,6 +1,23 @@
 /**
- * Staff Home Page
- * Dashboard for staff users with entity-specific information
+ * @pageContext
+ * @title Staff Dashboard
+ * @purpose Dashboard landing page for MDA staff users with entity-specific data and quick actions
+ * @audience staff
+ * @features
+ *   - Entity-specific statistics and metrics
+ *   - Quick links to common staff tasks
+ *   - Recent activity feed for assigned entity
+ *   - Service request summary
+ *   - Ticket queue overview
+ * @tips
+ *   - Data shown is filtered to your assigned entity only
+ *   - Use quick action buttons for common tasks
+ * @relatedPages
+ *   - /admin/service-requests: View and create service requests
+ *   - /admin/service-requests/new: Submit new EA service request
+ *   - /admin/analytics: View analytics for your entity
+ * @permissions
+ *   - staff: Full access to dashboard with entity-scoped data
  */
 
 'use client';

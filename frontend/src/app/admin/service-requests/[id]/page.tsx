@@ -1,6 +1,44 @@
 /**
- * Service Request Detail Page
- * Shows full request details, comments, and allows status changes (admin)
+ * @pageContext
+ * @title Service Request Details
+ * @purpose View and manage detailed information about a specific EA service request, including status updates and internal notes
+ * @audience staff
+ * @routePattern /admin/service-requests/:id
+ * @routeParams
+ *   - id: Service request ID number (e.g., 1, 82, 145)
+ * @features
+ *   - Complete request details including requester information and description
+ *   - Status badge with color coding (Submitted, In Progress, Under Review, Completed, Rejected)
+ *   - Service and entity information
+ *   - Activity timeline showing all comments and status changes
+ *   - Add internal notes/comments (visible to staff only)
+ *   - Change request status with required comment (admin only)
+ *   - Email notifications sent to requester on status changes
+ *   - Request metadata (ID, created by, assigned to, timestamps)
+ * @steps
+ *   - Review request details in the main panel
+ *   - Check activity timeline for previous updates and notes
+ *   - Add internal comments using the "+ Add Comment" button
+ *   - Admin users can change status via "Update Status" in sidebar
+ *   - Provide a comment when changing status (required for email notification)
+ * @tips
+ *   - Internal notes are never visible to the requester - use for coordination
+ *   - Status changes trigger automatic email notifications to requester
+ *   - Activity timeline shows full audit trail of all actions
+ *   - Use "Back to Service Requests" link to return to list view
+ *   - Request numbers follow format: SR-YYYYMM-XXXX
+ * @relatedPages
+ *   - /admin/service-requests: Return to service requests list
+ *   - /admin/service-requests/analytics: View analytics for all requests
+ *   - /admin/analytics: Overall system analytics dashboard
+ * @permissions
+ *   - staff: Can view requests for their entity and add comments
+ *   - admin: Can view all requests, change status, and add comments
+ * @troubleshooting
+ *   - Issue: Can't change status | Solution: Only admin users can change request status - staff can add comments only
+ *   - Issue: Can't view request | Solution: Staff users can only view requests for their assigned entity
+ *   - Issue: Status change failed | Solution: Ensure you provided a comment explaining the status change
+ *   - Issue: Request not found | Solution: Verify the request ID is correct or you have permission to access it
  */
 
 'use client';

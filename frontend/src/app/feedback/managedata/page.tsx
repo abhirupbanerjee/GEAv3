@@ -1,3 +1,23 @@
+/**
+ * @pageContext
+ * @title Feedback Data Management
+ * @purpose Alternative access point for master data management (same as /admin/managedata)
+ * @audience admin
+ * @features
+ *   - Three-tab interface for Entities, Services, and QR Codes
+ *   - Entity management: Create, edit, deactivate government entities
+ *   - Service management: Add, edit, organize government services
+ *   - QR Code management: Generate QR codes for physical locations
+ * @tips
+ *   - This is an alternate URL to the main manage data page
+ *   - Functionality is identical to /admin/managedata
+ * @relatedPages
+ *   - /admin/managedata: Primary master data management page
+ *   - /admin/home: Return to admin dashboard
+ * @permissions
+ *   - admin: Full access to create, edit, and manage all master data
+ */
+
 'use client'
 
 import { useState } from 'react'

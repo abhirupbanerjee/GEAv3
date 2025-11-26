@@ -1,12 +1,40 @@
 /**
- * GEA Portal - Service Requests Page
- *
- * Page for managing EA service requests
- * Features:
- * - View all service requests (filtered by entity for staff users)
- * - Create new service requests
- * - Filter and search requests
- * - View request statistics
+ * @pageContext
+ * @title Service Requests Management
+ * @purpose View, manage, and track all Enterprise Architecture service requests submitted by government entities
+ * @audience staff
+ * @features
+ *   - List view of all service requests with sortable columns
+ *   - Filter by status: Submitted, In Progress, Under Review, Completed, Rejected
+ *   - Filter by service type and entity
+ *   - Search by request number, requester name, or service name
+ *   - Statistics dashboard showing request counts by status and time period
+ *   - Pagination for large result sets
+ *   - Create new service request button (staff only)
+ *   - Entity filter dropdown (admin sees all, staff sees assigned entity only)
+ * @steps
+ *   - Review the statistics cards to see overview of request volumes
+ *   - Use filters and search to narrow down requests
+ *   - Click on a request row to view full details
+ *   - Staff users can click "New Request" to submit EA service request
+ * @tips
+ *   - MDA staff can only see requests for their assigned entity (server-enforced)
+ *   - DTA administrators can view and manage requests across all entities
+ *   - Status colors: Yellow (Submitted), Blue (In Progress), Purple (Under Review), Green (Completed), Red (Rejected)
+ *   - Click column headers to sort table data
+ *   - Use the entity filter to focus on specific government organizations
+ * @relatedPages
+ *   - /admin/service-requests/new: Create a new EA service request (staff only)
+ *   - /admin/service-requests/[id]: View detailed information about specific request
+ *   - /admin/service-requests/analytics: View detailed analytics and trends
+ *   - /admin/analytics: Overall dashboard with all analytics
+ * @permissions
+ *   - staff: Can view requests for their entity and create new requests
+ *   - admin: Can view all requests across all entities and change request status
+ * @troubleshooting
+ *   - Issue: Can't see all requests | Solution: Staff users only see requests for their entity - this is by design for data security
+ *   - Issue: Statistics don't match table count | Solution: Statistics reflect filtered data - clear filters to see all
+ *   - Issue: Can't create new request | Solution: Only staff users can create requests - admin users manage existing requests
  */
 
 'use client';

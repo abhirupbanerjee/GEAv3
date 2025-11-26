@@ -1,13 +1,41 @@
 /**
- * GEA Portal - User Management Page
- *
- * This page allows admin users to manage authorized users in the system.
- * Features:
- * - View all users with their roles and entities
- * - Add new users
- * - Activate/deactivate users
- * - Edit user details
- * - View user activity
+ * @pageContext
+ * @title User Management
+ * @purpose Manage authorized system users, their roles, entity assignments, and access permissions
+ * @audience admin
+ * @features
+ *   - User list table with email, name, role, entity, status, and last login
+ *   - Search users by email, name, or entity
+ *   - Add new users with email, name, role, and entity assignment
+ *   - Edit existing user details (name, role, entity)
+ *   - Activate/deactivate user accounts (toggle button)
+ *   - Role-based access: Admin vs Staff roles
+ *   - Entity assignment for staff users (required)
+ *   - Statistics cards showing total, active, admin, and staff user counts
+ * @steps
+ *   - Review the user list and statistics
+ *   - Use search box to find specific users
+ *   - Click "Add User" to create new user account
+ *   - Enter email (must match Google/Microsoft account), name, role, and entity (if staff)
+ *   - Click edit icon to modify user details
+ *   - Toggle status button to activate/deactivate accounts
+ * @tips
+ *   - Email must match the user's Google or Microsoft account for SSO authentication
+ *   - Staff users require entity assignment - they can only access data for their entity
+ *   - Admin users have system-wide access and don't require entity assignment
+ *   - Email addresses cannot be changed after creation
+ *   - Inactive users cannot sign in but their data is preserved
+ *   - Role types: admin (full system access) vs staff (entity-scoped access)
+ * @relatedPages
+ *   - /admin/home: Return to admin dashboard
+ *   - /admin/managedata: Manage entities that users are assigned to
+ * @permissions
+ *   - admin: Full access to view, create, edit, and manage all users
+ *   - staff: No access to user management
+ * @troubleshooting
+ *   - Issue: User can't sign in | Solution: Verify email matches their Google/Microsoft account and account is active
+ *   - Issue: Staff user sees no data | Solution: Ensure they are assigned to correct entity
+ *   - Issue: Can't add user | Solution: Verify email is unique and role/entity are properly selected
  */
 
 'use client';

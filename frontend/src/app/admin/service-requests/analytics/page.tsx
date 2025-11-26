@@ -1,6 +1,25 @@
 /**
- * Service Requests Analytics Page
- * Shows charts and graphs for service request trends
+ * @pageContext
+ * @title Service Request Analytics
+ * @purpose View detailed analytics, trends, and visual charts for EA service requests over time
+ * @audience staff
+ * @features
+ *   - Request volume trend charts over time
+ *   - Status distribution visualizations
+ *   - Completion rate metrics
+ *   - Average processing time analysis
+ *   - Entity-wise breakdown of requests
+ *   - Service type popularity charts
+ * @tips
+ *   - Use date range filters to analyze specific time periods
+ *   - MDA staff see analytics for their entity only
+ *   - DTA administrators see system-wide analytics
+ * @relatedPages
+ *   - /admin/service-requests: View and manage service requests
+ *   - /admin/analytics: Overall system analytics dashboard
+ * @permissions
+ *   - staff: View analytics for their assigned entity
+ *   - admin: View analytics across all entities
  */
 
 'use client';

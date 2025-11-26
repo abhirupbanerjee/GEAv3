@@ -1,3 +1,23 @@
+/**
+ * @pageContext
+ * @title AI Inventory
+ * @purpose View and configure AI chatbot integrations and monitor their status
+ * @audience admin
+ * @features
+ *   - List of AI bots integrated with the portal
+ *   - Bot status indicators (active, planned)
+ *   - Bot URLs and descriptions
+ *   - Configuration options for each bot
+ * @tips
+ *   - This page tracks AI assistants integrated with GEA Portal
+ *   - Currently used for inventory tracking and monitoring
+ * @relatedPages
+ *   - /admin/home: Return to admin dashboard
+ * @permissions
+ *   - admin: Full access to view and configure AI bots
+ *   - staff: Read-only access
+ */
+
 'use client'
 
 import { useState, useEffect } from 'react'

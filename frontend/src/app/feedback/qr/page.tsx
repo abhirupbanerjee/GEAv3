@@ -1,3 +1,22 @@
+/**
+ * @pageContext
+ * @title QR Code Feedback
+ * @purpose Dedicated feedback entry point accessed via QR codes at physical locations
+ * @audience public
+ * @features
+ *   - QR code validation and lookup
+ *   - Automatic redirect to feedback form with pre-filled service
+ *   - Location-based feedback tracking
+ * @tips
+ *   - Scan QR codes posted at government service locations
+ *   - Service information is automatically filled from QR code
+ *   - Redirects to main feedback page with service pre-selected
+ * @relatedPages
+ *   - /feedback: Main feedback form (destination after QR validation)
+ * @permissions
+ *   - public: Full access via QR code scan
+ */
+
 // frontend/src/app/feedback/qr/page.tsx
 'use client'
 

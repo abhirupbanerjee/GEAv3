@@ -1,3 +1,27 @@
+/**
+ * @pageContext
+ * @title About DTA and GEA
+ * @purpose Learn about the Digital Transformation Agency, Grenada Enterprise Architecture framework, EA governance, and leadership team
+ * @audience public
+ * @features
+ *   - DTA overview and mission statement
+ *   - GEA framework description and purpose
+ *   - EA governance structure explanation
+ *   - Leadership team profiles with contact information
+ *   - Contact information and action buttons
+ * @tips
+ *   - DTA drives digital transformation across Government of Grenada
+ *   - GEA provides unified framework for technology alignment
+ *   - Leadership profiles show key decision-makers (placeholders currently)
+ *   - Contact via email or view services for more information
+ * @relatedPages
+ *   - /services: Browse EA services offered by DTA
+ *   - /: Return to homepage
+ *   - /feedback: Submit feedback for government services
+ * @permissions
+ *   - public: Full access to all about page content
+ */
+
 'use client'
 
 import { aboutContent } from '../../config/content'

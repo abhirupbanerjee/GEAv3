@@ -1,0 +1,32 @@
+{
+  "totalPages": 22,
+  "documented": 22,
+  "inferred": 0,
+  "coverage": "100%",
+  "documentedRoutes": [
+    "/",
+    "/about",
+    "/admin",
+    "/admin/ai-inventory",
+    "/admin/analytics",
+    "/admin/home",
+    "/admin/managedata",
+    "/admin/service-requests",
+    "/admin/service-requests/:id",
+    "/admin/service-requests/analytics",
+    "/admin/service-requests/new",
+    "/admin/staff/home",
+    "/admin/tickets",
+    "/admin/users",
+    "/auth/signin",
+    "/auth/unauthorized",
+    "/feedback",
+    "/feedback/managedata",
+    "/feedback/qr",
+    "/helpdesk",
+    "/helpdesk/ticket/:ticketNumber",
+    "/services"
+  ],
+  "inferredRoutes": [],
+  "generatedAt": "2025-11-26T18:52:42.255Z"
+}

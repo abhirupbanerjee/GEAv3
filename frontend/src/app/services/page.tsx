@@ -1,3 +1,36 @@
+/**
+ * @pageContext
+ * @title EA Services Catalog
+ * @purpose Browse and learn about Enterprise Architecture services offered by the Digital Transformation Agency to government entities
+ * @audience public
+ * @features
+ *   - Comprehensive list of 7 EA services with descriptions
+ *   - Service cards showing target audience and estimated duration
+ *   - How to request services section with 3-step process
+ *   - Links to submit service requests or contact via email
+ *   - Important information and policy notes
+ * @steps
+ *   - Browse available EA services to find what matches your needs
+ *   - Review service descriptions, target audiences, and timelines
+ *   - Click "Submit Service Request" to start the request process
+ *   - Alternatively, click "Contact via Email" for inquiries
+ * @tips
+ *   - Services include: Digital Roadmap Support, EA Framework Management, Maturity Assessment, Repository Access, Compliance Review, IT Portfolio Review, and Training
+ *   - All service requests require senior leadership approval
+ *   - Service delivery timelines vary based on complexity and resources
+ *   - Some services require supporting documentation and baseline assessments
+ * @relatedPages
+ *   - /admin/service-requests: Submit or track EA service requests (requires login)
+ *   - /about: Learn more about DTA and GEA framework
+ *   - /: Return to homepage
+ * @permissions
+ *   - public: Can view all services information
+ *   - staff: Can submit service requests through admin portal
+ * @troubleshooting
+ *   - Issue: Can't submit request | Solution: Service requests require authentication - sign in through admin portal
+ *   - Issue: Unsure which service to request | Solution: Contact eservices@gov.gd for guidance
+ */
+
 'use client'
 
 // EA Service types

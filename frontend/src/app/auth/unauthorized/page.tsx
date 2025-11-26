@@ -1,9 +1,23 @@
 /**
- * GEA Portal - Unauthorized Access Page
- *
- * This page is shown when a user successfully authenticates with OAuth
- * but their email is not whitelisted in the users table or their account
- * is inactive.
+ * @pageContext
+ * @title Unauthorized Access
+ * @purpose Inform users that their account is not authorized or has been deactivated
+ * @audience public
+ * @features
+ *   - Clear explanation of why access was denied
+ *   - Contact information for requesting access
+ *   - Link to return to homepage
+ * @tips
+ *   - This page appears when authentication succeeds but email is not authorized
+ *   - Your administrator needs to add your email to the authorized users list
+ *   - Even if added, your account must be set to "active" status
+ * @relatedPages
+ *   - /: Return to homepage
+ *   - /auth/signin: Try signing in again after authorization
+ * @permissions
+ *   - public: Anyone who attempts unauthorized access sees this page
+ * @troubleshooting
+ *   - Issue: Keep seeing this page | Solution: Contact your administrator to verify your email is in the system and status is active
  */
 
 'use client';

@@ -1,6 +1,40 @@
 /**
- * New Service Request Page
- * Full-page form for creating EA service requests with file attachments
+ * @pageContext
+ * @title Create New Service Request
+ * @purpose Submit a new Enterprise Architecture service request with details and supporting documentation
+ * @audience staff
+ * @features
+ *   - Service selection dropdown (filtered by service owner entity for staff)
+ *   - Requester information fields (name, email, phone, ministry/department)
+ *   - Detailed request description textarea
+ *   - File upload for supporting documents (PDF, DOCX, XLSX, PNG, JPG)
+ *   - Mandatory vs optional attachment indicators
+ *   - Form validation before submission
+ *   - Automatic entity assignment based on logged-in user
+ * @steps
+ *   - Select the EA service you need from the dropdown
+ *   - Fill in your contact information (name, email, phone, ministry/department)
+ *   - Provide a detailed description of your request (what, why, expected outcomes)
+ *   - Upload any required supporting documents
+ *   - Review your information and click "Submit Request"
+ *   - You'll receive a confirmation with your request number
+ * @tips
+ *   - Be as detailed as possible in the description to help DTA staff understand your needs
+ *   - Some services require mandatory attachments - these are marked with a red asterisk
+ *   - Maximum file size: 10MB per file
+ *   - Supported formats: PDF, Word documents, Excel sheets, images (PNG, JPG)
+ *   - You can track your request status after submission
+ * @relatedPages
+ *   - /admin/service-requests: View all your service requests and their status
+ *   - /services: Learn more about available EA services
+ *   - /admin/home: Return to dashboard
+ * @permissions
+ *   - staff: Can create service requests for their assigned entity
+ *   - admin: Cannot create requests (admin role is for managing, not requesting)
+ * @troubleshooting
+ *   - Issue: Service dropdown is empty | Solution: Verify services exist for your entity in master data
+ *   - Issue: File upload fails | Solution: Check file size (max 10MB) and format (PDF, DOCX, XLSX, PNG, JPG only)
+ *   - Issue: Can't submit | Solution: Ensure all required fields are filled and mandatory attachments are uploaded
  */
 
 'use client';

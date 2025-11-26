@@ -1,3 +1,42 @@
+/**
+ * @pageContext
+ * @title Analytics Dashboard
+ * @purpose Comprehensive analytics dashboard showing feedback statistics, service request metrics, ticket performance, and service leaderboards
+ * @audience staff
+ * @features
+ *   - Feedback analytics: Total submissions, average satisfaction ratings, grievance counts, service trust scores
+ *   - Service request statistics: Total requests, status breakdown, completion rates, recent activity
+ *   - Ticket metrics: Total tickets, overdue count, SLA compliance, average resolution time
+ *   - Service performance leaderboard: Top 5 and bottom 5 performing services
+ *   - Entity filter for admin users (multi-select dropdown)
+ *   - Refresh button to reload latest data
+ *   - Rating distribution charts and trend analysis
+ * @steps
+ *   - Review the summary cards at the top for quick KPIs
+ *   - Admin users can filter by one or more entities using the entity filter
+ *   - Scroll through sections: Citizen Feedback, Service Requests, Support Tickets, Service Leaderboard
+ *   - Check the leaderboard to identify top-performing and attention-needed services
+ *   - Use the Refresh button to get latest data
+ * @tips
+ *   - MDA staff see data for their entity only (auto-filtered)
+ *   - DTA administrators can filter by multiple entities or view all
+ *   - Color coding: Green (good performance), Yellow (average), Red (needs attention)
+ *   - Leaderboard shows services needing attention based on grievance rates
+ *   - SLA compliance percentage shows on-time ticket resolution rate
+ * @relatedPages
+ *   - /admin/service-requests: Detailed service request management
+ *   - /admin/service-requests/analytics: In-depth service request analytics
+ *   - /admin/tickets: Ticket management dashboard
+ *   - /admin/home: Return to admin home
+ * @permissions
+ *   - staff: View analytics for their assigned entity only
+ *   - admin: View analytics across all entities with filtering capability
+ * @troubleshooting
+ *   - Issue: Data not loading | Solution: Check network connection and try refresh button
+ *   - Issue: Can't see other entities | Solution: Staff users only see their entity - this is by design
+ *   - Issue: Leaderboard shows no data | Solution: Ensure services have received feedback - new systems may have limited data
+ */
+
 'use client'
 
 import { useState, useEffect, useRef } from 'react'

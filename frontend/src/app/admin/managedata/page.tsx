@@ -1,3 +1,42 @@
+/**
+ * @pageContext
+ * @title Master Data Management
+ * @purpose Centralized management of entities, services, and QR codes that form the foundation of the feedback system
+ * @audience admin
+ * @features
+ *   - Three-tab interface for Entities, Services, and QR Codes
+ *   - Entity management: Create, edit, deactivate government entities (Ministries, Departments, Agencies)
+ *   - Service management: Add, edit, and organize government services by entity
+ *   - QR Code management: Generate QR codes for physical locations to enable location-based feedback
+ *   - Search and filter capabilities within each tab
+ *   - Hierarchical entity structure support
+ *   - Auto-suggest IDs for new entities and services
+ * @steps
+ *   - Select the tab for the data type you want to manage (Entities, Services, or QR Codes)
+ *   - Use search boxes to find specific records
+ *   - Click "Add" buttons to create new records
+ *   - Click edit icons to modify existing records
+ *   - Toggle active/inactive status as needed
+ *   - For QR codes: Associate with service and location, then download the generated QR code image
+ * @tips
+ *   - Entities must be created before adding services - services belong to entities
+ *   - Use clear, descriptive names for entities and services
+ *   - QR codes link to /feedback page with pre-filled service information
+ *   - Deactivating entities or services hides them from public dropdowns but preserves historical data
+ *   - Entity IDs follow format: MIN-XXX, DEP-XXX, AGY-XXX
+ * @relatedPages
+ *   - /admin/analytics: View analytics for entities and services
+ *   - /feedback: See how citizens use services in feedback form
+ *   - /admin/home: Return to admin dashboard
+ * @permissions
+ *   - admin: Full access to create, edit, and manage all master data
+ *   - staff: Read-only access (cannot modify master data)
+ * @troubleshooting
+ *   - Issue: Can't add service | Solution: Ensure the parent entity exists and is active
+ *   - Issue: QR code not working | Solution: Verify the service is active and the QR code URL is correctly formatted
+ *   - Issue: Can't delete entity | Solution: Deactivate instead of delete to preserve historical feedback data
+ */
+
 'use client'
 
 import { useState } from 'react'

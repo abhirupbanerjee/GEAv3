@@ -1,11 +1,30 @@
 /**
- * GEA Portal - Custom Sign-In Page
- *
- * This page provides a branded sign-in experience for the GEA Portal.
- * Users can sign in using their Google or Microsoft accounts.
- *
- * Authorization is handled by checking the users table in the database.
- * Only users with active accounts and whitelisted emails can sign in.
+ * @pageContext
+ * @title Sign In
+ * @purpose Authenticate to access the GEA Portal admin area using Google or Microsoft accounts
+ * @audience public
+ * @features
+ *   - Google OAuth sign-in button
+ *   - Microsoft OAuth sign-in button
+ *   - Branded sign-in experience with GEA Portal branding
+ *   - Automatic redirect to intended page after successful login
+ * @steps
+ *   - Click "Sign in with Google" or "Sign in with Microsoft"
+ *   - Authenticate with your organization's account
+ *   - System verifies your email against authorized users list
+ *   - You'll be redirected to the admin dashboard upon success
+ * @tips
+ *   - Only authorized users with active accounts can sign in
+ *   - Your email must be pre-registered by an administrator
+ *   - Use your Government of Grenada email account
+ * @relatedPages
+ *   - /auth/unauthorized: Shown if your email is not authorized
+ *   - /admin/home: Destination after successful sign-in
+ * @permissions
+ *   - public: Anyone can access sign-in page, but only authorized users can authenticate
+ * @troubleshooting
+ *   - Issue: Can't sign in | Solution: Contact administrator to verify your email is authorized and active
+ *   - Issue: Unauthorized error | Solution: Your email is not in the system - request access from admin
  */
 
 'use client';
