@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 
 interface Filters {
   service_id: string
@@ -37,7 +37,7 @@ export default function FilterBar({ filters, onFilterChange, onApply, onReset }:
   const [loadingServices, setLoadingServices] = useState(false)
   const [loadingEntities, setLoadingEntities] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
-  
+
   // Multi-select state
   const [selectedServices, setSelectedServices] = useState<string[]>([])
   const [selectedEntities, setSelectedEntities] = useState<string[]>([])
@@ -45,6 +45,10 @@ export default function FilterBar({ filters, onFilterChange, onApply, onReset }:
   const [showEntityDropdown, setShowEntityDropdown] = useState(false)
   const [serviceSearchTerm, setServiceSearchTerm] = useState('')
   const [entitySearchTerm, setEntitySearchTerm] = useState('')
+
+  // Refs for click-outside detection
+  const serviceDropdownRef = useRef<HTMLDivElement>(null)
+  const entityDropdownRef = useRef<HTMLDivElement>(null)
 
   // Load ALL services and entities from proper endpoints
   useEffect(() => {
@@ -86,13 +90,47 @@ export default function FilterBar({ filters, onFilterChange, onApply, onReset }:
     } else {
       setSelectedServices([])
     }
-    
+
     if (filters.entity_id) {
       setSelectedEntities(filters.entity_id.split(',').filter(Boolean))
     } else {
       setSelectedEntities([])
     }
   }, [filters.service_id, filters.entity_id])
+
+  // Close service dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (serviceDropdownRef.current && !serviceDropdownRef.current.contains(event.target as Node)) {
+        setShowServiceDropdown(false)
+      }
+    }
+
+    if (showServiceDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showServiceDropdown])
+
+  // Close entity dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (entityDropdownRef.current && !entityDropdownRef.current.contains(event.target as Node)) {
+        setShowEntityDropdown(false)
+      }
+    }
+
+    if (showEntityDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showEntityDropdown])
 
   const handleInputChange = (field: keyof Filters, value: string) => {
     onFilterChange({ ...filters, [field]: value })
@@ -193,7 +231,7 @@ export default function FilterBar({ filters, onFilterChange, onApply, onReset }:
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Service {selectedServices.length > 0 && `(${selectedServices.length})`}
             </label>
-            <div className="relative">
+            <div className="relative" ref={serviceDropdownRef}>
               <button
                 onClick={() => setShowServiceDropdown(!showServiceDropdown)}
                 disabled={loadingServices}
@@ -282,7 +320,7 @@ export default function FilterBar({ filters, onFilterChange, onApply, onReset }:
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Entity/Department {selectedEntities.length > 0 && `(${selectedEntities.length})`}
             </label>
-            <div className="relative">
+            <div className="relative" ref={entityDropdownRef}>
               <button
                 onClick={() => setShowEntityDropdown(!showEntityDropdown)}
                 disabled={loadingEntities}

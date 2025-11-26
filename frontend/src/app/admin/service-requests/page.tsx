@@ -12,7 +12,7 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import RequestStats from '@/components/admin/service-requests/RequestStats';
 import RequestTable from '@/components/admin/service-requests/RequestTable';
@@ -58,7 +58,7 @@ export default function ServiceRequestsPage() {
     status: '',
     service_id: '',
     search: '',
-    entity_id: config.SERVICE_REQUEST_ENTITY_ID, // Default entity from config
+    entity_id: '', // Default to empty (All Entities), will be set for staff users
   });
   const [pagination, setPagination] = useState({
     page: 1,
@@ -70,9 +70,17 @@ export default function ServiceRequestsPage() {
   const [entities, setEntities] = useState<Entity[]>([]);
   const [showEntityDropdown, setShowEntityDropdown] = useState(false);
   const [entitySearchTerm, setEntitySearchTerm] = useState('');
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const isAdmin = session?.user?.roleType === 'admin';
   const isStaff = session?.user?.roleType === 'staff';
+
+  // Set default entity filter for staff users
+  useEffect(() => {
+    if (isStaff && filters.entity_id === '') {
+      setFilters(prev => ({ ...prev, entity_id: config.SERVICE_REQUEST_ENTITY_ID }));
+    }
+  }, [isStaff]);
 
   // Load entities (admin: all, staff: only service request entity)
   useEffect(() => {
@@ -98,6 +106,23 @@ export default function ServiceRequestsPage() {
       loadEntities();
     }
   }, [isAdmin, isStaff]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowEntityDropdown(false);
+      }
+    };
+
+    if (showEntityDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEntityDropdown]);
 
   const fetchRequests = useCallback(async () => {
     try {
@@ -220,7 +245,7 @@ export default function ServiceRequestsPage() {
             <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
               {isStaff ? 'Service Owner:' : 'Filter by Service Owner:'}
             </label>
-            <div className="relative flex-1 max-w-md">
+            <div className="relative flex-1 max-w-md" ref={dropdownRef}>
               <button
                 onClick={() => setShowEntityDropdown(!showEntityDropdown)}
                 className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white flex items-center justify-between"

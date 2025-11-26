@@ -258,6 +258,7 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         ticket_number,
         service_id,
         entity_id,
+        assigned_entity_id,
         requester_category,
         feedback_id,
         subject,
@@ -267,12 +268,13 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         created_by,
         created_at,
         updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
       RETURNING ticket_id, ticket_number, created_at`,
       [
         ticketNumber,
         service_id,
         entity_id,
+        entity_id, // Assign ticket to the entity that owns the service
         requesterCategory,
         feedback_id,
         subject,

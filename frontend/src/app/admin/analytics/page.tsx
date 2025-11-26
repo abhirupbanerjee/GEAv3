@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import ServiceLeaderboard from '@/components/analytics/ServiceLeaderboard'
 
@@ -91,9 +91,27 @@ export default function AnalyticsPage() {
   const [selectedEntityIds, setSelectedEntityIds] = useState<string[]>([])
   const [showEntityDropdown, setShowEntityDropdown] = useState(false)
   const [entitySearchTerm, setEntitySearchTerm] = useState('')
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const isStaff = session?.user?.roleType === 'staff'
   const isAdmin = session?.user?.roleType === 'admin'
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowEntityDropdown(false)
+      }
+    }
+
+    if (showEntityDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showEntityDropdown])
 
   // Load entities for admin users
   useEffect(() => {
@@ -268,7 +286,7 @@ export default function AnalyticsPage() {
               )}
             </div>
 
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowEntityDropdown(!showEntityDropdown)}
                 className="w-full md:w-96 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-left bg-white flex items-center justify-between"
