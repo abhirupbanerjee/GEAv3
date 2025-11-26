@@ -63,32 +63,26 @@ function FeedbackPageContent() {
           useEffect(() => {
             const serviceId = searchParams.get('service')
             const qrId = searchParams.get('qr')
-            
+
             if (serviceId && !selectedService) {
               setIsLoadingPrefilledService(true)
               setQrCodeId(qrId)
-              
-              // CORRECT: Use direct service lookup by ID
-              fetch(`/api/managedata/services`)
+
+              // Use public service lookup endpoint (no auth required for QR code scans)
+              fetch(`/api/feedback/service/${serviceId}`)
                 .then(res => {
-                  if (!res.ok) throw new Error('Failed to load services')
+                  if (!res.ok) throw new Error('Service not found')
                   return res.json()
                 })
-                .then(services => {
-                  // Find exact service by ID
-                  const service = services.find((s: any) => s.service_id === serviceId)
-                  if (service) {
-                    // Transform to match Service interface
-                    setSelectedService({
-                      service_id: service.service_id,
-                      service_name: service.service_name,
-                      service_description: service.service_description || '',
-                      entity_name: service.entity_name || '',
-                      entity_id: service.entity_id
-                    })
-                  } else {
-                    setSubmitError(`Service ${serviceId} not found. Please search manually.`)
-                  }
+                .then(service => {
+                  // Service data is already in the correct format from the public API
+                  setSelectedService({
+                    service_id: service.service_id,
+                    service_name: service.service_name,
+                    service_description: service.service_description || '',
+                    entity_name: service.entity_name || '',
+                    entity_id: service.entity_id
+                  })
                 })
                 .catch(error => {
                   console.error('Error loading pre-filled service:', error)

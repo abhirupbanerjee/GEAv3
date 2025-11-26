@@ -218,7 +218,7 @@ BEGIN
 END $$;
 
 CREATE TABLE IF NOT EXISTS qr_codes (
-    qr_code_id SERIAL PRIMARY KEY,
+    qr_code_id VARCHAR(50) PRIMARY KEY,
     service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
     entity_id VARCHAR(50) NOT NULL REFERENCES entity_master(unique_entity_id),
     location_name VARCHAR(255),
@@ -230,7 +230,8 @@ CREATE TABLE IF NOT EXISTS qr_codes (
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     created_by VARCHAR(100),
-    deactivated_at TIMESTAMP
+    deactivated_at TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 CREATE INDEX IF NOT EXISTS idx_qr_service ON qr_codes(service_id);
