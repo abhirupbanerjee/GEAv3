@@ -8,7 +8,7 @@ import { getEntityFilter } from '@/lib/entity-filter'
 export const dynamic = 'force-dynamic'
 
 // GET - List all services
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
@@ -16,16 +16,23 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Apply entity filter for staff users
+    const { searchParams } = new URL(request.url)
+    const requestedEntityId = searchParams.get('entity_id')
+
+    // Apply entity filter for staff users (for managedata page)
     const entityFilter = getEntityFilter(session)
 
     // Build WHERE clause based on entity filter
     let whereClause = ''
     const queryParams: any[] = []
 
-    if (entityFilter) {
+    // Priority: Staff entity filter > requested entity_id param
+    // Staff can request specific entity (e.g., AGY-005 for service requests) but managedata page uses their own entity
+    const finalEntityId = requestedEntityId || entityFilter
+
+    if (finalEntityId) {
       whereClause = 'WHERE s.entity_id = $1'
-      queryParams.push(entityFilter)
+      queryParams.push(finalEntityId)
     }
 
     const result = await pool.query(`

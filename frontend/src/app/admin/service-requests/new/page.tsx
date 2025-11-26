@@ -65,7 +65,8 @@ export default function NewServiceRequestPage() {
 
   const fetchServices = useCallback(async () => {
     try {
-      const response = await fetch('/api/managedata/services');
+      // Fetch services for the service request entity (AGY-005)
+      const response = await fetch(`/api/managedata/services?entity_id=${config.SERVICE_REQUEST_ENTITY_ID}`);
       if (response.ok) {
         const data = await response.json();
         // API returns array directly
@@ -329,13 +330,11 @@ export default function NewServiceRequestPage() {
                 required
               >
                 <option value="">Select a service...</option>
-                {services
-                  .filter((service) => service.entity_id === config.SERVICE_REQUEST_ENTITY_ID)
-                  .map((service) => (
-                    <option key={service.service_id} value={service.service_id}>
-                      {service.service_name}
-                    </option>
-                  ))}
+                {services.map((service) => (
+                  <option key={service.service_id} value={service.service_id}>
+                    {service.service_name}
+                  </option>
+                ))}
               </select>
             </div>
 
@@ -343,7 +342,7 @@ export default function NewServiceRequestPage() {
             {isStaff && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Receiving Entity
+                  Requesting Entity
                 </label>
                 <input
                   type="text"
@@ -418,19 +417,6 @@ export default function NewServiceRequestPage() {
                 onChange={(e) => setRequesterPhone(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 maxLength={20}
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Ministry/Department
-              </label>
-              <input
-                type="text"
-                value={requesterMinistry}
-                onChange={(e) => setRequesterMinistry(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                maxLength={255}
               />
             </div>
           </div>
