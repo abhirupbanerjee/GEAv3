@@ -38,6 +38,14 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
   // Sync local state with fetched ticket data
   useEffect(() => {
     if (ticket) {
+      console.log('Syncing dropdown values with ticket data:', {
+        statusId: ticket.status.id,
+        statusName: ticket.status.name,
+        priorityId: ticket.priority.id,
+        priorityName: ticket.priority.name,
+        previousSelectedStatusId: selectedStatusId,
+        previousSelectedPriorityId: selectedPriorityId
+      })
       setSelectedStatusId(ticket.status.id)
       setSelectedPriorityId(ticket.priority.id)
     }
@@ -53,14 +61,29 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
   }, [selectedStatusId, selectedPriorityId, ticket])
 
   const handleSaveChanges = async () => {
-    if (!ticket || !hasChanges) return
+    if (!ticket || !hasChanges) {
+      console.log('Save blocked - ticket:', ticket, 'hasChanges:', hasChanges)
+      return
+    }
+
+    const payload = {
+      status_id: selectedStatusId !== ticket.status.id ? selectedStatusId! : undefined,
+      priority_id: selectedPriorityId !== ticket.priority.id ? selectedPriorityId! : undefined,
+      performed_by: 'admin' // TODO: Get from session
+    }
+
+    console.log('Attempting to save ticket update:', {
+      ticketId,
+      payload,
+      currentStatus: ticket.status.id,
+      currentPriority: ticket.priority.id,
+      selectedStatusId,
+      selectedPriorityId
+    })
 
     try {
-      await updateTicket(ticketId, {
-        status_id: selectedStatusId !== ticket.status.id ? selectedStatusId! : undefined,
-        priority_id: selectedPriorityId !== ticket.priority.id ? selectedPriorityId! : undefined,
-        performed_by: 'admin' // TODO: Get from session
-      })
+      const result = await updateTicket(ticketId, payload)
+      console.log('Ticket update successful:', result)
 
       // Refresh data
       await mutate()
@@ -68,6 +91,7 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
       setHasChanges(false)
     } catch (error) {
       console.error('Failed to update ticket:', error)
+      alert(`Failed to update ticket: ${error instanceof Error ? error.message : 'Unknown error'}`)
     }
   }
 
@@ -201,7 +225,11 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
                         <label className="block text-xs font-medium text-gray-500 mb-2">Status</label>
                         <select
                           value={selectedStatusId || ''}
-                          onChange={(e) => setSelectedStatusId(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const newValue = parseInt(e.target.value)
+                            console.log('Status dropdown changed:', {from: selectedStatusId, to: newValue})
+                            setSelectedStatusId(newValue)
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="1">Open</option>
@@ -214,7 +242,11 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
                         <label className="block text-xs font-medium text-gray-500 mb-2">Priority</label>
                         <select
                           value={selectedPriorityId || ''}
-                          onChange={(e) => setSelectedPriorityId(parseInt(e.target.value))}
+                          onChange={(e) => {
+                            const newValue = parseInt(e.target.value)
+                            console.log('Priority dropdown changed:', {from: selectedPriorityId, to: newValue})
+                            setSelectedPriorityId(newValue)
+                          }}
                           className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
                           <option value="1">Urgent</option>

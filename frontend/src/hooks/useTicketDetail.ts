@@ -26,7 +26,9 @@ export function useTicketDetail(ticketId: number | null) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 3000
+      dedupingInterval: 0, // Disable deduping to always fetch fresh data
+      revalidateIfStale: true, // Revalidate if data is stale
+      revalidateOnMount: true // Always revalidate on mount
     }
   )
 

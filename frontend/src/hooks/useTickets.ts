@@ -54,7 +54,9 @@ export function useTickets(params: UseTicketsParams = {}) {
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
-      dedupingInterval: 5000 // Prevent duplicate requests within 5 seconds
+      dedupingInterval: 1000, // Reduced from 5000 to 1000ms
+      revalidateIfStale: true,
+      revalidateOnMount: true
     }
   )
 
