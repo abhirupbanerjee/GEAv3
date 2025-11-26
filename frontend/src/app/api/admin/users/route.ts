@@ -118,9 +118,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if role requires entity
+    // Check if role requires entity and get role details
     const roleCheck = await pool.query(
-      'SELECT role_type FROM user_roles WHERE role_id = $1',
+      'SELECT role_type, role_code FROM user_roles WHERE role_id = $1',
       [role_id]
     );
 
@@ -131,8 +131,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const roleType = roleCheck.rows[0].role_type;
-    if (roleType === 'staff' && !entity_id) {
+    const { role_type: roleType, role_code: roleCode } = roleCheck.rows[0];
+
+    // Auto-assign entity for DTA administrators
+    let finalEntityId = entity_id;
+    if (roleCode === 'admin_dta' && !entity_id) {
+      finalEntityId = 'AGY-005'; // Digital Transformation Agency
+    }
+
+    // Validate entity requirement for staff
+    if (roleType === 'staff' && !finalEntityId) {
       return NextResponse.json(
         { error: 'entity_id is required for staff users' },
         { status: 400 }
@@ -144,7 +152,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO users (email, name, role_id, entity_id, is_active, provider, created_by)
        VALUES ($1, $2, $3, $4, true, 'google', $5)
        RETURNING id, email, name, role_id, entity_id, is_active, created_at`,
-      [email, name, role_id, entity_id || null, session.user.email]
+      [email, name, role_id, finalEntityId || null, session.user.email]
     );
 
     // Log audit event
@@ -157,7 +165,8 @@ export async function POST(request: NextRequest) {
           new_user_email: email,
           new_user_name: name,
           role_id,
-          entity_id,
+          entity_id: finalEntityId,
+          auto_assigned_entity: roleCode === 'admin_dta' && !entity_id,
         }),
       ]
     );

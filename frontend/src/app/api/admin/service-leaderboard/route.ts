@@ -100,7 +100,14 @@ export async function GET(request: NextRequest) {
         COALESCE(sr.completed_count, 0) as completed_count,
         COALESCE(sr.rejected_count, 0) as rejected_count,
         COALESCE(sr.completion_rate, 0) as completion_rate,
-        -- Calculate overall score (weighted average)
+        -- Calculate overall score (weighted average) - Scale: 0-10
+        -- Formula breakdown:
+        --   1. Customer Satisfaction (40% weight): avg_satisfaction * 0.4 (max 2.0 points from 5.0 rating)
+        --   2. Completion Rate (25% weight): completion_rate / 20 (max 5.0 points from 100% completion)
+        --   3. Grievance Penalty (35% weight): 5 - (grievance_rate * 5) (max 5.0 points, reduced by grievance rate)
+        --      where grievance_rate = grievance_count / feedback_count
+        -- Total possible score: 2.0 + 5.0 + 5.0 = 12.0, but practically 0-10 range
+        -- Higher scores indicate better service performance
         ROUND(
           (
             COALESCE(sf.avg_satisfaction, 0) * 0.4 +
@@ -132,11 +139,11 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(f.q5_overall_satisfaction)::numeric, 2) as avg_satisfaction
       FROM service_master s
       JOIN entity_master e ON s.entity_id = e.unique_entity_id
-      LEFT JOIN service_feedback f ON s.service_id = f.service_id
+      INNER JOIN service_feedback f ON s.service_id = f.service_id
       ${whereClause}
       GROUP BY s.service_id, s.service_name, e.entity_name, e.unique_entity_id
-      HAVING COUNT(f.feedback_id) >= 5
-      ORDER BY avg_satisfaction DESC
+      HAVING COUNT(f.feedback_id) > 0
+      ORDER BY avg_satisfaction DESC, feedback_count DESC
       LIMIT 5
     `;
 

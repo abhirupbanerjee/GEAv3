@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+
 interface ServiceLeaderboardProps {
   services: Array<{
     service_id: string
@@ -19,6 +21,7 @@ interface ServiceLeaderboardProps {
 
 export default function ServiceLeaderboard({ services, title, type }: ServiceLeaderboardProps) {
   const isTop = type === 'top'
+  const [showScoreInfo, setShowScoreInfo] = useState(false)
 
   if (!services || services.length === 0) {
     return (
@@ -33,12 +36,41 @@ export default function ServiceLeaderboard({ services, title, type }: ServiceLea
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <div className={`text-2xl ${isTop ? 'text-green-600' : 'text-red-600'}`}>
-          {isTop ? '🏆' : '⚠️'}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <div className={`text-2xl ${isTop ? 'text-green-600' : 'text-red-600'}`}>
+            {isTop ? '🏆' : '⚠️'}
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
         </div>
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
+
+        {/* Score Info Button */}
+        <button
+          onClick={() => setShowScoreInfo(!showScoreInfo)}
+          className="text-blue-600 hover:text-blue-800 transition-colors"
+          title="How is the score calculated?"
+        >
+          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+          </svg>
+        </button>
       </div>
+
+      {/* Score Calculation Info */}
+      {showScoreInfo && (
+        <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+          <h4 className="font-semibold text-blue-900 mb-2">Overall Score Calculation (0-10 scale)</h4>
+          <div className="text-blue-800 space-y-1">
+            <p><strong>1. Customer Satisfaction (40%):</strong> Average rating × 0.4 (max 2.0 points)</p>
+            <p><strong>2. Completion Rate (25%):</strong> Completion % ÷ 20 (max 5.0 points)</p>
+            <p><strong>3. Grievance Penalty (35%):</strong> 5 - (grievance rate × 5) (max 5.0 points)</p>
+            <p className="mt-2 pt-2 border-t border-blue-300">
+              <strong>Example:</strong> A service with 4.5/5 satisfaction, 80% completion, and 10% grievances scores:<br/>
+              (4.5 × 0.4) + (80 ÷ 20) + (5 - 0.1 × 5) = 1.8 + 4.0 + 4.5 = <strong>10.3 ≈ 10</strong>
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4">
         {services.map((service, index) => {

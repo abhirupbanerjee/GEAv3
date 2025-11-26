@@ -163,13 +163,12 @@ export default function AnalyticsPage() {
         setTicketStats(ticketsData.data)
       }
 
-      // Fetch service leaderboard (admin only)
-      if (isAdmin) {
-        const leaderboardResponse = await fetch(`/api/admin/service-leaderboard${entityParam}`)
-        if (leaderboardResponse.ok) {
-          const leaderboardResponseData = await leaderboardResponse.json()
-          setLeaderboardData(leaderboardResponseData)
-        }
+      // Fetch service leaderboard (both admin and staff)
+      // For staff, the API automatically filters by their entity
+      const leaderboardResponse = await fetch(`/api/admin/service-leaderboard${entityParam}`)
+      if (leaderboardResponse.ok) {
+        const leaderboardResponseData = await leaderboardResponse.json()
+        setLeaderboardData(leaderboardResponseData)
       }
 
     } catch (err) {
@@ -629,13 +628,16 @@ export default function AnalyticsPage() {
           </div>
         )}
 
-        {/* Service Leaderboard Section (Admin Only) */}
-        {isAdmin && leaderboardData && (
+        {/* Service Leaderboard Section */}
+        {leaderboardData && (
           <div className="mb-8">
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Service Performance Leaderboard</h2>
               <p className="text-gray-600">
-                Top and bottom performing services based on customer satisfaction, completion rates, and feedback
+                {isStaff
+                  ? 'Top and bottom performing services for your organization based on customer satisfaction, completion rates, and feedback'
+                  : 'Top and bottom performing services based on customer satisfaction, completion rates, and feedback'
+                }
               </p>
             </div>
 

@@ -51,12 +51,15 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Handle entity filtering (single entity for staff, optional for admin)
+    // Handle entity filtering (single entity for staff, multiple for admin)
     if (entityIdParam && entityIdParam.trim()) {
-      // For staff users, entityFilter will be set and override the param
-      // For admin users, they can optionally filter by entity_id
-      conditions.push(`f.entity_id = $${paramIndex++}`);
-      params.push(entityIdParam);
+      // Handle multiple entity IDs (comma-separated) for admin
+      const entityIds = entityIdParam.split(',').filter(Boolean);
+      if (entityIds.length > 0) {
+        const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+        conditions.push(`f.entity_id IN (${placeholders})`);
+        params.push(...entityIds);
+      }
     }
 
     if (startDate) {
