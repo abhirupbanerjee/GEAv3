@@ -58,41 +58,42 @@ export function DashboardStats({ stats, isLoading }: DashboardStatsProps) {
         </div>
       </div>
 
-      {/* Status Breakdown */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Distribution</h3>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {Object.entries(stats.status_breakdown).map(([code, statusData]) => (
-            <div key={code} className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{statusData.count}</div>
-              <div className="text-sm text-gray-600 mt-1">{statusData.name}</div>
-              {statusData.color && (
+      {/* Status and Priority Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Status Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Status Distribution</h3>
+          <div className="flex flex-wrap justify-around gap-6">
+            {Object.entries(stats.status_breakdown).map(([code, statusData]) => (
+              <div key={code} className="flex flex-col items-center">
                 <div
-                  className="mt-2 mx-auto h-2 w-12 rounded-full"
-                  style={{ backgroundColor: statusData.color }}
-                />
-              )}
-            </div>
-          ))}
+                  className="w-16 h-16 rounded-lg flex items-center justify-center text-white font-bold text-xl shadow-md mb-2"
+                  style={{ backgroundColor: statusData.color || '#6B7280' }}
+                >
+                  {statusData.count}
+                </div>
+                <div className="text-sm text-gray-700 font-medium text-center">{statusData.name}</div>
+              </div>
+            ))}
+          </div>
         </div>
-      </div>
 
-      {/* Priority Breakdown */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Priority Distribution</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          {Object.entries(stats.priority_breakdown).map(([code, priorityData]) => (
-            <div key={code} className="text-center">
-              <div className="text-2xl font-bold text-gray-900">{priorityData.count}</div>
-              <div className="text-sm text-gray-600 mt-1 capitalize">{priorityData.name}</div>
-              {priorityData.color && (
+        {/* Priority Distribution */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <h3 className="text-lg font-semibold text-gray-900 mb-6">Priority Distribution</h3>
+          <div className="flex flex-wrap justify-around gap-6">
+            {Object.entries(stats.priority_breakdown).map(([code, priorityData]) => (
+              <div key={code} className="flex flex-col items-center">
                 <div
-                  className="mt-2 mx-auto h-2 w-12 rounded-full"
-                  style={{ backgroundColor: priorityData.color }}
-                />
-              )}
-            </div>
-          ))}
+                  className="w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-xl shadow-md mb-2"
+                  style={{ backgroundColor: priorityData.color || '#6B7280' }}
+                >
+                  {priorityData.count}
+                </div>
+                <div className="text-sm text-gray-700 font-medium text-center capitalize">{priorityData.name}</div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

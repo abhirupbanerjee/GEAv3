@@ -10,7 +10,6 @@ import React, { useState, useEffect } from 'react'
 import { useTicketDetail } from '@/hooks/useTicketDetail'
 import { useTicketUpdate } from '@/hooks/useTicketUpdate'
 import { ActivityTimeline } from './ActivityTimeline'
-import { CommentSection } from './CommentSection'
 
 interface TicketDetailModalProps {
   ticketId: number
@@ -24,6 +23,7 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
 
   const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null)
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(null)
+  const [internalNote, setInternalNote] = useState<string>('')
   const [hasChanges, setHasChanges] = useState(false)
 
   // Debug logging
@@ -56,9 +56,10 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
     if (ticket) {
       const statusChanged = selectedStatusId !== ticket.status.id
       const priorityChanged = selectedPriorityId !== ticket.priority.id
-      setHasChanges(statusChanged || priorityChanged)
+      const hasNote = internalNote.trim().length > 0
+      setHasChanges(statusChanged || priorityChanged || hasNote)
     }
-  }, [selectedStatusId, selectedPriorityId, ticket])
+  }, [selectedStatusId, selectedPriorityId, internalNote, ticket])
 
   const handleSaveChanges = async () => {
     if (!ticket || !hasChanges) {
@@ -66,10 +67,19 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
       return
     }
 
-    const payload = {
-      status_id: selectedStatusId !== ticket.status.id ? selectedStatusId! : undefined,
-      priority_id: selectedPriorityId !== ticket.priority.id ? selectedPriorityId! : undefined,
+    const payload: any = {
       performed_by: 'admin' // TODO: Get from session
+    }
+
+    // Only include changed fields
+    if (selectedStatusId !== ticket.status.id) {
+      payload.status_id = selectedStatusId
+    }
+    if (selectedPriorityId !== ticket.priority.id) {
+      payload.priority_id = selectedPriorityId
+    }
+    if (internalNote.trim().length > 0) {
+      payload.internal_note = internalNote.trim()
     }
 
     console.log('Attempting to save ticket update:', {
@@ -85,6 +95,9 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
       const result = await updateTicket(ticketId, payload)
       console.log('Ticket update successful:', result)
 
+      // Clear the note input after successful save
+      setInternalNote('')
+
       // Refresh data
       await mutate()
       onUpdate()
@@ -95,20 +108,6 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
     }
   }
 
-  const handleAddNote = async (noteText: string) => {
-    try {
-      await updateTicket(ticketId, {
-        internal_note: noteText,
-        performed_by: 'admin' // TODO: Get from session
-      })
-
-      // Refresh data
-      await mutate()
-      onUpdate()
-    } catch (error) {
-      throw error // Let CommentSection handle the error
-    }
-  }
 
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A'
@@ -216,10 +215,10 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
                   </div>
                 </div>
 
-                {/* Status & Priority Update */}
+                {/* Update Status, Priority & Add Note */}
                 <div>
-                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Update Status & Priority</h4>
-                  <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="text-sm font-semibold text-gray-900 mb-3">Update Ticket</h4>
+                  <div className="bg-gray-50 rounded-lg p-4 space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-xs font-medium text-gray-500 mb-2">Status</label>
@@ -256,12 +255,26 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
                         </select>
                       </div>
                     </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-2">
+                        Add Internal Note <span className="text-gray-400">(Optional)</span>
+                      </label>
+                      <textarea
+                        value={internalNote}
+                        onChange={(e) => setInternalNote(e.target.value)}
+                        placeholder="Add an internal note about this update..."
+                        rows={3}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      />
+                    </div>
+
                     {hasChanges && (
-                      <div className="mt-3">
+                      <div>
                         <button
                           onClick={handleSaveChanges}
                           disabled={isUpdating}
-                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {isUpdating ? 'Saving...' : 'Save Changes'}
                         </button>
@@ -303,11 +316,6 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
                     </div>
                   </div>
                 )}
-
-                {/* Add Internal Note */}
-                <div>
-                  <CommentSection onAddNote={handleAddNote} isSubmitting={isUpdating} />
-                </div>
 
                 {/* Activity Timeline */}
                 <div>

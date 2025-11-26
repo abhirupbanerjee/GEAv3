@@ -33,7 +33,7 @@ export function TicketDashboard() {
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
 
   // Data fetching
-  const { stats, isLoading: statsLoading } = useDashboardStats(filters.entity_id || undefined)
+  const { stats, isLoading: statsLoading, mutate: refreshStats } = useDashboardStats(filters.entity_id || undefined)
   const {
     tickets,
     pagination,
@@ -72,11 +72,15 @@ export function TicketDashboard() {
 
   const handleCloseModal = () => {
     setSelectedTicketId(null)
+    // Refresh tickets list and stats when modal closes to ensure any updates are reflected
+    refreshTickets()
+    refreshStats()
   }
 
   const handleTicketUpdate = () => {
     // Refresh both tickets list and stats after update
     refreshTickets()
+    refreshStats()
   }
 
   return (
