@@ -143,6 +143,20 @@ Successfully implemented a context-aware AI bot system that sends real-time UI s
     timestamp: 1705312456789,
     changeType: 'modal' | 'edit' | 'tab' | 'form' | 'navigation',
 
+    // Current user session (always present)
+    user: {
+      id: 'user-123',
+      name: 'John Doe',
+      email: 'john@example.com',
+      role: 'staff',  // 'admin' | 'staff' | 'public'
+      roleName: 'Staff',
+      entity: {
+        id: 5,
+        name: 'Ministry of Finance'
+      },
+      isAuthenticated: true
+    },
+
     // Present when modal is open
     modal: {
       type: 'view-ticket',
@@ -193,12 +207,47 @@ The implementation works alongside the existing page context system:
 
 | System | Purpose | Update Frequency |
 |--------|---------|------------------|
-| **Page Context API** (`/api/content/page-context`) | Static page metadata from @pageContext JSDoc | On build |
-| **ChatContextProvider** (this implementation) | Dynamic UI state (modal, edit, tab, form) | Real-time |
+| **Page Context API** (`/api/content/page-context`) | Static page metadata from @pageContext JSDoc (including page audience) | On build |
+| **ChatContextProvider** (this implementation) | Dynamic UI state (modal, edit, tab, form) + Current user session | Real-time |
 
-The AI Bot should combine both:
-1. Call `GET /api/content/page-context?route=/admin/tickets` for static info
-2. Listen for `CONTEXT_UPDATE` postMessage for dynamic state
+The AI Bot receives **both** types of context:
+
+1. **Static Page Context** (from API):
+   - `audience`: Page's intended audience ('public' | 'staff' | 'admin')
+   - `title`, `purpose`, `features`, `steps`, `permissions`, etc.
+
+2. **Dynamic Context** (from postMessage):
+   - `user`: **Actual logged-in user's role and info** ('admin' | 'staff' | 'public')
+   - Real-time UI state (modal, edit, tab, form)
+
+### Example: Understanding User vs Page Audience
+
+```typescript
+// Static page context (from API)
+{
+  route: "/admin/tickets",
+  audience: "staff",  // This page is for staff users
+  permissions: {
+    staff: "Can view tickets for their entity",
+    admin: "Can view all tickets"
+  }
+}
+
+// Dynamic context (from postMessage)
+{
+  route: "/admin/tickets",
+  user: {
+    role: "admin",  // Current user is an admin
+    name: "Jane Smith",
+    entity: null  // Admins don't belong to a specific entity
+  }
+}
+```
+
+The AI Bot can now provide personalized responses:
+- **Page audience** tells what the page is designed for
+- **User role** tells who is actually using it
+- Bot can adapt responses based on user's actual permissions
 
 ---
 

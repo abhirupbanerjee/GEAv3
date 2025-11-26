@@ -26,6 +26,7 @@
 
 The GEA Portal integrates an AI-powered chatbot that provides context-aware assistance to users. The bot understands:
 
+- **Who the user is** - Role (admin/staff/public), name, entity
 - **What page** the user is viewing
 - **What action** they're performing (viewing ticket, editing user, etc.)
 - **Where they are** in a multi-step process
@@ -33,8 +34,8 @@ The GEA Portal integrates an AI-powered chatbot that provides context-aware assi
 
 This is achieved through a **dual-channel approach**:
 
-1. **Static Page Context** - Pre-built metadata about each page
-2. **Dynamic UI Context** - Real-time state updates via postMessage
+1. **Static Page Context** - Pre-built metadata about each page (including intended audience)
+2. **Dynamic UI Context** - Real-time state updates via postMessage (including current user session)
 
 ---
 
@@ -64,6 +65,7 @@ This is achieved through a **dual-channel approach**:
 │  │  │ ChatContextProvider │ (React Context)                        │ │
 │  │  │                     │                                         │ │
 │  │  │  State Tracking:    │                                         │ │
+│  │  │  • user (session)   │                                         │ │
 │  │  │  • route            │                                         │ │
 │  │  │  • modal            │                                         │ │
 │  │  │  • edit             │                                         │ │
@@ -306,6 +308,19 @@ export interface PageContext {
   timestamp: number;                 // 1705312456789
   changeType: 'modal' | 'edit' | 'tab' | 'form' | 'navigation';
 
+  user?: {
+    id: string | number;             // "user-123"
+    name?: string;                   // "John Doe"
+    email?: string;                  // "john@example.com"
+    role: 'admin' | 'staff' | 'public';  // "staff"
+    roleName?: string;               // "Staff"
+    entity?: {
+      id: number;                    // 5
+      name: string;                  // "Ministry of Finance"
+    };
+    isAuthenticated: boolean;        // true
+  };
+
   modal?: {
     type: string;                    // "view-ticket"
     title?: string;                  // "Ticket Details"
@@ -481,6 +496,18 @@ useEffect(() => () => clearForm(), []);
     "route": "/admin/tickets",
     "timestamp": 1705312456789,
     "changeType": "modal",
+    "user": {
+      "id": "staff-42",
+      "name": "Jane Smith",
+      "email": "jane@finance.gov.gd",
+      "role": "staff",
+      "roleName": "Staff",
+      "entity": {
+        "id": 5,
+        "name": "Ministry of Finance"
+      },
+      "isAuthenticated": true
+    },
     "modal": {
       "type": "view-ticket",
       "title": "Ticket Details",
@@ -509,7 +536,12 @@ useEffect(() => () => clearForm(), []);
   "context": {
     "route": "/feedback",
     "changeType": "navigation",
-    "timestamp": 1705312456789
+    "timestamp": 1705312456789,
+    "user": {
+      "id": "guest",
+      "role": "public",
+      "isAuthenticated": false
+    }
   }
 }
 ```

@@ -9,6 +9,7 @@ import React, {
   ReactNode
 } from 'react';
 import { usePathname } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { config } from '@/config/env';
 import type {
   PageContext,
@@ -16,6 +17,7 @@ import type {
   EditContext,
   TabContext,
   FormContext,
+  UserSessionContext,
   ContextUpdateMessage
 } from '@/types/chat-context';
 
@@ -67,10 +69,43 @@ interface ChatContextProviderProps {
 
 export function ChatContextProvider({ children }: ChatContextProviderProps) {
   const pathname = usePathname();
+  const { data: session, status } = useSession();
+
+  // Convert NextAuth session to UserSessionContext
+  const getUserContext = useCallback((): UserSessionContext | null => {
+    if (status === 'loading') return null;
+
+    if (!session?.user) {
+      // Unauthenticated user
+      return {
+        id: 'guest',
+        role: 'public',
+        isAuthenticated: false,
+      };
+    }
+
+    // Authenticated user
+    const user = session.user as any;
+    return {
+      id: user.id || user.email || 'unknown',
+      name: user.name || undefined,
+      email: user.email || undefined,
+      role: user.role_name?.toLowerCase() === 'admin' ? 'admin'
+            : user.role_name?.toLowerCase() === 'staff' ? 'staff'
+            : 'public',
+      roleName: user.role_name || undefined,
+      entity: user.entity_id && user.entity_name ? {
+        id: user.entity_id,
+        name: user.entity_name,
+      } : undefined,
+      isAuthenticated: true,
+    };
+  }, [session, status]);
 
   // Initialize context state
   const [context, setContext] = useState<PageContext>({
     route: pathname,
+    user: getUserContext(),
     timestamp: Date.now(),
     changeType: 'navigation',
   });
@@ -104,6 +139,11 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
 
       console.log('[ChatContext] Sent:', newContext.changeType, {
         route: newContext.route,
+        user: newContext.user ? {
+          role: newContext.user.role,
+          name: newContext.user.name,
+          authenticated: newContext.user.isAuthenticated,
+        } : null,
         modal: newContext.modal?.type,
         edit: newContext.edit?.entityType,
         tab: newContext.tab?.activeTab,
@@ -113,6 +153,28 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
       console.error('[ChatContext] Failed to send:', error);
     }
   }, []);
+
+  // ──────────────────────────────────────────────────────────────────────────
+  // Handle Session Changes
+  // ──────────────────────────────────────────────────────────────────────────
+
+  useEffect(() => {
+    setContext(prev => {
+      const newContext: PageContext = {
+        ...prev,
+        user: getUserContext(),
+        timestamp: Date.now(),
+        changeType: prev.changeType, // Keep current change type
+      };
+
+      // Only send if session has loaded (not during initial loading)
+      if (status !== 'loading') {
+        setTimeout(() => sendContextToBot(newContext), 0);
+      }
+
+      return newContext;
+    });
+  }, [session, status, getUserContext, sendContextToBot]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Handle Route Changes (Navigation)
@@ -127,6 +189,7 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
           : undefined,
         // Reset modal and edit on navigation
         route: pathname,
+        user: prev.user, // Keep user context
         modal: null,
         edit: null,
         // Keep tab if navigating within same section

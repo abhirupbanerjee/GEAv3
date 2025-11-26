@@ -76,6 +76,30 @@ export interface FormContext {
 }
 
 // ============================================================================
+// User Session Context
+// ============================================================================
+
+export interface UserSessionContext {
+  /** User ID */
+  id: string | number;
+  /** User's full name */
+  name?: string;
+  /** User's email */
+  email?: string;
+  /** User's role (admin, staff, or public/unauthenticated) */
+  role: 'admin' | 'staff' | 'public';
+  /** Role display name */
+  roleName?: string;
+  /** Entity the user belongs to (for staff users) */
+  entity?: {
+    id: number;
+    name: string;
+  };
+  /** Whether user is authenticated */
+  isAuthenticated: boolean;
+}
+
+// ============================================================================
 // Full Page Context
 // ============================================================================
 
@@ -87,6 +111,10 @@ export interface PageContext {
   pageTitle?: string;
   /** Page description */
   pageDescription?: string;
+
+  // User information
+  /** Current user session data */
+  user?: UserSessionContext | null;
 
   // UI State
   /** Currently open modal, if any */

@@ -15,10 +15,11 @@ Complete digital portal system with:
 - **Native Ticketing System** - Citizen grievances and EA service requests with SLA tracking
 - **Admin Portal** - Ticket management, analytics, and master data administration
 - **Staff Portal** - Entity-specific access for ministry/department officers
-- **AI Chatbot Integration** - Centralized AI bot inventory and management
+- **Context-Aware AI Assistant** - Real-time UI state tracking with intelligent, context-aware help
+- **AI Bot Integration** - Centralized bot inventory and iframe-based chat interface
 - **OAuth Authentication** - Google & Microsoft sign-in with role-based access control
 
-**Status:** ✅ Production-ready | **Version:** 3.0 (Phase 2b + Authentication)
+**Status:** ✅ Production-ready | **Version:** 3.0 (Phase 2b + Context-Aware AI)
 
 ---
 
@@ -111,7 +112,8 @@ gogeaportal/v3/
 │       ├── API_REFERENCE.md               # All API endpoints
 │       ├── DATABASE_REFERENCE.md          # Database schema & setup
 │       ├── AUTHENTICATION.md              # OAuth setup & configuration
-│       └── ai-bots-management.md          # AI bot inventory management
+│       ├── ai-bots-management.md          # AI bot inventory management
+│       └── AI_BOT_PORTAL_INTEGRATION.md   # Context-aware AI bot integration guide
 │
 ├── 🗄️ Database
 │   └── database/
@@ -152,15 +154,16 @@ gogeaportal/v3/
         │
         └── src/
             ├── app/
-            │   ├── api/                   # API Routes (32+ endpoints)
+            │   ├── api/                   # API Routes (35+ endpoints)
             │   │   ├── auth/              # NextAuth endpoints
+            │   │   ├── content/           # Page context API (for AI bot)
             │   │   ├── feedback/          # Service feedback APIs
             │   │   ├── tickets/           # Public ticket APIs
             │   │   ├── helpdesk/          # Ticket lookup APIs
             │   │   ├── admin/             # Admin management APIs
             │   │   └── managedata/        # Master data CRUD
             │   │
-            │   ├── layout.tsx             # Root layout
+            │   ├── layout.tsx             # Root layout (with ChatContextProvider)
             │   ├── page.tsx               # Home page
             │   ├── about/                 # About page
             │   ├── auth/                  # Sign-in & error pages
@@ -170,9 +173,19 @@ gogeaportal/v3/
             │   └── feedback/              # Feedback forms
             │
             ├── components/                # React components
+            │   ├── ChatBot.tsx            # AI bot iframe with context tracking
             │   ├── layout/                # Header, Footer, Navigation
             │   ├── home/                  # Homepage components
             │   └── admin/                 # Admin UI components
+            │
+            ├── providers/                 # React Context providers
+            │   └── ChatContextProvider.tsx # AI bot context management
+            │
+            ├── hooks/                     # Custom React hooks
+            │   └── useChatContext.ts      # Hook for AI bot context
+            │
+            ├── types/                     # TypeScript type definitions
+            │   └── chat-context.ts        # AI bot context types
             │
             ├── lib/                       # Utilities & configurations
             │   ├── auth.ts                # NextAuth configuration
@@ -402,11 +415,114 @@ sudo ufw enable
 - Email whitelist authorization
 
 ### AI Integration ✅
-- Centralized AI bot inventory
-- File-based bot configuration
-- Category-based organization
-- Status tracking (active/planned)
-- Iframe preview capability
+- **Context-Aware AI Assistant** - Real-time UI state tracking
+- **Dual-Channel Context System:**
+  - Static page metadata (build-time generation from JSDoc)
+  - Dynamic UI state (real-time postMessage updates)
+- **Intelligent Context Tracking:**
+  - Modal awareness (knows what ticket/user you're viewing)
+  - Tab switching detection (tracks active tab)
+  - Form progress monitoring (tracks completion status)
+  - Edit mode tracking (knows what you're editing)
+- **Page Context API** - `/api/content/page-context` endpoint
+- **Type-Safe Implementation** - Full TypeScript coverage
+- Centralized AI bot inventory and management
+- Iframe-based chat interface with postMessage communication
+
+---
+
+## 🤖 Context-Aware AI Assistant
+
+The portal features an intelligent AI assistant that understands exactly what users are doing in real-time.
+
+### How It Works
+
+**Dual-Channel Context System:**
+
+1. **Static Page Context (Build-Time)**
+   ```typescript
+   /**
+    * @pageContext
+    * @title Ticket Management Dashboard
+    * @purpose View and manage support tickets
+    * @steps
+    *   - Review statistics
+    *   - Use filters
+    *   - Click ticket to view details
+    */
+   ```
+   - Extracted from `@pageContext` JSDoc tags
+   - Generated at build time into JSON
+   - Served via `/api/content/page-context` endpoint
+
+2. **Dynamic UI Context (Real-Time)**
+   ```typescript
+   // When user opens ticket modal
+   openModal('view-ticket', {
+     entityId: 'TKT-2025-001',
+     entityName: 'Passport Issue',
+     data: { status: 'Open', priority: 'High' }
+   });
+   // AI bot receives update via postMessage
+   ```
+
+### What the AI Knows
+
+- ✅ **Current page** - Route, title, purpose, features
+- ✅ **Active modal** - Type, entity details, data
+- ✅ **Edit state** - What entity is being edited
+- ✅ **Active tab** - Which tab in tabbed interfaces
+- ✅ **Form progress** - Completed/pending fields
+
+### Integration Points
+
+Pages integrated with context tracking:
+- `/admin/tickets` - Modal tracking for ticket details
+- `/admin/users` - Modal tracking for user add/edit
+- `/admin/managedata` - Tab switching (entities/services/QR codes)
+- `/feedback` - Form progress tracking (service selection, ratings)
+
+### Example AI Interaction
+
+**User Context:**
+- Viewing ticket TKT-2025-001
+- Status: Open, Priority: High
+- Subject: Passport Issue
+
+**User asks:** "What should I do next?"
+
+**AI Response:**
+> Based on the ticket you're viewing (TKT-2025-001: Passport Issue), here's what you should do next:
+> 1. **Update status** - Change from Open to In Progress
+> 2. **Check SLA** - High priority tickets need response within 24 hours
+> 3. **Add notes** - Document your actions (internal notes only)
+
+### For Developers
+
+**Using Context in Components:**
+```typescript
+import { useChatContext } from '@/hooks/useChatContext';
+
+function MyComponent() {
+  const { openModal, closeModal, switchTab } = useChatContext();
+
+  const handleView = (item) => {
+    openModal('view-item', {
+      entityType: 'ticket',
+      entityId: item.id,
+      entityName: item.subject,
+      data: { status: item.status }
+    });
+  };
+
+  return <button onClick={() => handleView(item)}>View</button>;
+}
+```
+
+**Complete Documentation:**
+- [AI Bot Portal Integration Guide](docs/AI_BOT_PORTAL_INTEGRATION.md)
+- [Context Bot Quick Reference](CONTEXT_BOT_QUICK_REFERENCE.md)
+- [Testing Guide](CONTEXT_AWARE_BOT_TESTING.md)
 
 ---
 
@@ -589,13 +705,15 @@ Before going live:
 ## 📊 Project Statistics
 
 ### Current Implementation
-- **Total API Endpoints:** 35+ (public + admin + auth)
+- **Total API Endpoints:** 37+ (public + admin + auth + context)
 - **Database Tables:** 23 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
-- **Lines of Code:** ~20,000+
+- **Lines of Code:** ~22,000+
 - **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
 - **Authentication Providers:** 2 (Google, Microsoft)
+- **AI Integration:** Context-aware assistant with real-time tracking
+- **Page Context Coverage:** 22 pages, 100% documented
 
 ### Performance
 - **Build Time:** ~3-5 minutes (first build)
@@ -608,10 +726,11 @@ Before going live:
 ## 🎓 Learning Resources
 
 ### For Developers
-1. Review API documentation: `docs/API_REFERENCE.md`
-2. Study database schema: `docs/DATABASE_REFERENCE.md`
-3. Explore source code in `frontend/src/app/api/`
-4. Check validation schemas in `frontend/src/lib/schemas/`
+1. Review UI modification guide: `docs/developer-guides/UI_MODIFICATION_GUIDE.md`
+2. Review API documentation: `docs/API_REFERENCE.md`
+3. Study database schema: `docs/DATABASE_REFERENCE.md`
+4. Explore source code in `frontend/src/app/api/`
+5. Check validation schemas in `frontend/src/lib/schemas/`
 
 ### For DevOps/SysAdmin
 1. Follow deployment guide in this README
@@ -635,8 +754,9 @@ Before going live:
 ---
 
 
-**Last Updated:** November 25, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
-** Note: ** This project has been co-developed with AI (Claude) for documentation, generation of synthetic data and test scenarios. 
+**Last Updated:** November 26, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
+
+**Note:** This project has been co-developed with AI (Claude) for documentation, code implementation, generation of synthetic data, and test scenarios. The context-aware AI assistant feature was implemented with full AI assistance. 
 ---
 
 ## Quick Links
@@ -646,7 +766,10 @@ Before going live:
 - 🔌 [API Reference](docs/API_REFERENCE.md)
 - 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
 - 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
-- 🤖 [AI Bots Management](docs/ai-bots-management.md)
+- 🤖 [**AI Bot Integration**](docs/AI_BOT_PORTAL_INTEGRATION.md) - Context-aware assistant guide
+- 📋 [AI Bots Management](docs/ai-bots-management.md)
+- ⚡ [Context Bot Quick Reference](CONTEXT_BOT_QUICK_REFERENCE.md)
+- 🧪 [AI Bot Testing Guide](CONTEXT_AWARE_BOT_TESTING.md)
 
 ---
 
@@ -657,7 +780,10 @@ Before going live:
 - [Complete Documentation Index](docs/index.md) - Overview of all features and roadmap
 
 ### For Developers
+- [UI Modification Guide](docs/developer-guides/UI_MODIFICATION_GUIDE.md) - Complete guide for UI development and customization
 - [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
+- [AI Bot Integration](docs/AI_BOT_PORTAL_INTEGRATION.md) - Context-aware assistant implementation
+- [Context Bot Quick Reference](CONTEXT_BOT_QUICK_REFERENCE.md) - Quick API reference
 - [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
 - [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
 

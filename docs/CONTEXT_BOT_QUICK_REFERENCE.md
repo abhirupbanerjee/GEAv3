@@ -194,6 +194,19 @@ function MyForm() {
     timestamp: 1234567890,
     changeType: 'modal' | 'edit' | 'tab' | 'form' | 'navigation' | 'custom',
 
+    user?: {
+      id: string | number,
+      name?: string,
+      email?: string,
+      role: 'admin' | 'staff' | 'public',
+      roleName?: string,
+      entity?: {
+        id: number,
+        name: string
+      },
+      isAuthenticated: boolean
+    },
+
     modal?: {
       type: string,
       title?: string,

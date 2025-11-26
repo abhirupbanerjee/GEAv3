@@ -2,9 +2,39 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.0  
-**Last Updated:** November 2025  
+**Version:** 1.0
+**Last Updated:** November 2025
 **Audience:** Digital Transformation Agency (DTA) Administrators
+
+---
+
+## Applicable Portal Pages
+
+This manual covers the following pages accessible to DTA administrators (requires admin login):
+
+### Admin-Only Pages
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Admin Dashboard** | `/admin` or `/admin/home` | Main administrator dashboard |
+| **Ticket Management** | `/admin/tickets` | Manage all tickets across entities |
+| **User Management** | `/admin/users` | Create and manage user accounts |
+| **Master Data Management** | `/admin/managedata` | Manage entities, services, QR codes |
+| **Analytics Dashboard** | `/admin/analytics` | System-wide analytics with entity filtering |
+| **Service Requests** | `/admin/service-requests` | EA service request management |
+| **Service Request Analytics** | `/admin/service-requests/analytics` | Detailed service request metrics |
+| **AI Bot Inventory** | `/admin/ai-inventory` | Manage AI chatbot integrations |
+
+### Public Pages (Also Available to Admins)
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Home** | `/` | Portal homepage |
+| **About** | `/about` | Information about the portal |
+| **Services** | `/services` | Browse government services |
+| **Submit Feedback** | `/feedback` | Rate government services |
+| **Check Ticket Status** | `/helpdesk` | Public ticket lookup |
+| **Sign In** | `/auth/signin` | OAuth authentication page |
+
+**Note:** Administrators have full access to all entities and system-wide features. This is the highest level of access in the portal.
 
 ---
 

@@ -2,9 +2,34 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.0  
-**Last Updated:** November 2025  
+**Version:** 1.0
+**Last Updated:** November 2025
 **Audience:** Ministry, Department, and Agency (MDA) Staff Officers
+
+---
+
+## Applicable Portal Pages
+
+This manual covers the following pages accessible to MDA staff (requires login):
+
+### Staff-Specific Pages
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Staff Dashboard** | `/admin/staff/home` | Your personalized staff dashboard |
+| **Ticket Management** | `/admin/tickets` | Manage tickets for your entity only |
+| **Analytics** | `/admin/analytics` | View analytics for your entity |
+
+### Public Pages (Also Available to Staff)
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Home** | `/` | Portal homepage |
+| **About** | `/about` | Information about the portal |
+| **Services** | `/services` | Browse government services |
+| **Submit Feedback** | `/feedback` | Rate government services |
+| **Check Ticket Status** | `/helpdesk` | Public ticket lookup |
+| **Sign In** | `/auth/signin` | OAuth authentication page |
+
+**Note:** Staff users see data filtered to their assigned entity only. For full admin features (all entities, user management, master data), see the Admin user manual.
 
 ---
 

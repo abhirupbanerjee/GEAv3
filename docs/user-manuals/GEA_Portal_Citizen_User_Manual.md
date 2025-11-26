@@ -2,9 +2,27 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.0  
-**Last Updated:** November 2025  
+**Version:** 1.0
+**Last Updated:** November 2025
 **Audience:** Citizens, Businesses, Tourists, and General Public
+
+---
+
+## Applicable Portal Pages
+
+This manual covers the following public pages (no login required):
+
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Home** | `/` | Portal homepage and overview |
+| **About** | `/about` | Information about the portal and GEA initiative |
+| **Services** | `/services` | Browse government services directory |
+| **Submit Feedback** | `/feedback` | Rate and provide feedback on government services |
+| **QR Feedback** | `/feedback/qr` | Quick feedback via QR code scan |
+| **Check Ticket Status** | `/helpdesk` | Look up your grievance/ticket by number |
+| **Ticket Details** | `/helpdesk/ticket/[number]` | View specific ticket details and status |
+
+**Note:** Staff and admin features (such as `/admin/*` pages) are not covered in this manual. See the Staff or Admin user manuals for those features.
 
 ---
 

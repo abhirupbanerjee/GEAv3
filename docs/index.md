@@ -200,6 +200,18 @@ gogeaportal/v3/
 | [../.env.example](../.env.example) | Environment configuration template | 10 min |
 | [../README.md](../README.md) | Project overview | 10 min |
 
+### Developer Guides
+| Document | Purpose | Read Time |
+|----------|---------|-----------|
+| [developer-guides/UI_MODIFICATION_GUIDE.md](developer-guides/UI_MODIFICATION_GUIDE.md) | **Complete UI development guide** - Adding pages, modifying analytics, customizing leaderboards | 45 min |
+
+### User Manuals
+| Document | Audience | Read Time |
+|----------|----------|-----------|
+| [user-manuals/GEA_Portal_Admin_User_Manual.md](user-manuals/GEA_Portal_Admin_User_Manual.md) | DTA Administrators | 60 min |
+| [user-manuals/GEA_Portal_Staff_User_Manual.md](user-manuals/GEA_Portal_Staff_User_Manual.md) | MDA Staff Officers | 45 min |
+| [user-manuals/GEA_Portal_Citizen_User_Manual.md](user-manuals/GEA_Portal_Citizen_User_Manual.md) | Citizens and Public Users | 30 min |
+
 ### Reference Documentation
 | File | Purpose |
 |------|---------|
