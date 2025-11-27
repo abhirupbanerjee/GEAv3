@@ -592,19 +592,17 @@ UNION ALL
 SELECT 'closed', 'Closed', 4, '#9ca3af'
 WHERE NOT EXISTS (SELECT 1 FROM grievance_status WHERE status_code = 'closed');
 
--- INSERT TICKET STATUSES (IF NOT EXISTS)
+-- RESET TICKET STATUSES (clean slate for fresh setup)
+-- This ensures no stale/duplicate statuses from previous migrations
+TRUNCATE TABLE ticket_status RESTART IDENTITY CASCADE;
+
+-- INSERT CANONICAL TICKET STATUSES
 INSERT INTO ticket_status (status_code, status_name, is_terminal, sort_order, color_code)
-SELECT '1', 'Open', FALSE, 1, '#ef4444'
-WHERE NOT EXISTS (SELECT 1 FROM ticket_status WHERE status_code = '1')
-UNION ALL
-SELECT '2', 'In Progress', FALSE, 2, '#fbbf24'
-WHERE NOT EXISTS (SELECT 1 FROM ticket_status WHERE status_code = '2')
-UNION ALL
-SELECT '3', 'Resolved', TRUE, 3, '#22c55e'
-WHERE NOT EXISTS (SELECT 1 FROM ticket_status WHERE status_code = '3')
-UNION ALL
-SELECT '4', 'Closed', TRUE, 4, '#9ca3af'
-WHERE NOT EXISTS (SELECT 1 FROM ticket_status WHERE status_code = '4');
+VALUES
+  ('1', 'Open', FALSE, 1, '#ef4444'),
+  ('2', 'In Progress', FALSE, 2, '#fbbf24'),
+  ('3', 'Resolved', TRUE, 3, '#22c55e'),
+  ('4', 'Closed', TRUE, 4, '#9ca3af');
 
 -- INSERT ENTITIES (IF NOT EXISTS)
 INSERT INTO entity_master (unique_entity_id, entity_name, entity_type, is_active)

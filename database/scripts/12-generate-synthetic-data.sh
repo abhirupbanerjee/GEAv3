@@ -514,16 +514,16 @@ INSERT INTO ea_service_request_attachments (
 )
 SELECT
     ear.request_id,
-    REPLACE(sa.attachment_name, ' ', '_') || '_' || ear.request_id || '.pdf',
+    REPLACE(sa.filename, ' ', '_') || '_' || ear.request_id || '.pdf',
     'application/pdf',
     'Sample EA request attachment content'::bytea,
     (100000 + RANDOM() * 1000000)::int, -- 100KB to 1MB
-    sa.is_required,
+    sa.is_mandatory,
     'admin_user'
 FROM ea_service_requests ear
 JOIN service_attachments sa ON ear.service_id = sa.service_id
 WHERE ear.status != 'Draft' -- Only non-draft requests have attachments
-  AND sa.is_required = TRUE; -- Start with mandatory attachments
+  AND sa.is_mandatory = TRUE; -- Start with mandatory attachments
 " > /dev/null
 
 log_success "EA request attachments generated ($(get_row_count 'ea_service_request_attachments') records)"
