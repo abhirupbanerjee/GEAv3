@@ -465,7 +465,7 @@ INSERT INTO ea_service_requests (
     request_number,
     service_id,
     entity_id,
-    requester_entity_id,
+    requester_ministry,
     requester_name,
     requester_email,
     requester_phone,
@@ -478,7 +478,7 @@ SELECT
     'EA-' || TO_CHAR(CURRENT_DATE - (RANDOM() * 90)::int, 'YYYYMMDD') || '-' || LPAD(rd.request_num::TEXT, 4, '0'),
     rd.service_id,
     rd.service_provider_entity_id, -- DTA provides the service
-    rd.requester_entity_id,         -- Other entity requests the service
+    rd.requester_entity_name,       -- Requester ministry/entity name
     CASE
         WHEN RANDOM() < 0.33 THEN 'John Smith'
         WHEN RANDOM() < 0.66 THEN 'Jane Doe'
