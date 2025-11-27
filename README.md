@@ -19,18 +19,36 @@ Complete digital portal system with:
 - **AI Bot Integration** - Centralized bot inventory and iframe-based chat interface
 - **OAuth Authentication** - Google & Microsoft sign-in with role-based access control
 
-**Status:** ✅ Production-ready | **Version:** 3.0 (Phase 2b + Context-Aware AI)
+**Status:** ✅ Production-ready | **Version:** 3.0.1 (Phase 2b + Context-Aware AI)
 
 ---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Linux server (Ubuntu 20.04+ recommended)
-- Docker 24.x+ & Docker Compose 2.x+
-- Domain with DNS access
-- 4GB RAM minimum (8GB recommended)
-- PostgreSQL 15 (included in Docker setup)
+
+| Requirement | Minimum | Recommended |
+|-------------|---------|-------------|
+| **OS** | Ubuntu 22.04 LTS | **Ubuntu 24.04 LTS** |
+| **Docker** | 24.x+ | **28.x+** |
+| **Docker Compose** | v2.20+ | **v2.39+** |
+| **RAM** | 4 GB | 8 GB |
+| **vCPUs** | 2 | 2-4 |
+| **Disk** | 30 GB | **50 GB** (single disk) |
+| **Domain** | Required | With Cloudflare DNS |
+
+> **Production Reference:** GoG portal runs on Azure Standard_B2s (4GB RAM, 2 vCPUs, Ubuntu 24.04.3 LTS)
+
+### Tested Production Environment
+
+| Component | Version | Notes |
+|-----------|---------|-------|
+| **OS** | Ubuntu 24.04.3 LTS | Azure VM (kernel 6.14.0-azure) |
+| **Docker** | 28.4.0 | Official CE or Snap |
+| **Docker Compose** | v2.39.1 | Plugin version |
+| **Node.js** | 20.x (container) | Alpine-based image |
+| **PostgreSQL** | 15-alpine | Container |
+| **Traefik** | v3.0 | Reverse proxy + SSL |
 
 ### Deploy in 5 Steps
 
@@ -44,7 +62,7 @@ cp .env.example .env
 nano .env  # Set passwords, domains, and API keys
 
 # 3. Initialize database
-docker-compose up -d feedback_db
+docker compose up -d feedback_db
 
 # Option A: Quick setup with production data + synthetic test data
 ./database/99-consolidated-setup.sh --reload
@@ -55,13 +73,39 @@ docker-compose up -d feedback_db
 
 # 4. Set up OAuth authentication
 ./database/04-nextauth-users.sh
-ADMIN_EMAIL="admin@gov.gd" ADMIN_NAME="Admin Name" ./database/05-add-initial-admin.sh
+ADMIN_EMAIL="admin@gov.gd" ADMIN_NAME="Admin Name" ./database/scripts/05-add-initial-admin.sh
 
 # 5. Deploy application
-docker-compose up -d
+docker compose up -d
 ```
 
 **That's it!** Portal will be available at your configured domain with auto-SSL.
+
+---
+
+## 🖥️ New VM Deployment
+
+For setting up a fresh VM (Azure, AWS, or on-premise), see the comprehensive guide:
+
+**[GEAv3 VM Setup Guide](docs/VM_SETUP_GUIDE.md)**
+
+### Quick VM Specs Reference
+
+```
+OS:      Ubuntu 24.04 LTS
+RAM:     4GB minimum
+vCPUs:   2
+Disk:    50GB single consolidated disk
+Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
+```
+
+### Capture Current VM Config
+
+Run this on your existing VM to generate specs for replication:
+
+```bash
+./scripts/capture-vm-config.sh
+```
 
 ---
 
@@ -69,12 +113,22 @@ docker-compose up -d
 
 ### System Components
 
-| Component | Technology | Purpose | URL Example |
-|-----------|-----------|---------|-------------|
-| **Frontend** | Next.js 14 (App Router) | Main portal & admin UI | gea.domain.com |
-| **Database** | PostgreSQL 15 | Data storage & user management | Internal:5432 |
-| **Reverse Proxy** | Traefik v3.0 | SSL termination & routing | - |
-| **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | /api/auth/* |
+| Component | Technology | Purpose | Container |
+|-----------|-----------|---------|-----------|
+| **Frontend** | Next.js 14 (App Router) | Main portal & admin UI | `frontend` |
+| **Database** | PostgreSQL 15-alpine | Data storage & user management | `feedback_db` |
+| **Reverse Proxy** | Traefik v3.0 | SSL termination & routing | `traefik` |
+| **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | (in frontend) |
+
+### Production Container Status
+
+```bash
+# Expected output from: docker compose ps
+NAMES         IMAGE                STATUS                    PORTS
+frontend      geav3-frontend       Up X minutes              3000/tcp
+feedback_db   postgres:15-alpine   Up X minutes (healthy)    5432/tcp
+traefik       traefik:v3.0         Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
+```
 
 ### Technology Stack
 
@@ -95,7 +149,6 @@ docker-compose up -d
 - Docker & Docker Compose
 - Traefik v3.0 (reverse proxy & SSL)
 - Let's Encrypt (auto-SSL)
-- Nginx (static file serving in production)
 
 ---
 
@@ -109,6 +162,7 @@ gogeaportal/v3/
 │   ├── .env.example                       # Environment template
 │   └── docs/
 │       ├── index.md                       # Complete documentation index
+│       ├── VM_SETUP_GUIDE.md              # New VM deployment guide
 │       ├── API_REFERENCE.md               # All API endpoints
 │       ├── DATABASE_REFERENCE.md          # Database schema & setup
 │       ├── AUTHENTICATION.md              # OAuth setup & configuration
@@ -122,8 +176,8 @@ gogeaportal/v3/
 │       ├── config.sh                      # Shared configuration
 │       ├── 01-init-db.sh                  # Main database initialization
 │       ├── 04-nextauth-users.sh           # Authentication tables setup
-│       ├── 05-add-initial-admin.sh        # Add first admin user
-│       ├── scripts/                       # Database management scripts
+│       ├── scripts/
+│       │   ├── 05-add-initial-admin.sh    # Add first admin user
 │       │   ├── 10-clear-all-data.sh       # Clear all data
 │       │   ├── 11-load-master-data.sh     # Load production master data
 │       │   ├── 12-generate-synthetic-data.sh  # Generate test data
@@ -131,6 +185,10 @@ gogeaportal/v3/
 │       ├── lib/                           # Shared functions
 │       ├── sql/                           # SQL templates
 │       └── master-data/                   # Production data files
+│
+├── 🔧 Scripts
+│   └── scripts/
+│       └── capture-vm-config.sh           # VM configuration capture utility
 │
 ├── ⚙️ Configuration Files
 │   ├── .env.example                       # Environment variables template
@@ -141,7 +199,6 @@ gogeaportal/v3/
 └── 🎨 Frontend Application
     └── frontend/
         ├── Dockerfile                     # Multi-stage production build
-        ├── nginx.conf                     # Web server configuration
         ├── package.json                   # Dependencies
         ├── next.config.js                 # Next.js configuration
         ├── tailwind.config.js             # Tailwind CSS config
@@ -154,7 +211,7 @@ gogeaportal/v3/
         │
         └── src/
             ├── app/
-            │   ├── api/                   # API Routes (35+ endpoints)
+            │   ├── api/                   # API Routes (37+ endpoints)
             │   │   ├── auth/              # NextAuth endpoints
             │   │   ├── content/           # Page context API (for AI bot)
             │   │   ├── feedback/          # Service feedback APIs
@@ -209,7 +266,17 @@ gogeaportal/v3/
 
 ### Required: Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+The portal requires **~62 environment variables**. Copy `.env.example` to `.env` and configure:
+
+| Category | Variables | Required |
+|----------|-----------|----------|
+| **Domains** | BASE_DOMAIN, FRONTEND_DOMAIN, etc. | ✅ |
+| **Database** | FEEDBACK_DB_* (5 vars) | ✅ |
+| **Authentication** | NEXTAUTH_*, GOOGLE_*, MICROSOFT_* | ✅ |
+| **Email** | SENDGRID_* (4 vars) | ✅ |
+| **Rate Limiting** | EA_SERVICE_RATE_LIMIT, GRIEVANCE_RATE_LIMIT, FEEDBACK_RATE_LIMIT | ✅ |
+| **File Uploads** | MAX_FILE_SIZE, MAX_TOTAL_UPLOAD_SIZE, ALLOWED_FILE_TYPES | ✅ |
+| **URLs** | GOG_URL, WIKI_URL, DMS_URL, CHATBOT_URL, etc. | Optional |
 
 ```bash
 # === Domain Configuration ===
@@ -248,11 +315,14 @@ SERVICE_ADMIN_EMAIL=admin@your-domain.com
 # === Rate Limiting ===
 EA_SERVICE_RATE_LIMIT=3
 GRIEVANCE_RATE_LIMIT=3
+FEEDBACK_RATE_LIMIT=3
 
 # === File Uploads ===
 MAX_FILE_SIZE=5242880
 MAX_TOTAL_UPLOAD_SIZE=26214400
 ```
+
+See [.env.example](.env.example) for the complete list with descriptions.
 
 ### Generate Secure Passwords
 
@@ -261,6 +331,9 @@ MAX_TOTAL_UPLOAD_SIZE=26214400
 openssl rand -base64 32
 
 # NextAuth secret
+openssl rand -base64 32
+
+# Admin session secret
 openssl rand -base64 32
 ```
 
@@ -272,27 +345,27 @@ openssl rand -base64 32
 
 ```bash
 # Start all services
-docker-compose up -d
+docker compose up -d
 
 # Stop all services
-docker-compose down
+docker compose down
 
 # View logs (all services)
-docker-compose logs -f
+docker compose logs -f
 
 # View logs (specific service)
-docker-compose logs -f frontend
-docker-compose logs -f feedback_db
+docker compose logs -f frontend
+docker compose logs -f feedback_db
 
 # Restart a service
-docker-compose restart frontend
+docker compose restart frontend
 
 # Check service status
-docker-compose ps
+docker compose ps
 
 # Update and rebuild
-docker-compose build --no-cache frontend
-docker-compose up -d
+docker compose build --no-cache frontend
+docker compose up -d
 ```
 
 ### Database Management
@@ -300,6 +373,9 @@ docker-compose up -d
 **For complete database management guide, see:** [database/README.md](database/README.md)
 
 ```bash
+# Fresh setup (new VM)
+./database/99-consolidated-setup.sh --fresh
+
 # Quick data reload (clear + reload production data + synthetic test data)
 ./database/99-consolidated-setup.sh --reload
 
@@ -319,6 +395,8 @@ docker-compose up -d
 docker exec -it feedback_db psql -U feedback_user -d feedback
 
 # Backup database
+./database/99-consolidated-setup.sh --backup
+# Or manually:
 docker exec feedback_db pg_dump -U feedback_user feedback > backup_$(date +%Y%m%d).sql
 
 # Restore database
@@ -332,7 +410,7 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251124.sql
 
 ```bash
 # Add admin user
-ADMIN_EMAIL="user@gov.gd" ADMIN_NAME="User Name" ./database/05-add-initial-admin.sh
+ADMIN_EMAIL="user@gov.gd" ADMIN_NAME="User Name" ./database/scripts/05-add-initial-admin.sh
 
 # List users
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "
@@ -342,6 +420,26 @@ JOIN user_roles ON users.role_id = user_roles.role_id;"
 # Deactivate user
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "
 UPDATE users SET is_active=false WHERE email='user@example.com';"
+```
+
+### Docker Volumes
+
+Production uses 2 active volumes:
+
+| Volume | Purpose | Typical Size |
+|--------|---------|--------------|
+| `traefik_acme` | SSL certificates (Let's Encrypt) | ~1 MB |
+| `feedback_db_data` | PostgreSQL data | ~70 MB |
+
+```bash
+# Check volume usage
+docker system df
+
+# List all volumes
+docker volume ls
+
+# Inspect specific volume
+docker volume inspect feedback_db_data
 ```
 
 ---
@@ -357,8 +455,8 @@ UPDATE users SET is_active=false WHERE email='user@example.com';"
 
 ### Data Protection
 - **IP Hashing:** SHA256 hashing for privacy (no PII storage)
-- **Rate Limiting:** IP-based submission throttling (5 per hour)
-- **File Validation:** Type and size checks on uploads (5MB max)
+- **Rate Limiting:** IP-based submission throttling (configurable per endpoint)
+- **File Validation:** Type and size checks on uploads (5MB max per file)
 - **SQL Injection Prevention:** Parameterized queries throughout
 
 ### SSL/HTTPS
@@ -369,8 +467,14 @@ UPDATE users SET is_active=false WHERE email='user@example.com';"
 
 ### Firewall Configuration
 
+**Option A: Azure NSG (Network Security Group)**
+- Configure inbound rules in Azure Portal
+- Production uses Azure NSG without UFW
+
+**Option B: UFW (recommended for defense-in-depth)**
 ```bash
 # Allow only necessary ports
+sudo ufw allow OpenSSH
 sudo ufw allow 80/tcp    # HTTP (redirects to HTTPS)
 sudo ufw allow 443/tcp   # HTTPS
 sudo ufw enable
@@ -385,7 +489,7 @@ sudo ufw enable
 - Tailwind CSS responsive design
 - Docker containerization with Traefik reverse proxy
 - Automated SSL certificates via Let's Encrypt
-- PostgreSQL 15 database (23 tables, 44+ indexes)
+- PostgreSQL 15 database (30 tables, 44+ indexes)
 - Public portal pages (Home, About)
 
 ### Service Feedback & Analytics ✅
@@ -553,7 +657,7 @@ export const navigationItems: NavItem[] = [
 ### Rebuild After Changes
 
 ```bash
-docker-compose up -d --build frontend
+docker compose up -d --build frontend
 ```
 
 ---
@@ -563,8 +667,8 @@ docker-compose up -d --build frontend
 ### Services won't start
 ```bash
 # Check logs
-docker-compose logs frontend
-docker-compose logs feedback_db
+docker compose logs frontend
+docker compose logs feedback_db
 
 # Verify .env file exists
 cat .env
@@ -576,26 +680,26 @@ netstat -tuln | grep -E '80|443'
 ### SSL certificate issues
 ```bash
 # Check Traefik logs
-docker-compose logs traefik
+docker compose logs traefik
 
 # Verify DNS
 dig +short gea.your-domain.com
 
 # Force certificate refresh
 rm -f traefik_acme/acme.json
-docker-compose restart traefik
+docker compose restart traefik
 ```
 
 ### Database connection errors
 ```bash
 # Check database is running
-docker-compose ps feedback_db
+docker compose ps feedback_db
 
 # Test connection
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "SELECT 1"
 
 # Restart database
-docker-compose restart feedback_db
+docker compose restart feedback_db
 ```
 
 ### Authentication issues
@@ -608,7 +712,7 @@ SELECT email, is_active FROM users WHERE email='user@example.com';"
 docker exec frontend env | grep -E "NEXTAUTH|GOOGLE|MICROSOFT"
 
 # View auth logs
-docker-compose logs frontend | grep -i "nextauth"
+docker compose logs frontend | grep -i "nextauth"
 ```
 
 ---
@@ -619,7 +723,7 @@ docker-compose logs frontend | grep -i "nextauth"
 
 ```bash
 # Service status
-docker-compose ps
+docker compose ps
 
 # Resource usage
 docker stats
@@ -627,6 +731,9 @@ docker stats
 # Disk usage
 du -sh ./
 df -h
+
+# Docker disk usage
+docker system df
 
 # Database size
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "
@@ -646,6 +753,7 @@ SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 
 ### Documentation
 - **Complete Guide:** `docs/index.md`
+- **VM Setup Guide:** `docs/VM_SETUP_GUIDE.md`
 - **API Reference:** `docs/API_REFERENCE.md`
 - **Database Schema:** `docs/DATABASE_REFERENCE.md`
 - **Authentication Setup:** `docs/AUTHENTICATION_GUIDE.md`
@@ -653,8 +761,8 @@ SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 ### Contact
 - **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
 - **Issues:** https://github.com/abhirupbanerjee/GEAv3/issues
-- **Demo Portal:** https://your-portal-domain.com
-- **Email:** contact@your-domain.com
+- **Production Portal:** https://gea.abhirup.app
+- **Email:** mailabhirupbanerjee@gmail.com
 
 ### External Resources
 - [Next.js Documentation](https://nextjs.org/docs)
@@ -670,29 +778,30 @@ SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 Before going live:
 
 **Configuration:**
-- [ ] Environment variables configured in `.env`
+- [ ] Environment variables configured in `.env` (~62 variables)
 - [ ] Strong passwords generated for database
 - [ ] NextAuth secret generated (`openssl rand -base64 32`)
+- [ ] Admin session secret generated
 - [ ] OAuth credentials obtained (Google/Microsoft)
 - [ ] SendGrid API key configured
 
 **Infrastructure:**
 - [ ] DNS records configured for domain
 - [ ] Ports 80 and 443 available
-- [ ] Firewall rules configured
+- [ ] Firewall rules configured (Azure NSG or UFW)
 - [ ] Docker and Docker Compose installed
-- [ ] Sufficient disk space (20GB+ recommended)
+- [ ] Sufficient disk space (50GB+ recommended)
 
 **Database:**
-- [ ] Database initialized (`01-init-db.sh`)
-- [ ] Master data loaded (`scripts/11-load-master-data.sh` or `99-consolidated-setup.sh --reload`)
+- [ ] Database initialized (`99-consolidated-setup.sh --fresh`)
+- [ ] Master data loaded (`99-consolidated-setup.sh --reload`)
 - [ ] Authentication tables created (`04-nextauth-users.sh`)
-- [ ] Admin user added (`05-add-initial-admin.sh`)
-- [ ] Data integrity verified (`scripts/13-verify-master-data.sh`)
+- [ ] Admin user added (`scripts/05-add-initial-admin.sh`)
+- [ ] Data integrity verified (`99-consolidated-setup.sh --verify`)
 - [ ] Backup strategy configured
 
 **Testing:**
-- [ ] All containers running: `docker-compose ps`
+- [ ] All containers running: `docker compose ps`
 - [ ] Frontend accessible via HTTPS
 - [ ] SSL certificate issued successfully
 - [ ] OAuth sign-in working (Google/Microsoft)
@@ -706,20 +815,31 @@ Before going live:
 
 ### Current Implementation
 - **Total API Endpoints:** 37+ (public + admin + auth + context)
-- **Database Tables:** 23 (master data, transactional, auth, audit)
+- **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
+- **Environment Variables:** ~62 configurable options
 - **Lines of Code:** ~22,000+
 - **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
+- **Docker Volumes:** 2 active (`traefik_acme`, `feedback_db_data`)
 - **Authentication Providers:** 2 (Google, Microsoft)
 - **AI Integration:** Context-aware assistant with real-time tracking
 - **Page Context Coverage:** 22 pages, 100% documented
 
+### Production Resource Usage
+
+| Resource | Current Usage | Capacity |
+|----------|---------------|----------|
+| **Memory** | ~1.1 GB | 3.8 GB (26%) |
+| **Disk (App)** | ~13 GB | 29 GB (45%) |
+| **Docker Images** | ~2.2 GB | - |
+| **Database** | ~70 MB | - |
+
 ### Performance
 - **Build Time:** ~3-5 minutes (first build)
 - **Deployment Time:** ~10-15 minutes (first deployment)
-- **Memory Usage:** ~2GB (all services under load)
-- **Disk Usage:** ~3GB (including database with sample data)
+- **Memory Usage:** ~1.1GB (typical), ~2GB (under load)
+- **Disk Usage:** ~13GB (including database with sample data)
 
 ---
 
@@ -734,9 +854,10 @@ Before going live:
 
 ### For DevOps/SysAdmin
 1. Follow deployment guide in this README
-2. Use troubleshooting section for common issues
-3. Set up monitoring with `docker stats`
-4. Configure automated backups
+2. Review VM setup guide: `docs/VM_SETUP_GUIDE.md`
+3. Use troubleshooting section for common issues
+4. Set up monitoring with `docker stats`
+5. Configure automated backups
 
 ### For Database Administrators
 1. Review complete DBA guide: `database/README.md`
@@ -753,15 +874,18 @@ Before going live:
 
 ---
 
+**Last Updated:** November 27, 2025 | **Version:** 3.0.1 | **Status:** ✅ Production Ready
 
-**Last Updated:** November 26, 2025 | **Version:** 3.0 | **Status:** ✅ Production Ready
+> **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
 
-**Note:** This project has been co-developed with AI (Claude) for documentation, code implementation, generation of synthetic data, and test scenarios. The context-aware AI assistant feature was implemented with full AI assistance. 
+**Note:** This project has been co-developed with AI (Claude) for documentation, code implementation, generation of synthetic data, and test scenarios. The context-aware AI assistant feature was implemented with full AI assistance.
+
 ---
 
 ## Quick Links
 
 - 📖 [Complete Documentation](docs/index.md)
+- 🖥️ [**VM Setup Guide**](docs/VM_SETUP_GUIDE.md) - New VM deployment
 - 🏗️ [**Solution Architecture**](docs/SOLUTION_ARCHITECTURE.md) - System overview
 - 🔌 [API Reference](docs/API_REFERENCE.md)
 - 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
@@ -788,6 +912,7 @@ Before going live:
 - [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
 
 ### For System Administrators
+- [VM Setup Guide](docs/VM_SETUP_GUIDE.md) - New VM deployment and configuration
 - [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - Deployment and infrastructure architecture
 - [Database Administrator Guide](database/README.md) - Complete database management commands
 - [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and setup
