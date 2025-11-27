@@ -625,8 +625,8 @@ function MyComponent() {
 
 **Complete Documentation:**
 - [AI Bot Portal Integration Guide](docs/AI_BOT_PORTAL_INTEGRATION.md)
-- [Context Bot Quick Reference](CONTEXT_BOT_QUICK_REFERENCE.md)
-- [Testing Guide](CONTEXT_AWARE_BOT_TESTING.md)
+- [Context Bot Quick Reference](docs/CONTEXT_BOT_QUICK_REFERENCE.md)
+- [Testing Guide](docs/CONTEXT_AWARE_BOT_TESTING.md)
 
 ---
 
@@ -892,8 +892,8 @@ Before going live:
 - 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
 - 🤖 [**AI Bot Integration**](docs/AI_BOT_PORTAL_INTEGRATION.md) - Context-aware assistant guide
 - 📋 [AI Bots Management](docs/ai-bots-management.md)
-- ⚡ [Context Bot Quick Reference](CONTEXT_BOT_QUICK_REFERENCE.md)
-- 🧪 [AI Bot Testing Guide](CONTEXT_AWARE_BOT_TESTING.md)
+- ⚡ [Context Bot Quick Reference](docs/CONTEXT_BOT_QUICK_REFERENCE.md)
+- 🧪 [AI Bot Testing Guide](docs/CONTEXT_AWARE_BOT_TESTING.md)
 
 ---
 
@@ -907,7 +907,7 @@ Before going live:
 - [UI Modification Guide](docs/developer-guides/UI_MODIFICATION_GUIDE.md) - Complete guide for UI development and customization
 - [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
 - [AI Bot Integration](docs/AI_BOT_PORTAL_INTEGRATION.md) - Context-aware assistant implementation
-- [Context Bot Quick Reference](CONTEXT_BOT_QUICK_REFERENCE.md) - Quick API reference
+- [Context Bot Quick Reference](docs/CONTEXT_BOT_QUICK_REFERENCE.md) - Quick API reference
 - [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
 - [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
 
