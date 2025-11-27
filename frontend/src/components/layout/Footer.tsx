@@ -4,7 +4,7 @@ import { config } from '@/config/env'
 
 export default function Footer() {
   return (
-    <footer className="bg-gray-900 text-white relative z-10">
+    <footer className="bg-gray-900 text-white relative z-50">
       <div className="container-custom py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Government Info */}

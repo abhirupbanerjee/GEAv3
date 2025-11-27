@@ -155,21 +155,33 @@ export async function POST(request: NextRequest) {
       [email, name, role_id, finalEntityId || null, session.user.email]
     );
 
-    // Log audit event
-    await pool.query(
-      `INSERT INTO user_audit_log (user_id, action, resource_type, new_value, created_at)
-       VALUES ($1, 'user_created', 'user', $2, CURRENT_TIMESTAMP)`,
-      [
-        session.user.id,
-        JSON.stringify({
-          new_user_email: email,
-          new_user_name: name,
-          role_id,
-          entity_id: finalEntityId,
-          auto_assigned_entity: roleCode === 'admin_dta' && !entity_id,
-        }),
-      ]
-    );
+    // Log audit event - look up actual user_id from database using session email
+    try {
+      const adminUser = await pool.query(
+        'SELECT id FROM users WHERE email = $1',
+        [session.user.email]
+      );
+
+      if (adminUser.rows.length > 0) {
+        await pool.query(
+          `INSERT INTO user_audit_log (user_id, action, resource_type, new_value, created_at)
+           VALUES ($1, 'user_created', 'user', $2, CURRENT_TIMESTAMP)`,
+          [
+            adminUser.rows[0].id,
+            JSON.stringify({
+              new_user_email: email,
+              new_user_name: name,
+              role_id,
+              entity_id: finalEntityId,
+              auto_assigned_entity: roleCode === 'admin_dta' && !entity_id,
+            }),
+          ]
+        );
+      }
+    } catch (auditError) {
+      // Log audit failure but don't fail the user creation
+      console.error('Failed to create audit log:', auditError);
+    }
 
     return NextResponse.json({
       success: true,
