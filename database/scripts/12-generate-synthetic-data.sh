@@ -223,10 +223,8 @@ recipient_groups AS (
 ),
 channels AS (
     SELECT unnest(ARRAY[
-        'portal','portal','portal','portal','portal','portal', -- 60%
-        'qr','qr', -- 20%
-        'mobile','mobile', -- 15%
-        'kiosk' -- 5%
+        'ea_portal','ea_portal','ea_portal','ea_portal','ea_portal','ea_portal', -- 60%
+        'qr_code','qr_code','qr_code','qr_code' -- 40%
     ]) AS channel
 ),
 ratings AS (
@@ -279,8 +277,8 @@ SELECT
     (SELECT comment_text FROM comment_templates ORDER BY RANDOM() LIMIT 1),
     -- Weighted recipient groups
     (ARRAY['citizen','citizen','citizen','citizen','citizen','citizen','citizen','business','business','government','tourist','student','other'])[1 + floor(random() * 13)::int],
-    -- Weighted channels
-    (ARRAY['portal','portal','portal','portal','portal','portal','qr','qr','mobile','mobile','kiosk'])[1 + floor(random() * 11)::int],
+    -- Weighted channels (ea_portal 60%, qr_code 40%)
+    (ARRAY['ea_portal','ea_portal','ea_portal','ea_portal','ea_portal','ea_portal','qr_code','qr_code','qr_code','qr_code'])[1 + floor(random() * 10)::int],
     CASE WHEN RANDOM() < 0.05 THEN TRUE ELSE FALSE END, -- 5% flagged as grievances
     MD5(RANDOM()::TEXT || ROW_NUMBER() OVER ()::TEXT),
     CURRENT_TIMESTAMP - (RANDOM() * INTERVAL '90 days')
