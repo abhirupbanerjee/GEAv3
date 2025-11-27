@@ -31,184 +31,184 @@ docker exec -i feedback_db psql -U $DB_USER -d $DB_NAME << 'EOF'
 -- ============================================================================
 
 -- Good feedback (no ticket)
-INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group, 
-  q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction, 
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
+  q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
-('SVC-IMM-001', 'DEPT-001', 'ea_portal', 'citizen', 5, 5, 5, 5, 5, 
-  'Excellent service! Very fast and clear instructions.', FALSE, 'general', 
-  md5('192.168.1.1'), md5('Mozilla/5.0')),
+('SVC-IMM-001', 'DEPT-001', 'ea_portal', 'citizen', 5, 5, 5, 5, 5,
+  'Excellent service! Very fast and clear instructions.', FALSE,
+  md5('192.168.1.1'), 'Mozilla/5.0'),
 ('SVC-IMM-002', 'DEPT-001', 'qr_code', 'citizen', 4, 4, 4, 4, 4,
-  'Good experience. Would recommend to friends.', FALSE, 'general',
-  md5('192.168.1.2'), md5('Mozilla/5.0')),
+  'Good experience. Would recommend to friends.', FALSE,
+  md5('192.168.1.2'), 'Mozilla/5.0'),
 ('SVC-TAX-001', 'DEPT-002', 'ea_portal', 'citizen', 5, 5, 4, 5, 5,
-  'Very professional staff and quick processing.', FALSE, 'general',
-  md5('192.168.1.3'), md5('Mozilla/5.0'));
+  'Very professional staff and quick processing.', FALSE,
+  md5('192.168.1.3'), 'Mozilla/5.0');
 
 -- Moderate feedback (borderline)
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-REG-010', 'DEPT-004', 'ea_portal', 'citizen', 3, 3, 3, 3, 3,
-  'Average service. Could be better.', FALSE, 'general',
-  md5('192.168.1.4'), md5('Mozilla/5.0')),
+  'Average service. Could be better.', FALSE,
+  md5('192.168.1.4'), 'Mozilla/5.0'),
 ('SVC-DIG-001', 'AGY-002', 'qr_code', 'citizen', 3, 3, 2, 3, 3,
-  'Okay, but some confusion about process.', FALSE, 'general',
-  md5('192.168.1.5'), md5('Mozilla/5.0'));
+  'Okay, but some confusion about process.', FALSE,
+  md5('192.168.1.5'), 'Mozilla/5.0');
 
 -- Low ratings (triggers grievance - average < 3.0)
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-IMM-001', 'DEPT-001', 'ea_portal', 'citizen', 2, 2, 2, 2, 2,
-  'Very disappointing. Website crashed multiple times.', FALSE, 'general',
-  md5('192.168.1.6'), md5('Mozilla/5.0')),
+  'Very disappointing. Website crashed multiple times.', FALSE,
+  md5('192.168.1.6'), 'Mozilla/5.0'),
 ('SVC-TAX-002', 'DEPT-002', 'qr_code', 'citizen', 1, 2, 1, 2, 1,
-  'Worst experience ever. Rude staff and slow service.', FALSE, 'general',
-  md5('192.168.1.7'), md5('Mozilla/5.0')),
+  'Worst experience ever. Rude staff and slow service.', FALSE,
+  md5('192.168.1.7'), 'Mozilla/5.0'),
 ('SVC-REG-010', 'DEPT-004', 'ea_portal', 'citizen', 2, 1, 2, 1, 2,
-  'Forms were confusing and took too long.', FALSE, 'general',
-  md5('192.168.1.8'), md5('Mozilla/5.0')),
+  'Forms were confusing and took too long.', FALSE,
+  md5('192.168.1.8'), 'Mozilla/5.0'),
 ('SVC-DIG-002', 'AGY-002', 'ea_portal', 'citizen', 1, 1, 1, 1, 1,
-  'Portal is completely broken. Cannot complete my task.', FALSE, 'general',
-  md5('192.168.1.9'), md5('Mozilla/5.0'));
+  'Portal is completely broken. Cannot complete my task.', FALSE,
+  md5('192.168.1.9'), 'Mozilla/5.0');
 
 -- Grievance flag (triggers grievance regardless of rating)
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-IMM-001', 'DEPT-001', 'ea_portal', 'citizen', 4, 3, 4, 2, 3,
   'Staff was disrespectful and discriminatory. This is unacceptable behavior.',
-  TRUE, 'general', md5('192.168.1.10'), md5('Mozilla/5.0')),
+  TRUE, md5('192.168.1.10'), 'Mozilla/5.0'),
 ('SVC-TAX-001', 'DEPT-002', 'qr_code', 'citizen', 3, 4, 3, 2, 3,
   'My documents were not processed correctly. I deserve compensation.',
-  TRUE, 'general', md5('192.168.1.11'), md5('Mozilla/5.0')),
+  TRUE, md5('192.168.1.11'), 'Mozilla/5.0'),
 ('SVC-REG-010', 'DEPT-004', 'ea_portal', 'citizen', 3, 3, 2, 3, 3,
   'Staff lost my application. This is a serious complaint.',
-  TRUE, 'general', md5('192.168.1.12'), md5('Mozilla/5.0'));
+  TRUE, md5('192.168.1.12'), 'Mozilla/5.0');
 
 -- More diverse feedback (various ratings and services)
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-IMM-002', 'DEPT-001', 'ea_portal', 'citizen', 4, 4, 5, 4, 4,
-  'Renewal was quick and painless. Great job!', FALSE, 'general',
-  md5('192.168.1.13'), md5('Chrome/96')),
+  'Renewal was quick and painless. Great job!', FALSE,
+  md5('192.168.1.13'), 'Chrome/96'),
 ('SVC-TAX-001', 'DEPT-002', 'qr_code', 'citizen', 5, 5, 5, 5, 5,
-  'Excellent service from start to finish.', FALSE, 'general',
-  md5('192.168.1.14'), md5('Safari/15')),
+  'Excellent service from start to finish.', FALSE,
+  md5('192.168.1.14'), 'Safari/15'),
 ('SVC-DIG-001', 'AGY-002', 'ea_portal', 'citizen', 2, 2, 2, 2, 2,
-  'The eServices platform is outdated and difficult to use.', FALSE, 'general',
-  md5('192.168.1.15'), md5('Mozilla/5.0')),
+  'The eServices platform is outdated and difficult to use.', FALSE,
+  md5('192.168.1.15'), 'Mozilla/5.0'),
 ('SVC-IMM-001', 'DEPT-001', 'qr_code', 'citizen', 1, 1, 1, 1, 1,
-  'Unacceptable wait times. I waited 4 hours!', FALSE, 'general',
-  md5('192.168.1.16'), md5('Mozilla/5.0')),
+  'Unacceptable wait times. I waited 4 hours!', FALSE,
+  md5('192.168.1.16'), 'Mozilla/5.0'),
 ('SVC-REG-010', 'DEPT-004', 'ea_portal', 'citizen', 5, 5, 5, 5, 5,
-  'Birth certificate arrived in perfect condition. Very pleased.', FALSE, 'general',
-  md5('192.168.1.17'), md5('Chrome/96')),
+  'Birth certificate arrived in perfect condition. Very pleased.', FALSE,
+  md5('192.168.1.17'), 'Chrome/96'),
 ('SVC-TAX-002', 'DEPT-002', 'ea_portal', 'citizen', 3, 3, 3, 3, 3,
-  'Acceptable but nothing special.', FALSE, 'general',
-  md5('192.168.1.18'), md5('Mozilla/5.0')),
+  'Acceptable but nothing special.', FALSE,
+  md5('192.168.1.18'), 'Mozilla/5.0'),
 ('SVC-DIG-002', 'AGY-002', 'qr_code', 'citizen', 4, 4, 4, 4, 4,
-  'Support team was very helpful and responsive.', FALSE, 'general',
-  md5('192.168.1.19'), md5('Safari/15')),
+  'Support team was very helpful and responsive.', FALSE,
+  md5('192.168.1.19'), 'Safari/15'),
 ('SVC-IMM-002', 'DEPT-001', 'ea_portal', 'citizen', 2, 3, 2, 3, 2,
-  'Unclear instructions caused delays in my application.', FALSE, 'general',
-  md5('192.168.1.20'), md5('Mozilla/5.0')),
+  'Unclear instructions caused delays in my application.', FALSE,
+  md5('192.168.1.20'), 'Mozilla/5.0'),
 ('SVC-TAX-001', 'DEPT-002', 'ea_portal', 'citizen', 4, 4, 5, 4, 4,
-  'Quick processing and professional handling.', FALSE, 'general',
-  md5('192.168.1.21'), md5('Chrome/96')),
+  'Quick processing and professional handling.', FALSE,
+  md5('192.168.1.21'), 'Chrome/96'),
 ('SVC-REG-010', 'DEPT-004', 'qr_code', 'citizen', 1, 2, 1, 2, 1,
-  'Certificate had errors and we had to return it.', FALSE, 'general',
-  md5('192.168.1.22'), md5('Mozilla/5.0'));
+  'Certificate had errors and we had to return it.', FALSE,
+  md5('192.168.1.22'), 'Mozilla/5.0');
 
 -- More grievances with lower ratings
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-DIG-001', 'AGY-002', 'ea_portal', 'citizen', 1, 1, 2, 1, 1,
-  'System crashed and lost all my data. Completely unacceptable.', FALSE, 'general',
-  md5('192.168.1.23'), md5('Mozilla/5.0')),
+  'System crashed and lost all my data. Completely unacceptable.', FALSE,
+  md5('192.168.1.23'), 'Mozilla/5.0'),
 ('SVC-IMM-001', 'DEPT-001', 'qr_code', 'citizen', 2, 2, 2, 2, 2,
-  'Application denied without proper explanation. Need to appeal.', TRUE, 'general',
-  md5('192.168.1.24'), md5('Mozilla/5.0')),
+  'Application denied without proper explanation. Need to appeal.', TRUE,
+  md5('192.168.1.24'), 'Mozilla/5.0'),
 ('SVC-TAX-002', 'DEPT-002', 'ea_portal', 'citizen', 1, 1, 1, 1, 1,
-  'Tax calculation appears to be incorrect. Suspicious.', FALSE, 'general',
-  md5('192.168.1.25'), md5('Chrome/96')),
+  'Tax calculation appears to be incorrect. Suspicious.', FALSE,
+  md5('192.168.1.25'), 'Chrome/96'),
 ('SVC-REG-010', 'DEPT-004', 'ea_portal', 'citizen', 2, 2, 1, 2, 1,
-  'Birth certificate delivery took 3 months. Unacceptable delay.', FALSE, 'general',
-  md5('192.168.1.26'), md5('Mozilla/5.0')),
+  'Birth certificate delivery took 3 months. Unacceptable delay.', FALSE,
+  md5('192.168.1.26'), 'Mozilla/5.0'),
 ('SVC-DIG-002', 'AGY-002', 'qr_code', 'citizen', 3, 2, 2, 2, 2,
-  'Support never responded to my ticket for 2 weeks.', TRUE, 'general',
-  md5('192.168.1.27'), md5('Mozilla/5.0'));
+  'Support never responded to my ticket for 2 weeks.', TRUE,
+  md5('192.168.1.27'), 'Mozilla/5.0');
 
 -- Additional positive feedback
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-IMM-002', 'DEPT-001', 'ea_portal', 'citizen', 5, 5, 5, 5, 5,
-  'Perfect experience. Staff exceeded expectations!', FALSE, 'general',
-  md5('192.168.1.28'), md5('Safari/15')),
+  'Perfect experience. Staff exceeded expectations!', FALSE,
+  md5('192.168.1.28'), 'Safari/15'),
 ('SVC-TAX-001', 'DEPT-002', 'qr_code', 'citizen', 5, 4, 5, 5, 5,
-  'Very efficient. Completed in record time.', FALSE, 'general',
-  md5('192.168.1.29'), md5('Chrome/96')),
+  'Very efficient. Completed in record time.', FALSE,
+  md5('192.168.1.29'), 'Chrome/96'),
 ('SVC-DIG-001', 'AGY-002', 'ea_portal', 'citizen', 4, 4, 4, 4, 4,
-  'Improved significantly. Much better than before.', FALSE, 'general',
-  md5('192.168.1.30'), md5('Mozilla/5.0')),
+  'Improved significantly. Much better than before.', FALSE,
+  md5('192.168.1.30'), 'Mozilla/5.0'),
 ('SVC-REG-010', 'DEPT-004', 'qr_code', 'citizen', 5, 5, 5, 5, 5,
-  'Everything was perfect. Very satisfied!', FALSE, 'general',
-  md5('192.168.1.31'), md5('Safari/15'));
+  'Everything was perfect. Very satisfied!', FALSE,
+  md5('192.168.1.31'), 'Safari/15');
 
 -- Remaining to reach 50
 INSERT INTO service_feedback (service_id, entity_id, channel, recipient_group,
   q1_ease, q2_clarity, q3_timeliness, q4_trust, q5_overall_satisfaction,
-  comment_text, grievance_flag, feedback_type, ip_hash, user_agent_hash)
+  comment_text, grievance_flag, submitted_ip_hash, submitted_user_agent)
 VALUES
 ('SVC-IMM-001', 'DEPT-001', 'ea_portal', 'citizen', 3, 3, 3, 3, 3,
-  'Neutral experience. Nothing special.', FALSE, 'general',
-  md5('192.168.1.32'), md5('Mozilla/5.0')),
+  'Neutral experience. Nothing special.', FALSE,
+  md5('192.168.1.32'), 'Mozilla/5.0'),
 ('SVC-TAX-002', 'DEPT-002', 'qr_code', 'citizen', 4, 4, 4, 4, 4,
-  'Good service overall. No major complaints.', FALSE, 'general',
-  md5('192.168.1.33'), md5('Chrome/96')),
+  'Good service overall. No major complaints.', FALSE,
+  md5('192.168.1.33'), 'Chrome/96'),
 ('SVC-DIG-002', 'AGY-002', 'ea_portal', 'citizen', 3, 3, 3, 3, 3,
-  'Average service. Met basic expectations.', FALSE, 'general',
-  md5('192.168.1.34'), md5('Mozilla/5.0')),
+  'Average service. Met basic expectations.', FALSE,
+  md5('192.168.1.34'), 'Mozilla/5.0'),
 ('SVC-REG-010', 'DEPT-004', 'ea_portal', 'citizen', 4, 4, 4, 4, 4,
-  'Straightforward process. No issues.', FALSE, 'general',
-  md5('192.168.1.35'), md5('Safari/15')),
+  'Straightforward process. No issues.', FALSE,
+  md5('192.168.1.35'), 'Safari/15'),
 ('SVC-IMM-002', 'DEPT-001', 'qr_code', 'citizen', 2, 2, 2, 2, 2,
-  'Slow and cumbersome process. Need improvement.', FALSE, 'general',
-  md5('192.168.1.36'), md5('Mozilla/5.0')),
+  'Slow and cumbersome process. Need improvement.', FALSE,
+  md5('192.168.1.36'), 'Mozilla/5.0'),
 ('SVC-TAX-001', 'DEPT-002', 'ea_portal', 'citizen', 3, 3, 2, 3, 3,
-  'Decent but could be faster.', FALSE, 'general',
-  md5('192.168.1.37'), md5('Chrome/96')),
+  'Decent but could be faster.', FALSE,
+  md5('192.168.1.37'), 'Chrome/96'),
 ('SVC-DIG-001', 'AGY-002', 'qr_code', 'citizen', 4, 4, 3, 4, 4,
-  'Good platform with minor glitches.', FALSE, 'general',
-  md5('192.168.1.38'), md5('Mozilla/5.0')),
+  'Good platform with minor glitches.', FALSE,
+  md5('192.168.1.38'), 'Mozilla/5.0'),
 ('SVC-REG-010', 'DEPT-004', 'qr_code', 'citizen', 5, 5, 5, 5, 5,
-  'Excellent! Would use again anytime.', FALSE, 'general',
-  md5('192.168.1.39'), md5('Safari/15')),
+  'Excellent! Would use again anytime.', FALSE,
+  md5('192.168.1.39'), 'Safari/15'),
 ('SVC-IMM-001', 'DEPT-001', 'ea_portal', 'citizen', 4, 4, 4, 4, 4,
-  'Professional and courteous service.', FALSE, 'general',
-  md5('192.168.1.40'), md5('Chrome/96')),
+  'Professional and courteous service.', FALSE,
+  md5('192.168.1.40'), 'Chrome/96'),
 ('SVC-TAX-002', 'DEPT-002', 'ea_portal', 'citizen', 3, 3, 3, 3, 3,
-  'Okay service. Nothing remarkable.', FALSE, 'general',
-  md5('192.168.1.41'), md5('Mozilla/5.0')),
+  'Okay service. Nothing remarkable.', FALSE,
+  md5('192.168.1.41'), 'Mozilla/5.0'),
 ('SVC-DIG-002', 'AGY-002', 'qr_code', 'citizen', 4, 4, 4, 4, 4,
-  'Support was helpful and efficient.', FALSE, 'general',
-  md5('192.168.1.42'), md5('Safari/15')),
+  'Support was helpful and efficient.', FALSE,
+  md5('192.168.1.42'), 'Safari/15'),
 ('SVC-IMM-002', 'DEPT-001', 'ea_portal', 'citizen', 3, 3, 3, 3, 3,
-  'Acceptable service with room for improvement.', FALSE, 'general',
-  md5('192.168.1.43'), md5('Mozilla/5.0')),
+  'Acceptable service with room for improvement.', FALSE,
+  md5('192.168.1.43'), 'Mozilla/5.0'),
 ('SVC-TAX-001', 'DEPT-002', 'qr_code', 'citizen', 4, 4, 4, 4, 4,
-  'Smooth and efficient process.', FALSE, 'general',
-  md5('192.168.1.44'), md5('Chrome/96'));
+  'Smooth and efficient process.', FALSE,
+  md5('192.168.1.44'), 'Chrome/96');
 
 EOF
 
@@ -295,13 +295,13 @@ VALUES
  'Sample grievance description. This is test data for demonstration purposes only.',
  '2025-11-10', 'citizen_portal'),
 
-('GRV-2025-S005', 'SVC-IMM-002', 'DEPT-001', 'open', 'tourist',
+('GRV-2025-S005', 'SVC-IMM-002', 'DEPT-001', 'open', 'visitor',
  'Carol Davis', 'carol.davis@example.com', '+1-555-1005',
  'Sample Grievance Subject 5',
  'Sample grievance description. This is test data for demonstration purposes only.',
  '2025-11-12', 'citizen_portal'),
 
-('GRV-2025-S006', 'SVC-TAX-002', 'DEPT-002', 'process', 'gov_employee',
+('GRV-2025-S006', 'SVC-TAX-002', 'DEPT-002', 'process', 'government',
  'David Miller', 'david.miller@example.com', '+1-555-1006',
  'Sample Grievance Subject 6',
  'Sample grievance description. This is test data for demonstration purposes only.',
@@ -319,7 +319,7 @@ VALUES
  'Sample grievance description. This is test data for demonstration purposes only.',
  '2025-11-09', 'citizen_portal'),
 
-('GRV-2025-S009', 'SVC-REG-010', 'DEPT-004', 'open', 'student',
+('GRV-2025-S009', 'SVC-REG-010', 'DEPT-004', 'open', 'other',
  'Grace Lee', 'grace.lee@example.com', '+1-555-1009',
  'Sample Grievance Subject 9',
  'Sample grievance description. This is test data for demonstration purposes only.',
