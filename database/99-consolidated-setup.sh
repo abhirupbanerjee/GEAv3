@@ -26,6 +26,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$SCRIPT_DIR/config.sh"
 source "$SCRIPT_DIR/lib/csv-loader.sh"
 
+# Flag to track if admin was created during fresh setup
+ADMIN_CREATED=false
+
 # ============================================================================
 # SCRIPT-SPECIFIC FUNCTIONS
 # ============================================================================
@@ -398,38 +401,50 @@ setup_fresh() {
         # CREATE ADMIN USER
         # ========================================================================
         log_section "ADMIN USER SETUP"
-        log_info "At least one admin user is required to log in to the system"
-        echo ""
 
-        read -p "Do you want to create an admin user now? (yes/NO): " create_admin_choice
-        echo ""
+        # Check if admin user already exists
+        local existing_admin_count=$(run_sql -t -c "SELECT count(*) FROM users u JOIN user_roles r ON u.role_code = r.role_code WHERE r.role_type = 'admin';" 2>/dev/null | tr -d ' ')
 
-        if [[ $create_admin_choice =~ ^[Yy][Ee][Ss]$ ]]; then
-            # Prompt for admin details
-            read -p "Enter admin email: " admin_email
-            read -p "Enter admin name: " admin_name
+        if [ "$existing_admin_count" -gt 0 ]; then
+            log_success "Admin user already exists ($existing_admin_count admin(s) found)"
+            log_info "Skipping admin creation - use --create-admin to add more admins"
+            echo ""
+        else
+            log_info "At least one admin user is required to log in to the system"
+            echo ""
 
-            if [ -n "$admin_email" ] && [ -n "$admin_name" ]; then
-                log_info "Creating admin user..."
-                if ADMIN_EMAIL="$admin_email" ADMIN_NAME="$admin_name" "$SCRIPTS_DIR/05-add-initial-admin.sh"; then
-                    log_success "Admin user created successfully!"
-                    log_info "Email: $admin_email"
-                    echo ""
+            read -p "Do you want to create an admin user now? (yes/NO): " create_admin_choice
+            echo ""
+
+            if [[ $create_admin_choice =~ ^[Yy][Ee][Ss]$ ]]; then
+                # Prompt for admin details
+                read -p "Enter admin email: " admin_email
+                read -p "Enter admin name: " admin_name
+
+                if [ -n "$admin_email" ] && [ -n "$admin_name" ]; then
+                    log_info "Creating admin user..."
+                    if ADMIN_EMAIL="$admin_email" ADMIN_NAME="$admin_name" "$SCRIPTS_DIR/05-add-initial-admin.sh"; then
+                        log_success "Admin user created successfully!"
+                        log_info "Email: $admin_email"
+                        echo ""
+                        # Set flag to skip later admin creation
+                        ADMIN_CREATED=true
+                    else
+                        log_error "Failed to create admin user"
+                        log_warn "You can create it manually later with:"
+                        echo "  ADMIN_EMAIL=\"your@email.com\" ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
+                        echo ""
+                    fi
                 else
-                    log_error "Failed to create admin user"
-                    log_warn "You can create it manually later with:"
-                    echo "  ADMIN_EMAIL=\"your@email.com\" ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
+                    log_warn "Admin email or name is empty. Skipping admin creation."
                     echo ""
                 fi
             else
-                log_warn "Admin email or name is empty. Skipping admin creation."
+                log_info "Skipping admin user creation"
+                log_warn "You can create an admin user later with:"
+                echo "  ADMIN_EMAIL=\"your@email.com\" ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
                 echo ""
             fi
-        else
-            log_info "Skipping admin user creation"
-            log_warn "You can create an admin user later with:"
-            echo "  ADMIN_EMAIL=\"your@email.com\" ADMIN_NAME=\"Your Name\" ./database/scripts/05-add-initial-admin.sh"
-            echo ""
         fi
 
     else
@@ -538,9 +553,27 @@ load_dta_data() {
 create_admin_user() {
     log_section "CREATING ADMIN USER"
 
+    # Skip if admin was already created during fresh setup
+    if [ "$ADMIN_CREATED" = true ]; then
+        log_info "Admin user was already created during setup - skipping"
+        return 0
+    fi
+
     if [ ! -f "$SCRIPT_DIR/scripts/05-add-initial-admin.sh" ]; then
         log_error "Admin creation script not found!"
         exit 1
+    fi
+
+    # Check if admin already exists (unless explicitly adding another)
+    local existing_admin_count=$(run_sql -t -c "SELECT count(*) FROM users u JOIN user_roles r ON u.role_code = r.role_code WHERE r.role_type = 'admin';" 2>/dev/null | tr -d ' ')
+
+    if [ "$existing_admin_count" -gt 0 ] && [ -z "$ADMIN_EMAIL" ]; then
+        log_info "Admin user already exists ($existing_admin_count admin(s))"
+        read -p "Do you still want to add another admin? (yes/NO): " add_another
+        if [[ ! $add_another =~ ^[Yy][Ee][Ss]$ ]]; then
+            log_info "Skipping admin creation"
+            return 0
+        fi
     fi
 
     if [ -n "$ADMIN_EMAIL" ] && [ -n "$ADMIN_NAME" ]; then

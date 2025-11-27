@@ -388,11 +388,11 @@ run_sql -c "
 -- Generate attachments for ~40% of grievances
 INSERT INTO grievance_attachments (
     grievance_id,
-    file_name,
-    file_type,
+    filename,
+    mimetype,
+    file_content,
     file_size,
-    storage_path,
-    uploaded_at
+    uploaded_by
 )
 SELECT
     gt.grievance_id,
@@ -406,9 +406,9 @@ SELECT
         WHEN RANDOM() < 0.8 THEN 'application/pdf'
         ELSE 'image/png'
     END,
+    'Sample file content for grievance attachment'::bytea,
     (50000 + RANDOM() * 2000000)::int, -- 50KB to 2MB
-    '/uploads/grievances/' || gt.grievance_id || '/' || 'attachment_' || gt.grievance_id,
-    gt.created_at + INTERVAL '1 hour'
+    'citizen'
 FROM grievance_tickets gt
 WHERE RANDOM() < 0.4; -- 40% have attachments
 " > /dev/null
@@ -505,25 +505,25 @@ run_sql -c "
 -- Generate attachments based on service requirements
 INSERT INTO ea_service_request_attachments (
     request_id,
-    attachment_definition_id,
-    file_name,
-    file_type,
+    filename,
+    mimetype,
+    file_content,
     file_size,
-    storage_path,
-    uploaded_at
+    is_mandatory,
+    uploaded_by
 )
 SELECT
-    ear.id as request_id,
-    sa.service_attachment_id as attachment_definition_id,
-    REPLACE(sa.filename, ' ', '_') || '_' || ear.id || '.pdf',
+    ear.request_id,
+    REPLACE(sa.attachment_name, ' ', '_') || '_' || ear.request_id || '.pdf',
     'application/pdf',
+    'Sample EA request attachment content'::bytea,
     (100000 + RANDOM() * 1000000)::int, -- 100KB to 1MB
-    '/uploads/ea-requests/' || ear.id || '/' || sa.service_attachment_id,
-    ear.created_at + INTERVAL '2 hours'
+    sa.is_required,
+    'admin_user'
 FROM ea_service_requests ear
 JOIN service_attachments sa ON ear.service_id = sa.service_id
 WHERE ear.status != 'Draft' -- Only non-draft requests have attachments
-  AND sa.is_mandatory = TRUE; -- Start with mandatory attachments
+  AND sa.is_required = TRUE; -- Start with mandatory attachments
 " > /dev/null
 
 log_success "EA request attachments generated ($(get_row_count 'ea_service_request_attachments') records)"
@@ -671,12 +671,11 @@ run_sql -c "
 -- Generate attachments for ~40% of tickets
 INSERT INTO ticket_attachments (
     ticket_id,
-    file_name,
-    file_type,
+    filename,
+    mimetype,
+    file_content,
     file_size,
-    storage_path,
-    uploaded_by,
-    uploaded_at
+    uploaded_by
 )
 SELECT
     t.ticket_id,
@@ -689,10 +688,9 @@ SELECT
         WHEN RANDOM() < 0.6 THEN 'application/pdf'
         ELSE 'image/jpeg'
     END,
+    'Sample ticket attachment content'::bytea,
     (50000 + RANDOM() * 2000000)::int,
-    '/uploads/tickets/' || t.ticket_id || '/attachment',
-    'user@example.gd',
-    t.created_at + INTERVAL '30 minutes'
+    'user@example.gd'
 FROM tickets t
 WHERE RANDOM() < 0.4; -- 40% have attachments
 " > /dev/null
