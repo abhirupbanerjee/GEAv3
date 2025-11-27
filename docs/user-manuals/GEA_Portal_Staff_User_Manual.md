@@ -15,8 +15,8 @@ This manual covers the following pages accessible to MDA staff (requires login):
 ### Staff-Specific Pages
 | Page | URL | Purpose |
 |------|-----|---------|
-| **Staff Dashboard** | `/admin/staff/home` | Your personalized staff dashboard |
-| **Ticket Management** | `/admin/tickets` | Manage tickets for your entity only |
+| **Staff Home** | `/admin/staff/home` | Your personalized staff dashboard |
+| **Tickets** | `/admin/tickets` | Manage tickets for your entity only |
 | **Analytics** | `/admin/analytics` | View analytics for your entity |
 
 ### Public Pages (Also Available to Staff)

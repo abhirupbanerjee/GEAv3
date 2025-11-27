@@ -1,6 +1,6 @@
 /**
  * @pageContext
- * @title Staff Dashboard
+ * @title Staff Home
  * @purpose Dashboard landing page for MDA staff users with entity-specific data and quick actions
  * @audience staff
  * @features
@@ -101,7 +101,7 @@ export default function StaffHomePage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Government of Grenada EA Portal
         </h1>
-        <h2 className="text-xl text-gray-600">Staff Dashboard</h2>
+        <h2 className="text-xl text-gray-600">Staff Home</h2>
         {entityInfo && (
           <p className="text-sm text-gray-500 mt-1">
             {entityInfo.entity_name} ({entityInfo.entity_code})

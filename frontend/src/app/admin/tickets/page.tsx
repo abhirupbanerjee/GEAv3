@@ -1,7 +1,7 @@
 /**
  * @pageContext
- * @title Ticket Management Dashboard
- * @purpose View, filter, and manage all support tickets and citizen grievances in a centralized dashboard
+ * @title Tickets
+ * @purpose View, manage, and respond to all citizen support tickets and grievances in a centralized management dashboard
  * @audience staff
  * @features
  *   - Comprehensive ticket list with search and filtering

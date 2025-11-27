@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react'
 
 const navigationItems = [
   {
-    label: 'Dashboard',
+    label: 'Admin Home',
     href: '/admin/home',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -27,7 +27,7 @@ const navigationItems = [
     requiredRole: null, // Available to all
   },
   {
-    label: 'Manage Tickets',
+    label: 'Tickets',
     href: '/admin/tickets',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -37,7 +37,7 @@ const navigationItems = [
     requiredRole: null, // Available to all
   },
   {
-    label: 'Manage Data',
+    label: 'Master Data',
     href: '/admin/managedata',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,7 +57,7 @@ const navigationItems = [
     requiredRole: null, // Available to all
   },
   {
-    label: 'Manage Users',
+    label: 'Users',
     href: '/admin/users',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,7 +67,7 @@ const navigationItems = [
     requiredRole: 'admin', // Admin only
   },
   {
-    label: 'AI Inventory',
+    label: 'AI Bots',
     href: '/admin/ai-inventory',
     icon: (
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

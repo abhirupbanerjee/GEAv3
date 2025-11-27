@@ -1,6 +1,6 @@
 /**
  * @pageContext
- * @title Helpdesk Portal
+ * @title Helpdesk
  * @purpose Citizens enter their ticket number to track the status of their feedback submissions and grievances
  * @audience public
  * @steps
@@ -82,7 +82,7 @@ export default function HelpdeskPage() {
             </svg>
           </div>
           <h1 className="text-4xl font-bold text-gray-900 mb-3">
-            Helpdesk Portal
+            Helpdesk
           </h1>
           <p className="text-lg text-gray-600">
             Track your service tickets and feedback submissions

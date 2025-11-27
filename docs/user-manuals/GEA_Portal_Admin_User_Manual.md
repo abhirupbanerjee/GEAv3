@@ -15,14 +15,14 @@ This manual covers the following pages accessible to DTA administrators (require
 ### Admin-Only Pages
 | Page | URL | Purpose |
 |------|-----|---------|
-| **Admin Dashboard** | `/admin` or `/admin/home` | Main administrator dashboard |
-| **Ticket Management** | `/admin/tickets` | Manage all tickets across entities |
-| **User Management** | `/admin/users` | Create and manage user accounts |
-| **Master Data Management** | `/admin/managedata` | Manage entities, services, QR codes |
-| **Analytics Dashboard** | `/admin/analytics` | System-wide analytics with entity filtering |
+| **Admin Home** | `/admin` or `/admin/home` | Main administrator dashboard |
+| **Tickets** | `/admin/tickets` | Manage all tickets across entities |
+| **Users** | `/admin/users` | Create and manage user accounts |
+| **Master Data** | `/admin/managedata` | Manage entities, services, QR codes |
+| **Analytics** | `/admin/analytics` | System-wide analytics with entity filtering |
 | **Service Requests** | `/admin/service-requests` | EA service request management |
 | **Service Request Analytics** | `/admin/service-requests/analytics` | Detailed service request metrics |
-| **AI Bot Inventory** | `/admin/ai-inventory` | Manage AI chatbot integrations |
+| **AI Bots** | `/admin/ai-inventory` | Manage AI chatbot integrations |
 
 ### Public Pages (Also Available to Admins)
 | Page | URL | Purpose |
@@ -43,9 +43,9 @@ This manual covers the following pages accessible to DTA administrators (require
 1. [Introduction](#1-introduction)
 2. [Getting Started](#2-getting-started)
 3. [Admin Dashboard](#3-admin-dashboard)
-4. [Ticket Management](#4-ticket-management)
-5. [Master Data Management](#5-master-data-management)
-6. [User Management](#6-user-management)
+4. [Tickets](#4-tickets)
+5. [Master Data](#5-master-data)
+6. [Users](#6-users)
 7. [Analytics & Reporting](#7-analytics--reporting)
 8. [AI Bot Inventory](#8-ai-bot-inventory)
 9. [EA Service Requests](#9-ea-service-requests)
@@ -123,14 +123,14 @@ If you are a new administrator:
 
 | URL Path | Function |
 |----------|----------|
-| `/admin` | Admin Dashboard |
-| `/admin/tickets` | Ticket Management |
+| `/admin` | Admin Home |
+| `/admin/tickets` | Tickets |
 | `/admin/entities` | Entity Management |
 | `/admin/services` | Service Management |
 | `/admin/qr-codes` | QR Code Management |
-| `/admin/users` | User Management |
-| `/admin/analytics` | Analytics Dashboard |
-| `/admin/ai-inventory` | AI Bot Inventory |
+| `/admin/users` | Users |
+| `/admin/analytics` | Analytics |
+| `/admin/ai-inventory` | AI Bots |
 | `/admin/ea-requests` | EA Service Requests |
 
 ---
@@ -161,12 +161,12 @@ The Admin Dashboard provides a system-wide view:
 ### 3.2 Navigation Menu
 
 **Main Sections:**
-- **Dashboard** - System overview
+- **Admin Home** - System overview
 - **Tickets** - All ticket management
 - **Master Data** - Entities, Services, QR Codes
 - **Users** - User management
 - **Analytics** - Reports and charts
-- **AI Inventory** - Bot management
+- **AI Bots** - Bot management
 - **EA Requests** - Service requests
 
 ### 3.3 Quick Stats Panel
@@ -179,7 +179,7 @@ Real-time metrics displayed:
 
 ---
 
-## 4. Ticket Management
+## 4. Tickets
 
 ### 4.1 Accessing All Tickets
 
@@ -291,7 +291,7 @@ Administrators see additional information:
 
 ---
 
-## 5. Master Data Management
+## 5. Master Data
 
 ### 5.1 Overview
 
@@ -441,7 +441,7 @@ After creating a QR code:
 
 ---
 
-## 6. User Management
+## 6. Users
 
 ### 6.1 Overview
 

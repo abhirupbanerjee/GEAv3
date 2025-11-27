@@ -1,7 +1,7 @@
 /**
  * @pageContext
- * @title User Management
- * @purpose Manage authorized system users, their roles, entity assignments, and access permissions
+ * @title Users
+ * @purpose Manage and administer authorized system users, their roles, entity assignments, and access permissions across the portal
  * @audience admin
  * @features
  *   - User list table with email, name, role, entity, status, and last login
@@ -179,7 +179,7 @@ export default function UsersPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Users</h1>
           <p className="text-sm text-gray-600 mt-1">
             Manage authorized users and their access permissions
           </p>

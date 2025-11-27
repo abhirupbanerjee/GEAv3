@@ -1,7 +1,7 @@
 /**
  * @pageContext
- * @title Master Data Management
- * @purpose Centralized management of entities, services, and QR codes that form the foundation of the feedback system
+ * @title Master Data
+ * @purpose Centralized management interface for entities, services, and QR codes that form the foundation of the feedback system
  * @audience admin
  * @features
  *   - Three-tab interface for Entities, Services, and QR Codes
@@ -75,7 +75,7 @@ export default function ManageDataPage() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🗄️ Master Data Management
+            🗄️ Master Data
           </h1>
           <p className="text-gray-600">
             Manage entities, services, and QR codes for the feedback system

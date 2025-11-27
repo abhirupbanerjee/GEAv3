@@ -1,7 +1,7 @@
 /**
  * @pageContext
- * @title Analytics Dashboard
- * @purpose Comprehensive analytics dashboard showing feedback statistics, service request metrics, ticket performance, and service leaderboards
+ * @title Analytics
+ * @purpose Comprehensive analytics and reporting dashboard displaying portal metrics, feedback trends, service request statistics, ticket performance, and service leaderboards
  * @audience staff
  * @features
  *   - Feedback analytics: Total submissions, average satisfaction ratings, grievance counts, service trust scores
@@ -289,7 +289,7 @@ export default function AnalyticsPage() {
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                📊 Analytics Dashboard
+                📊 Analytics
               </h1>
               <p className="text-gray-600">
                 {isStaff

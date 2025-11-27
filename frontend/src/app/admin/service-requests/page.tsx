@@ -1,6 +1,6 @@
 /**
  * @pageContext
- * @title Service Requests Management
+ * @title Service Requests
  * @purpose View, manage, and track all Enterprise Architecture service requests submitted by government entities
  * @audience staff
  * @features

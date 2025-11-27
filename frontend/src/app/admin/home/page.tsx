@@ -1,24 +1,25 @@
 /**
  * @pageContext
- * @title Admin Dashboard Home
+ * @title Admin Home
  * @purpose Main landing page for authenticated administrators and staff, providing overview and quick access to key functions
  * @audience staff
  * @features
  *   - Welcome message and portal introduction
  *   - Quick access links to key administrative functions
  *   - Quick stats cards showing system overview metrics
- *   - Navigation to Analytics, Manage Data, Tickets, and AI Inventory
+ *   - Navigation to Analytics, Master Data, Tickets, and AI Bots
  * @tips
  *   - This is your home base after logging in to the admin portal
  *   - Quick stats provide real-time system health overview
  *   - All administrative actions are logged for security and compliance
  *   - Use the sidebar navigation for detailed access to each section
  * @relatedPages
- *   - /admin/analytics: Comprehensive feedback and service request analytics
- *   - /admin/managedata: Manage entities, services, and QR codes
- *   - /admin/service-requests: View and manage EA service requests
- *   - /admin/tickets: View and manage support tickets
- *   - /admin/ai-inventory: Configure AI bot integrations
+ *   - /admin/analytics: Analytics - Comprehensive feedback and service request analytics
+ *   - /admin/managedata: Master Data - Manage entities, services, and QR codes
+ *   - /admin/service-requests: Service Requests - View and manage EA service requests
+ *   - /admin/tickets: Tickets - View and manage support tickets
+ *   - /admin/ai-inventory: AI Bots - Configure AI bot integrations
+ *   - /admin/users: Users - Manage user accounts and permissions
  * @permissions
  *   - staff: Access to home dashboard with entity-specific data
  *   - admin: Full access to all dashboard features and system-wide data
@@ -34,7 +35,7 @@ export default function AdminHomePage() {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Government of Grenada EA Portal
         </h1>
-        <h2 className="text-xl text-gray-600">Admin Dashboard</h2>
+        <h2 className="text-xl text-gray-600">Admin Home</h2>
       </div>
 
       {/* Welcome Section */}

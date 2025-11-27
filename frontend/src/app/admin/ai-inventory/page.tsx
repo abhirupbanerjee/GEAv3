@@ -1,7 +1,7 @@
 /**
  * @pageContext
- * @title AI Inventory
- * @purpose View and configure AI chatbot integrations and monitor their status
+ * @title AI Bots
+ * @purpose Manage and configure AI chatbot integrations, monitor their status, and control bot deployment settings
  * @audience admin
  * @features
  *   - List of AI bots integrated with the portal
@@ -143,7 +143,7 @@ export default function AIInventoryPage() {
     <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Bots Inventory</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">AI Bots</h1>
         <p className="text-gray-600">Configure and monitor AI assistant integrations</p>
       </div>
 

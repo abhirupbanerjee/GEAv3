@@ -115,7 +115,7 @@ export function TicketDashboard() {
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Manage Tickets</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
           <p className="text-sm text-gray-600 mt-1">
             View and manage all support tickets and grievances
           </p>
