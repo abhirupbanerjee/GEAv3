@@ -634,29 +634,29 @@ run_sql -c "
 -- Generate 2-4 activity entries per ticket
 INSERT INTO ticket_activity (
     ticket_id,
-    action_type,
-    action_description,
+    activity_type,
+    description,
     performed_by,
     created_at
 )
 SELECT
     t.ticket_id,
-    action_types.action_type,
-    action_types.description || ' for ticket ' || t.ticket_number,
+    activity_types.activity_type,
+    activity_types.description || ' for ticket ' || t.ticket_number,
     CASE
         WHEN RANDOM() < 0.5 THEN 'system'
         WHEN RANDOM() < 0.8 THEN 'admin@dta.gov.gd'
         ELSE 'staff@ministry.gov.gd'
     END,
-    t.created_at + (action_types.seq * INTERVAL '1 day')
+    t.created_at + (activity_types.seq * INTERVAL '1 day')
 FROM tickets t
 CROSS JOIN (
-    SELECT 1 as seq, 'created' as action_type, 'Ticket created' as description
+    SELECT 1 as seq, 'created' as activity_type, 'Ticket created' as description
     UNION ALL SELECT 2, 'assigned', 'Ticket assigned to department'
     UNION ALL SELECT 3, 'status_change', 'Status updated'
     UNION ALL SELECT 4, 'note_added', 'Internal note added'
-) action_types
-WHERE action_types.seq <= 2 + floor(RANDOM() * 3)::int; -- 2-4 activities per ticket
+) activity_types
+WHERE activity_types.seq <= 2 + floor(RANDOM() * 3)::int; -- 2-4 activities per ticket
 " > /dev/null
 
 log_success "Ticket activity generated ($(get_row_count 'ticket_activity') records)"
