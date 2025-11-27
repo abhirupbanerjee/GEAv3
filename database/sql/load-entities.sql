@@ -29,6 +29,12 @@ SELECT
     NULLIF(contact_phone, ''),
     CASE WHEN is_active = 'TRUE' THEN TRUE ELSE FALSE END
 FROM temp_entities
-ON CONFLICT (unique_entity_id) DO NOTHING;
+ON CONFLICT (unique_entity_id) DO UPDATE SET
+    entity_name = EXCLUDED.entity_name,
+    entity_type = EXCLUDED.entity_type,
+    parent_entity_id = EXCLUDED.parent_entity_id,
+    contact_email = EXCLUDED.contact_email,
+    contact_phone = EXCLUDED.contact_phone,
+    is_active = EXCLUDED.is_active;
 
 SELECT COUNT(*) AS entities_loaded FROM entity_master;

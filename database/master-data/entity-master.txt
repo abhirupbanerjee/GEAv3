@@ -15,11 +15,12 @@ MIN-013,"Ministry of National Security, Home Affairs, Public Administration, Inf
 MIN-014,"Ministry of Economic Development, Planning, Agriculture & Lands, Forestry & Marine Resources",ministry,,,,TRUE
 MIN-015,"Ministry of Climate Resilience, the Environment and Renewable Energy",ministry,,,,TRUE
 MIN-016,"Ministry of Mobilisation, Implementation and Transformation",ministry,,,,TRUE
+MIN-017,"Office of Prime Minister",ministry,,,,TRUE
 
 AGY-001,"Office of the Governor-General",agency,,,,TRUE
 AGY-002,"Royal Grenada Police Force",agency,MIN-013,,,TRUE
 AGY-003,"Houses of Parliament",agency,MIN-016,,,TRUE
-AGY-005,"Digital Transformation Agency",agency,MIN-016,,,TRUE
+AGY-005,"Digital Transformation Agency",agency,MIN-017,,,TRUE
 AGY-006,"Grenada Development Bank",agency,MIN-005,,,TRUE
 AGY-007,"Grenada Investment Development Corporation (GIDC)",agency,MIN-014,,,TRUE
 AGY-010,"Grenada Tourism Authority",agency,MIN-011,,,TRUE
@@ -34,7 +35,7 @@ AGY-018,"Child Protection Authority",agency,MIN-012,,,TRUE
 AGY-019,"Grenada Authority for the Regulation of Financial Institutions (GARFIN)",regulator,MIN-005,,,TRUE
 AGY-020,"National Insurance Scheme (NIS)",agency,MIN-005,,,TRUE
 
-DEP-001,"Cabinet Office",department,MIN-016,,,TRUE
+DEP-001,"Cabinet Office",department,MIN-017,,,TRUE
 DEP-002,"Accountant General’s Department",department,MIN-005,,,TRUE
 DEP-003,"Department of Audit",department,MIN-005,,,TRUE
 DEP-004,"Supreme Court Registry",department,MIN-010,,,TRUE
