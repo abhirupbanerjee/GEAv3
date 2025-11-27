@@ -33,7 +33,7 @@
 #
 # VALID VALUES (matching database CHECK constraints):
 # - Channels: 'ea_portal', 'qr_code'
-# - Recipient Groups: 'citizen', 'business', 'government', 'student', 'officer', 'other'
+# - Recipient Groups: 'citizen', 'business', 'government', 'visitor', 'other'
 #
 # PREREQUISITES:
 # - Master data must be loaded (run ./database/scripts/11-load-master-data.sh first)
@@ -260,8 +260,8 @@ SELECT
     (ARRAY[5,5,5,5,5,5,5,5,5,5,4,4,4,4,4,4,3,3,3,2,1])[1 + floor(random() * 21)::int] AS overall_rating,
     (SELECT comment_text FROM comment_templates ORDER BY RANDOM() LIMIT 1),
     -- FIXED: Valid recipient groups matching DB constraint
-    -- Valid values: citizen, business, government, student, officer, other
-    (ARRAY['citizen','citizen','citizen','citizen','citizen','citizen','citizen','business','business','government','student','officer','other'])[1 + floor(random() * 13)::int],
+    -- Valid values: citizen, business, government, visitor, other
+    (ARRAY['citizen','citizen','citizen','citizen','citizen','citizen','citizen','business','business','government','visitor','other'])[1 + floor(random() * 12)::int],
     -- FIXED: Valid channels matching DB constraint  
     -- Valid values: ea_portal, qr_code (NOT portal, qr, mobile, kiosk)
     (ARRAY['ea_portal','ea_portal','ea_portal','ea_portal','ea_portal','ea_portal','qr_code','qr_code','qr_code','qr_code'])[1 + floor(random() * 10)::int],
@@ -796,7 +796,7 @@ echo "  ✓ Ticket attachments generated"
 echo ""
 echo "🔧 v3.1 FIXES APPLIED:"
 echo "  ✓ Channels: Now uses 'ea_portal' and 'qr_code' (DB constraint compliant)"
-echo "  ✓ Recipient groups: Now uses valid values (citizen, business, government, student, officer, other)"
+echo "  ✓ Recipient groups: Now uses valid values (citizen, business, government, visitor, other)"
 echo "  ✓ Removed invalid channels: portal, qr, mobile, kiosk"
 echo ""
 echo "🎯 Data Quality:"
