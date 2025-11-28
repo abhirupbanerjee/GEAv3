@@ -131,7 +131,7 @@ If you are a new administrator:
 | `/admin/users` | Users |
 | `/admin/analytics` | Analytics |
 | `/admin/ai-inventory` | AI Bots |
-| `/admin/ea-requests` | EA Service Requests |
+| `/admin/service-requests` | EA Service Requests |
 
 ---
 

@@ -2,7 +2,7 @@
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
 **Version:** 3.0 (Phase 2b + Authentication)
-**Last Updated:** November 24, 2025
+**Last Updated:** November 28, 2025
 **Status:** ✅ Production Ready
 
 ---
@@ -125,9 +125,13 @@ gogeaportal/v3/
 │
 ├── 🗄️ Database
 │   ├── database/
-│   │   ├── 01-init-db.sh           ← Database initialization script
-│   │   ├── 02-load-seed-data.sh    ← Test data generation
-│   │   └── 03-verify-analytics.sh  ← Data verification
+│   │   ├── 99-consolidated-setup.sh ← Main setup script (recommended)
+│   │   └── scripts/
+│   │       ├── 01-init-db.sh        ← Database initialization
+│   │       ├── 04-nextauth-users.sh ← Auth tables setup
+│   │       ├── 11-load-master-data.sh ← Production data
+│   │       ├── 12-generate-synthetic-data.sh ← Test data
+│   │       └── 13-verify-master-data.sh ← Data verification
 │
 ├── ⚙️ Configuration Files
 │   ├── .env.example                 ← Environment template
@@ -150,7 +154,7 @@ gogeaportal/v3/
         │
         └── src/
             ├── app/
-            │   ├── api/             ← API Routes (32 endpoints)
+            │   ├── api/             ← API Routes (45+ endpoints)
             │   │   ├── feedback/    ← Feedback APIs
             │   │   ├── tickets/     ← Ticket APIs
             │   │   ├── helpdesk/    ← Helpdesk APIs
@@ -204,6 +208,7 @@ gogeaportal/v3/
 | Document | Purpose | Read Time |
 |----------|---------|-----------|
 | [developer-guides/UI_MODIFICATION_GUIDE.md](developer-guides/UI_MODIFICATION_GUIDE.md) | **Complete UI development guide** - Adding pages, modifying analytics, customizing leaderboards | 45 min |
+| [AI_BOT_INTEGRATION.md](AI_BOT_INTEGRATION.md) | AI bot context integration, bot inventory, testing | 30 min |
 
 ### User Manuals
 | Document | Audience | Read Time |
@@ -218,7 +223,7 @@ gogeaportal/v3/
 | [../docker-compose.yml](../docker-compose.yml) | Service orchestration |
 | [../traefik.yml](../traefik.yml) | Reverse proxy & SSL config |
 | [../frontend/Dockerfile](../frontend/Dockerfile) | Multi-stage build instructions |
-| [../database/01-init-db.sh](../database/01-init-db.sh) | Database initialization script |
+| [../database/99-consolidated-setup.sh](../database/99-consolidated-setup.sh) | Main database setup script |
 
 ---
 
@@ -235,7 +240,7 @@ gogeaportal/v3/
 
 **System Requirements:**
 - 4GB RAM minimum (8GB recommended)
-- 200GB disk space
+- 30GB disk space (50GB recommended)
 - Open ports: 80, 443
 
 ### Step 1: Clone Repository
@@ -740,7 +745,7 @@ docker system prune -a
 
 ### For Database Administrators
 1. Review [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) - Complete reference
-2. Initialize database using `01-init-db.sh`
+2. Initialize database using `./database/99-consolidated-setup.sh --fresh --load-master`
 3. Use provided SQL queries for management
 4. Backup regularly: `docker exec feedback_db pg_dump -U feedback_user feedback > backup.sql`
 
@@ -749,7 +754,7 @@ docker system prune -a
 ## 📊 Project Statistics
 
 ### Current Implementation (Phase 2b + Authentication)
-- **Total API Endpoints:** 35+ (11 public, 6 admin APIs, 15 master data, 3+ auth)
+- **Total API Endpoints:** 45+ (feedback, tickets, helpdesk, admin, master data, auth, content)
 - **Database Tables:** 23 (7 master, 5 transactional, 3 security/audit, 8 auth/user management)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
@@ -865,7 +870,7 @@ docker system prune -a
 
 ---
 
-**Last Updated:** November 24, 2025
+**Last Updated:** November 28, 2025
 **Version:** 3.0 (Phase 2b + Authentication)
 **Status:** ✅ Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git

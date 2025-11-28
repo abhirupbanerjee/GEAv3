@@ -166,8 +166,7 @@ gogeaportal/v3/
 │       ├── API_REFERENCE.md               # All API endpoints
 │       ├── DATABASE_REFERENCE.md          # Database schema & setup
 │       ├── AUTHENTICATION.md              # OAuth setup & configuration
-│       ├── ai-bots-management.md          # AI bot inventory management
-│       └── AI_BOT_PORTAL_INTEGRATION.md   # Context-aware AI bot integration guide
+│       └── AI_BOT_INTEGRATION.md          # Context-aware AI bot integration guide
 │
 ├── 🗄️ Database
 │   └── database/
@@ -624,9 +623,7 @@ function MyComponent() {
 ```
 
 **Complete Documentation:**
-- [AI Bot Portal Integration Guide](docs/AI_BOT_PORTAL_INTEGRATION.md)
-- [Context Bot Quick Reference](docs/CONTEXT_BOT_QUICK_REFERENCE.md)
-- [Testing Guide](docs/CONTEXT_AWARE_BOT_TESTING.md)
+- [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md) - Full integration, testing, and bot inventory management
 
 ---
 
@@ -756,7 +753,7 @@ SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 - **VM Setup Guide:** `docs/VM_SETUP_GUIDE.md`
 - **API Reference:** `docs/API_REFERENCE.md`
 - **Database Schema:** `docs/DATABASE_REFERENCE.md`
-- **Authentication Setup:** `docs/AUTHENTICATION_GUIDE.md`
+- **Authentication Setup:** `docs/AUTHENTICATION.md`
 
 ### Contact
 - **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
@@ -874,7 +871,7 @@ Before going live:
 
 ---
 
-**Last Updated:** November 27, 2025 | **Version:** 3.0.1 | **Status:** ✅ Production Ready
+**Last Updated:** November 28, 2025 | **Version:** 3.0.1 | **Status:** ✅ Production Ready
 
 > **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
 
@@ -890,10 +887,7 @@ Before going live:
 - 🔌 [API Reference](docs/API_REFERENCE.md)
 - 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
 - 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
-- 🤖 [**AI Bot Integration**](docs/AI_BOT_PORTAL_INTEGRATION.md) - Context-aware assistant guide
-- 📋 [AI Bots Management](docs/ai-bots-management.md)
-- ⚡ [Context Bot Quick Reference](docs/CONTEXT_BOT_QUICK_REFERENCE.md)
-- 🧪 [AI Bot Testing Guide](docs/CONTEXT_AWARE_BOT_TESTING.md)
+- 🤖 [**AI Bot Integration**](docs/AI_BOT_INTEGRATION.md) - Context-aware assistant guide
 
 ---
 
@@ -906,8 +900,7 @@ Before going live:
 ### For Developers
 - [UI Modification Guide](docs/developer-guides/UI_MODIFICATION_GUIDE.md) - Complete guide for UI development and customization
 - [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
-- [AI Bot Integration](docs/AI_BOT_PORTAL_INTEGRATION.md) - Context-aware assistant implementation
-- [Context Bot Quick Reference](docs/CONTEXT_BOT_QUICK_REFERENCE.md) - Quick API reference
+- [AI Bot Integration](docs/AI_BOT_INTEGRATION.md) - Context-aware assistant implementation
 - [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
 - [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
 
