@@ -67,12 +67,12 @@ function isValidRequesterCategory(category: string | null | undefined): boolean 
 // Check rate limit (existing function)
 async function checkRateLimit(ipHash: string, limit: number = 5): Promise<boolean> {
   const result = await pool.query(
-    `SELECT COUNT(*) FROM service_feedback 
-     WHERE ip_hash = $1 
-     AND submitted_at > NOW() - INTERVAL '1 hour'`,
+    `SELECT COUNT(*) FROM service_feedback
+     WHERE submitted_ip_hash = $1
+     AND created_at > NOW() - INTERVAL '1 hour'`,
     [ipHash]
   );
-  
+
   const count = parseInt(result.rows[0].count, 10);
   return count < limit;  // ← Use parameter
 }
@@ -254,10 +254,10 @@ export async function POST(request: NextRequest) {
         q5_overall_satisfaction,
         comment_text,
         grievance_flag,
-        ip_hash,
-        user_agent_hash
+        submitted_ip_hash,
+        submitted_user_agent
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
-      RETURNING feedback_id, submitted_at`,
+      RETURNING feedback_id, created_at`,
       [
         body.service_id,
         body.entity_id,
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
     );
 
     const feedbackId = result.rows[0].feedback_id;
-    const submittedAt = result.rows[0].submitted_at;
+    const submittedAt = result.rows[0].created_at;
 
 // ============================================
 // NEW: Log mapping for audit trail

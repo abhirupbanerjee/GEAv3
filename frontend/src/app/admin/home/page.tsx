@@ -25,8 +25,6 @@
  *   - admin: Full access to all dashboard features and system-wide data
  */
 
-import QuickStatsCards from '@/components/admin/QuickStatsCards'
-
 export default function AdminHomePage() {
   return (
     <div className="max-w-7xl mx-auto">
@@ -83,9 +81,6 @@ export default function AdminHomePage() {
           </p>
         </div>
       </div>
-
-      {/* System Overview */}
-      <QuickStatsCards />
     </div>
   )
 }

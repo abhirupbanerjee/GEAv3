@@ -63,12 +63,12 @@ export async function GET(request: NextRequest) {
     }
 
     if (startDate) {
-      conditions.push(`f.submitted_at >= $${paramIndex++}`);
+      conditions.push(`f.created_at >= $${paramIndex++}`);
       params.push(startDate);
     }
 
     if (endDate) {
-      conditions.push(`f.submitted_at <= $${paramIndex++}`);
+      conditions.push(`f.created_at <= $${paramIndex++}`);
       params.push(endDate + ' 23:59:59');
     }
 
@@ -91,8 +91,8 @@ export async function GET(request: NextRequest) {
         ROUND(AVG(q3_timeliness)::numeric, 2) as avg_timeliness,
         ROUND(AVG(q4_trust)::numeric, 2) as avg_trust,
         COUNT(CASE WHEN grievance_flag = TRUE THEN 1 END) as grievance_count,
-        MIN(submitted_at) as first_submission,
-        MAX(submitted_at) as last_submission
+        MIN(created_at) as first_submission,
+        MAX(created_at) as last_submission
       FROM service_feedback f
       ${whereClause}
     `, params);
@@ -163,45 +163,45 @@ export async function GET(request: NextRequest) {
         : [];
       
       trendData = await pool.query(`
-        SELECT 
-          DATE(submitted_at) as date,
+        SELECT
+          DATE(created_at) as date,
           COUNT(*) as submissions,
           ROUND(AVG(q5_overall_satisfaction)::numeric, 2) as avg_satisfaction
         FROM service_feedback f
-        WHERE submitted_at >= NOW() - INTERVAL '30 days'
+        WHERE created_at >= NOW() - INTERVAL '30 days'
         ${conditions.length > 0 ? 'AND ' + conditions.join(' AND ') : ''}
-        GROUP BY DATE(submitted_at)
+        GROUP BY DATE(created_at)
         ORDER BY date DESC
       `, trendParams);
     } else {
       // Date filter applied - show trend for that range
       trendData = await pool.query(`
-        SELECT 
-          DATE(submitted_at) as date,
+        SELECT
+          DATE(created_at) as date,
           COUNT(*) as submissions,
           ROUND(AVG(q5_overall_satisfaction)::numeric, 2) as avg_satisfaction
         FROM service_feedback f
         ${whereClause}
-        GROUP BY DATE(submitted_at)
+        GROUP BY DATE(created_at)
         ORDER BY date DESC
       `, params);
     }
 
     // Query 7: Comments with Grievances
     const recentGrievances = await pool.query(`
-      SELECT 
+      SELECT
         f.feedback_id,
         s.service_name,
         e.entity_name,
         f.q5_overall_satisfaction as satisfaction_rating,
         f.comment_text,
-        f.submitted_at
+        f.created_at AS submitted_at
       FROM service_feedback f
       JOIN service_master s ON f.service_id = s.service_id
       JOIN entity_master e ON f.entity_id = e.unique_entity_id
       ${whereClause}
       ${conditions.length > 0 ? 'AND' : 'WHERE'} f.grievance_flag = TRUE
-      ORDER BY f.submitted_at DESC
+      ORDER BY f.created_at DESC
       LIMIT 10
     `, params);
 
