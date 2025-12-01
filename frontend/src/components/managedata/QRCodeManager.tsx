@@ -755,7 +755,7 @@ export default function QRCodeManager() {
 
       {/* Success Modal with Download Option */}
       {showSuccessModal && successQRCode && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[100] p-4 overflow-y-auto">
           <div className="bg-white rounded-lg shadow-2xl max-w-2xl w-full my-8">
             {/* Fixed Header */}
             <div className="sticky top-0 bg-white rounded-t-lg border-b border-gray-200 p-6 z-10">

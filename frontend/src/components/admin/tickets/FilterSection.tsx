@@ -3,11 +3,16 @@
  *
  * Provides filter controls for the ticket management dashboard
  * Includes dropdowns for entity, service, status, priority, and search
+ *
+ * Role-based behavior:
+ * - Admin: Can see all entities and all services (filtered by selected entity)
+ * - Staff: Can only see their entity and services for that entity
  */
 
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import type { TicketFilters } from '@/types/tickets'
 
 interface FilterSectionProps {
@@ -21,25 +26,53 @@ interface DropdownOption {
 }
 
 export function FilterSection({ onFilterChange, currentFilters }: FilterSectionProps) {
+  const { data: session } = useSession()
   const [entities, setEntities] = useState<DropdownOption[]>([])
   const [services, setServices] = useState<DropdownOption[]>([])
   const [statuses, setStatuses] = useState<DropdownOption[]>([])
   const [priorities, setPriorities] = useState<DropdownOption[]>([])
   const [searchTerm, setSearchTerm] = useState(currentFilters.search || '')
 
+  const isAdmin = session?.user?.roleType === 'admin'
+  const userEntityId = session?.user?.entityId
+
   // Fetch dropdown options on mount
   useEffect(() => {
-    fetchEntities()
-    fetchServices()
-    fetchStatuses()
-    fetchPriorities()
-  }, [])
+    if (session) {
+      fetchEntities()
+      fetchStatuses()
+      fetchPriorities()
+    }
+  }, [session])
+
+  // Fetch services when entity changes (for admin) or on mount (for staff)
+  useEffect(() => {
+    if (session) {
+      if (isAdmin) {
+        // Admin: fetch services for selected entity or all services
+        fetchServices(currentFilters.entity_id || undefined)
+      } else if (userEntityId) {
+        // Staff: fetch services for their entity only
+        fetchServices(userEntityId)
+      }
+    }
+  }, [session, currentFilters.entity_id, isAdmin, userEntityId])
 
   const fetchEntities = async () => {
     try {
-      const res = await fetch('/api/managedata/entities')
+      // For admin: fetch all entities
+      // For staff: fetch only their entity (API handles filtering via session)
+      const url = isAdmin ? '/api/managedata/entities?all=true' : '/api/managedata/entities'
+      const res = await fetch(url)
       const data = await res.json()
-      if (data.success && Array.isArray(data.data)) {
+      if (Array.isArray(data)) {
+        setEntities(
+          data.map((e: any) => ({
+            value: e.unique_entity_id,
+            label: e.entity_name
+          }))
+        )
+      } else if (data.success && Array.isArray(data.data)) {
         setEntities(
           data.data.map((e: any) => ({
             value: e.unique_entity_id,
@@ -52,11 +85,21 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
     }
   }
 
-  const fetchServices = async () => {
+  const fetchServices = async (entityId?: string) => {
     try {
-      const res = await fetch('/api/managedata/services')
+      const url = entityId
+        ? `/api/managedata/services?entity_id=${entityId}`
+        : '/api/managedata/services'
+      const res = await fetch(url)
       const data = await res.json()
-      if (data.success && Array.isArray(data.data)) {
+      if (Array.isArray(data)) {
+        setServices(
+          data.map((s: any) => ({
+            value: s.service_id,
+            label: s.service_name
+          }))
+        )
+      } else if (data.success && Array.isArray(data.data)) {
         setServices(
           data.data.map((s: any) => ({
             value: s.service_id,
@@ -109,7 +152,7 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
   const handleClearFilters = () => {
     setSearchTerm('')
     onFilterChange({
-      entity_id: null,
+      entity_id: isAdmin ? null : userEntityId || null,
       service_id: null,
       status: null,
       priority: null,
@@ -135,18 +178,32 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Entity
             </label>
-            <select
-              value={currentFilters.entity_id || ''}
-              onChange={(e) => handleFilterChange('entity_id', e.target.value || null)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">All Entities</option>
-              {entities.map((entity) => (
-                <option key={entity.value} value={entity.value}>
-                  {entity.label}
-                </option>
-              ))}
-            </select>
+            {isAdmin ? (
+              <select
+                value={currentFilters.entity_id || ''}
+                onChange={(e) => handleFilterChange('entity_id', e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Entities</option>
+                {entities.map((entity) => (
+                  <option key={entity.value} value={entity.value}>
+                    {entity.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={userEntityId || ''}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+              >
+                {entities.map((entity) => (
+                  <option key={entity.value} value={entity.value}>
+                    {entity.label}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Service Filter */}

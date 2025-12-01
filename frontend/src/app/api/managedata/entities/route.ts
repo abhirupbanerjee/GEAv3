@@ -18,17 +18,20 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
     const requestedEntityId = searchParams.get('entity_id')
+    const fetchAll = searchParams.get('all') === 'true'
 
     // Apply entity filter for staff users (for managedata page)
     const entityFilter = getEntityFilter(session)
+    const isAdmin = session.user.roleType === 'admin'
 
     // Build WHERE clause based on entity filter
     let whereClause = ''
     const queryParams: any[] = []
 
+    // If admin requests all entities, bypass the filter
     // Priority: requested entity_id param > Staff entity filter
     // Staff can request specific entity (e.g., AGY-005 for service requests) but managedata page uses their own entity
-    const finalEntityId = requestedEntityId || entityFilter
+    const finalEntityId = (isAdmin && fetchAll) ? null : (requestedEntityId || entityFilter)
 
     if (finalEntityId) {
       whereClause = 'WHERE e.unique_entity_id = $1'
