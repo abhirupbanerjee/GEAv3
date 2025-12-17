@@ -127,6 +127,9 @@ services:
       - DB_USER=feedback_user
       - DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
 
+      # External API Access
+      - EXTERNAL_API_KEY=${EXTERNAL_API_KEY}
+
     depends_on:
       feedback_db:
         condition: service_healthy
@@ -136,4 +139,17 @@ services:
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
+
+      # Rate limiting for external API (100 requests/hour with burst of 20)
+      - "traefik.http.middlewares.external-api-ratelimit.ratelimit.average=100"
+      - "traefik.http.middlewares.external-api-ratelimit.ratelimit.burst=20"
+      - "traefik.http.middlewares.external-api-ratelimit.ratelimit.period=1h"
+
+      # External API router (applies rate limit only to /api/external/*)
+      - "traefik.http.routers.external-api.rule=Host(`gea.abhirup.app`) && PathPrefix(`/api/external/`)"
+      - "traefik.http.routers.external-api.entrypoints=websecure"
+      - "traefik.http.routers.external-api.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.external-api.middlewares=external-api-ratelimit"
+      - "traefik.http.routers.external-api.service=frontend"
+      - "traefik.http.routers.external-api.priority=200"
 
