@@ -14,7 +14,7 @@ All requests require: `X-API-Key: <your-key>` header
 | Specific grievances, complaints | `GET /api/external/grievances` | "Show open grievances", "List grievances for Ministry X" |
 | Individual tickets, support issues | `GET /api/external/tickets` | "Show overdue tickets", "Find high priority tickets" |
 | Feedback details, citizen comments | `GET /api/external/feedback` | "What are people saying?", "Show negative feedback" |
-| Document requirements for a service | `GET /api/external/services/{id}/requirements` | "What docs do I need for work permit?" |
+| Document requirements for a service | `GET /api/external/services/requirements?service_id=SVC-LBR-001` | "What docs do I need for work permit?" |
 | List of entities/ministries | `GET /api/external/dashboard?include=entities` | "List all ministries" |
 | List of services | `GET /api/external/dashboard?include=services` | "What services are available?" |
 
@@ -112,20 +112,20 @@ GET /api/external/feedback?service_id=SVC-001&has_comment=true&limit=20
 ### 5. Service Requirements
 
 ```
-GET /api/external/services/SVC-DIG-001/requirements
+GET /api/external/services/requirements?service_id=SVC-LBR-001
 ```
 
 **Purpose:** Get required documents for a specific service.
 
-**Path Parameter:**
-- `id` - Service ID in format SVC-XXX-NNN. Get the list of service IDs from `/api/external/dashboard?include=services`
+**Query Parameter:**
+- `service_id` - Service ID in format SVC-XXX-NNN. Get the list from `/api/external/dashboard?include=services`
 
 **Returns:** Service details + list of required documents with mandatory/optional flags.
 
 **Common Service IDs:**
-- `SVC-DIG-001` - EA Portal Support Request
 - `SVC-LBR-001` - Work Permit Application
 - `SVC-REG-001` - Birth Certificate Copy/Extract
+- `SVC-DIG-001` - EA Portal Support Request
 
 ---
 
@@ -135,7 +135,7 @@ GET /api/external/services/SVC-DIG-001/requirements
 2. User asks about **specific grievances/complaints** → Use `/grievances`
 3. User asks about **specific tickets/issues** → Use `/tickets`
 4. User asks about **what people are saying/feedback text** → Use `/feedback`
-5. User asks about **documents needed for a service** → Use `/services/{id}/requirements`
+5. User asks about **documents needed for a service** → Use `/services/requirements?service_id=XXX`
 6. User asks to **compare or filter by entity** → Add `entity_id` or `entity_name` parameter
 7. User asks about **recent items** → Use `limit` parameter
 
@@ -169,7 +169,7 @@ GET /api/external/feedback?min_rating=1&max_rating=2&limit=50
 
 ### "What documents do I need for work permit?"
 ```
-GET /api/external/services/SVC-LBR-001/requirements
+GET /api/external/services/requirements?service_id=SVC-LBR-001
 ```
 
 ### "How many overdue tickets are there?"

@@ -82,9 +82,9 @@ export default function ManageDataPage() {
   const exportEntities = useCallback(async () => {
     setIsExporting(true)
     try {
-      const res = await fetch('/api/managedata/entities')
+      const res = await fetch('/api/managedata/entities?all=true')
       if (!res.ok) throw new Error('Failed to fetch entities')
-      const { entities } = await res.json()
+      const entities = await res.json()
 
       const exportData = entities.map((e: any) => ({
         id: e.unique_entity_id,
@@ -110,7 +110,7 @@ export default function ManageDataPage() {
     try {
       const res = await fetch('/api/managedata/services')
       if (!res.ok) throw new Error('Failed to fetch services')
-      const { services } = await res.json()
+      const services = await res.json()
 
       const exportData = services.map((s: any) => ({
         id: s.service_id,
@@ -135,14 +135,14 @@ export default function ManageDataPage() {
     setIsExporting(true)
     try {
       const [entitiesRes, servicesRes] = await Promise.all([
-        fetch('/api/managedata/entities'),
+        fetch('/api/managedata/entities?all=true'),
         fetch('/api/managedata/services')
       ])
 
       if (!entitiesRes.ok || !servicesRes.ok) throw new Error('Failed to fetch data')
 
-      const { entities } = await entitiesRes.json()
-      const { services } = await servicesRes.json()
+      const entities = await entitiesRes.json()
+      const services = await servicesRes.json()
 
       const exportData = {
         exported_at: new Date().toISOString(),
@@ -221,7 +221,7 @@ export default function ManageDataPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                 </svg>
               )}
-              <span>Export for Bot</span>
+              <span>Export</span>
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -230,7 +230,7 @@ export default function ManageDataPage() {
             {showExportMenu && (
               <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                 <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
-                  Export master data for AI bot reference
+                  Export master data
                 </div>
                 <button
                   onClick={exportEntities}

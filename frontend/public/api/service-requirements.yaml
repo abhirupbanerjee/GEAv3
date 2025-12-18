@@ -12,23 +12,24 @@ security:
   - ApiKeyAuth: []
 
 paths:
-  /api/external/services/{id}/requirements:
+  /api/external/services/requirements:
     get:
       operationId: getServiceRequirements
       summary: Get service document requirements
       description: |
         Retrieve the list of required documents for a specific EA service.
-        Use for: "What docs do I need for digital roadmap?", "Show compliance review requirements"
+        Use for: "What docs do I need for work permit?", "Show birth certificate requirements"
       parameters:
-        - name: id
-          in: path
+        - name: service_id
+          in: query
           required: true
           description: |
-            Service ID (format: SVC-XXX-NNN). Use /api/external/dashboard?include=services to get the list.
-            Examples: SVC-DIG-001 (EA Portal Support), SVC-LBR-001 (Work Permit), SVC-REG-001 (Birth Certificate)
+            Service ID (format: SVC-XXX-NNN).
+            Common IDs: SVC-LBR-001 (Work Permit), SVC-REG-001 (Birth Certificate), SVC-DIG-001 (EA Portal Support)
+            To find more IDs: GET /api/external/dashboard?include=services
           schema:
             type: string
-            example: SVC-DIG-001
+            example: SVC-LBR-001
       responses:
         '200':
           description: Service details with document requirements
@@ -100,36 +101,38 @@ paths:
                 success: true
                 data:
                   service:
-                    id: SVC-DIG-001
-                    name: EA Portal Support Request
-                    category: digital_government_and_ict_services
-                    description: Submit a technical or functional support request related to the Grenada EA Portal.
+                    id: SVC-LBR-001
+                    name: Work Permit Application
+                    category: business_and_commerce
+                    description: Apply for a work permit for foreign nationals to work in Grenada.
                     is_active: true
                     entity:
-                      id: AGY-005
-                      name: Digital Transformation Agency
+                      id: DEP-012
+                      name: Department of Labour
                   requirements:
-                    - id: 1
-                      filename: Senior leadership approval letter or email
+                    - id: 212
+                      filename: Work Permit Application Form
                       file_extension: pdf
                       is_mandatory: true
-                      description: Approval for roadmap support request
-                    - id: 2
-                      filename: Digital vision / strategic plan
-                      file_extension: docx
-                      is_mandatory: true
-                      description: Vision document or strategic plan
-                    - id: 3
-                      filename: Organizational structure
+                      description: Application for work permit for non-nationals.
+                    - id: 213
+                      filename: Employment Contract or Offer Letter
                       file_extension: pdf
-                      is_mandatory: false
-                      description: Organizational chart
+                      is_mandatory: true
+                      description: Evidence of employment offer from local employer.
                   summary:
-                    total: 5
-                    mandatory: 3
-                    optional: 2
+                    total: 2
+                    mandatory: 2
+                    optional: 0
                 meta:
                   generated_at: "2025-12-18T10:30:00Z"
+        '400':
+          description: Missing service_id parameter
+          content:
+            application/json:
+              example:
+                success: false
+                error: "service_id query parameter is required"
         '401':
           description: Invalid or missing API key
         '404':
