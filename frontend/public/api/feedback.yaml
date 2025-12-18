@@ -1,0 +1,190 @@
+openapi: 3.1.0
+info:
+  title: GEA Portal - Feedback API
+  description: Query individual feedback records with ratings and comments
+  version: 1.0.0
+
+servers:
+  - url: https://gea.gov.gd
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/external/feedback:
+    get:
+      operationId: getFeedback
+      summary: Query feedback records
+      description: |
+        Retrieve individual feedback submissions with ratings and comments.
+        Use for: "What are people saying?", "Show negative feedback", "Find low-rated services"
+      parameters:
+        - name: service_id
+          in: query
+          description: Filter by service ID
+          schema:
+            type: string
+        - name: service_name
+          in: query
+          description: Fuzzy search by service name
+          schema:
+            type: string
+            example: work permit
+        - name: entity_id
+          in: query
+          description: Filter by entity ID
+          schema:
+            type: string
+        - name: entity_name
+          in: query
+          description: Fuzzy search by entity name
+          schema:
+            type: string
+            example: immigration
+        - name: has_comment
+          in: query
+          description: Filter to feedback with comments only
+          schema:
+            type: boolean
+        - name: has_grievance
+          in: query
+          description: Filter to grievance-flagged feedback
+          schema:
+            type: boolean
+        - name: min_rating
+          in: query
+          description: Minimum overall satisfaction (1-5)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: max_rating
+          in: query
+          description: Maximum overall satisfaction (1-5)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: channel
+          in: query
+          description: Filter by submission channel
+          schema:
+            type: string
+            enum: [portal, qr, kiosk]
+        - name: limit
+          in: query
+          description: Max records (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of feedback submissions
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, pagination, meta]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        feedback_id:
+                          type: integer
+                        ratings:
+                          type: object
+                          properties:
+                            ease:
+                              type: integer
+                              minimum: 1
+                              maximum: 5
+                            clarity:
+                              type: integer
+                              minimum: 1
+                              maximum: 5
+                            timeliness:
+                              type: integer
+                              minimum: 1
+                              maximum: 5
+                            trust:
+                              type: integer
+                              minimum: 1
+                              maximum: 5
+                            overall_satisfaction:
+                              type: integer
+                              minimum: 1
+                              maximum: 5
+                        grievance_flag:
+                          type: boolean
+                        comment:
+                          type: string
+                          nullable: true
+                        recipient_group:
+                          type: string
+                          nullable: true
+                        channel:
+                          type: string
+                          enum: [portal, qr, kiosk]
+                        created_at:
+                          type: string
+                          format: date-time
+                        service:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            category:
+                              type: string
+                        entity:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      has_more:
+                        type: boolean
+                  meta:
+                    type: object
+                    properties:
+                      filters:
+                        type: object
+                      generated_at:
+                        type: string
+                        format: date-time
+        '400':
+          description: Invalid rating parameters
+        '401':
+          description: Invalid or missing API key
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

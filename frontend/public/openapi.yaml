@@ -1,0 +1,1074 @@
+openapi: 3.1.0
+info:
+  title: GEA Portal External API
+  description: |
+    External API for Government of Grenada EA Portal dashboard data.
+
+    ## Authentication
+    All requests require an API key passed via the `X-API-Key` header.
+
+    ## Rate Limiting
+    - **100 requests per hour** with burst allowance of 20 requests
+    - Rate limit headers are included in responses
+
+    ## Contact
+    For API key requests, contact the Digital Transformation Agency.
+  version: 1.0.0
+  contact:
+    name: Digital Transformation Agency
+    email: admin@dta.gov.gd
+
+servers:
+  - url: https://gea.abhirup.app
+    description: Production server
+  - url: https://gea.gov.gd
+    description: Government production server
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/external/dashboard:
+    get:
+      operationId: getDashboardData
+      summary: Get dashboard statistics
+      description: |
+        Retrieves aggregated dashboard data from multiple sources.
+
+        By default, all sections are returned. Use the `include` parameter
+        to request specific sections only, reducing response size and latency.
+
+        All sections are fetched in parallel for optimal performance.
+      tags:
+        - Dashboard
+      parameters:
+        - name: include
+          in: query
+          required: false
+          description: |
+            Comma-separated list of sections to include in the response.
+            If omitted, all sections are returned.
+          schema:
+            type: string
+            example: feedback,tickets,entities
+          examples:
+            all:
+              summary: All sections (default)
+              value: feedback,tickets,leaderboard,requests,entities,services
+            minimal:
+              summary: Quick stats only
+              value: feedback,tickets
+            reference:
+              summary: Reference data only
+              value: entities,services
+        - name: entity_id
+          in: query
+          required: false
+          description: |
+            Filter data by entity ID. Supports single entity or comma-separated
+            list for some sections. Use the `entities` section to get valid IDs.
+          schema:
+            type: string
+            example: AGY-005
+          examples:
+            single:
+              summary: Single entity
+              value: AGY-005
+            multiple:
+              summary: Multiple entities
+              value: AGY-005,MIN-001
+      responses:
+        '200':
+          description: Successful response with requested data sections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DashboardResponse'
+              examples:
+                full:
+                  summary: Full response (all sections)
+                  value:
+                    success: true
+                    data:
+                      feedback:
+                        overall:
+                          total_submissions: "156"
+                          avg_satisfaction: "4.25"
+                          grievance_count: "12"
+                        by_channel:
+                          - channel: ea_portal
+                            count: "120"
+                            avg_satisfaction: "4.30"
+                          - channel: qr_code
+                            count: "36"
+                            avg_satisfaction: "4.10"
+                      tickets:
+                        total_tickets: 89
+                        status_breakdown:
+                          open:
+                            name: Open
+                            count: 15
+                            color: "#3B82F6"
+                          in_progress:
+                            name: In Progress
+                            count: 23
+                            color: "#F59E0B"
+                      entities:
+                        - unique_entity_id: AGY-005
+                          entity_name: Digital Transformation Agency
+                          entity_type: agency
+                          is_active: true
+                    meta:
+                      included_sections:
+                        - feedback
+                        - tickets
+                        - entities
+                      entity_filter: null
+                      generated_at: "2025-12-17T19:39:32.711Z"
+        '400':
+          description: Invalid request parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Invalid sections. Valid options: feedback, tickets, leaderboard, requests, entities, services"
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Invalid or missing API key"
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Rate limit exceeded. Try again later."
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Internal server error"
+        '503':
+          description: External API access not configured
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "External API access not configured"
+
+  /api/external/grievances:
+    get:
+      operationId: getGrievances
+      summary: Query grievance records
+      description: |
+        Retrieve individual grievance/complaint records with filtering and pagination.
+        PII fields (submitter name, email, phone) are automatically masked.
+      tags:
+        - Grievances
+      parameters:
+        - name: status
+          in: query
+          description: Filter by grievance status
+          schema:
+            type: string
+            enum: [open, in_progress, resolved, closed]
+        - name: entity_id
+          in: query
+          description: Filter by entity ID
+          schema:
+            type: string
+        - name: entity_name
+          in: query
+          description: Fuzzy search by entity name (case-insensitive partial match)
+          schema:
+            type: string
+            example: immigration
+        - name: service_id
+          in: query
+          description: Filter by service ID
+          schema:
+            type: string
+        - name: service_name
+          in: query
+          description: Fuzzy search by service name
+          schema:
+            type: string
+            example: work permit
+        - name: limit
+          in: query
+          description: Maximum records to return (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of grievances
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GrievancesResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/external/tickets:
+    get:
+      operationId: getTickets
+      summary: Query ticket records
+      description: |
+        Retrieve individual support ticket records with filtering and pagination.
+        PII fields (contact name, email, phone) are automatically masked.
+      tags:
+        - Tickets
+      parameters:
+        - name: status
+          in: query
+          description: Filter by ticket status code
+          schema:
+            type: string
+            example: open
+        - name: priority
+          in: query
+          description: Filter by priority level
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: entity_id
+          in: query
+          description: Filter by assigned entity ID
+          schema:
+            type: string
+        - name: entity_name
+          in: query
+          description: Fuzzy search by entity name
+          schema:
+            type: string
+        - name: overdue
+          in: query
+          description: Filter to only overdue tickets
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          description: Maximum records to return (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TicketsResponse'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/external/feedback:
+    get:
+      operationId: getFeedback
+      summary: Query feedback records
+      description: |
+        Retrieve individual feedback submissions with ratings and comments.
+        Use this endpoint to understand citizen sentiment and specific feedback.
+      tags:
+        - Feedback
+      parameters:
+        - name: service_id
+          in: query
+          description: Filter by service ID
+          schema:
+            type: string
+        - name: service_name
+          in: query
+          description: Fuzzy search by service name
+          schema:
+            type: string
+        - name: entity_id
+          in: query
+          description: Filter by entity ID
+          schema:
+            type: string
+        - name: entity_name
+          in: query
+          description: Fuzzy search by entity name
+          schema:
+            type: string
+        - name: has_comment
+          in: query
+          description: Filter to feedback with/without comments
+          schema:
+            type: boolean
+        - name: has_grievance
+          in: query
+          description: Filter to grievance-flagged feedback
+          schema:
+            type: boolean
+        - name: min_rating
+          in: query
+          description: Minimum overall satisfaction rating (1-5)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: max_rating
+          in: query
+          description: Maximum overall satisfaction rating (1-5)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+        - name: channel
+          in: query
+          description: Filter by submission channel
+          schema:
+            type: string
+            enum: [portal, qr, kiosk]
+        - name: limit
+          in: query
+          description: Maximum records to return (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of feedback submissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackListResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/external/services/{id}/requirements:
+    get:
+      operationId: getServiceRequirements
+      summary: Get service document requirements
+      description: |
+        Retrieve the list of required documents for a specific EA service.
+        Useful for understanding what documentation citizens need to prepare.
+      tags:
+        - Services
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Service ID (e.g., digital-roadmap, compliance-review)
+          schema:
+            type: string
+            example: digital-roadmap
+      responses:
+        '200':
+          description: Service details with document requirements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServiceRequirementsResponse'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                success: false
+                error: "Service not found: invalid-id"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key provided by the Digital Transformation Agency
+
+  schemas:
+    DashboardResponse:
+      type: object
+      required:
+        - success
+        - data
+        - meta
+      properties:
+        success:
+          type: boolean
+          description: Whether all requested sections were retrieved successfully
+        data:
+          type: object
+          description: Contains requested data sections
+          properties:
+            feedback:
+              $ref: '#/components/schemas/FeedbackStats'
+            tickets:
+              $ref: '#/components/schemas/TicketStats'
+            leaderboard:
+              $ref: '#/components/schemas/LeaderboardStats'
+            requests:
+              $ref: '#/components/schemas/RequestStats'
+            entities:
+              type: array
+              items:
+                $ref: '#/components/schemas/Entity'
+            services:
+              type: array
+              items:
+                $ref: '#/components/schemas/Service'
+        errors:
+          type: object
+          description: Section-specific errors (only present if some sections failed)
+          additionalProperties:
+            type: string
+        meta:
+          $ref: '#/components/schemas/ResponseMeta'
+
+    FeedbackStats:
+      type: object
+      description: Feedback statistics from service satisfaction surveys
+      properties:
+        overall:
+          type: object
+          properties:
+            total_submissions:
+              type: string
+              description: Total feedback submissions
+            avg_satisfaction:
+              type: string
+              description: Average overall satisfaction (1-5 scale)
+            avg_ease:
+              type: string
+              description: Average ease of use rating
+            avg_clarity:
+              type: string
+              description: Average clarity rating
+            avg_timeliness:
+              type: string
+              description: Average timeliness rating
+            avg_trust:
+              type: string
+              description: Average trust rating
+            grievance_count:
+              type: string
+              description: Number of flagged grievances
+        by_channel:
+          type: array
+          items:
+            type: object
+            properties:
+              channel:
+                type: string
+                enum: [ea_portal, qr_code]
+              count:
+                type: string
+              avg_satisfaction:
+                type: string
+        rating_distribution:
+          type: array
+          items:
+            type: object
+            properties:
+              rating:
+                type: integer
+                minimum: 1
+                maximum: 5
+              count:
+                type: string
+              percentage:
+                type: string
+
+    TicketStats:
+      type: object
+      description: Helpdesk ticket statistics
+      properties:
+        total_tickets:
+          type: integer
+        status_breakdown:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+              color:
+                type: string
+                description: Hex color code for UI display
+        priority_breakdown:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              name:
+                type: string
+              count:
+                type: integer
+              color:
+                type: string
+        metrics:
+          type: object
+          properties:
+            overdue_tickets:
+              type: integer
+            today_tickets:
+              type: integer
+            week_tickets:
+              type: integer
+
+    LeaderboardStats:
+      type: object
+      description: Service performance rankings
+      properties:
+        top_5:
+          type: array
+          description: Top 5 performing services
+          items:
+            $ref: '#/components/schemas/ServiceRanking'
+        bottom_5:
+          type: array
+          description: Bottom 5 performing services (needs attention)
+          items:
+            $ref: '#/components/schemas/ServiceRanking'
+        total_services:
+          type: integer
+
+    ServiceRanking:
+      type: object
+      properties:
+        service_id:
+          type: string
+        service_name:
+          type: string
+        entity_name:
+          type: string
+        feedback_count:
+          type: string
+        avg_satisfaction:
+          type: string
+        grievance_count:
+          type: string
+        overall_score:
+          type: string
+          description: Weighted performance score (0-10 scale)
+
+    RequestStats:
+      type: object
+      description: EA Service request statistics
+      properties:
+        submitted:
+          type: integer
+        in_progress:
+          type: integer
+        under_review:
+          type: integer
+        completed:
+          type: integer
+        rejected:
+          type: integer
+        total:
+          type: integer
+        last_7_days:
+          type: integer
+        last_30_days:
+          type: integer
+
+    Entity:
+      type: object
+      description: Government entity (ministry, agency, department)
+      properties:
+        unique_entity_id:
+          type: string
+          example: AGY-005
+        entity_name:
+          type: string
+          example: Digital Transformation Agency
+        entity_type:
+          type: string
+          enum: [ministry, agency, department, regulator]
+        parent_entity_id:
+          type: string
+          nullable: true
+        is_active:
+          type: boolean
+        parent_entity_name:
+          type: string
+          nullable: true
+
+    Service:
+      type: object
+      description: Government service offered by an entity
+      properties:
+        service_id:
+          type: string
+          example: SVC-001
+        service_name:
+          type: string
+        entity_id:
+          type: string
+        service_category:
+          type: string
+        service_description:
+          type: string
+        is_active:
+          type: boolean
+        entity_name:
+          type: string
+
+    ResponseMeta:
+      type: object
+      properties:
+        included_sections:
+          type: array
+          items:
+            type: string
+            enum: [feedback, tickets, leaderboard, requests, entities, services]
+        entity_filter:
+          type: string
+          nullable: true
+          description: Applied entity filter, or null if no filter
+        generated_at:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - error
+      properties:
+        success:
+          type: boolean
+          const: false
+        error:
+          type: string
+          description: Human-readable error message
+
+    # New endpoint response schemas
+
+    GrievancesResponse:
+      type: object
+      required:
+        - success
+        - data
+        - pagination
+        - meta
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Grievance'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/QueryMeta'
+
+    Grievance:
+      type: object
+      properties:
+        grievance_number:
+          type: string
+          example: GRV-2025-001
+        subject:
+          type: string
+        status:
+          type: string
+          enum: [open, in_progress, resolved, closed]
+        submitter_category:
+          type: string
+          nullable: true
+        submitter_name:
+          type: string
+          description: Masked name (e.g., "J*** D***")
+        submitter_email:
+          type: string
+          description: Masked email (e.g., "j***@example.com")
+        submitter_phone:
+          type: string
+          nullable: true
+          description: Masked phone (e.g., "***-1234")
+        incident_date:
+          type: string
+          format: date
+          nullable: true
+        assigned_to:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        resolved_at:
+          type: string
+          format: date-time
+          nullable: true
+        closed_at:
+          type: string
+          format: date-time
+          nullable: true
+        entity:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+        service:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+
+    TicketsResponse:
+      type: object
+      required:
+        - success
+        - data
+        - pagination
+        - meta
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ticket'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/QueryMeta'
+
+    Ticket:
+      type: object
+      properties:
+        ticket_number:
+          type: string
+          example: TKT-2025-001
+        subject:
+          type: string
+        status:
+          type: object
+          properties:
+            name:
+              type: string
+            code:
+              type: string
+            color:
+              type: string
+        priority:
+          type: object
+          properties:
+            name:
+              type: string
+            code:
+              type: string
+            color:
+              type: string
+        requester_category:
+          type: string
+          nullable: true
+        contact_name:
+          type: string
+          description: Masked name
+        contact_email:
+          type: string
+          description: Masked email
+        contact_phone:
+          type: string
+          nullable: true
+          description: Masked phone
+        sla:
+          type: object
+          properties:
+            response_target:
+              type: string
+              format: date-time
+            resolution_target:
+              type: string
+              format: date-time
+            first_response_at:
+              type: string
+              format: date-time
+              nullable: true
+            resolved_at:
+              type: string
+              format: date-time
+              nullable: true
+            status:
+              type: string
+              enum: [on_track, at_risk, overdue, completed]
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        entity:
+          type: object
+          nullable: true
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+
+    FeedbackListResponse:
+      type: object
+      required:
+        - success
+        - data
+        - pagination
+        - meta
+      properties:
+        success:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackRecord'
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        meta:
+          $ref: '#/components/schemas/QueryMeta'
+
+    FeedbackRecord:
+      type: object
+      properties:
+        feedback_id:
+          type: integer
+        ratings:
+          type: object
+          properties:
+            ease:
+              type: integer
+              minimum: 1
+              maximum: 5
+            clarity:
+              type: integer
+              minimum: 1
+              maximum: 5
+            timeliness:
+              type: integer
+              minimum: 1
+              maximum: 5
+            trust:
+              type: integer
+              minimum: 1
+              maximum: 5
+            overall_satisfaction:
+              type: integer
+              minimum: 1
+              maximum: 5
+        grievance_flag:
+          type: boolean
+        comment:
+          type: string
+          nullable: true
+        recipient_group:
+          type: string
+          nullable: true
+        channel:
+          type: string
+          enum: [portal, qr, kiosk]
+        created_at:
+          type: string
+          format: date-time
+        service:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+            category:
+              type: string
+        entity:
+          type: object
+          properties:
+            id:
+              type: string
+            name:
+              type: string
+
+    ServiceRequirementsResponse:
+      type: object
+      required:
+        - success
+        - data
+        - meta
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            service:
+              type: object
+              properties:
+                id:
+                  type: string
+                name:
+                  type: string
+                category:
+                  type: string
+                description:
+                  type: string
+                is_active:
+                  type: boolean
+                entity:
+                  type: object
+                  properties:
+                    id:
+                      type: string
+                    name:
+                      type: string
+            requirements:
+              type: array
+              items:
+                $ref: '#/components/schemas/DocumentRequirement'
+            summary:
+              type: object
+              properties:
+                total:
+                  type: integer
+                mandatory:
+                  type: integer
+                optional:
+                  type: integer
+        meta:
+          type: object
+          properties:
+            generated_at:
+              type: string
+              format: date-time
+
+    DocumentRequirement:
+      type: object
+      properties:
+        id:
+          type: integer
+        filename:
+          type: string
+          description: Display name of the document
+        file_extension:
+          type: string
+          description: Expected file format (e.g., pdf, docx)
+        is_mandatory:
+          type: boolean
+        description:
+          type: string
+          nullable: true
+
+    Pagination:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total number of records matching the filter
+        limit:
+          type: integer
+          description: Maximum records per page
+        offset:
+          type: integer
+          description: Current offset
+        has_more:
+          type: boolean
+          description: Whether more records are available
+
+    QueryMeta:
+      type: object
+      properties:
+        filters:
+          type: object
+          additionalProperties: true
+          description: Applied query filters
+        generated_at:
+          type: string
+          format: date-time
+
+tags:
+  - name: Dashboard
+    description: Aggregated dashboard data endpoints
+  - name: Grievances
+    description: Individual grievance record queries
+  - name: Tickets
+    description: Individual ticket record queries
+  - name: Feedback
+    description: Individual feedback record queries
+  - name: Services
+    description: Service details and requirements

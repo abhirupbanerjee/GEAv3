@@ -1,0 +1,156 @@
+openapi: 3.1.0
+info:
+  title: GEA Portal - Dashboard API
+  description: Aggregated dashboard statistics endpoint
+  version: 1.0.0
+
+servers:
+  - url: https://gea.gov.gd
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/external/dashboard:
+    get:
+      operationId: getDashboardData
+      summary: Get aggregated dashboard statistics
+      description: |
+        Returns totals, averages, and status breakdowns for the portal.
+        Use for "how many" / "what's the average" / "total count" questions.
+      parameters:
+        - name: include
+          in: query
+          description: Comma-separated sections to include
+          schema:
+            type: string
+            example: feedback,tickets,entities,services
+            enum: [feedback, tickets, leaderboard, requests, entities, services]
+        - name: entity_id
+          in: query
+          description: Filter by entity ID
+          schema:
+            type: string
+            example: AGY-005
+      responses:
+        '200':
+          description: Dashboard statistics
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      feedback:
+                        type: object
+                        properties:
+                          overall:
+                            type: object
+                            properties:
+                              total_submissions:
+                                type: string
+                              avg_satisfaction:
+                                type: string
+                              grievance_count:
+                                type: string
+                          by_channel:
+                            type: array
+                            items:
+                              type: object
+                          rating_distribution:
+                            type: array
+                            items:
+                              type: object
+                      tickets:
+                        type: object
+                        properties:
+                          total_tickets:
+                            type: integer
+                          status_breakdown:
+                            type: object
+                          priority_breakdown:
+                            type: object
+                          metrics:
+                            type: object
+                            properties:
+                              overdue_tickets:
+                                type: integer
+                              today_tickets:
+                                type: integer
+                              week_tickets:
+                                type: integer
+                      leaderboard:
+                        type: object
+                        properties:
+                          top_5:
+                            type: array
+                          bottom_5:
+                            type: array
+                          total_services:
+                            type: integer
+                      requests:
+                        type: object
+                        properties:
+                          submitted:
+                            type: integer
+                          in_progress:
+                            type: integer
+                          completed:
+                            type: integer
+                          total:
+                            type: integer
+                      entities:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            unique_entity_id:
+                              type: string
+                            entity_name:
+                              type: string
+                            entity_type:
+                              type: string
+                            is_active:
+                              type: boolean
+                      services:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            service_id:
+                              type: string
+                            service_name:
+                              type: string
+                            entity_id:
+                              type: string
+                            is_active:
+                              type: boolean
+                  meta:
+                    type: object
+                    properties:
+                      included_sections:
+                        type: array
+                        items:
+                          type: string
+                      entity_filter:
+                        type: string
+                        nullable: true
+                      generated_at:
+                        type: string
+                        format: date-time
+        '401':
+          description: Invalid or missing API key
+        '400':
+          description: Invalid sections parameter
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

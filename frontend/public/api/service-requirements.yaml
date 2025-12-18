@@ -1,0 +1,154 @@
+openapi: 3.1.0
+info:
+  title: GEA Portal - Service Requirements API
+  description: Get document requirements for EA services
+  version: 1.0.0
+
+servers:
+  - url: https://gea.gov.gd
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/external/services/{id}/requirements:
+    get:
+      operationId: getServiceRequirements
+      summary: Get service document requirements
+      description: |
+        Retrieve the list of required documents for a specific EA service.
+        Use for: "What docs do I need for digital roadmap?", "Show compliance review requirements"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: |
+            Service ID. Available services:
+            - digital-roadmap
+            - ea-framework-review
+            - maturity-assessment
+            - repository-access
+            - compliance-review
+            - portfolio-review
+            - training-capacity
+          schema:
+            type: string
+            example: digital-roadmap
+      responses:
+        '200':
+          description: Service details with document requirements
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, meta]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      service:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                          name:
+                            type: string
+                          category:
+                            type: string
+                          description:
+                            type: string
+                          is_active:
+                            type: boolean
+                          entity:
+                            type: object
+                            properties:
+                              id:
+                                type: string
+                              name:
+                                type: string
+                      requirements:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: integer
+                            filename:
+                              type: string
+                              description: Display name of the document
+                            file_extension:
+                              type: string
+                              description: Expected format (pdf, docx, xlsx)
+                            is_mandatory:
+                              type: boolean
+                            description:
+                              type: string
+                              nullable: true
+                      summary:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          mandatory:
+                            type: integer
+                          optional:
+                            type: integer
+                  meta:
+                    type: object
+                    properties:
+                      generated_at:
+                        type: string
+                        format: date-time
+              example:
+                success: true
+                data:
+                  service:
+                    id: digital-roadmap
+                    name: Digital Roadmap Development
+                    category: EA Services
+                    description: Develop a digital transformation roadmap
+                    is_active: true
+                    entity:
+                      id: AGY-005
+                      name: Digital Transformation Agency
+                  requirements:
+                    - id: 1
+                      filename: Senior leadership approval letter or email
+                      file_extension: pdf
+                      is_mandatory: true
+                      description: Approval for roadmap support request
+                    - id: 2
+                      filename: Digital vision / strategic plan
+                      file_extension: docx
+                      is_mandatory: true
+                      description: Vision document or strategic plan
+                    - id: 3
+                      filename: Organizational structure
+                      file_extension: pdf
+                      is_mandatory: false
+                      description: Organizational chart
+                  summary:
+                    total: 5
+                    mandatory: 3
+                    optional: 2
+                meta:
+                  generated_at: "2025-12-18T10:30:00Z"
+        '401':
+          description: Invalid or missing API key
+        '404':
+          description: Service not found
+          content:
+            application/json:
+              example:
+                success: false
+                error: "Service not found: invalid-id"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

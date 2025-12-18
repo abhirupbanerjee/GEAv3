@@ -1,0 +1,181 @@
+openapi: 3.1.0
+info:
+  title: GEA Portal - Tickets API
+  description: Query individual support ticket records
+  version: 1.0.0
+
+servers:
+  - url: https://gea.gov.gd
+    description: Production
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /api/external/tickets:
+    get:
+      operationId: getTickets
+      summary: Query ticket records
+      description: |
+        Retrieve individual support ticket records with filtering.
+        PII fields (contact name, email, phone) are automatically masked.
+        Use for: "Show overdue tickets", "Find high priority issues"
+      parameters:
+        - name: status
+          in: query
+          description: Filter by ticket status code
+          schema:
+            type: string
+            example: open
+        - name: priority
+          in: query
+          description: Filter by priority level
+          schema:
+            type: string
+            enum: [low, medium, high, urgent]
+        - name: entity_id
+          in: query
+          description: Filter by assigned entity ID
+          schema:
+            type: string
+            example: DEPT-001
+        - name: entity_name
+          in: query
+          description: Fuzzy search by entity name
+          schema:
+            type: string
+            example: immigration
+        - name: overdue
+          in: query
+          description: Filter to only overdue tickets
+          schema:
+            type: boolean
+        - name: limit
+          in: query
+          description: Max records (default 50, max 100)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        '200':
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [success, data, pagination, meta]
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        ticket_number:
+                          type: string
+                          example: TKT-2025-001
+                        subject:
+                          type: string
+                        status:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            code:
+                              type: string
+                            color:
+                              type: string
+                        priority:
+                          type: object
+                          properties:
+                            name:
+                              type: string
+                            code:
+                              type: string
+                            color:
+                              type: string
+                        requester_category:
+                          type: string
+                          nullable: true
+                        contact_name:
+                          type: string
+                          description: "Masked (e.g., J*** S***)"
+                        contact_email:
+                          type: string
+                          description: "Masked (e.g., j***@example.com)"
+                        contact_phone:
+                          type: string
+                          nullable: true
+                          description: "Masked (e.g., ***-5678)"
+                        sla:
+                          type: object
+                          properties:
+                            response_target:
+                              type: string
+                              format: date-time
+                            resolution_target:
+                              type: string
+                              format: date-time
+                            first_response_at:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            resolved_at:
+                              type: string
+                              format: date-time
+                              nullable: true
+                            status:
+                              type: string
+                              enum: [on_track, at_risk, overdue, completed]
+                        created_at:
+                          type: string
+                          format: date-time
+                        updated_at:
+                          type: string
+                          format: date-time
+                        entity:
+                          type: object
+                          nullable: true
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                  pagination:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                      limit:
+                        type: integer
+                      offset:
+                        type: integer
+                      has_more:
+                        type: boolean
+                  meta:
+                    type: object
+                    properties:
+                      filters:
+                        type: object
+                      generated_at:
+                        type: string
+                        format: date-time
+        '401':
+          description: Invalid or missing API key
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key

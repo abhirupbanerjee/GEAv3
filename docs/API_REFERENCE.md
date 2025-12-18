@@ -1,7 +1,7 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 3.0
-**Last Updated:** November 24, 2025
+**Document Version:** 3.2
+**Last Updated:** December 18, 2025
 **API Base URL:** `https://gea.your-domain.com` (Production)
 **Framework:** Next.js 14 App Router
 **Authentication:** NextAuth v4 with OAuth (Google, Microsoft)
@@ -16,9 +16,10 @@
 4. [Public API Endpoints](#public-api-endpoints)
 5. [Admin API Endpoints](#admin-api-endpoints)
 6. [Master Data Management APIs](#master-data-management-apis)
-7. [Error Handling](#error-handling)
-8. [Response Formats](#response-formats)
-9. [Testing Guide](#testing-guide)
+7. [External API (Bot/Integration Access)](#external-api-botintegration-access)
+8. [Error Handling](#error-handling)
+9. [Response Formats](#response-formats)
+10. [Testing Guide](#testing-guide)
 
 ---
 
@@ -2240,6 +2241,554 @@ GET /api/managedata/qrcodes/next-id?service_id=SVC-IMM-001
 
 ---
 
+## External API (Bot/Integration Access)
+
+The External API provides programmatic access to GEA Portal dashboard data for external systems, bots, and integrations. This API uses API key authentication instead of OAuth sessions.
+
+### Overview
+
+| Feature | Description |
+|---------|-------------|
+| **Endpoint** | `/api/external/dashboard` |
+| **Authentication** | API Key via `X-API-Key` header |
+| **Rate Limit** | 100 requests/hour (Traefik-enforced) |
+| **Data Access** | Full dashboard data (admin-level) |
+| **Entity Filtering** | Optional via `entity_id` parameter |
+
+### Authentication
+
+External API uses API key authentication. The key must be passed in the `X-API-Key` HTTP header.
+
+**Setup:**
+1. Generate an API key: `openssl rand -hex 32`
+2. Add to `.env`: `EXTERNAL_API_KEY=your-generated-key`
+3. Restart containers: `docker-compose up -d`
+
+**Security Notes:**
+- API key provides full admin-level access to dashboard data
+- Rotate keys periodically (90 days recommended)
+- Never expose API keys in client-side code or logs
+- Rate limiting is enforced at 100 requests/hour per IP
+
+### GET /api/external/dashboard
+
+Consolidated dashboard data endpoint that combines multiple data sections in a single API call.
+
+**Authentication:** Required (X-API-Key header)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| include | string | No | Comma-separated sections to include (default: all) |
+| entity_id | string | No | Filter data by entity ID |
+
+**Available Sections:**
+
+| Section | Description | Source Data |
+|---------|-------------|-------------|
+| `feedback` | Service feedback statistics | `/api/feedback/stats` |
+| `tickets` | Ticket dashboard statistics | `/api/admin/tickets/dashboard-stats` |
+| `leaderboard` | Service performance rankings | `/api/admin/service-leaderboard` |
+| `requests` | EA service request statistics | `/api/admin/service-requests/stats` |
+| `entities` | Entity master data | `/api/managedata/entities` |
+| `services` | Service master data | `/api/managedata/services` |
+
+**Example Requests:**
+
+```bash
+# Get all sections
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/dashboard"
+
+# Get specific sections only
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/dashboard?include=feedback,tickets"
+
+# Filter by entity
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/dashboard?entity_id=AGY-001"
+
+# Combined: specific sections with entity filter
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/dashboard?include=feedback,requests&entity_id=MIN-001"
+```
+
+**Success Response (200 OK):**
+
+```json
+{
+  "success": true,
+  "data": {
+    "feedback": {
+      "overall": {
+        "total_feedback": 1250,
+        "average_rating": 4.2,
+        "total_grievances": 45
+      },
+      "by_channel": [...],
+      "rating_distribution": {...}
+    },
+    "tickets": {
+      "total_tickets": 156,
+      "status_breakdown": {...},
+      "priority_breakdown": {...}
+    },
+    "leaderboard": {
+      "services": [...],
+      "entities": [...]
+    },
+    "requests": {
+      "stats": {
+        "submitted": 12,
+        "in_progress": 8,
+        "completed": 45,
+        "total": 65
+      },
+      "recent_requests": [...]
+    },
+    "entities": [
+      {
+        "unique_entity_id": "MIN-001",
+        "entity_name": "Ministry of Finance",
+        "entity_type": "ministry",
+        "is_active": true
+      }
+    ],
+    "services": [
+      {
+        "unique_service_id": "SVC-TAX-001",
+        "service_name": "Tax Filing",
+        "entity_id": "MIN-001",
+        "is_active": true
+      }
+    ]
+  },
+  "meta": {
+    "included_sections": ["feedback", "tickets", "leaderboard", "requests", "entities", "services"],
+    "entity_filter": null,
+    "generated_at": "2025-12-17T10:30:00.000Z"
+  }
+}
+```
+
+**Error Responses:**
+
+**No API Key (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "error": "Invalid or missing API key"
+}
+```
+
+**API Key Not Configured (503 Service Unavailable):**
+```json
+{
+  "success": false,
+  "error": "External API access not configured"
+}
+```
+
+**Rate Limit Exceeded (429 Too Many Requests):**
+```
+HTTP/1.1 429 Too Many Requests
+Retry-After: 3600
+```
+
+### GET /api/external/grievances
+
+Query individual grievance records with filtering and pagination.
+
+**Authentication:** Required (X-API-Key header)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| status | string | No | Filter by status: `open`, `in_progress`, `resolved`, `closed` |
+| entity_id | string | No | Filter by entity ID |
+| entity_name | string | No | Fuzzy search by entity name (case-insensitive) |
+| service_id | string | No | Filter by service ID |
+| service_name | string | No | Fuzzy search by service name |
+| limit | integer | No | Max records (default: 50, max: 100) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Example Request:**
+```bash
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/grievances?status=open&limit=20"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "grievance_number": "GRV-2025-001",
+      "subject": "Long wait time for service",
+      "status": "open",
+      "submitter_category": "citizen",
+      "submitter_name": "J*** D***",
+      "submitter_email": "j***@example.com",
+      "submitter_phone": "***-1234",
+      "incident_date": "2025-12-15",
+      "assigned_to": null,
+      "created_at": "2025-12-16T10:30:00Z",
+      "updated_at": "2025-12-16T10:30:00Z",
+      "resolved_at": null,
+      "closed_at": null,
+      "entity": { "id": "DEPT-001", "name": "Department of Immigration" },
+      "service": { "id": "SVC-IMM-001", "name": "Work Permit Application" }
+    }
+  ],
+  "pagination": {
+    "total": 45,
+    "limit": 20,
+    "offset": 0,
+    "has_more": true
+  },
+  "meta": {
+    "filters": { "status": "open", "entity_id": null },
+    "generated_at": "2025-12-18T10:30:00Z"
+  }
+}
+```
+
+**Note:** PII fields (submitter name, email, phone) are automatically masked.
+
+---
+
+### GET /api/external/tickets
+
+Query individual ticket records with filtering and pagination.
+
+**Authentication:** Required (X-API-Key header)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| status | string | No | Filter by status code |
+| priority | string | No | Filter by priority: `low`, `medium`, `high`, `urgent` |
+| entity_id | string | No | Filter by assigned entity ID |
+| entity_name | string | No | Fuzzy search by entity name |
+| overdue | boolean | No | Set `true` to show only overdue tickets |
+| limit | integer | No | Max records (default: 50, max: 100) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Example Request:**
+```bash
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/tickets?priority=high&overdue=true"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "ticket_number": "TKT-2025-001",
+      "subject": "Unable to download form",
+      "status": { "name": "In Progress", "code": "in_progress", "color": "#8B5CF6" },
+      "priority": { "name": "High", "code": "HIGH", "color": "#EF4444" },
+      "requester_category": "citizen",
+      "contact_name": "J*** S***",
+      "contact_email": "j***@example.com",
+      "contact_phone": "***-5678",
+      "sla": {
+        "response_target": "2025-12-17T10:30:00Z",
+        "resolution_target": "2025-12-19T10:30:00Z",
+        "first_response_at": "2025-12-16T14:00:00Z",
+        "resolved_at": null,
+        "status": "overdue"
+      },
+      "created_at": "2025-12-16T10:30:00Z",
+      "updated_at": "2025-12-17T14:15:00Z",
+      "entity": { "id": "DEPT-001", "name": "Department of Immigration" }
+    }
+  ],
+  "pagination": { "total": 8, "limit": 50, "offset": 0, "has_more": false },
+  "meta": { "filters": { "priority": "high", "overdue": true }, "generated_at": "2025-12-18T10:30:00Z" }
+}
+```
+
+---
+
+### GET /api/external/feedback
+
+Query individual feedback records with ratings and comments.
+
+**Authentication:** Required (X-API-Key header)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| service_id | string | No | Filter by service ID |
+| service_name | string | No | Fuzzy search by service name |
+| entity_id | string | No | Filter by entity ID |
+| entity_name | string | No | Fuzzy search by entity name |
+| has_comment | boolean | No | `true` for feedback with comments only |
+| has_grievance | boolean | No | `true` for grievance-flagged feedback |
+| min_rating | integer | No | Minimum overall satisfaction (1-5) |
+| max_rating | integer | No | Maximum overall satisfaction (1-5) |
+| channel | string | No | Filter by channel: `portal`, `qr`, `kiosk` |
+| limit | integer | No | Max records (default: 50, max: 100) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Example Request:**
+```bash
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/feedback?has_comment=true&min_rating=1&max_rating=2"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "feedback_id": 123,
+      "ratings": {
+        "ease": 2,
+        "clarity": 2,
+        "timeliness": 1,
+        "trust": 2,
+        "overall_satisfaction": 2
+      },
+      "grievance_flag": true,
+      "comment": "Long wait time, staff was unhelpful",
+      "recipient_group": "citizen",
+      "channel": "portal",
+      "created_at": "2025-12-16T10:30:00Z",
+      "service": { "id": "SVC-IMM-001", "name": "Work Permit Application", "category": "Immigration" },
+      "entity": { "id": "DEPT-001", "name": "Department of Immigration" }
+    }
+  ],
+  "pagination": { "total": 15, "limit": 50, "offset": 0, "has_more": false },
+  "meta": { "filters": { "has_comment": true, "min_rating": 1, "max_rating": 2 }, "generated_at": "2025-12-18T10:30:00Z" }
+}
+```
+
+---
+
+### GET /api/external/services/{id}/requirements
+
+Get document requirements for a specific EA service.
+
+**Authentication:** Required (X-API-Key header)
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | Service ID (e.g., `digital-roadmap`, `compliance-review`) |
+
+**Example Request:**
+```bash
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/services/digital-roadmap/requirements"
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "service": {
+      "id": "digital-roadmap",
+      "name": "Digital Roadmap Development",
+      "category": "EA Services",
+      "description": "Develop a digital transformation roadmap for your organization",
+      "is_active": true,
+      "entity": { "id": "AGY-005", "name": "Digital Transformation Agency" }
+    },
+    "requirements": [
+      {
+        "id": 1,
+        "filename": "Senior leadership approval letter or email",
+        "file_extension": "pdf",
+        "is_mandatory": true,
+        "description": "Approval for roadmap support request"
+      },
+      {
+        "id": 2,
+        "filename": "Digital vision / strategic plan",
+        "file_extension": "docx",
+        "is_mandatory": true,
+        "description": "Vision document or strategic plan"
+      },
+      {
+        "id": 3,
+        "filename": "Organizational structure",
+        "file_extension": "pdf",
+        "is_mandatory": false,
+        "description": "Organizational chart or structure document"
+      }
+    ],
+    "summary": { "total": 5, "mandatory": 3, "optional": 2 }
+  },
+  "meta": { "generated_at": "2025-12-18T10:30:00Z" }
+}
+```
+
+**Not Found (404):**
+```json
+{
+  "success": false,
+  "error": "Service not found: invalid-service-id"
+}
+```
+
+---
+
+### Bot API Selection Guide
+
+A natural language guide for helping bots choose the right endpoint is available at:
+```
+https://gea.your-domain.com/bot-api-prompt.md
+```
+
+This can be included in a bot's system prompt to help it select the appropriate API.
+
+---
+
+### OpenAPI Specification
+
+A complete OpenAPI 3.1.0 specification is available at:
+```
+https://gea.your-domain.com/openapi.yaml
+```
+
+This can be used with API documentation tools (Swagger UI, Redoc) or code generators.
+
+### Bot Integration Example (Python)
+
+```python
+import requests
+
+API_KEY = "your-api-key"
+BASE_URL = "https://gea.your-domain.com/api/external/dashboard"
+
+def get_dashboard_data(sections=None, entity_id=None):
+    """Fetch dashboard data from GEA Portal External API."""
+    headers = {"X-API-Key": API_KEY}
+    params = {}
+
+    if sections:
+        params["include"] = ",".join(sections)
+    if entity_id:
+        params["entity_id"] = entity_id
+
+    response = requests.get(BASE_URL, headers=headers, params=params)
+    response.raise_for_status()
+    return response.json()
+
+# Get all dashboard data
+data = get_dashboard_data()
+print(f"Total feedback: {data['data']['feedback']['overall']['total_feedback']}")
+
+# Get only feedback and ticket stats
+stats = get_dashboard_data(sections=["feedback", "tickets"])
+
+# Get data for specific entity
+entity_data = get_dashboard_data(entity_id="AGY-001")
+
+# Get leaderboard for specific entity
+leaderboard = get_dashboard_data(sections=["leaderboard"], entity_id="MIN-001")
+```
+
+### Bot Integration Example (JavaScript/Node.js)
+
+```javascript
+const API_KEY = 'your-api-key';
+const BASE_URL = 'https://gea.your-domain.com/api/external/dashboard';
+
+async function getDashboardData(sections = null, entityId = null) {
+  const params = new URLSearchParams();
+
+  if (sections) params.set('include', sections.join(','));
+  if (entityId) params.set('entity_id', entityId);
+
+  const url = `${BASE_URL}${params.toString() ? '?' + params : ''}`;
+
+  const response = await fetch(url, {
+    headers: { 'X-API-Key': API_KEY }
+  });
+
+  if (!response.ok) {
+    throw new Error(`API error: ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Usage
+const data = await getDashboardData();
+console.log('Total tickets:', data.data.tickets.total_tickets);
+
+// Get specific sections
+const stats = await getDashboardData(['feedback', 'requests']);
+
+// Filter by entity
+const entityData = await getDashboardData(null, 'AGY-005');
+```
+
+### Environment Configuration
+
+**Required in `.env`:**
+```bash
+# External API Access (generate with: openssl rand -hex 32)
+# Leave empty to disable external API access
+EXTERNAL_API_KEY=your-64-character-hex-key
+```
+
+**Docker Compose (already configured):**
+```yaml
+# In frontend environment section
+- EXTERNAL_API_KEY=${EXTERNAL_API_KEY}
+
+# Traefik rate limiting labels
+- "traefik.http.middlewares.external-api-ratelimit.ratelimit.average=100"
+- "traefik.http.middlewares.external-api-ratelimit.ratelimit.burst=20"
+- "traefik.http.middlewares.external-api-ratelimit.ratelimit.period=1h"
+```
+
+### Testing the External API
+
+```bash
+# Set your API key
+export API_KEY="your-api-key"
+
+# Test: All sections (default)
+curl -H "X-API-Key: $API_KEY" \
+  "https://gea.your-domain.com/api/external/dashboard"
+
+# Test: Specific sections only
+curl -H "X-API-Key: $API_KEY" \
+  "https://gea.your-domain.com/api/external/dashboard?include=entities,services"
+
+# Test: Invalid key (expect 401)
+curl -H "X-API-Key: invalid-key" \
+  "https://gea.your-domain.com/api/external/dashboard"
+
+# Test: No key (expect 401)
+curl "https://gea.your-domain.com/api/external/dashboard"
+
+# Test rate limiting (run 101+ times)
+for i in {1..105}; do
+  status=$(curl -s -o /dev/null -w "%{http_code}" \
+    -H "X-API-Key: $API_KEY" \
+    "https://gea.your-domain.com/api/external/dashboard?include=entities")
+  echo "Request $i: $status"
+done
+```
+
+---
+
 ## Error Handling
 
 ### Standard Error Response Format
@@ -2589,6 +3138,6 @@ const RATE_LIMITS = {
 
 ---
 
-**Document Version:** 3.0
-**Last Updated:** November 24, 2025
+**Document Version:** 3.2
+**Last Updated:** December 18, 2025
 **Maintained By:** GEA Portal Development Team

@@ -1,8 +1,8 @@
 # 📚 Grenada EA Portal v3 - Complete Documentation Index
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-**Version:** 3.0 (Phase 2b + Authentication)
-**Last Updated:** November 28, 2025
+**Version:** 3.1 (Phase 2b + Authentication + External API)
+**Last Updated:** December 17, 2025
 **Status:** ✅ Production Ready
 
 ---
@@ -52,6 +52,7 @@
 - ✅ Master data management (entities, services, QR codes)
 - ✅ Admin ticket management dashboard
 - ✅ Comprehensive API (35+ endpoints)
+- ✅ External API for bot/integration access (API key auth)
 
 ### Phase 2c: Authentication & Authorization
 - ✅ NextAuth v4 with OAuth providers (Google, Microsoft)
@@ -754,7 +755,7 @@ docker system prune -a
 ## 📊 Project Statistics
 
 ### Current Implementation (Phase 2b + Authentication)
-- **Total API Endpoints:** 45+ (feedback, tickets, helpdesk, admin, master data, auth, content)
+- **Total API Endpoints:** 46+ (feedback, tickets, helpdesk, admin, master data, auth, content, external)
 - **Database Tables:** 23 (7 master, 5 transactional, 3 security/audit, 8 auth/user management)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
@@ -852,6 +853,7 @@ docker system prune -a
 - ✅ Email notifications via SendGrid
 - ✅ Audit logging system
 - ✅ AI bot inventory management
+- ✅ External API for bot/integration access
 
 ### In Progress
 - 🔄 Staff portal (entity-specific access for MDAs)
@@ -870,7 +872,7 @@ docker system prune -a
 
 ---
 
-**Last Updated:** November 28, 2025
-**Version:** 3.0 (Phase 2b + Authentication)
+**Last Updated:** December 17, 2025
+**Version:** 3.1 (Phase 2b + Authentication + External API)
 **Status:** ✅ Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git

@@ -39,7 +39,7 @@
 
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
 import QRCodeManager from '@/components/managedata/QRCodeManager'
@@ -47,9 +47,130 @@ import { useChatContext } from '@/hooks/useChatContext'
 
 type Tab = 'entities' | 'services' | 'qrcodes'
 
+// Download helper for JSON export
+function downloadJSON(data: any, filename: string) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+}
+
 export default function ManageDataPage() {
   const [activeTab, setActiveTab] = useState<Tab>('entities')
+  const [isExporting, setIsExporting] = useState(false)
+  const [showExportMenu, setShowExportMenu] = useState(false)
+  const exportMenuRef = useRef<HTMLDivElement>(null)
   const { switchTab } = useChatContext()
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (exportMenuRef.current && !exportMenuRef.current.contains(event.target as Node)) {
+        setShowExportMenu(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Export entities for bot
+  const exportEntities = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/entities')
+      if (!res.ok) throw new Error('Failed to fetch entities')
+      const { entities } = await res.json()
+
+      const exportData = entities.map((e: any) => ({
+        id: e.unique_entity_id,
+        name: e.entity_name,
+        type: e.entity_type,
+        parent_id: e.parent_entity_id || null,
+        is_active: e.is_active
+      }))
+
+      downloadJSON(exportData, `gea-entities-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export entities error:', error)
+      alert('Failed to export entities')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export services for bot
+  const exportServices = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/services')
+      if (!res.ok) throw new Error('Failed to fetch services')
+      const { services } = await res.json()
+
+      const exportData = services.map((s: any) => ({
+        id: s.service_id,
+        name: s.service_name,
+        entity_id: s.entity_id,
+        category: s.service_category || null,
+        is_active: s.is_active
+      }))
+
+      downloadJSON(exportData, `gea-services-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export services error:', error)
+      alert('Failed to export services')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export both as a combined bundle
+  const exportAll = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const [entitiesRes, servicesRes] = await Promise.all([
+        fetch('/api/managedata/entities'),
+        fetch('/api/managedata/services')
+      ])
+
+      if (!entitiesRes.ok || !servicesRes.ok) throw new Error('Failed to fetch data')
+
+      const { entities } = await entitiesRes.json()
+      const { services } = await servicesRes.json()
+
+      const exportData = {
+        exported_at: new Date().toISOString(),
+        entities: entities.map((e: any) => ({
+          id: e.unique_entity_id,
+          name: e.entity_name,
+          type: e.entity_type,
+          parent_id: e.parent_entity_id || null,
+          is_active: e.is_active
+        })),
+        services: services.map((s: any) => ({
+          id: s.service_id,
+          name: s.service_name,
+          entity_id: s.entity_id,
+          category: s.service_category || null,
+          is_active: s.is_active
+        }))
+      }
+
+      downloadJSON(exportData, `gea-master-data-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export all error:', error)
+      alert('Failed to export master data')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
 
   const tabs = [
     { id: 'entities' as Tab, label: 'Entities', icon: '🏛️', count: 'Ministries, Depts, Agencies' },
@@ -73,13 +194,66 @@ export default function ManageDataPage() {
       <div className="container mx-auto px-4 max-w-7xl">
         
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">
-            🗄️ Master Data
-          </h1>
-          <p className="text-gray-600">
-            Manage entities, services, and QR codes for the feedback system
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              Master Data
+            </h1>
+            <p className="text-gray-600">
+              Manage entities, services, and QR codes for the feedback system
+            </p>
+          </div>
+
+          {/* Export Dropdown for Bot Integration */}
+          <div className="relative" ref={exportMenuRef}>
+            <button
+              onClick={() => setShowExportMenu(!showExportMenu)}
+              disabled={isExporting}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+            >
+              {isExporting ? (
+                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              ) : (
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              )}
+              <span>Export for Bot</span>
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+
+            {showExportMenu && (
+              <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                <div className="px-4 py-2 text-xs text-gray-500 border-b border-gray-100">
+                  Export master data for AI bot reference
+                </div>
+                <button
+                  onClick={exportEntities}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>Entities (JSON)</span>
+                </button>
+                <button
+                  onClick={exportServices}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>Services (JSON)</span>
+                </button>
+                <div className="border-t border-gray-100 my-1"></div>
+                <button
+                  onClick={exportAll}
+                  className="w-full px-4 py-2 text-left text-sm text-indigo-600 font-medium hover:bg-indigo-50 flex items-center gap-2"
+                >
+                  <span>Export All (Combined)</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Tabs */}

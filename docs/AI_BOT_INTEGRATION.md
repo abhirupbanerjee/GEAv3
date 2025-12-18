@@ -2,8 +2,8 @@
 
 **GEA Portal v3 - Context-Aware AI Assistant**
 
-**Version:** 1.0
-**Last Updated:** November 28, 2025
+**Version:** 1.1
+**Last Updated:** December 17, 2025
 **Status:** Production Ready
 
 ---
@@ -17,6 +17,7 @@
 5. [Bot Inventory Management](#bot-inventory-management)
 6. [Testing Guide](#testing-guide)
 7. [Troubleshooting](#troubleshooting)
+8. [External API for Bot Data Access](#external-api-for-bot-data-access)
 
 ---
 
@@ -446,6 +447,110 @@ if (event.origin !== process.env.NEXT_PUBLIC_PORTAL_URL) {
 
 ---
 
+## External API for Bot Data Access
+
+In addition to real-time context via postMessage, bots can access GEA Portal data programmatically using the External API.
+
+### Overview
+
+| Method | Use Case | Authentication |
+|--------|----------|----------------|
+| **postMessage** | Real-time UI context (page, modal, form state) | None (same-origin iframe) |
+| **External API** | Dashboard data (feedback, tickets, entities) | API Key |
+
+### External API Endpoint
+
+```
+GET /api/external/dashboard
+```
+
+**Authentication:** API Key via `X-API-Key` header
+
+**Available Data Sections:**
+- `feedback` - Service feedback statistics
+- `tickets` - Ticket dashboard statistics
+- `leaderboard` - Service performance rankings
+- `requests` - EA service request statistics
+- `entities` - Entity master data
+- `services` - Service master data
+
+### Bot Integration Example
+
+```python
+import requests
+
+# Configuration
+API_KEY = "your-api-key"
+PORTAL_URL = "https://gea.your-domain.com"
+
+def get_portal_data(sections=None, entity_id=None):
+    """Fetch data from GEA Portal External API."""
+    headers = {"X-API-Key": API_KEY}
+    params = {}
+
+    if sections:
+        params["include"] = ",".join(sections)
+    if entity_id:
+        params["entity_id"] = entity_id
+
+    response = requests.get(
+        f"{PORTAL_URL}/api/external/dashboard",
+        headers=headers,
+        params=params
+    )
+    return response.json()
+
+# Get all dashboard data
+data = get_portal_data()
+
+# Get specific sections
+stats = get_portal_data(sections=["feedback", "tickets"])
+
+# Filter by entity
+entity_data = get_portal_data(entity_id="AGY-001")
+```
+
+### Combining Context Sources
+
+A bot can use both data sources together:
+
+1. **postMessage** for understanding user's current context:
+   - What page they're viewing
+   - What modal is open
+   - What form they're filling
+
+2. **External API** for fetching actual data:
+   - Current feedback statistics
+   - Ticket counts and status
+   - Entity and service information
+
+```javascript
+// Bot receives postMessage context
+window.addEventListener('message', async (event) => {
+  if (event.data?.type === 'CONTEXT_UPDATE') {
+    const context = event.data.context;
+
+    // User is viewing a specific entity's data
+    if (context.route === '/admin/dashboard' && context.tab?.activeTab) {
+      // Fetch relevant data via External API
+      const data = await fetch('/api/external/dashboard?include=feedback,tickets', {
+        headers: { 'X-API-Key': API_KEY }
+      });
+
+      // Use context + data to generate informed response
+    }
+  }
+});
+```
+
+### Documentation Reference
+
+For complete External API documentation, see:
+- [API_REFERENCE.md - External API Section](API_REFERENCE.md#external-api-botintegration-access)
+- OpenAPI Specification: `/openapi.yaml`
+
+---
+
 ## Performance Notes
 
 - **postMessage frequency:** 1-3 messages per user action
@@ -455,6 +560,6 @@ if (event.origin !== process.env.NEXT_PUBLIC_PORTAL_URL) {
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** November 28, 2025
+**Document Version:** 1.1
+**Last Updated:** December 17, 2025
 **Maintained By:** GEA Portal Development Team
