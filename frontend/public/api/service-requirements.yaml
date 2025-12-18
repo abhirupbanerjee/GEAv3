@@ -5,7 +5,7 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://gea.gov.gd
+  - url: https://gea.abhirup.app
     description: Production
 
 security:
@@ -24,17 +24,11 @@ paths:
           in: path
           required: true
           description: |
-            Service ID. Available services:
-            - digital-roadmap
-            - ea-framework-review
-            - maturity-assessment
-            - repository-access
-            - compliance-review
-            - portfolio-review
-            - training-capacity
+            Service ID (format: SVC-XXX-NNN). Use /api/external/dashboard?include=services to get the list.
+            Examples: SVC-DIG-001 (EA Portal Support), SVC-LBR-001 (Work Permit), SVC-REG-001 (Birth Certificate)
           schema:
             type: string
-            example: digital-roadmap
+            example: SVC-DIG-001
       responses:
         '200':
           description: Service details with document requirements
@@ -106,10 +100,10 @@ paths:
                 success: true
                 data:
                   service:
-                    id: digital-roadmap
-                    name: Digital Roadmap Development
-                    category: EA Services
-                    description: Develop a digital transformation roadmap
+                    id: SVC-DIG-001
+                    name: EA Portal Support Request
+                    category: digital_government_and_ict_services
+                    description: Submit a technical or functional support request related to the Grenada EA Portal.
                     is_active: true
                     entity:
                       id: AGY-005

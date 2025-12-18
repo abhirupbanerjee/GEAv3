@@ -112,15 +112,20 @@ GET /api/external/feedback?service_id=SVC-001&has_comment=true&limit=20
 ### 5. Service Requirements
 
 ```
-GET /api/external/services/digital-roadmap/requirements
+GET /api/external/services/SVC-DIG-001/requirements
 ```
 
-**Purpose:** Get required documents for a specific EA service.
+**Purpose:** Get required documents for a specific service.
 
 **Path Parameter:**
-- `id` - Service ID (e.g., `digital-roadmap`, `compliance-review`)
+- `id` - Service ID in format SVC-XXX-NNN. Get the list of service IDs from `/api/external/dashboard?include=services`
 
 **Returns:** Service details + list of required documents with mandatory/optional flags.
+
+**Common Service IDs:**
+- `SVC-DIG-001` - EA Portal Support Request
+- `SVC-LBR-001` - Work Permit Application
+- `SVC-REG-001` - Birth Certificate Copy/Extract
 
 ---
 
@@ -162,9 +167,9 @@ Then analyze the subjects/descriptions.
 GET /api/external/feedback?min_rating=1&max_rating=2&limit=50
 ```
 
-### "What documents do I need for digital roadmap service?"
+### "What documents do I need for work permit?"
 ```
-GET /api/external/services/digital-roadmap/requirements
+GET /api/external/services/SVC-LBR-001/requirements
 ```
 
 ### "How many overdue tickets are there?"
