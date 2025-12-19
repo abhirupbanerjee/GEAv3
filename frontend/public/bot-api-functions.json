@@ -1,0 +1,227 @@
+{
+  "functions": [
+    {
+      "name": "get_dashboard_stats",
+      "description": "Get aggregated statistics, totals, and summaries for the GEA Portal. Use this for questions about: how many tickets/feedback total, average satisfaction scores, rating breakdowns, ticket status counts, overdue counts, listing all ministries/departments/agencies, or listing available services.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "include": {
+            "type": "string",
+            "description": "Comma-separated sections to include. Options: feedback (for ratings/satisfaction), tickets (for ticket counts/status), entities (for ministry/department list), services (for service list), leaderboard (for top/bottom performers), requests (for service request stats)",
+            "default": "feedback,tickets"
+          },
+          "entity_id": {
+            "type": "string",
+            "description": "Filter by specific entity ID (e.g., MIN-001, DEP-012). Use when user asks about a specific ministry or department."
+          }
+        },
+        "required": []
+      },
+      "triggers": [
+        "how many tickets",
+        "how many feedback",
+        "total submissions",
+        "average satisfaction",
+        "satisfaction score",
+        "rating breakdown",
+        "score breakdown",
+        "ticket status",
+        "overdue count",
+        "list ministries",
+        "list departments",
+        "list agencies",
+        "what services available",
+        "show all entities",
+        "portal statistics",
+        "overall stats"
+      ]
+    },
+    {
+      "name": "get_citizen_feedback",
+      "description": "Get individual citizen feedback records with ratings and comments. Use this when users want to see WHAT CITIZENS ARE SAYING, read actual comments, see specific feedback entries, find negative/positive reviews, or analyze feedback for a service or entity.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "has_comment": {
+            "type": "boolean",
+            "description": "Set to true when user wants to see feedback WITH COMMENTS or wants to know 'what people are saying'. Always true for questions about citizen opinions.",
+            "default": true
+          },
+          "max_rating": {
+            "type": "integer",
+            "description": "Maximum rating filter (1-5). Set to 2 for 'low ratings', 'negative feedback', 'bad reviews', '1-2 stars', 'complaints'.",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "min_rating": {
+            "type": "integer",
+            "description": "Minimum rating filter (1-5). Set to 4 for 'positive feedback', 'good reviews', '4-5 stars'. Set to 5 for '5-star only'.",
+            "minimum": 1,
+            "maximum": 5
+          },
+          "entity_name": {
+            "type": "string",
+            "description": "Fuzzy search by entity name. Use when user mentions a ministry/department (e.g., 'immigration', 'health', 'labour')."
+          },
+          "service_name": {
+            "type": "string",
+            "description": "Fuzzy search by service name. Use when user mentions a specific service (e.g., 'work permit', 'passport', 'birth certificate')."
+          },
+          "has_grievance": {
+            "type": "boolean",
+            "description": "Set to true to get feedback flagged as grievances (serious complaints)."
+          },
+          "channel": {
+            "type": "string",
+            "enum": ["portal", "qr", "kiosk"],
+            "description": "Filter by submission channel."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of records to return (default 20, max 100).",
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "triggers": [
+        "what are citizens saying",
+        "what are people saying",
+        "show feedback with comments",
+        "citizen comments",
+        "feedback comments",
+        "low ratings",
+        "negative feedback",
+        "bad reviews",
+        "1-2 star",
+        "positive feedback",
+        "5 star reviews",
+        "good feedback",
+        "complaints from citizens",
+        "what do people think",
+        "citizen opinions",
+        "feedback about immigration",
+        "reviews for work permit"
+      ]
+    },
+    {
+      "name": "get_grievances",
+      "description": "Get individual grievance/complaint records. Use this for formal complaints filed through the grievance system, NOT general feedback. Grievances are official complaints with tracking.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["open", "in_progress", "resolved", "closed"],
+            "description": "Filter by grievance status. Use 'open' for unresolved, 'resolved' or 'closed' for completed."
+          },
+          "entity_name": {
+            "type": "string",
+            "description": "Fuzzy search by entity name (e.g., 'immigration', 'labour', 'health')."
+          },
+          "service_name": {
+            "type": "string",
+            "description": "Fuzzy search by service name (e.g., 'work permit', 'passport')."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of records to return (default 20, max 100).",
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "triggers": [
+        "show grievances",
+        "open grievances",
+        "filed complaints",
+        "formal complaints",
+        "grievances against",
+        "unresolved grievances",
+        "complaint records",
+        "grievance status"
+      ]
+    },
+    {
+      "name": "get_tickets",
+      "description": "Get support ticket records. Use this for IT support tickets, service desk issues, SLA tracking, overdue tickets, and priority-based queries.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "description": "Filter by ticket status (e.g., 'open', 'in_progress', 'resolved')."
+          },
+          "priority": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "urgent"],
+            "description": "Filter by priority level. Use 'urgent' or 'high' for critical issues."
+          },
+          "overdue": {
+            "type": "boolean",
+            "description": "Set to true to get only OVERDUE tickets (past SLA deadline). Use for 'overdue', 'past SLA', 'late tickets'."
+          },
+          "entity_name": {
+            "type": "string",
+            "description": "Fuzzy search by entity name."
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Number of records to return (default 20, max 100).",
+            "default": 20
+          }
+        },
+        "required": []
+      },
+      "triggers": [
+        "overdue tickets",
+        "high priority tickets",
+        "urgent tickets",
+        "open tickets",
+        "support tickets",
+        "tickets past SLA",
+        "ticket status",
+        "critical issues",
+        "tickets needing attention"
+      ]
+    },
+    {
+      "name": "get_service_requirements",
+      "description": "Get the list of required documents for a specific government service. Use when users ask about what documents/paperwork they need to apply for something.",
+      "parameters": {
+        "type": "object",
+        "properties": {
+          "service_id": {
+            "type": "string",
+            "description": "Service ID in format SVC-XXX-NNN. Common IDs: SVC-LBR-001 (Work Permit), SVC-REG-001 (Birth Certificate), SVC-IMM-001 (Passport), SVC-DIG-001 (EA Portal Support). If unknown, first call get_dashboard_stats with include=services to find the ID."
+          }
+        },
+        "required": ["service_id"]
+      },
+      "triggers": [
+        "what documents do I need",
+        "requirements for",
+        "paperwork for",
+        "documents needed",
+        "what do I need to apply",
+        "application requirements",
+        "work permit documents",
+        "passport requirements",
+        "birth certificate requirements"
+      ]
+    }
+  ],
+  "api_base_url": "https://gea.abhirup.app/api/external",
+  "authentication": {
+    "type": "api_key",
+    "header": "X-API-Key"
+  },
+  "endpoints": {
+    "get_dashboard_stats": "/dashboard",
+    "get_citizen_feedback": "/feedback",
+    "get_grievances": "/grievances",
+    "get_tickets": "/tickets",
+    "get_service_requirements": "/services/requirements"
+  }
+}

@@ -117,14 +117,58 @@ Use this API when users ask about:
 
 | User asks about... | Reference this field |
 |-------------------|---------------------|
-| Total tickets | `data.tickets.total` |
-| Open tickets | `data.tickets.by_status.open` |
-| Overdue tickets count | `data.tickets.overdue` |
+| Total tickets | `data.tickets.total_tickets` |
+| Open tickets | `data.tickets.status_breakdown.open.count` |
+| Overdue tickets count | `data.tickets.metrics.overdue_tickets` |
 | Average satisfaction | `data.feedback.overall.avg_satisfaction` |
 | Total feedback | `data.feedback.overall.total_submissions` |
-| 5-star ratings count | `data.feedback.rating_distribution.5_star` |
-| Feedback with comments | `data.feedback.with_comments` |
-| Grievance-flagged feedback | `data.feedback.grievance_flagged` |
+| Grievance count | `data.feedback.overall.grievance_count` |
+
+### Satisfaction Score Breakdown
+
+When users ask "What's the breakdown of the satisfaction score?" or "Explain the ratings", use these fields from `data.feedback.overall`:
+
+| Field | Description | Scale |
+|-------|-------------|-------|
+| `avg_satisfaction` | Overall satisfaction rating | 1-5 |
+| `avg_ease` | Ease of using the service | 1-5 |
+| `avg_clarity` | Clarity of information provided | 1-5 |
+| `avg_timeliness` | Speed and punctuality | 1-5 |
+| `avg_trust` | Trust in the service/entity | 1-5 |
+
+**Example response for "Show satisfaction breakdown":**
+> The citizen satisfaction scores are:
+> - **Overall Satisfaction**: 4.2/5
+> - **Ease of Service**: 4.0/5
+> - **Clarity of Information**: 3.9/5
+> - **Timeliness**: 3.5/5
+> - **Trust**: 4.1/5
+
+### Rating Distribution
+
+The `data.feedback.rating_distribution` array shows how many submissions for each star rating:
+
+```json
+[
+  { "rating": 5, "count": 450, "percentage": 36.00 },
+  { "rating": 4, "count": 380, "percentage": 30.40 },
+  { "rating": 3, "count": 250, "percentage": 20.00 },
+  { "rating": 2, "count": 100, "percentage": 8.00 },
+  { "rating": 1, "count": 70, "percentage": 5.60 }
+]
+```
+
+### Channel Breakdown
+
+The `data.feedback.by_channel` array shows feedback by submission method:
+
+```json
+[
+  { "channel": "portal", "count": 800, "avg_satisfaction": 4.3 },
+  { "channel": "qr", "count": 350, "avg_satisfaction": 4.0 },
+  { "channel": "kiosk", "count": 100, "avg_satisfaction": 3.8 }
+]
+```
 
 ## Tips for Bot Responses
 
