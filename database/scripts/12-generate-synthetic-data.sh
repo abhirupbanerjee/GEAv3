@@ -459,7 +459,7 @@ request_distribution AS (
     LIMIT 30
 ),
 statuses AS (
-    SELECT unnest(ARRAY['Draft', 'Submitted', 'In Progress', 'Pending Info', 'Completed', 'Rejected']) AS status
+    SELECT unnest(ARRAY['submitted', 'in_progress', 'under_review', 'completed', 'rejected']) AS status
 )
 INSERT INTO ea_service_requests (
     request_number,

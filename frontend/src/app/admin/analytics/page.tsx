@@ -589,7 +589,7 @@ export default function AnalyticsPage() {
         {ticketStats && (
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-4">Support Tickets</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
               <div className="bg-white rounded-lg shadow-md p-6">
                 <div className="flex items-center justify-between">
                   <div>
@@ -598,28 +598,6 @@ export default function AnalyticsPage() {
                     <p className="text-xs text-gray-500 mt-1">All time</p>
                   </div>
                   <div className="text-4xl">🎫</div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">Overdue</p>
-                    <p className="text-3xl font-bold text-red-600">{ticketStats.metrics.overdue_tickets}</p>
-                    <p className="text-xs text-gray-500 mt-1">Past SLA target</p>
-                  </div>
-                  <div className="text-4xl">⚠️</div>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600 mb-1">SLA Compliance</p>
-                    <p className="text-3xl font-bold text-green-600">{ticketStats.metrics.sla_compliance}</p>
-                    <p className="text-xs text-gray-500 mt-1">On-time resolution</p>
-                  </div>
-                  <div className="text-4xl">⏱️</div>
                 </div>
               </div>
 
