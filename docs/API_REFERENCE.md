@@ -1,7 +1,7 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 3.2
-**Last Updated:** December 18, 2025
+**Document Version:** 3.3
+**Last Updated:** December 19, 2025
 **API Base URL:** `https://gea.your-domain.com` (Production)
 **Framework:** Next.js 14 App Router
 **Authentication:** NextAuth v4 with OAuth (Google, Microsoft)
@@ -3138,6 +3138,6 @@ const RATE_LIMITS = {
 
 ---
 
-**Document Version:** 3.2
-**Last Updated:** December 18, 2025
+**Document Version:** 3.3
+**Last Updated:** December 19, 2025
 **Maintained By:** GEA Portal Development Team

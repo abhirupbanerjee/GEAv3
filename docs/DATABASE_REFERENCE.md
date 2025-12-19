@@ -1,7 +1,7 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 10.0
-**Last Updated:** November 24, 2025
+**Document Version:** 10.1
+**Last Updated:** December 19, 2025
 **Database:** PostgreSQL 15.15
 **Schema Version:** Production-Aligned v10.0 (30 tables)
 
@@ -2163,7 +2163,7 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 
 ---
 
-**Document Version:** 10.0
-**Last Updated:** November 24, 2025
+**Document Version:** 10.1
+**Last Updated:** December 19, 2025
 **Schema Version:** Production-Aligned v10.0 (30 tables)
 **Maintained By:** GEA Portal Development Team

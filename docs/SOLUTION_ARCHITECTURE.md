@@ -1,8 +1,8 @@
 # GEA Portal v3 - Solution Architecture
 
-**Document Version:** 1.0
-**Last Updated:** November 24, 2025
-**System Version:** Phase 2c (Authentication & Ticketing)
+**Document Version:** 1.1
+**Last Updated:** December 19, 2025
+**System Version:** Phase 3.1.0 (Authentication + External API)
 **Status:** ✅ Production Ready
 
 ---
@@ -41,12 +41,13 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 
 | Metric | Value |
 |--------|-------|
-| **Database Tables** | 23 tables (15 core + 8 authentication) |
-| **API Endpoints** | 35+ RESTful endpoints |
+| **Database Tables** | 30 tables (master data, transactional, auth, audit) |
+| **API Endpoints** | 42+ RESTful endpoints |
+| **External API Endpoints** | 5 (dashboard, tickets, feedback, grievances, service-requirements) |
 | **OAuth Providers** | Google, Microsoft Azure AD |
 | **User Roles** | Admin, Staff, Public |
 | **Government Entities** | 50+ ministries/departments/agencies |
-| **Rate Limiting** | 5 submissions/hour per IP |
+| **Rate Limiting** | 5 submissions/hour per IP, 100/hour External API |
 | **Session Timeout** | 2 hours (JWT) |
 
 ### Technology Overview
@@ -1242,7 +1243,7 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** November 24, 2025
+**Document Version:** 1.1
+**Last Updated:** December 19, 2025
 **Maintained By:** GEA Portal Development Team
-**System Version:** Phase 2c (Authentication & Ticketing)
+**System Version:** Phase 3.1.0 (Authentication + External API)

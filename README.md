@@ -19,7 +19,7 @@ Complete digital portal system with:
 - **AI Bot Integration** - Centralized bot inventory and iframe-based chat interface
 - **OAuth Authentication** - Google & Microsoft sign-in with role-based access control
 
-**Status:** ✅ Production-ready | **Version:** 3.0.1 (Phase 2b + Context-Aware AI)
+**Status:** ✅ Production-ready | **Version:** 3.1.0 (External API for Bot Integration)
 
 ---
 
@@ -205,19 +205,41 @@ gogeaportal/v3/
         │
         ├── public/
         │   ├── images/                    # Static images
+        │   ├── api/                       # OpenAPI specifications
+        │   │   ├── dashboard.yaml         # Dashboard API spec
+        │   │   ├── tickets.yaml           # Tickets API spec
+        │   │   ├── feedback.yaml          # Feedback API spec
+        │   │   ├── grievances.yaml        # Grievances API spec
+        │   │   └── service-requirements.yaml  # Service requirements spec
+        │   ├── openapi.yaml               # Combined OpenAPI specification
+        │   ├── bot-api-prompt.md          # Bot API integration guide
+        │   ├── bot-api-functions.json     # Function calling schemas
+        │   ├── bot-api-tools-openai.json  # OpenAI tools format
+        │   ├── bot-api-prompts/           # Domain-specific bot prompts
+        │   │   ├── dashboard.md
+        │   │   ├── feedback.md
+        │   │   ├── grievances.md
+        │   │   ├── tickets.md
+        │   │   └── service-requirements.md
         │   └── config/
         │       └── bots-config.json       # AI bot inventory
         │
         └── src/
             ├── app/
-            │   ├── api/                   # API Routes (37+ endpoints)
+            │   ├── api/                   # API Routes (42+ endpoints)
             │   │   ├── auth/              # NextAuth endpoints
             │   │   ├── content/           # Page context API (for AI bot)
             │   │   ├── feedback/          # Service feedback APIs
             │   │   ├── tickets/           # Public ticket APIs
             │   │   ├── helpdesk/          # Ticket lookup APIs
             │   │   ├── admin/             # Admin management APIs
-            │   │   └── managedata/        # Master data CRUD
+            │   │   ├── managedata/        # Master data CRUD
+            │   │   └── external/          # External API (bot/integration access)
+            │   │       ├── dashboard/     # Aggregated statistics
+            │   │       ├── tickets/       # Ticket queries with PII masking
+            │   │       ├── feedback/      # Feedback record queries
+            │   │       ├── grievances/    # Grievance queries
+            │   │       └── services/      # Service requirements
             │   │
             │   ├── layout.tsx             # Root layout (with ChatContextProvider)
             │   ├── page.tsx               # Home page
@@ -249,7 +271,8 @@ gogeaportal/v3/
             │   ├── db/                    # Database helpers
             │   ├── schemas/               # Zod validation schemas
             │   ├── utils/                 # Helper functions
-            │   └── admin-auth.ts          # Authorization helpers
+            │   ├── admin-auth.ts          # Authorization helpers
+            │   └── piiMask.ts             # PII masking for External API
             │
             ├── config/
             │   ├── env.ts                 # Environment configuration
@@ -265,7 +288,7 @@ gogeaportal/v3/
 
 ### Required: Environment Variables
 
-The portal requires **~62 environment variables**. Copy `.env.example` to `.env` and configure:
+The portal requires **~63 environment variables**. Copy `.env.example` to `.env` and configure:
 
 | Category | Variables | Required |
 |----------|-----------|----------|
@@ -275,6 +298,7 @@ The portal requires **~62 environment variables**. Copy `.env.example` to `.env`
 | **Email** | SENDGRID_* (4 vars) | ✅ |
 | **Rate Limiting** | EA_SERVICE_RATE_LIMIT, GRIEVANCE_RATE_LIMIT, FEEDBACK_RATE_LIMIT | ✅ |
 | **File Uploads** | MAX_FILE_SIZE, MAX_TOTAL_UPLOAD_SIZE, ALLOWED_FILE_TYPES | ✅ |
+| **External API** | EXTERNAL_API_KEY | Optional (for bot access) |
 | **URLs** | GOG_URL, WIKI_URL, DMS_URL, CHATBOT_URL, etc. | Optional |
 
 ```bash
@@ -319,6 +343,11 @@ FEEDBACK_RATE_LIMIT=3
 # === File Uploads ===
 MAX_FILE_SIZE=5242880
 MAX_TOTAL_UPLOAD_SIZE=26214400
+
+# === External API Access (Optional) ===
+# Generate with: openssl rand -hex 32
+# Leave empty to disable external API access
+EXTERNAL_API_KEY=your-64-character-hex-key
 ```
 
 See [.env.example](.env.example) for the complete list with descriptions.
@@ -532,6 +561,20 @@ sudo ufw enable
 - Centralized AI bot inventory and management
 - Iframe-based chat interface with postMessage communication
 
+### External API (Bot/Integration Access) ✅ **NEW**
+- **API Key Authentication** - Secure access for external systems and AI bots
+- **5 External Endpoints:**
+  - `GET /api/external/dashboard` - Aggregated statistics (feedback, tickets, entities, services)
+  - `GET /api/external/grievances` - Query grievance records with filtering
+  - `GET /api/external/tickets` - Query tickets with SLA status and PII masking
+  - `GET /api/external/feedback` - Query feedback with ratings and comments
+  - `GET /api/external/services/requirements` - Document requirements for services
+- **PII Protection** - Automatic masking of personal data (names, emails, phones)
+- **OpenAPI Specifications** - YAML specs for all external endpoints
+- **Bot Function Calling** - JSON schemas for AI function calling (OpenAI-compatible)
+- **Rate Limiting** - 100 requests/hour per API key (Traefik-enforced)
+- **Fuzzy Matching** - Search by entity_name or service_name with partial matching
+
 ---
 
 ## 🤖 Context-Aware AI Assistant
@@ -624,6 +667,77 @@ function MyComponent() {
 
 **Complete Documentation:**
 - [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md) - Full integration, testing, and bot inventory management
+
+---
+
+## 🔌 External API for Bot/Integration Access
+
+The portal provides a secure External API for AI bots and external systems to access dashboard data programmatically.
+
+### Quick Reference
+
+| User Query | Endpoint |
+|------------|----------|
+| Totals, summaries, statistics | `GET /api/external/dashboard` |
+| Specific grievances/complaints | `GET /api/external/grievances` |
+| Support tickets, issues | `GET /api/external/tickets` |
+| Citizen feedback, comments | `GET /api/external/feedback` |
+| Document requirements | `GET /api/external/services/requirements?service_id=SVC-XXX-NNN` |
+
+### Authentication
+
+```bash
+# All requests require API key header
+curl -H "X-API-Key: your-api-key" \
+  "https://gea.your-domain.com/api/external/dashboard"
+```
+
+### Setup
+
+```bash
+# 1. Generate API key
+openssl rand -hex 32
+
+# 2. Add to .env
+EXTERNAL_API_KEY=your-64-character-hex-key
+
+# 3. Restart containers
+docker compose up -d
+```
+
+### Example Queries
+
+```bash
+# Get overall dashboard statistics
+curl -H "X-API-Key: $API_KEY" \
+  "https://gea.your-domain.com/api/external/dashboard?include=feedback,tickets"
+
+# Query overdue tickets
+curl -H "X-API-Key: $API_KEY" \
+  "https://gea.your-domain.com/api/external/tickets?overdue=true"
+
+# Get negative feedback with comments
+curl -H "X-API-Key: $API_KEY" \
+  "https://gea.your-domain.com/api/external/feedback?max_rating=2&has_comment=true"
+
+# Get work permit document requirements
+curl -H "X-API-Key: $API_KEY" \
+  "https://gea.your-domain.com/api/external/services/requirements?service_id=SVC-LBR-001"
+```
+
+### OpenAPI Specifications
+
+API specifications available at:
+- `/openapi.yaml` - Combined OpenAPI spec
+- `/api/dashboard.yaml` - Dashboard endpoint
+- `/api/tickets.yaml` - Tickets endpoint
+- `/api/feedback.yaml` - Feedback endpoint
+- `/api/grievances.yaml` - Grievances endpoint
+- `/api/service-requirements.yaml` - Service requirements endpoint
+
+**Complete Documentation:**
+- [API Reference - External API Section](docs/API_REFERENCE.md#external-api-botintegration-access)
+- [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md#external-api-for-bot-data-access)
 
 ---
 
@@ -811,17 +925,19 @@ Before going live:
 ## 📊 Project Statistics
 
 ### Current Implementation
-- **Total API Endpoints:** 37+ (public + admin + auth + context)
+- **Total API Endpoints:** 42+ (public + admin + auth + context + external)
+- **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
 - **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
-- **Environment Variables:** ~62 configurable options
-- **Lines of Code:** ~22,000+
+- **Environment Variables:** ~63 configurable options (includes EXTERNAL_API_KEY)
+- **Lines of Code:** ~23,000+
 - **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
 - **Docker Volumes:** 2 active (`traefik_acme`, `feedback_db_data`)
-- **Authentication Providers:** 2 (Google, Microsoft)
-- **AI Integration:** Context-aware assistant with real-time tracking
+- **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
+- **AI Integration:** Context-aware assistant with real-time tracking + External API for bots
 - **Page Context Coverage:** 22 pages, 100% documented
+- **OpenAPI Specs:** 6 YAML files for bot/integration access
 
 ### Production Resource Usage
 
@@ -871,7 +987,7 @@ Before going live:
 
 ---
 
-**Last Updated:** November 28, 2025 | **Version:** 3.0.1 | **Status:** ✅ Production Ready
+**Last Updated:** December 19, 2025 | **Version:** 3.1.0 | **Status:** ✅ Production Ready
 
 > **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
 
@@ -884,10 +1000,11 @@ Before going live:
 - 📖 [Complete Documentation](docs/index.md)
 - 🖥️ [**VM Setup Guide**](docs/VM_SETUP_GUIDE.md) - New VM deployment
 - 🏗️ [**Solution Architecture**](docs/SOLUTION_ARCHITECTURE.md) - System overview
-- 🔌 [API Reference](docs/API_REFERENCE.md)
+- 🔌 [API Reference](docs/API_REFERENCE.md) - All API endpoints including External API
 - 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
 - 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
 - 🤖 [**AI Bot Integration**](docs/AI_BOT_INTEGRATION.md) - Context-aware assistant guide
+- 🔗 [**External API**](docs/API_REFERENCE.md#external-api-botintegration-access) - Bot/integration data access **NEW**
 
 ---
 
@@ -900,6 +1017,7 @@ Before going live:
 ### For Developers
 - [UI Modification Guide](docs/developer-guides/UI_MODIFICATION_GUIDE.md) - Complete guide for UI development and customization
 - [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
+- [External API Guide](docs/API_REFERENCE.md#external-api-botintegration-access) - Bot/integration data access endpoints
 - [AI Bot Integration](docs/AI_BOT_INTEGRATION.md) - Context-aware assistant implementation
 - [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
 - [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management

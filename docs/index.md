@@ -1,8 +1,8 @@
 # 📚 Grenada EA Portal v3 - Complete Documentation Index
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-**Version:** 3.1 (Phase 2b + Authentication + External API)
-**Last Updated:** December 17, 2025
+**Version:** 3.1.0 (Phase 2b + Authentication + External API)
+**Last Updated:** December 19, 2025
 **Status:** ✅ Production Ready
 
 ---
@@ -51,8 +51,10 @@
 - ✅ IP hashing for privacy (SHA256)
 - ✅ Master data management (entities, services, QR codes)
 - ✅ Admin ticket management dashboard
-- ✅ Comprehensive API (35+ endpoints)
+- ✅ Comprehensive API (42+ endpoints)
 - ✅ External API for bot/integration access (API key auth)
+- ✅ OpenAPI specifications for external endpoints
+- ✅ PII masking for external data access
 
 ### Phase 2c: Authentication & Authorization
 - ✅ NextAuth v4 with OAuth providers (Google, Microsoft)
@@ -155,12 +157,14 @@ gogeaportal/v3/
         │
         └── src/
             ├── app/
-            │   ├── api/             ← API Routes (45+ endpoints)
+            │   ├── api/             ← API Routes (42+ endpoints)
             │   │   ├── feedback/    ← Feedback APIs
             │   │   ├── tickets/     ← Ticket APIs
             │   │   ├── helpdesk/    ← Helpdesk APIs
             │   │   ├── admin/       ← Admin auth APIs
-            │   │   └── managedata/  ← Master data CRUD APIs
+            │   │   ├── managedata/  ← Master data CRUD APIs
+            │   │   ├── content/     ← Page context APIs
+            │   │   └── external/    ← External API (bot/integration)
             │   │
             │   ├── layout.tsx       ← Root layout
             │   ├── page.tsx         ← Home page
@@ -754,14 +758,16 @@ docker system prune -a
 
 ## 📊 Project Statistics
 
-### Current Implementation (Phase 2b + Authentication)
-- **Total API Endpoints:** 46+ (feedback, tickets, helpdesk, admin, master data, auth, content, external)
-- **Database Tables:** 23 (7 master, 5 transactional, 3 security/audit, 8 auth/user management)
+### Current Implementation (Phase 2b + Authentication + External API)
+- **Total API Endpoints:** 42+ (feedback, tickets, helpdesk, admin, master data, auth, content, external)
+- **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
+- **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
-- **Lines of Code:** ~20,000+
+- **Lines of Code:** ~23,000+
 - **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
-- **Authentication Providers:** 2 (Google, Microsoft)
+- **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
+- **OpenAPI Specs:** 6 YAML files for bot/integration access
 - **Build Time:** ~3-5 minutes (first build)
 - **Deployment Time:** ~10-15 minutes (first deployment)
 - **Memory Usage:** ~2GB (all services under load)
@@ -872,7 +878,7 @@ docker system prune -a
 
 ---
 
-**Last Updated:** December 17, 2025
-**Version:** 3.1 (Phase 2b + Authentication + External API)
+**Last Updated:** December 19, 2025
+**Version:** 3.1.0 (Phase 2b + Authentication + External API)
 **Status:** ✅ Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git

@@ -2,8 +2,8 @@
 
 **Complete guide for deploying GEA Portal on a fresh Virtual Machine**
 
-**Version:** 1.0
-**Last Updated:** November 27, 2025
+**Version:** 1.1
+**Last Updated:** December 19, 2025
 **Status:** Production Ready
 
 ---
@@ -650,6 +650,6 @@ docker compose build --no-cache && docker compose up -d
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** November 27, 2025
+**Document Version:** 1.1
+**Last Updated:** December 19, 2025
 **Maintained By:** GEA Portal Development Team
