@@ -276,8 +276,8 @@ function generatePageContexts(): void {
     documented: documentedRoutes.length,
     inferred: inferredRoutes.length,
     coverage: `${coverage}%`,
-    documentedRoutes: documentedRoutes.sort(),
-    inferredRoutes: inferredRoutes.sort(),
+    documentedRoutes: documentedRoutes.sort((a, b) => a.localeCompare(b)),
+    inferredRoutes: inferredRoutes.sort((a, b) => a.localeCompare(b)),
     generatedAt: new Date().toISOString(),
   };
 

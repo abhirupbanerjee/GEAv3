@@ -79,11 +79,23 @@ interface Comment {
   is_visible_to_staff: boolean;
 }
 
+interface Attachment {
+  attachment_id: number;
+  request_id: number;
+  filename: string;
+  mimetype: string;
+  file_size: number;
+  is_mandatory: boolean;
+  uploaded_by: string;
+  created_at: string;
+}
+
 export default function ServiceRequestDetailPage() {
   const params = useParams();
   const { data: session } = useSession();
   const [request, setRequest] = useState<ServiceRequest | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showStatusChange, setShowStatusChange] = useState(false);
@@ -92,6 +104,7 @@ export default function ServiceRequestDetailPage() {
   const [statusComment, setStatusComment] = useState('');
   const [newComment, setNewComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const isAdmin = session?.user?.roleType === 'admin';
   const requestId = params.id as string;
@@ -115,6 +128,7 @@ export default function ServiceRequestDetailPage() {
       }
       const data = await response.json();
       setRequest(data.data.request);
+      setAttachments(data.data.attachments || []);
       setNewStatus(data.data.request.status);
     } catch (error) {
       console.error('Error:', error);
@@ -232,6 +246,67 @@ export default function ServiceRequestDetailPage() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  };
+
+  const getFileIcon = (mimetype: string) => {
+    if (mimetype === 'application/pdf') {
+      return (
+        <svg className="w-8 h-8 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+        </svg>
+      );
+    }
+    if (mimetype === 'application/zip' || mimetype === 'application/x-zip-compressed') {
+      return (
+        <svg className="w-8 h-8 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 4a2 2 0 012-2h8a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm4 0v2h2V4H8zm0 4v2h2V8H8zm0 4v2h2v-2H8z" clipRule="evenodd" />
+        </svg>
+      );
+    }
+    if (mimetype.startsWith('image/')) {
+      return (
+        <svg className="w-8 h-8 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+        </svg>
+      );
+    }
+    return (
+      <svg className="w-8 h-8 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+      </svg>
+    );
+  };
+
+  const handleDownload = async (attachment: Attachment) => {
+    setDownloadingId(attachment.attachment_id);
+    try {
+      const response = await fetch(
+        `/api/admin/service-requests/${requestId}/attachments/${attachment.attachment_id}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file');
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   if (loading) {
@@ -373,6 +448,67 @@ export default function ServiceRequestDetailPage() {
               </div>
             )}
           </div>
+
+          {/* Attachments Section */}
+          {attachments.length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Attachments ({attachments.length})
+              </h2>
+              <div className="space-y-3">
+                {attachments.map((attachment) => (
+                  <div
+                    key={attachment.attachment_id}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors"
+                  >
+                    <div className="flex items-center space-x-3">
+                      {getFileIcon(attachment.mimetype)}
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {attachment.filename}
+                        </p>
+                        <div className="flex items-center space-x-2 text-xs text-gray-500">
+                          <span>{formatFileSize(attachment.file_size)}</span>
+                          <span>•</span>
+                          <span>Uploaded by {attachment.uploaded_by}</span>
+                          <span>•</span>
+                          <span>{formatDate(attachment.created_at)}</span>
+                          {attachment.is_mandatory && (
+                            <>
+                              <span>•</span>
+                              <span className="text-red-600 font-medium">Required</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDownload(attachment)}
+                      disabled={downloadingId === attachment.attachment_id}
+                      className="flex items-center space-x-1 px-3 py-2 text-sm font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded-lg disabled:opacity-50"
+                    >
+                      {downloadingId === attachment.attachment_id ? (
+                        <>
+                          <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          <span>Downloading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                          </svg>
+                          <span>Download</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Comments/Activity Timeline */}
           <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">

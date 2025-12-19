@@ -20,6 +20,18 @@ interface Entity {
   is_active: boolean
 }
 
+interface ServiceAttachment {
+  service_attachment_id: number
+  service_id: string
+  filename: string
+  file_extension: string
+  is_mandatory: boolean
+  description: string | null
+  sort_order: number
+  is_active: boolean
+  created_at: string
+}
+
 type SortField = 'service_id' | 'service_name' | 'entity_name' | 'service_category'
 type SortDirection = 'asc' | 'desc' | null
 
@@ -50,6 +62,21 @@ export default function ServiceManager() {
     service_category: 'General',
     service_description: '',
     is_active: true
+  })
+
+  // Attachment management state
+  const [showAttachmentModal, setShowAttachmentModal] = useState(false)
+  const [selectedServiceForAttachments, setSelectedServiceForAttachments] = useState<Service | null>(null)
+  const [attachments, setAttachments] = useState<ServiceAttachment[]>([])
+  const [loadingAttachments, setLoadingAttachments] = useState(false)
+  const [showAttachmentForm, setShowAttachmentForm] = useState(false)
+  const [editingAttachment, setEditingAttachment] = useState<ServiceAttachment | null>(null)
+  const [attachmentFormData, setAttachmentFormData] = useState({
+    filename: '',
+    file_extension: 'pdf,zip',
+    is_mandatory: false,
+    description: '',
+    sort_order: 0
   })
 
   // Categories (EXACT from original)
@@ -226,6 +253,114 @@ export default function ServiceManager() {
   const handleUseSuggestedId = () => {
     setFormData(prev => ({ ...prev, service_id: suggestedId }))
     setUseAutoId(true)
+  }
+
+  // Attachment management functions
+  const openAttachmentModal = async (service: Service) => {
+    setSelectedServiceForAttachments(service)
+    setShowAttachmentModal(true)
+    await loadAttachments(service.service_id)
+  }
+
+  const closeAttachmentModal = () => {
+    setShowAttachmentModal(false)
+    setSelectedServiceForAttachments(null)
+    setAttachments([])
+    setShowAttachmentForm(false)
+    setEditingAttachment(null)
+    resetAttachmentForm()
+  }
+
+  const loadAttachments = async (serviceId: string) => {
+    setLoadingAttachments(true)
+    try {
+      const response = await fetch(`/api/managedata/services/${serviceId}/attachments`)
+      if (response.ok) {
+        const data = await response.json()
+        setAttachments(data.data || [])
+      }
+    } catch (error) {
+      console.error('Error loading attachments:', error)
+    } finally {
+      setLoadingAttachments(false)
+    }
+  }
+
+  const resetAttachmentForm = () => {
+    setAttachmentFormData({
+      filename: '',
+      file_extension: 'pdf,zip',
+      is_mandatory: false,
+      description: '',
+      sort_order: attachments.length
+    })
+    setEditingAttachment(null)
+    setShowAttachmentForm(false)
+  }
+
+  const handleAttachmentSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedServiceForAttachments) return
+
+    try {
+      const url = editingAttachment
+        ? `/api/managedata/services/${selectedServiceForAttachments.service_id}/attachments/${editingAttachment.service_attachment_id}`
+        : `/api/managedata/services/${selectedServiceForAttachments.service_id}/attachments`
+
+      const method = editingAttachment ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(attachmentFormData)
+      })
+
+      if (response.ok) {
+        await loadAttachments(selectedServiceForAttachments.service_id)
+        resetAttachmentForm()
+        alert(editingAttachment ? 'Document requirement updated!' : 'Document requirement added!')
+      } else {
+        const error = await response.json()
+        alert(`Error: ${error.error}`)
+      }
+    } catch (error) {
+      console.error('Error saving attachment:', error)
+      alert('Failed to save document requirement')
+    }
+  }
+
+  const handleEditAttachment = (attachment: ServiceAttachment) => {
+    setEditingAttachment(attachment)
+    setAttachmentFormData({
+      filename: attachment.filename,
+      file_extension: attachment.file_extension,
+      is_mandatory: attachment.is_mandatory,
+      description: attachment.description || '',
+      sort_order: attachment.sort_order
+    })
+    setShowAttachmentForm(true)
+  }
+
+  const handleDeleteAttachment = async (attachment: ServiceAttachment) => {
+    if (!selectedServiceForAttachments) return
+    if (!confirm(`Delete "${attachment.filename}" requirement?`)) return
+
+    try {
+      const response = await fetch(
+        `/api/managedata/services/${selectedServiceForAttachments.service_id}/attachments/${attachment.service_attachment_id}`,
+        { method: 'DELETE' }
+      )
+
+      if (response.ok) {
+        await loadAttachments(selectedServiceForAttachments.service_id)
+        alert('Document requirement deleted!')
+      } else {
+        alert('Failed to delete document requirement')
+      }
+    } catch (error) {
+      console.error('Error deleting attachment:', error)
+      alert('Failed to delete document requirement')
+    }
   }
 
   // Filter and sort services
@@ -548,6 +683,12 @@ export default function ServiceManager() {
                           Edit
                         </button>
                         <button
+                          onClick={() => openAttachmentModal(service)}
+                          className="px-3 py-1 bg-purple-600 hover:bg-purple-700 text-white text-xs rounded"
+                        >
+                          Docs
+                        </button>
+                        <button
                           onClick={() => handleToggleActive(service)}
                           className={`px-3 py-1 text-xs rounded ${
                             service.is_active
@@ -566,6 +707,215 @@ export default function ServiceManager() {
           </div>
         )}
       </div>
+
+      {/* Attachment Management Modal */}
+      {showAttachmentModal && selectedServiceForAttachments && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900">Document Requirements</h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  {selectedServiceForAttachments.service_name} ({selectedServiceForAttachments.service_id})
+                </p>
+              </div>
+              <button
+                onClick={closeAttachmentModal}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {/* Add/Edit Attachment Form */}
+              {showAttachmentForm ? (
+                <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+                  <h4 className="text-lg font-semibold text-gray-900 mb-4">
+                    {editingAttachment ? 'Edit Document Requirement' : 'Add New Document Requirement'}
+                  </h4>
+                  <form onSubmit={handleAttachmentSubmit} className="space-y-4">
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Document Name *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={attachmentFormData.filename}
+                          onChange={(e) => setAttachmentFormData({...attachmentFormData, filename: e.target.value})}
+                          placeholder="e.g., Passport Copy"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Allowed File Types *
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={attachmentFormData.file_extension}
+                          onChange={(e) => setAttachmentFormData({...attachmentFormData, file_extension: e.target.value})}
+                          placeholder="e.g., pdf,zip,docx"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                        />
+                        <p className="text-xs text-gray-500 mt-1">Comma-separated extensions without dots</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Description / Instructions
+                      </label>
+                      <textarea
+                        value={attachmentFormData.description}
+                        onChange={(e) => setAttachmentFormData({...attachmentFormData, description: e.target.value})}
+                        placeholder="pdf and zip allowed. Use zip for multiple files and different formats."
+                        rows={2}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="is_mandatory"
+                          checked={attachmentFormData.is_mandatory}
+                          onChange={(e) => setAttachmentFormData({...attachmentFormData, is_mandatory: e.target.checked})}
+                          className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                        />
+                        <label htmlFor="is_mandatory" className="text-sm font-medium text-gray-700">
+                          Required Document
+                        </label>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <label className="text-sm font-medium text-gray-700">Sort Order:</label>
+                        <input
+                          type="number"
+                          value={attachmentFormData.sort_order}
+                          onChange={(e) => setAttachmentFormData({...attachmentFormData, sort_order: parseInt(e.target.value) || 0})}
+                          className="w-20 px-2 py-1 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+                          min="0"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <button
+                        type="submit"
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg"
+                      >
+                        {editingAttachment ? 'Update' : 'Add Document'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={resetAttachmentForm}
+                        className="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold rounded-lg"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <button
+                  onClick={() => {
+                    setAttachmentFormData({
+                      filename: '',
+                      file_extension: 'pdf,zip',
+                      is_mandatory: false,
+                      description: 'pdf and zip allowed. Use zip for multiple files and different formats.',
+                      sort_order: attachments.length
+                    })
+                    setShowAttachmentForm(true)
+                  }}
+                  className="mb-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
+                >
+                  + Add Document Requirement
+                </button>
+              )}
+
+              {/* Attachments List */}
+              {loadingAttachments ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                  <p className="mt-2 text-gray-600">Loading...</p>
+                </div>
+              ) : attachments.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p>No document requirements defined for this service.</p>
+                  <p className="text-sm mt-1">Add document requirements to specify what files users need to upload.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {attachments.map((attachment, index) => (
+                    <div
+                      key={attachment.service_attachment_id}
+                      className={`flex items-center justify-between p-4 rounded-lg border ${
+                        attachment.is_active ? 'bg-white border-gray-200' : 'bg-gray-100 border-gray-300'
+                      }`}
+                    >
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-400 font-mono">#{index + 1}</span>
+                          <span className="font-medium text-gray-900">{attachment.filename}</span>
+                          {attachment.is_mandatory && (
+                            <span className="px-2 py-0.5 bg-red-100 text-red-700 text-xs rounded-full font-semibold">
+                              Required
+                            </span>
+                          )}
+                          {!attachment.is_active && (
+                            <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full">
+                              Inactive
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-500 mt-1">
+                          <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">
+                            {attachment.file_extension}
+                          </span>
+                          {attachment.description && (
+                            <span className="ml-2">{attachment.description}</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditAttachment(attachment)}
+                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteAttachment(attachment)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-xs rounded"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <button
+                onClick={closeAttachmentModal}
+                className="px-6 py-2 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

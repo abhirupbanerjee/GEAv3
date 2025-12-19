@@ -168,9 +168,9 @@ export default function NewServiceRequestPage() {
 
   const handleFileChange = (attachmentId: number, file: File | null) => {
     if (file) {
-      // Validate file size (5MB max)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        alert('File size must be less than 10MB');
         return;
       }
 
@@ -219,6 +219,7 @@ export default function NewServiceRequestPage() {
           '.jpeg': ['image/jpeg'],
           '.png': ['image/png'],
           '.gif': ['image/gif'],
+          '.zip': ['application/zip', 'application/x-zip-compressed'],
         };
 
         const expectedMimes = mimeTypeMap[fileExtWithDot] || [];
@@ -497,7 +498,7 @@ export default function NewServiceRequestPage() {
                         <p className="text-sm text-gray-500 mt-1">{attachment.description}</p>
                       )}
                       <p className="text-xs text-gray-400 mt-1">
-                        Accepted: {attachment.file_extension} • Max 5MB
+                        Accepted: {attachment.file_extension} • Max 10MB
                       </p>
                     </div>
                     {attachment.is_mandatory && (

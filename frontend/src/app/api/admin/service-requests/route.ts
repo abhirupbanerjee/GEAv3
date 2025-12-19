@@ -275,6 +275,7 @@ export async function POST(request: NextRequest) {
         '.jpeg': ['image/jpeg'],
         '.png': ['image/png'],
         '.gif': ['image/gif'],
+        '.zip': ['application/zip', 'application/x-zip-compressed'],
       };
 
       for (const key of attachmentKeys) {
@@ -283,11 +284,11 @@ export async function POST(request: NextRequest) {
 
         const attachmentId = parseInt(key.replace('attachment_', ''));
 
-        // Validate file size (5MB max)
-        if (file.size > 5 * 1024 * 1024) {
+        // Validate file size (10MB max)
+        if (file.size > 10 * 1024 * 1024) {
           await pool.query('ROLLBACK');
           return NextResponse.json(
-            { error: `File ${file.name} exceeds 5MB limit` },
+            { error: `File ${file.name} exceeds 10MB limit` },
             { status: 400 }
           );
         }
