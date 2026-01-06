@@ -1,6 +1,6 @@
 # GEA Portal v3 - Complete Database Setup Guide
 
-**Document Version:** 10.0 **Last Updated:** November 24, 2025
+**Document Version:** 10.1 **Last Updated:** January 2026
 **Database:** PostgreSQL 15.15
 **Schema Version:** Production-Aligned v10.0
 **Total Tables:** 30
@@ -23,24 +23,31 @@
 
 ## 🚀 Quick Start
 
-### Recommended: Use Consolidated Setup
+### ⭐ Recommended: Use Consolidated Setup
+
+> **Which method should I use?** Use `99-consolidated-setup.sh` for almost all scenarios. It handles fresh installations, updates, backups, and verification in one script with automatic safety checks.
 
 ```bash
-# Fresh setup with DTA operational data
+# Fresh setup with DTA operational data (RECOMMENDED for new installations)
 ./database/99-consolidated-setup.sh --fresh --load-dta --create-admin
 
-# Or incremental update
+# Or incremental update (RECOMMENDED for existing databases)
 ./database/99-consolidated-setup.sh --update --verify
+
+# Just verify current state (non-destructive)
+./database/99-consolidated-setup.sh --verify
 ```
 
-### Traditional: Use Master Init
+### Alternative: Use Master Init (Traditional)
+
+> **When to use this?** Only if you need fine-grained control over individual migration steps or are debugging specific scripts.
 
 ```bash
 # Run master initialization
 ./database/00-master-init.sh
 
 # Create admin user
-ADMIN_EMAIL="your@email.com" ADMIN_NAME="Your Name" ./database/05-add-initial-admin.sh
+ADMIN_EMAIL="your-email@gov.gd" ADMIN_NAME="Your Name" ./database/scripts/05-add-initial-admin.sh
 
 # Load operational data
 ./database/06-load-dta-seed-data.sh
@@ -615,8 +622,8 @@ docker exec -i feedback_db psql -U feedback_user -d feedback < manual_backup.sql
 ---
 
 **Document Status:** ✅ Production Ready
-**Last Verified:** November 24, 2025
-**Schema Version:** 10.0 (Production-Aligned)
+**Last Verified:** January 2026
+**Schema Version:** 10.1 (Production-Aligned)
 **Total Tables:** 30
 
 ---

@@ -30,8 +30,8 @@ Complete digital portal system with:
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
 | **OS** | Ubuntu 22.04 LTS | **Ubuntu 24.04 LTS** |
-| **Docker** | 24.x+ | **28.x+** |
-| **Docker Compose** | v2.20+ | **v2.39+** |
+| **Docker** | 27.5.1 | **27.5.1** (Required) |
+| **Docker Compose** | v2.20+ | **v2.40+** |
 | **RAM** | 4 GB | 8 GB |
 | **vCPUs** | 2 | 2-4 |
 | **Disk** | 30 GB | **50 GB** (single disk) |
@@ -44,11 +44,13 @@ Complete digital portal system with:
 | Component | Version | Notes |
 |-----------|---------|-------|
 | **OS** | Ubuntu 24.04.3 LTS | Azure VM (kernel 6.14.0-azure) |
-| **Docker** | 28.4.0 | Official CE or Snap |
-| **Docker Compose** | v2.39.1 | Plugin version |
+| **Docker** | 27.5.1 | ⚠️ Required - v28+/29+ incompatible with Traefik |
+| **Docker Compose** | v2.40+ | Plugin version |
 | **Node.js** | 20.x (container) | Alpine-based image |
 | **PostgreSQL** | 15-alpine | Container |
 | **Traefik** | v3.0 | Reverse proxy + SSL |
+
+> **⚠️ Docker Version Requirement:** Use Docker 27.5.1. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x. See [Docker & Traefik Compatibility Guide](docs/DOCKER_TRAEFIK_COMPATIBILITY.md) for details.
 
 ### Deploy in 5 Steps
 

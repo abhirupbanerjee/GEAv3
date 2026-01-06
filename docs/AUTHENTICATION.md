@@ -2,7 +2,7 @@
 
 **GEA Portal v3 - Complete OAuth Authentication System**
 
-**Last Updated:** December 19, 2025
+**Last Updated:** January 2026
 **Status:** ✅ Production Ready
 **Authentication:** NextAuth v4 with OAuth (Google & Microsoft)
 
@@ -72,7 +72,7 @@ cd /home/ab/Projects/gogeaportal/v3
 ./database/04-nextauth-users.sh
 
 # 2. Add your admin user
-ADMIN_EMAIL="you@example.com" ADMIN_NAME="Your Name" ./database/05-add-initial-admin.sh
+ADMIN_EMAIL="your-email@gov.gd" ADMIN_NAME="Your Name" ./database/scripts/05-add-initial-admin.sh
 
 # 3. Generate NextAuth secret
 openssl rand -base64 32
@@ -259,7 +259,7 @@ Run these scripts to set up authentication:
 ./database/04-nextauth-users.sh
 
 # 3. Add your first admin user
-ADMIN_EMAIL="your@email.com" ADMIN_NAME="Your Name" ./database/05-add-initial-admin.sh
+ADMIN_EMAIL="your-email@gov.gd" ADMIN_NAME="Your Name" ./database/scripts/05-add-initial-admin.sh
 ```
 
 ---
@@ -313,41 +313,45 @@ https://gea.your-domain.com/api/auth/callback/google
 
 ### Microsoft OAuth Configuration (Optional)
 
+> **Note:** Azure Portal UI may change over time. These steps are accurate as of late 2025. Look for similar options if the exact navigation differs.
+
 #### Step 1: Register Application
 
 1. Go to [Azure Portal](https://portal.azure.com/)
-2. Navigate to "App Registrations"
+2. Search for "App registrations" in the top search bar (or navigate to Azure Active Directory → App registrations)
 3. Click "New registration"
 
 #### Step 2: Configure App
 
 - **Name:** "GEA Portal"
-- **Supported account types:** "Accounts in any organizational directory and personal Microsoft accounts"
+- **Supported account types:** "Accounts in any organizational directory and personal Microsoft accounts" (for broad access) or select your specific tenant type
 - **Redirect URI:**
   - Platform: Web
   - URI: `https://gea.your-domain.com/api/auth/callback/azure-ad`
 
 #### Step 3: Create Client Secret
 
-1. Go to "Certificates & secrets"
-2. Click "New client secret"
+1. In your app registration, go to "Certificates & secrets" in the left sidebar
+2. Under "Client secrets", click "New client secret"
 3. Description: "GEA Portal Production"
-4. Expires: 24 months (recommended)
-5. Copy the secret value immediately (won't be shown again)
+4. Expires: 24 months (recommended - set a reminder to rotate before expiry)
+5. **Important:** Copy the secret **Value** immediately (won't be shown again after leaving this page)
 
 #### Step 4: Copy IDs
 
-From the "Overview" page, copy:
-- **Application (client) ID**
-- **Directory (tenant) ID**
+From the app registration "Overview" page, copy:
+- **Application (client) ID** - This goes in `MICROSOFT_CLIENT_ID`
+- **Directory (tenant) ID** - This goes in `MICROSOFT_TENANT_ID` (use `common` for multi-tenant)
 
 #### Step 5: API Permissions
 
-1. Go to "API permissions"
-2. Ensure these are granted:
-   - `User.Read` (delegated)
-   - `email` (OpenID Connect)
-   - `profile` (OpenID Connect)
+1. Go to "API permissions" in the left sidebar
+2. Click "Add a permission" → "Microsoft Graph" → "Delegated permissions"
+3. Ensure these permissions are added:
+   - `User.Read` (delegated) - Usually added by default
+   - `email` (under OpenID permissions)
+   - `profile` (under OpenID permissions)
+4. If you have admin access, click "Grant admin consent for [Your Tenant]"
 
 ---
 

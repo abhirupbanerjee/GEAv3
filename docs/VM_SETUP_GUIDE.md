@@ -175,9 +175,11 @@ su - geaportal
 
 ---
 
-## Step 3: Install Docker
+## Step 3: Install Docker 27.5.1
 
-### Install Docker Engine
+> **⚠️ Important:** The portal requires **Docker 27.5.1**. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x and will **not work**. See [Docker & Traefik Compatibility Guide](DOCKER_TRAEFIK_COMPATIBILITY.md) for details.
+
+### Install Docker Engine (Version 27.5.1)
 
 ```bash
 # Remove old versions
@@ -197,9 +199,18 @@ echo \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install Docker
+# Install Docker 27.5.1 (SPECIFIC VERSION REQUIRED)
 sudo apt update
-sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+VERSION_STRING=5:27.5.1-1~ubuntu.24.04~noble
+sudo apt install -y \
+  docker-ce=$VERSION_STRING \
+  docker-ce-cli=$VERSION_STRING \
+  containerd.io \
+  docker-buildx-plugin \
+  docker-compose-plugin
+
+# Prevent auto-upgrade to incompatible versions
+sudo apt-mark hold docker-ce docker-ce-cli
 
 # Add current user to docker group
 sudo usermod -aG docker $USER
@@ -213,14 +224,30 @@ newgrp docker
 ```bash
 # Check Docker version
 docker --version
-# Expected: Docker version 28.x.x or higher
+# Expected: Docker version 27.5.1, build 9f9e405
 
 # Check Docker Compose version
 docker compose version
-# Expected: Docker Compose version v2.x.x
+# Expected: Docker Compose version v2.40.x or higher
 
 # Test Docker
 docker run hello-world
+```
+
+### If You Have Docker 28+ or 29+ Installed
+
+If you already have Docker 28.x or 29.x installed, you must downgrade:
+
+```bash
+# Stop all containers first
+docker compose down 2>/dev/null
+
+# Remove current Docker installation
+sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo rm -rf /var/lib/docker
+sudo rm -rf /var/lib/containerd
+
+# Then follow the installation steps above for Docker 27.5.1
 ```
 
 ---

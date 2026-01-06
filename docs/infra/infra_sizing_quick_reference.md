@@ -1,8 +1,9 @@
 # GEA Portal v3 - Infrastructure Sizing & Recommendations
 
-**Version:** 1.0  
-**Date:** November 2025  
+**Version:** 1.1
+**Date:** January 2026
 **Status:** Planning Document
+**Last Reviewed:** January 2026
 
 ---
 
@@ -37,9 +38,11 @@ This document provides infrastructure sizing recommendations for the GEA Portal 
 |-----------|---------|
 | Next.js Frontend | Web application |
 | PostgreSQL 15 | Primary database |
-| PgBouncer | Connection pooling |
-| Redis | API caching + sessions |
-| Traefik | Reverse proxy + SSL |
+| PgBouncer | Connection pooling (future) |
+| Redis | API caching + sessions (future) |
+| Traefik v3.0 | Reverse proxy + SSL |
+
+> **⚠️ Docker Requirement:** Docker 27.5.1 is required. Docker 28.x/29.x are incompatible with Traefik v3.x. See [Docker & Traefik Compatibility Guide](../DOCKER_TRAEFIK_COMPATIBILITY.md).
 
 ---
 
@@ -146,7 +149,14 @@ This document provides infrastructure sizing recommendations for the GEA Portal 
 | **Launch** | B2s (~$30) | 64GB Std SSD (~$5) | **~$35** |
 | **Production** | B2ms (~$60) | 64GB Premium (~$10) | **~$70** |
 
-*Note: Prices are approximate. Check Azure pricing calculator for current rates.*
+> **⚠️ Pricing Disclaimer:** These estimates are from November 2025 and may be outdated. Additional costs not included:
+> - Backup storage (~$5-10/month for 7-day retention)
+> - Bandwidth/egress charges (varies by usage)
+> - DNS/domain registration
+> - Monitoring solutions (Azure Monitor, etc.)
+> - CDN costs (if applicable)
+>
+> **Always check the [Azure Pricing Calculator](https://azure.microsoft.com/pricing/calculator/) for current rates.**
 
 ### Cost Optimization Tips
 
@@ -328,6 +338,7 @@ df -h
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | November 2025 | Initial document |
+| 1.1 | January 2026 | Added Docker version requirement, pricing disclaimers, clarified PgBouncer/Redis as future items |
 
 ---
 

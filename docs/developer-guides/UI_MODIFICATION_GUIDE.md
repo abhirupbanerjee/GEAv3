@@ -2,8 +2,8 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.0
-**Last Updated:** November 2025
+**Version:** 1.1
+**Last Updated:** January 2026
 **Audience:** Frontend Developers, UI/UX Developers
 
 ---
@@ -1066,6 +1066,6 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 
 ---
 
-**Last Updated:** November 26, 2025 | **Version:** 1.0
+**Last Updated:** January 2026 | **Version:** 1.1
 
 For questions or to report issues with this guide, contact the development team.

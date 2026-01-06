@@ -99,10 +99,12 @@
 ### Infrastructure
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Docker | 24.x+ | Containerization |
-| Docker Compose | 2.x+ | Multi-container orchestration |
+| Docker | 27.5.1 | Containerization (⚠️ v28+/29+ incompatible with Traefik) |
+| Docker Compose | 2.40+ | Multi-container orchestration |
 | Traefik | 3.0 | Reverse proxy & SSL |
 | Nginx | Alpine | Static file serving |
+
+> **⚠️ Docker Version Requirement:** Docker 27.5.1 is required. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x. See [Docker & Traefik Compatibility Guide](DOCKER_TRAEFIK_COMPATIBILITY.md).
 
 ### Development Tools
 | Tool | Purpose |
@@ -213,6 +215,10 @@ gogeaportal/v3/
 | Document | Purpose | Read Time |
 |----------|---------|-----------|
 | [developer-guides/UI_MODIFICATION_GUIDE.md](developer-guides/UI_MODIFICATION_GUIDE.md) | **Complete UI development guide** - Adding pages, modifying analytics, customizing leaderboards | 45 min |
+| [developer-guides/API_DEVELOPMENT_PATTERNS.md](developer-guides/API_DEVELOPMENT_PATTERNS.md) | **API endpoint development** - Creating endpoints, authentication, validation, responses | 30 min |
+| [developer-guides/DATABASE_QUERY_PATTERNS.md](developer-guides/DATABASE_QUERY_PATTERNS.md) | **Database operations** - Queries, transactions, performance, error handling | 25 min |
+| [developer-guides/TESTING_GUIDE.md](developer-guides/TESTING_GUIDE.md) | **Testing procedures** - API testing, auth testing, database verification | 20 min |
+| [developer-guides/ERROR_HANDLING_PATTERNS.md](developer-guides/ERROR_HANDLING_PATTERNS.md) | **Error handling** - Error codes, responses, logging best practices | 20 min |
 | [AI_BOT_INTEGRATION.md](AI_BOT_INTEGRATION.md) | AI bot context integration, bot inventory, testing | 30 min |
 
 ### User Manuals
@@ -238,10 +244,12 @@ gogeaportal/v3/
 
 **Required Software:**
 - Git 2.x+
-- Docker 24.x+
-- Docker Compose 2.x+
+- Docker 27.5.1 (⚠️ Required - v28+/29+ incompatible with Traefik v3.x)
+- Docker Compose 2.40+
 - Domain with DNS access (or localhost for testing)
 - Linux/MacOS (or WSL2 on Windows)
+
+> **⚠️ Important:** See [VM_SETUP_GUIDE.md](VM_SETUP_GUIDE.md#step-3-install-docker-2751) for Docker installation with correct version.
 
 **System Requirements:**
 - 4GB RAM minimum (8GB recommended)
