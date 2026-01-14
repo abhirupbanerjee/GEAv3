@@ -12,6 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Pool } from 'pg';
+import { getServiceRequestEntityId } from '@/lib/settings';
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -136,7 +137,7 @@ export async function POST(request: NextRequest) {
     // Auto-assign entity for DTA administrators
     let finalEntityId = entity_id;
     if (roleCode === 'admin_dta' && !entity_id) {
-      finalEntityId = 'AGY-005'; // Digital Transformation Agency
+      finalEntityId = await getServiceRequestEntityId(); // Digital Transformation Agency
     }
 
     // Validate entity requirement for staff

@@ -20,6 +20,11 @@ import {
   getFeedbackTicketAdminEmail
 } from '@/lib/emailTemplates';
 import { config } from '@/config/env';
+import {
+  getServiceRequestEntityId,
+  getDTAAdminRoleCode,
+  getThresholdSettings,
+} from '@/lib/settings';
 
 // NEW: Valid requester categories (from new tickets.requester_category field)
 const VALID_REQUESTER_CATEGORIES = [
@@ -307,19 +312,23 @@ if (body.requester_email) {
 
 // Send DTA alert for poor ratings to all DTA administrators
 const overallRating = body.q5_overall_satisfaction;
-if (overallRating <= 2) {
+const thresholds = await getThresholdSettings();
+const dtaEntityId = await getServiceRequestEntityId();
+const dtaRoleCode = await getDTAAdminRoleCode();
+
+if (overallRating <= thresholds.dtaAlert) {
   try {
     // Query all active DTA administrators from database
     const dtaAdmins = await pool.query(
       `SELECT DISTINCT u.email
        FROM users u
        JOIN user_roles r ON u.role_id = r.role_id
-       WHERE u.entity_id = 'AGY-005'
-         AND r.role_code = 'admin_dta'
+       WHERE u.entity_id = $1
+         AND r.role_code = $2
          AND u.is_active = TRUE
          AND u.email IS NOT NULL
        ORDER BY u.email`,
-      []
+      [dtaEntityId, dtaRoleCode]
     );
 
     if (dtaAdmins.rows.length === 0) {
@@ -367,7 +376,7 @@ const avgRating = (
   body.q5_overall_satisfaction
 ) / 5;
 
-const needsTicket = isGrievance || avgRating <= 2.5;
+const needsTicket = isGrievance || avgRating <= thresholds.lowRating;
 
 if (needsTicket) {
   try {

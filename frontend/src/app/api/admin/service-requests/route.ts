@@ -15,6 +15,10 @@ import {
   getEAServiceRequestEmail,
   getDTAServiceRequestNotificationEmail,
 } from '@/lib/emailTemplates';
+import {
+  getServiceRequestEntityId,
+  getDTAAdminRoleCode,
+} from '@/lib/settings';
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -80,17 +84,20 @@ async function sendServiceRequestNotifications(
 
     // 2. Send notification to DTA administrators only
     try {
-      // Query DTA admins only (admin_dta role with entity AGY-005)
+      // Query DTA admins only (admin_dta role with DTA entity)
+      const dtaEntityId = await getServiceRequestEntityId();
+      const dtaRoleCode = await getDTAAdminRoleCode();
+
       const dtaAdmins = await pool.query(
         `SELECT DISTINCT u.email
          FROM users u
          JOIN user_roles r ON u.role_id = r.role_id
-         WHERE u.entity_id = 'AGY-005'
-           AND r.role_code = 'admin_dta'
+         WHERE u.entity_id = $1
+           AND r.role_code = $2
            AND u.is_active = TRUE
            AND u.email IS NOT NULL
          ORDER BY u.email`,
-        []
+        [dtaEntityId, dtaRoleCode]
       );
 
       if (dtaAdmins.rows.length === 0) {

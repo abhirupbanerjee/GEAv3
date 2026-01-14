@@ -24,47 +24,44 @@
 
 'use client'
 
+import { useState, useEffect } from 'react'
 import { aboutContent } from '../../config/content'
 
-// Leadership team member interface
-interface LeadershipMember {
-  id: string
-  role: string
+// Leadership contact interface (from database)
+interface LeadershipContact {
+  contact_id: number
   name: string
-  email: string
-  phone: string
-  photo: string
+  title: string
+  email: string | null
+  image_path: string | null
+  sort_order: number
+  is_active: boolean
 }
 
-// Placeholder leadership team - will be populated later
-const leadershipTeam: LeadershipMember[] = [
-  {
-    id: 'ceo',
-    role: 'Chief Executive Officer',
-    name: 'To be announced',
-    email: 'ceo@dta.gov.gd',
-    phone: '+1 (473) XXX-XXXX',
-    photo: '/images/placeholder-ceo.jpg'
-  },
-  {
-    id: 'coo',
-    role: 'Chief Operating Officer',
-    name: 'To be announced',
-    email: 'coo@dta.gov.gd',
-    phone: '+1 (473) XXX-XXXX',
-    photo: '/images/placeholder-coo.jpg'
-  },
-  {
-    id: 'cdo',
-    role: 'Chief Digital Officer',
-    name: 'To be announced',
-    email: 'cdo@dta.gov.gd',
-    phone: '+1 (473) XXX-XXXX',
-    photo: '/images/placeholder-cdo.jpg'
-  }
-]
-
 export default function About() {
+  const [contacts, setContacts] = useState<LeadershipContact[]>([])
+  const [loadingContacts, setLoadingContacts] = useState(true)
+
+  // Fetch leadership contacts from API
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        const response = await fetch('/api/admin/contacts?public=true')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.contacts) {
+            setContacts(data.contacts)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching leadership contacts:', error)
+      } finally {
+        setLoadingContacts(false)
+      }
+    }
+    fetchContacts()
+  }, [])
+
   return (
     <div className="py-16 bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 max-w-5xl">
@@ -120,47 +117,81 @@ export default function About() {
           <h2 className="text-3xl font-bold text-gray-900 mb-8 text-center">
             Leadership Team
           </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {leadershipTeam.map((member) => (
-              <div key={member.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-                {/* Photo Placeholder */}
-                <div className="bg-gradient-to-br from-blue-100 to-blue-200 h-64 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-6xl mb-2">👤</div>
-                    <p className="text-gray-600 text-sm">Photo Coming Soon</p>
-                  </div>
-                </div>
-                
-                {/* Member Info */}
-                <div className="p-6">
-                  <h3 className="text-xl font-bold text-gray-900 mb-1">
-                    {member.name}
-                  </h3>
-                  <p className="text-blue-600 font-medium mb-4">
-                    {member.role}
-                  </p>
-                  
-                  {/* Contact Details */}
-                  <div className="space-y-3 border-t border-gray-200 pt-4">
-                    <div className="flex items-center text-gray-600">
-                      <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                      </svg>
-                      <a href={`mailto:${member.email}`} className="text-sm hover:text-blue-600 transition-colors">
-                        {member.email}
-                      </a>
+
+          {loadingContacts ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            </div>
+          ) : contacts.length > 0 ? (
+            /* Horizontal scrolling container for multiple contacts */
+            <div className="relative">
+              <div className="flex gap-6 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                {contacts.map((contact) => (
+                  <div
+                    key={contact.contact_id}
+                    className="flex-shrink-0 w-72 bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow snap-start"
+                  >
+                    {/* Photo */}
+                    {contact.image_path ? (
+                      <div className="h-64 overflow-hidden">
+                        <img
+                          src={contact.image_path}
+                          alt={contact.name}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-gradient-to-br from-blue-100 to-blue-200 h-64 flex items-center justify-center">
+                        <div className="text-center">
+                          <div className="w-24 h-24 rounded-full bg-blue-200 flex items-center justify-center mx-auto">
+                            <span className="text-4xl font-bold text-blue-600">
+                              {contact.name.charAt(0)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Contact Info */}
+                    <div className="p-6">
+                      <h3 className="text-xl font-bold text-gray-900 mb-1">
+                        {contact.name}
+                      </h3>
+                      <p className="text-blue-600 font-medium mb-4">
+                        {contact.title}
+                      </p>
+
+                      {/* Email */}
+                      {contact.email && (
+                        <div className="border-t border-gray-200 pt-4">
+                          <div className="flex items-center text-gray-600">
+                            <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <a href={`mailto:${contact.email}`} className="text-sm hover:text-blue-600 transition-colors">
+                              {contact.email}
+                            </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="flex items-center text-gray-600">
-                      <svg className="w-5 h-5 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                      </svg>
-                      <span className="text-sm">{member.phone}</span>
-                    </div>
                   </div>
-                </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* Scroll indicators for more contacts */}
+              {contacts.length > 3 && (
+                <div className="text-center text-sm text-gray-500 mt-2">
+                  Scroll to see more leadership members →
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center py-12 bg-white rounded-lg shadow-md">
+              <div className="text-6xl mb-4">👥</div>
+              <p className="text-gray-600">Leadership team information coming soon.</p>
+            </div>
+          )}
         </section>
 
         {/* Contact Information Section */}

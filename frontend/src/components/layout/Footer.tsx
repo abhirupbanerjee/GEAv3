@@ -1,8 +1,43 @@
+'use client'
+
 import Link from 'next/link'
-import { footerLinks } from '@/config/content'
+import { useState, useEffect } from 'react'
+import { footerLinks as staticFooterLinks } from '@/config/content'
 import { config } from '@/config/env'
 
+interface FooterLink {
+  label: string
+  url: string
+}
+
 export default function Footer() {
+  const [quickLinks, setQuickLinks] = useState<FooterLink[]>(staticFooterLinks.quickLinks)
+  const [gogUrl, setGogUrl] = useState(config.GOG_URL)
+
+  // Fetch dynamic footer links from settings API
+  useEffect(() => {
+    const fetchFooterLinks = async () => {
+      try {
+        const response = await fetch('/api/public/footer-links')
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success && data.links?.quickLinks) {
+            setQuickLinks(data.links.quickLinks)
+            // Update GoG URL for Facts link
+            const gogLink = data.links.quickLinks.find((l: FooterLink) => l.label === 'GoG')
+            if (gogLink) {
+              setGogUrl(gogLink.url)
+            }
+          }
+        }
+      } catch (error) {
+        // Keep static fallback on error
+        console.error('Failed to fetch footer links:', error)
+      }
+    }
+    fetchFooterLinks()
+  }, [])
+
   return (
     <footer className="bg-gray-900 text-white relative z-50">
       <div className="container-custom py-12">
@@ -22,7 +57,7 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {footerLinks.quickLinks.map((link) => (
+              {quickLinks.map((link) => (
                 <li key={link.label}>
                   <a
                     href={link.url}
@@ -48,7 +83,7 @@ export default function Footer() {
               </li>
               <li>
                 <a
-                  href={config.GOG_URL}
+                  href={gogUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-white transition-colors"

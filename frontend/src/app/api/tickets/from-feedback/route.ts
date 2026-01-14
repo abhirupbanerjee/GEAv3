@@ -15,7 +15,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
-import { checkGrievanceRateLimit, hashIP } from '@/lib/rate-limit'
+import { checkGrievanceRateLimit, hashIP } from '@/lib/rate-limit';
+import {
+  getServiceRequestEntityId,
+  getThresholdSettings,
+} from '@/lib/settings';
 
 // Valid requester categories - NEW FIELD
 const VALID_REQUESTER_CATEGORIES = [
@@ -27,12 +31,23 @@ const VALID_REQUESTER_CATEGORIES = [
   'other'
 ];
 
+// Priority threshold interface
+interface PriorityThresholds {
+  priorityUrgent: number;
+  priorityHigh: number;
+  priorityMedium: number;
+}
+
 // Ticket priority mapping based on feedback rating (returns priority_id)
-function getPriorityIdFromRating(avgRating: number, grievanceFlag: boolean): number {
+function getPriorityIdFromRating(
+  avgRating: number,
+  grievanceFlag: boolean,
+  thresholds: PriorityThresholds
+): number {
   if (grievanceFlag) return 1; // URGENT
-  if (avgRating <= 1.5) return 1; // URGENT
-  if (avgRating <= 2.5) return 2; // HIGH
-  if (avgRating <= 3.5) return 3; // MEDIUM
+  if (avgRating <= thresholds.priorityUrgent) return 1; // URGENT
+  if (avgRating <= thresholds.priorityHigh) return 2; // HIGH
+  if (avgRating <= thresholds.priorityMedium) return 3; // MEDIUM
   return 4; // LOW
 }
 
@@ -176,7 +191,8 @@ export async function POST(request: NextRequest) {
     // STEP 1: Validate Service and get entity_id (FK validation)
     // ============================================
     const service = await validateService(service_id);
-    const entity_id = service.entity_id || process.env.NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID || 'AGY-005'; // Fallback to configured entity
+    const defaultEntityId = await getServiceRequestEntityId();
+    const entity_id = service.entity_id || defaultEntityId;
     console.log(`✓ Service validated: ${service.service_name}, Entity: ${entity_id}`);
     
     // ============================================
@@ -211,8 +227,11 @@ export async function POST(request: NextRequest) {
     // Map recipient_group to requester_category (NEW FIELD)
     const requesterCategory = mapRecipientGroupToCategory(recipient_group);
 
+    // Get threshold settings for priority calculation
+    const thresholds = await getThresholdSettings();
+
     // Determine priority_id based on grievance or low rating
-    const priority_id = getPriorityIdFromRating(avgRating, grievance_flag || false);
+    const priority_id = getPriorityIdFromRating(avgRating, grievance_flag || false, thresholds);
 
     // Get priority name for description
     const priorityName = priority_id === 1 ? 'URGENT' : priority_id === 2 ? 'HIGH' : priority_id === 3 ? 'MEDIUM' : 'LOW';
