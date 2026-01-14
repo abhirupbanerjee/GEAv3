@@ -25,7 +25,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText } from 'react-icons/fi'
+import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2 } from 'react-icons/fi'
 
 // Types
 interface SystemSetting {
@@ -76,6 +76,15 @@ export default function SettingsPage() {
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
   const [testingEmail, setTestingEmail] = useState(false)
+  // Contact modal state
+  const [contactModalOpen, setContactModalOpen] = useState(false)
+  const [editingContact, setEditingContact] = useState<LeadershipContact | null>(null)
+  const [contactForm, setContactForm] = useState({ name: '', title: '', email: '', image_path: '' })
+  const [savingContact, setSavingContact] = useState(false)
+  const [uploadingPhoto, setUploadingPhoto] = useState(false)
+  // Branding mode state (url vs upload)
+  const [brandingMode, setBrandingMode] = useState<Record<string, 'url' | 'upload'>>({})
+  const [uploadingBranding, setUploadingBranding] = useState<string | null>(null)
 
   // Load settings
   const loadSettings = useCallback(async () => {
@@ -205,6 +214,163 @@ export default function SettingsPage() {
     }
   }, [message])
 
+  // Open contact modal for add/edit
+  const openContactModal = (contact: LeadershipContact | null) => {
+    setEditingContact(contact)
+    setContactForm(contact ? {
+      name: contact.name,
+      title: contact.title,
+      email: contact.email || '',
+      image_path: contact.image_path || ''
+    } : { name: '', title: '', email: '', image_path: '' })
+    setContactModalOpen(true)
+  }
+
+  // Upload photo for contact
+  const uploadContactPhoto = async (file: File): Promise<string | null> => {
+    try {
+      setUploadingPhoto(true)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('category', 'contacts')
+
+      const response = await fetch('/api/admin/settings/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        return data.file.path
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to upload photo' })
+        return null
+      }
+    } catch (error) {
+      console.error('Error uploading photo:', error)
+      setMessage({ type: 'error', text: 'Failed to upload photo' })
+      return null
+    } finally {
+      setUploadingPhoto(false)
+    }
+  }
+
+  // Upload branding image
+  const uploadBrandingImage = async (settingKey: string, file: File) => {
+    try {
+      setUploadingBranding(settingKey)
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('category', 'branding')
+
+      const response = await fetch('/api/admin/settings/upload', {
+        method: 'POST',
+        body: formData
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        handleSettingChange(settingKey, data.file.path)
+        setMessage({ type: 'success', text: 'Image uploaded successfully' })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to upload image' })
+      }
+    } catch (error) {
+      console.error('Error uploading branding:', error)
+      setMessage({ type: 'error', text: 'Failed to upload image' })
+    } finally {
+      setUploadingBranding(null)
+    }
+  }
+
+  // Save contact (add or update)
+  const saveContact = async () => {
+    if (!contactForm.name || !contactForm.title) {
+      setMessage({ type: 'error', text: 'Name and title are required' })
+      return
+    }
+
+    try {
+      setSavingContact(true)
+      const url = editingContact
+        ? `/api/admin/contacts/${editingContact.contact_id}`
+        : '/api/admin/contacts'
+      const method = editingContact ? 'PUT' : 'POST'
+
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contactForm)
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: editingContact ? 'Contact updated' : 'Contact added' })
+        setContactModalOpen(false)
+        loadContacts()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to save contact' })
+      }
+    } catch (error) {
+      console.error('Error saving contact:', error)
+      setMessage({ type: 'error', text: 'Failed to save contact' })
+    } finally {
+      setSavingContact(false)
+    }
+  }
+
+  // Delete contact
+  const deleteContact = async () => {
+    if (!editingContact) return
+
+    if (!confirm('Are you sure you want to delete this contact?')) return
+
+    try {
+      setSavingContact(true)
+      const response = await fetch(`/api/admin/contacts/${editingContact.contact_id}`, {
+        method: 'DELETE'
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Contact deleted' })
+        setContactModalOpen(false)
+        loadContacts()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to delete contact' })
+      }
+    } catch (error) {
+      console.error('Error deleting contact:', error)
+      setMessage({ type: 'error', text: 'Failed to delete contact' })
+    } finally {
+      setSavingContact(false)
+    }
+  }
+
+  // Handle photo file selection
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setMessage({ type: 'error', text: 'Please select a JPG, PNG, GIF, or WebP image' })
+      return
+    }
+
+    // Validate file size (2MB max for photos)
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'Photo must be less than 2MB' })
+      return
+    }
+
+    const path = await uploadContactPhoto(file)
+    if (path) {
+      setContactForm(prev => ({ ...prev, image_path: path }))
+    }
+  }
+
   // Render setting input based on type
   const renderSettingInput = (setting: SystemSetting) => {
     const value = getCurrentValue(setting)
@@ -290,14 +456,129 @@ export default function SettingsPage() {
     }
   }
 
-  // Group settings by subcategory
-  const groupBySubcategory = (settingsList: SystemSetting[]) => {
-    return settingsList.reduce((acc, setting) => {
+  // Render branding input with URL/Upload toggle
+  const renderBrandingInput = (setting: SystemSetting) => {
+    const value = getCurrentValue(setting)
+    const isChanged = pendingChanges[setting.setting_key] !== undefined
+    const mode = brandingMode[setting.setting_key] || 'url'
+    const isUploading = uploadingBranding === setting.setting_key
+    const isFavicon = setting.setting_key.includes('FAVICON')
+
+    const requirements = isFavicon
+      ? 'ICO or PNG format, 16x16 to 48x48 pixels recommended'
+      : 'PNG, JPG, or SVG format, max 200px height recommended'
+
+    const acceptTypes = isFavicon
+      ? '.ico,.png'
+      : '.png,.jpg,.jpeg,.svg'
+
+    return (
+      <div className="space-y-3">
+        {/* Mode Toggle */}
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setBrandingMode(prev => ({ ...prev, [setting.setting_key]: 'url' }))}
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+              mode === 'url'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            URL
+          </button>
+          <button
+            type="button"
+            onClick={() => setBrandingMode(prev => ({ ...prev, [setting.setting_key]: 'upload' }))}
+            className={`px-3 py-1 text-sm rounded-lg transition-colors ${
+              mode === 'upload'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+            }`}
+          >
+            Upload
+          </button>
+        </div>
+
+        {/* Input based on mode */}
+        {mode === 'url' ? (
+          <input
+            type="url"
+            value={value}
+            onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+            placeholder="https://example.com/image.png"
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+              isChanged ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+            }`}
+          />
+        ) : (
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 cursor-pointer transition-colors">
+              {isUploading ? (
+                <FiRefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <FiUpload className="w-4 h-4" />
+              )}
+              {isUploading ? 'Uploading...' : 'Choose File'}
+              <input
+                type="file"
+                accept={acceptTypes}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) uploadBrandingImage(setting.setting_key, file)
+                }}
+                className="hidden"
+                disabled={isUploading}
+              />
+            </label>
+            {value && (
+              <span className="text-sm text-gray-500 truncate max-w-[200px]">
+                {value.split('/').pop()}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Preview */}
+        {value && (
+          <div className="mt-2">
+            <p className="text-xs text-gray-500 mb-1">Preview:</p>
+            <img
+              src={value}
+              alt="Preview"
+              className={`border border-gray-200 rounded ${isFavicon ? 'w-8 h-8' : 'h-12'}`}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = 'none'
+              }}
+            />
+          </div>
+        )}
+
+        {/* Requirements guidance */}
+        <p className="text-xs text-gray-400">{requirements}</p>
+      </div>
+    )
+  }
+
+  // Group settings by subcategory (filters out Captcha for INTEGRATIONS)
+  const groupBySubcategory = (settingsList: SystemSetting[], category: string) => {
+    // Filter out Captcha subcategory from INTEGRATIONS
+    const filteredSettings = category === 'INTEGRATIONS'
+      ? settingsList.filter(s => s.subcategory !== 'Captcha')
+      : settingsList
+
+    return filteredSettings.reduce((acc, setting) => {
       const sub = setting.subcategory || 'General'
       if (!acc[sub]) acc[sub] = []
       acc[sub].push(setting)
       return acc
     }, {} as Record<string, SystemSetting[]>)
+  }
+
+  // Check if setting is a branding setting (favicon or logo, not alt text)
+  const isBrandingSetting = (setting: SystemSetting) => {
+    return (setting.setting_key.includes('FAVICON') || setting.setting_key.includes('LOGO'))
+      && !setting.setting_key.includes('ALT')
   }
 
   if (loading) {
@@ -312,7 +593,7 @@ export default function SettingsPage() {
   }
 
   const currentCategorySettings = settings[activeCategory] || []
-  const groupedSettings = groupBySubcategory(currentCategorySettings)
+  const groupedSettings = groupBySubcategory(currentCategorySettings, activeCategory)
   const hasPendingChanges = Object.keys(pendingChanges).length > 0
 
   return (
@@ -426,7 +707,10 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <div className="lg:col-span-2">
-                    {renderSettingInput(setting)}
+                    {isBrandingSetting(setting)
+                      ? renderBrandingInput(setting)
+                      : renderSettingInput(setting)
+                    }
                     {setting.setting_type === 'number' && setting.min_value !== null && setting.max_value !== null && (
                       <p className="text-xs text-gray-400 mt-1">
                         Range: {setting.min_value} - {setting.max_value}
@@ -456,6 +740,30 @@ export default function SettingsPage() {
                   </p>
                 </div>
               )}
+
+              {/* Open Chatbot Button for Chatbot subcategory */}
+              {subcategory === 'Chatbot' && (
+                <div className="pt-4 border-t border-gray-200">
+                  <button
+                    onClick={() => {
+                      const chatbotSetting = settingsList.find(s => s.setting_key === 'CHATBOT_URL')
+                      const url = chatbotSetting ? getCurrentValue(chatbotSetting) : ''
+                      if (url) {
+                        window.open(url, '_blank')
+                      } else {
+                        setMessage({ type: 'error', text: 'No chatbot URL configured' })
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    <FiExternalLink className="w-4 h-4" />
+                    Open Chatbot
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Opens the chatbot URL in a new tab to test the configuration
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         ))}
@@ -469,7 +777,7 @@ export default function SettingsPage() {
                 Leadership Contacts
               </h3>
               <button
-                onClick={() => {/* TODO: Open add contact modal */}}
+                onClick={() => openContactModal(null)}
                 className="text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
                 + Add Contact
@@ -485,7 +793,8 @@ export default function SettingsPage() {
                   {contacts.map((contact) => (
                     <div
                       key={contact.contact_id}
-                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 transition-colors"
+                      onClick={() => openContactModal(contact)}
+                      className="border border-gray-200 rounded-lg p-4 hover:border-blue-300 hover:shadow-md transition-all cursor-pointer group"
                     >
                       <div className="flex items-center gap-3">
                         {contact.image_path ? (
@@ -508,13 +817,14 @@ export default function SettingsPage() {
                             <p className="text-xs text-blue-600 truncate">{contact.email}</p>
                           )}
                         </div>
+                        <FiEdit2 className="w-4 h-4 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
                   ))}
                 </div>
               )}
               <p className="text-sm text-gray-500 mt-4">
-                These contacts are displayed on the About page with horizontal scrolling for multiple contacts.
+                These contacts are displayed on the About page. Click on a contact to edit.
               </p>
             </div>
           </div>
@@ -531,6 +841,157 @@ export default function SettingsPage() {
           </div>
         )}
       </div>
+
+      {/* Contact Modal */}
+      {contactModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold text-gray-900">
+                {editingContact ? 'Edit Contact' : 'Add Contact'}
+              </h2>
+              <button
+                onClick={() => setContactModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <FiX className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-4 space-y-4">
+              {/* Photo Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Photo</label>
+                <div className="flex items-center gap-4">
+                  {contactForm.image_path ? (
+                    <img
+                      src={contactForm.image_path}
+                      alt="Contact photo"
+                      className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                    />
+                  ) : (
+                    <div className="w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center border-2 border-gray-200">
+                      <span className="text-blue-600 font-bold text-xl">
+                        {contactForm.name ? contactForm.name.charAt(0).toUpperCase() : '?'}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-2">
+                    <label className="flex items-center gap-2 px-3 py-1.5 bg-gray-100 text-gray-700 text-sm rounded-lg hover:bg-gray-200 cursor-pointer transition-colors">
+                      {uploadingPhoto ? (
+                        <FiRefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <FiUpload className="w-4 h-4" />
+                      )}
+                      {uploadingPhoto ? 'Uploading...' : 'Upload Photo'}
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={handlePhotoSelect}
+                        className="hidden"
+                        disabled={uploadingPhoto}
+                      />
+                    </label>
+                    {contactForm.image_path && (
+                      <button
+                        type="button"
+                        onClick={() => setContactForm(prev => ({ ...prev, image_path: '' }))}
+                        className="text-xs text-red-600 hover:text-red-700"
+                      >
+                        Remove photo
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">JPG, PNG, GIF, or WebP. Max 2MB.</p>
+              </div>
+
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={contactForm.name}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., John Smith"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Title/Role */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title/Role <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={contactForm.title}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="e.g., Chief Executive Officer"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Email <span className="text-gray-400">(optional)</span>
+                </label>
+                <input
+                  type="email"
+                  value={contactForm.email}
+                  onChange={(e) => setContactForm(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="e.g., john@example.gov"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-6 py-4 border-t border-gray-200 bg-gray-50">
+              <div>
+                {editingContact && (
+                  <button
+                    type="button"
+                    onClick={deleteContact}
+                    disabled={savingContact}
+                    className="flex items-center gap-1 px-3 py-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                  >
+                    <FiTrash2 className="w-4 h-4" />
+                    Delete
+                  </button>
+                )}
+              </div>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setContactModalOpen(false)}
+                  className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={saveContact}
+                  disabled={savingContact || !contactForm.name || !contactForm.title}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                >
+                  {savingContact ? (
+                    <FiRefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FiSave className="w-4 h-4" />
+                  )}
+                  {editingContact ? 'Save Changes' : 'Add Contact'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
