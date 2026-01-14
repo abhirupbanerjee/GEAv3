@@ -81,11 +81,23 @@ sendBulkEmail(recipients: string[], subject: string, html: string): Promise<Send
 
 #### 1.2 DTA Alert for Low Ratings
 **Trigger:** When overall satisfaction rating ≤ 2 out of 5
-**Recipient:** `SERVICE_ADMIN_EMAIL` environment variable
+**Recipients:** All active DTA administrators (queried from database)
 **Template:** `getFeedbackTicketAdminEmail()`
 **Subject:** "⚠️ ALERT: Low Service Rating - [service_id] ([rating]/5)"
 **API Endpoint:** `POST /api/feedback/submit`
-**File:** [frontend/src/app/api/feedback/submit/route.ts](../frontend/src/app/api/feedback/submit/route.ts) (Lines 309-329)
+**File:** [frontend/src/app/api/feedback/submit/route.ts](../frontend/src/app/api/feedback/submit/route.ts) (Lines 308-339)
+
+**Recipient Query:**
+```sql
+SELECT DISTINCT u.email
+FROM users u
+JOIN user_roles r ON u.role_id = r.role_id
+WHERE u.entity_id = 'AGY-005'
+  AND r.role_code = 'admin_dta'
+  AND u.is_active = TRUE
+  AND u.email IS NOT NULL
+ORDER BY u.email;
+```
 
 **Content Includes:**
 - Ticket reference (FB-{id})
@@ -94,6 +106,7 @@ sendBulkEmail(recipients: string[], subject: string, html: string): Promise<Send
 - "CRITICAL" flag if rating ≤ 2
 - User's feedback comment
 
+**Delivery Method:** Bulk email (efficient for multiple recipients)
 **Additional Action:** If grievance flagged OR average rating ≤ 2.5, automatically creates support ticket via `POST /api/tickets/from-feedback`
 
 ---
@@ -219,9 +232,11 @@ rejected:      #ef4444 (Red)
 
 | API Route | HTTP Method | Email Notifications | Count |
 |-----------|-------------|---------------------|-------|
-| `/api/feedback/submit` | POST | User confirmation + Admin alert (conditional) | 1-2 |
-| `/api/admin/service-requests` | POST | Requester confirmation + DTA admin notifications | 2 |
+| `/api/feedback/submit` | POST | User confirmation + DTA admin alerts (conditional) | 1-N* |
+| `/api/admin/service-requests` | POST | Requester confirmation + DTA admin notifications | 1+N* |
 | `/api/admin/service-requests/[id]/status` | PUT | Status change notification | 1 |
+
+*N = Number of active DTA administrators
 
 ### Email Flow Diagrams
 
@@ -236,11 +251,13 @@ rejected:      #ef4444 (Red)
                  │       Template: getFeedbackSubmittedTemplate()
                  │       Subject: "Thank You - Your Feedback Received"
                  │
-                 └─→ [If rating ≤ 2]
-                     └─→ Send alert to SERVICE_ADMIN_EMAIL
-                         Template: getFeedbackTicketAdminEmail()
-                         Subject: "⚠️ ALERT: Low Service Rating"
-
+                 ├─→ [If rating ≤ 2]
+                 │   └─→ Send alert to all DTA administrators
+                 │       Template: getFeedbackTicketAdminEmail()
+                 │       Subject: "⚠️ ALERT: Low Service Rating"
+                 │       Recipients: Query admin_dta users (AGY-005)
+                 │       Method: Bulk email
+                 │
                  └─→ [If grievance OR avg rating ≤ 2.5]
                      └─→ Auto-create ticket (no email)
 ```
@@ -426,15 +443,17 @@ WHERE s.service_id = $1;
 ### Email Volume Estimates
 
 **Based on Rate Limits:**
-- Feedback emails: Up to 2 per submission (confirmation + possible alert)
-- Service request creation: 2-10 emails per submission (1 confirmation + 1-9 DTA admins)
+- Feedback emails: 1-N per submission (1 confirmation + 0-N DTA admin alerts if rating ≤ 2)
+- Service request creation: 1+N emails per submission (1 confirmation + N DTA admin notifications)
 - Status change emails: 1 per status change (typically 2-4 per request lifecycle)
 
-**Daily Maximum (approximate):**
-- Feedback: ~240 submissions/day × 2 emails = ~480 emails
-- Service requests: ~50 requests/day × 5 avg emails = ~250 emails
+**Where N = Number of active DTA administrators** (typically 3-10)
+
+**Daily Maximum (approximate, assuming 5 DTA admins):**
+- Feedback: ~240 submissions/day × 3 avg emails (50% low ratings) = ~720 emails
+- Service requests: ~50 requests/day × 6 emails (1 + 5 admins) = ~300 emails
 - Status changes: ~100 updates/day = ~100 emails
-- **Total: ~830 emails/day** (well within SendGrid free tier)
+- **Total: ~1,120 emails/day** (well within SendGrid free tier of 100 emails/day for testing, 40,000/month for paid)
 
 ---
 

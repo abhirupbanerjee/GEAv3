@@ -158,22 +158,6 @@ export default function ChatBot() {
 
   const iframeSrc = `${config.CHATBOT_URL}?source=${encodeURIComponent(pathname)}`
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Get display info for current context
-  // ──────────────────────────────────────────────────────────────────────────
-
-  const getContextDisplay = () => {
-    if (context.modal) {
-      return `📋 ${context.modal.title || context.modal.type}`
-    }
-    if (context.edit?.isEditing) {
-      return `✏️ Editing ${context.edit.entityName || context.edit.entityType}`
-    }
-    if (context.tab) {
-      return `📁 ${context.tab.activeTab}`
-    }
-    return `📍 ${pathname}`
-  }
 
   return (
     <>
@@ -255,33 +239,6 @@ export default function ChatBot() {
             onMouseDown={(e) => handleResizeStart(e, 'e')}
             style={{ cursor: 'ew-resize' }}
           />
-
-          {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-4 py-3 flex items-center justify-between relative z-20">
-            <div className="flex items-center space-x-3">
-              <img
-                src="/icon.png"
-                alt="GEA"
-                className="w-8 h-8 rounded"
-                onError={(e) => { e.currentTarget.style.display = 'none'; }}
-              />
-              <div>
-                <h3 className="font-semibold text-sm">Grenada AI Assistant</h3>
-                <span className="text-xs text-blue-200 truncate block max-w-[200px]">
-                  {getContextDisplay()}
-                </span>
-              </div>
-            </div>
-            <button
-              onClick={toggleChat}
-              className="text-white/80 hover:text-white transition-colors p-1"
-              aria-label="Close chat"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
 
           {/* Iframe */}
           <iframe
