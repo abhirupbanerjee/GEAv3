@@ -14,7 +14,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
-import { sendEmail } from '@/lib/sendgrid';
+import { sendEmail, sendBulkEmail } from '@/lib/sendgrid';
 import {
   getFeedbackSubmittedTemplate,
   getFeedbackTicketAdminEmail
@@ -305,23 +305,41 @@ if (body.requester_email) {
   }
 }
 
-// Send DTA alert for poor ratings
+// Send DTA alert for poor ratings to all DTA administrators
 const overallRating = body.q5_overall_satisfaction;
 if (overallRating <= 2) {
   try {
-    const adminEmail = process.env.SERVICE_ADMIN_EMAIL || 'alerts.dtahelpdesk@gmail.com';
-    
-    await sendEmail({
-      to: adminEmail,
-      subject: `⚠️ ALERT: Low Service Rating - ${body.service_id} (${overallRating}/5)`,
-      html: getFeedbackTicketAdminEmail(
-        `FB-${feedbackId}`,
-        body.service_id,
-        overallRating,
-        body.comment_text || 'No comment provided'
-      )
-    });
-    console.log(`✅ DTA alert sent to ${adminEmail}`);
+    // Query all active DTA administrators from database
+    const dtaAdmins = await pool.query(
+      `SELECT DISTINCT u.email
+       FROM users u
+       JOIN user_roles r ON u.role_id = r.role_id
+       WHERE u.entity_id = 'AGY-005'
+         AND r.role_code = 'admin_dta'
+         AND u.is_active = TRUE
+         AND u.email IS NOT NULL
+       ORDER BY u.email`,
+      []
+    );
+
+    if (dtaAdmins.rows.length === 0) {
+      console.warn('⚠️  No active DTA administrators found for low rating alert');
+    } else {
+      const adminEmails = dtaAdmins.rows.map((row) => row.email);
+      console.log(`📧 Sending low rating alert to ${adminEmails.length} DTA administrators`);
+
+      await sendBulkEmail(
+        adminEmails,
+        `⚠️ ALERT: Low Service Rating - ${body.service_id} (${overallRating}/5)`,
+        getFeedbackTicketAdminEmail(
+          `FB-${feedbackId}`,
+          body.service_id,
+          overallRating,
+          body.comment_text || 'No comment provided'
+        )
+      );
+      console.log(`✅ DTA alert sent to ${adminEmails.length} administrators`);
+    }
   } catch (error) {
     console.error('❌ DTA alert email failed (non-critical):', error);
     // Don't fail the API response

@@ -63,6 +63,11 @@ export async function GET(request: NextRequest) {
     const statsResult = await pool.query(statsQuery, queryParams);
     const stats = statsResult.rows[0];
 
+    // Build WHERE clause for recent requests query (with table alias r.)
+    const recentWhereClause = whereClauses.length > 0
+      ? `WHERE ${whereClauses.map(clause => clause.replace(/entity_id/g, 'r.entity_id')).join(' AND ')}`
+      : '';
+
     // Get recent requests
     const recentQuery = `
       SELECT
@@ -75,7 +80,7 @@ export async function GET(request: NextRequest) {
       FROM ea_service_requests r
       JOIN service_master s ON r.service_id = s.service_id
       JOIN entity_master e ON r.entity_id = e.unique_entity_id
-      ${whereClause}
+      ${recentWhereClause}
       ORDER BY r.created_at DESC
       LIMIT 5
     `;
