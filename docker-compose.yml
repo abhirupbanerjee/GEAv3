@@ -54,7 +54,6 @@ services:
         - HELPDESK_URL=${HELPDESK_URL}
         - CHATBOT_URL=${CHATBOT_URL}
         - GOG_URL=${GOG_URL}
-        - SERVICES_URL=${SERVICES_URL} 
         - ESERVICES_URL=${ESERVICES_URL}
         - CONSTITUTION_URL=${CONSTITUTION_URL}
         - SITE_NAME=${SITE_NAME}
@@ -70,6 +69,8 @@ services:
         - NEXT_PUBLIC_SITE_NAME= ${NEXT_PUBLIC_SITE_NAME}
         - NEXT_PUBLIC_SITE_SHORT_NAME= ${NEXT_PUBLIC_SITE_SHORT_NAME}
         - NEXT_PUBLIC_BASE_DOMAIN= ${NEXT_PUBLIC_BASE_DOMAIN}
+        - NEXT_PUBLIC_ABOUT_CONTACT_EMAIL=${NEXT_PUBLIC_ABOUT_CONTACT_EMAIL}
+        - NEXT_PUBLIC_COPYRIGHT_YEAR=${NEXT_PUBLIC_COPYRIGHT_YEAR}
         # NEW - Phase 2b: SendGrid
         - SENDGRID_API_KEY=${SENDGRID_API_KEY}
         - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
@@ -135,7 +136,7 @@ services:
         condition: service_healthy
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.frontend.rule=Host(`gea.abhirup.app`)"
+      - "traefik.http.routers.frontend.rule=Host(`${FRONTEND_DOMAIN}`)"
       - "traefik.http.routers.frontend.entrypoints=websecure"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
@@ -146,7 +147,7 @@ services:
       - "traefik.http.middlewares.external-api-ratelimit.ratelimit.period=1h"
 
       # External API router (applies rate limit only to /api/external/*)
-      - "traefik.http.routers.external-api.rule=Host(`gea.abhirup.app`) && PathPrefix(`/api/external/`)"
+      - "traefik.http.routers.external-api.rule=Host(`${FRONTEND_DOMAIN}`) && PathPrefix(`/api/external/`)"
       - "traefik.http.routers.external-api.entrypoints=websecure"
       - "traefik.http.routers.external-api.tls.certresolver=letsencrypt"
       - "traefik.http.routers.external-api.middlewares=external-api-ratelimit"

@@ -24,7 +24,8 @@ ARG NEXT_PUBLIC_FRONTEND_URL
 ARG NEXT_PUBLIC_SITE_NAME
 ARG NEXT_PUBLIC_SITE_SHORT_NAME
 ARG NEXT_PUBLIC_BASE_DOMAIN
-ARG SERVICES_URL
+ARG NEXT_PUBLIC_ABOUT_CONTACT_EMAIL
+ARG NEXT_PUBLIC_COPYRIGHT_YEAR
 ARG FEEDBACK_DB_PORT=5432
 ARG FEEDBACK_DB_NAME=feedback
 ARG FEEDBACK_DB_USER=feedback_user
@@ -62,7 +63,6 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "export const config = {" >> src/config/env.ts && \
     echo "  WIKI_URL: '${WIKI_URL}'," >> src/config/env.ts && \
     echo "  DMS_URL: '${DMS_URL}'," >> src/config/env.ts && \
-    echo "  SERVICES_URL: '${SERVICES_URL}'," >> src/config/env.ts && \
     echo "  HELPDESK_URL: '${HELPDESK_URL}'," >> src/config/env.ts && \
     echo "  GIT_URL: '${GIT_URL}'," >> src/config/env.ts && \
     echo "  CHATBOT_URL: '${CHATBOT_URL}'," >> src/config/env.ts && \
@@ -70,9 +70,9 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  ESERVICES_URL: '${ESERVICES_URL}'," >> src/config/env.ts && \
     echo "  CONSTITUTION_URL: '${CONSTITUTION_URL}'," >> src/config/env.ts && \
     echo "  SITE_NAME: '${SITE_NAME}'," >> src/config/env.ts && \
-    echo "  COPYRIGHT_YEAR: '${COPYRIGHT_YEAR}'," >> src/config/env.ts && \
+    echo "  COPYRIGHT_YEAR: '${NEXT_PUBLIC_COPYRIGHT_YEAR}'," >> src/config/env.ts && \
     echo "  CONTACT_EMAIL: '${CONTACT_EMAIL}'," >> src/config/env.ts && \
-    echo "  ABOUT_CONTACT_EMAIL: '${ABOUT_CONTACT_EMAIL}'," >> src/config/env.ts && \
+    echo "  ABOUT_CONTACT_EMAIL: '${NEXT_PUBLIC_ABOUT_CONTACT_EMAIL}'," >> src/config/env.ts && \
     echo "  FEEDBACK_DB_HOST: '${FEEDBACK_DB_HOST}'," >> src/config/env.ts && \
     echo "  FEEDBACK_DB_PORT: '${FEEDBACK_DB_PORT}'," >> src/config/env.ts && \
     echo "  FEEDBACK_DB_NAME: '${FEEDBACK_DB_NAME}'," >> src/config/env.ts && \

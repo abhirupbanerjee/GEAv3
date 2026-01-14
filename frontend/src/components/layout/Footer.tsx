@@ -16,10 +16,6 @@ export default function Footer() {
                 <div className="text-sm text-gray-400">EA Portal</div>
               </div>
             </div>
-            <div className="flex items-center space-x-2 text-sm text-gray-400">
-              <span>🇬🇩</span>
-              <span>Government of Grenada</span>
-            </div>
           </div>
 
           {/* Quick Links */}
@@ -65,7 +61,7 @@ export default function Footer() {
                   href="#"
                   className="text-gray-400 hover:text-white transition-colors"
                 >
-                  Emergency Info/
+                  Emergency Info
                 </a>
               </li>
             </ul>
@@ -74,7 +70,7 @@ export default function Footer() {
 
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-          © {config.COPYRIGHT_YEAR} Department of Grenada. All rights reserved.
+          © {config.COPYRIGHT_YEAR} Digital Transformation Agency (DTA) All rights reserved.
         </div>
       </div>
     </footer>

@@ -28,10 +28,12 @@
  *   - staff: Can submit service requests through admin portal
  * @troubleshooting
  *   - Issue: Can't submit request | Solution: Service requests require authentication - sign in through admin portal
- *   - Issue: Unsure which service to request | Solution: Contact eservices@gov.gd for guidance
+ *   - Issue: Unsure which service to request | Solution: Contact DTA via the 'Contact via Email' button for guidance
  */
 
 'use client'
+
+import { config } from '@/config/env'
 
 // EA Service types
 interface EAService {
@@ -220,7 +222,7 @@ export default function Services() {
               Submit Service Request
             </a>
             <a
-              href="mailto:eservices@gov.gd"
+              href={`mailto:${config.ABOUT_CONTACT_EMAIL}`}
               className="inline-flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-3 px-8 rounded-lg transition-colors shadow-md"
             >
               <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">

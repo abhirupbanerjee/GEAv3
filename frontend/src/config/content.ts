@@ -96,7 +96,7 @@ export const aboutContent = {
   contact: {
     title: "Contact Information",
     email: config.ABOUT_CONTACT_EMAIL,
-    description: "The team can be reached at eservices@gov.gd"
+    description: "Have questions or need assistance? Reach out to our team using the button below."
   }
 };
 
