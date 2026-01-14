@@ -15,7 +15,6 @@ import {
   getEAServiceRequestEmail,
   getDTAServiceRequestNotificationEmail,
 } from '@/lib/emailTemplates';
-import { config } from '@/config/env';
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -59,8 +58,7 @@ async function sendServiceRequestNotifications(
     }
 
     const { service_name, entity_name } = serviceInfo.rows[0];
-    const baseUrl =
-      config.appUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
     const statusLink = `${baseUrl}/admin/service-requests?search=${requestData.request_number}`;
 
     // 1. Send confirmation email to requester
