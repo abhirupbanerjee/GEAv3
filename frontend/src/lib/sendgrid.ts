@@ -55,7 +55,7 @@ export async function sendBulkEmail(
   }));
 
   try {
-    const response = await sgMail.sendMultiple(messages[0]);
+    const response = await sgMail.send(messages);
     console.log(`✅ Bulk email sent to ${recipients.length} recipients`);
     return response;
   } catch (error) {

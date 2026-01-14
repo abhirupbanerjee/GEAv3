@@ -204,6 +204,8 @@ gogeaportal/v3/
 | Document | Purpose | Read Time |
 |----------|---------|-----------|
 | [index.md](index.md) | This file - Complete overview | 15 min |
+| [FRESH_INSTALLATION_MANUAL.md](FRESH_INSTALLATION_MANUAL.md) | **Step-by-step fresh installation guide** (master data only) | 60 min |
+| [VM_SETUP_GUIDE.md](VM_SETUP_GUIDE.md) | Complete VM setup from scratch | 45 min |
 | [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) | **System architecture & component overview** | 20 min |
 | [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) | Database architecture, setup, tables | 30 min |
 | [API_REFERENCE.md](API_REFERENCE.md) | All API endpoints with examples | 30 min |

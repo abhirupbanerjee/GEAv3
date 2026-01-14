@@ -350,3 +350,94 @@ export function getServiceRequestStatusChangeEmail(
 
   return html;
 }
+
+/**
+ * DTA Admin Notification Email Template
+ * Sent to DTA admins when a new service request is submitted
+ */
+export function getDTAServiceRequestNotificationEmail(
+  requestNumber: string,
+  serviceName: string,
+  requesterName: string,
+  requesterEmail: string,
+  requesterMinistry: string | null,
+  entityName: string,
+  requestDescription: string | null,
+  requestLink: string
+): string {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; color: #333; margin: 0; padding: 0; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; background: #f9fafb; }
+          .content { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          .header { border-bottom: 3px solid #059669; padding-bottom: 20px; margin-bottom: 20px; }
+          .header h1 { color: #059669; margin: 0; font-size: 24px; }
+          .info-box { background: #f0fdf4; border-left: 4px solid #059669; padding: 20px; margin: 20px 0; border-radius: 4px; }
+          .info-row { margin: 10px 0; }
+          .info-label { font-weight: bold; color: #065f46; }
+          .description-box { background: #f9fafb; padding: 15px; margin: 20px 0; border-radius: 4px; border: 1px solid #e5e7eb; }
+          .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+          .footer { border-top: 1px solid #e5e7eb; padding-top: 20px; margin-top: 30px; color: #6b7280; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="content">
+            <div class="header">
+              <h1>🔔 New EA Service Request</h1>
+            </div>
+
+            <p>A new EA service request has been submitted and requires DTA attention.</p>
+
+            <div class="info-box">
+              <div class="info-row">
+                <span class="info-label">Request Number:</span> ${requestNumber}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Service:</span> ${serviceName}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Entity:</span> ${entityName}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Requester:</span> ${requesterName}
+              </div>
+              <div class="info-row">
+                <span class="info-label">Email:</span> ${requesterEmail}
+              </div>
+              ${requesterMinistry ? `
+              <div class="info-row">
+                <span class="info-label">Ministry:</span> ${requesterMinistry}
+              </div>
+              ` : ''}
+            </div>
+
+            ${requestDescription ? `
+            <div class="description-box">
+              <p style="margin: 0 0 10px 0; font-weight: bold;">Request Description:</p>
+              <p style="margin: 0; color: #374151;">${requestDescription}</p>
+            </div>
+            ` : ''}
+
+            <p style="text-align: center;">
+              <a href="${requestLink}" class="button">View Request Details</a>
+            </p>
+
+            <p style="color: #6b7280; font-size: 14px;">
+              Please review this request and take appropriate action through the admin portal.
+            </p>
+
+            <div class="footer">
+              <p>This is an automated notification from the GEA Portal.</p>
+              <p>You received this email because you are a DTA administrator.</p>
+              <p style="margin-top: 20px; color: #9ca3af;">© Government of Grenada - All Rights Reserved</p>
+            </div>
+          </div>
+        </div>
+      </body>
+    </html>
+  `;
+}

@@ -10,6 +10,12 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { Pool } from 'pg';
 import { getEntityFilter } from '@/lib/entity-filter';
+import { sendEmail, sendBulkEmail } from '@/lib/sendgrid';
+import {
+  getEAServiceRequestEmail,
+  getDTAServiceRequestNotificationEmail,
+} from '@/lib/emailTemplates';
+import { config } from '@/config/env';
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -21,6 +27,108 @@ const pool = new Pool({
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 2000,
 });
+
+/**
+ * Send email notifications for new service request
+ * Non-blocking operation - logs errors but doesn't fail request
+ */
+async function sendServiceRequestNotifications(
+  requestData: {
+    request_number: string;
+    requester_name: string;
+    requester_email: string;
+    requester_ministry: string | null;
+    service_id: string;
+    entity_id: string;
+    request_description: string | null;
+  }
+): Promise<void> {
+  try {
+    // Fetch service name and entity name for email
+    const serviceInfo = await pool.query(
+      `SELECT s.service_name, e.entity_name
+       FROM service_master s
+       JOIN entity_master e ON s.entity_id = e.unique_entity_id
+       WHERE s.service_id = $1`,
+      [requestData.service_id]
+    );
+
+    if (serviceInfo.rows.length === 0) {
+      console.error('❌ Service not found for email notifications');
+      return;
+    }
+
+    const { service_name, entity_name } = serviceInfo.rows[0];
+    const baseUrl =
+      config.appUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+    const statusLink = `${baseUrl}/admin/service-requests?search=${requestData.request_number}`;
+
+    // 1. Send confirmation email to requester
+    try {
+      await sendEmail({
+        to: requestData.requester_email,
+        subject: `Service Request Submitted - ${requestData.request_number}`,
+        html: getEAServiceRequestEmail(
+          requestData.request_number,
+          service_name,
+          requestData.requester_name,
+          statusLink
+        ),
+      });
+      console.log(`✅ Confirmation email sent to ${requestData.requester_email}`);
+    } catch (error) {
+      console.error('❌ Failed to send confirmation email (non-critical):', error);
+    }
+
+    // 2. Send notification to DTA administrators only
+    try {
+      // Query DTA admins only (admin_dta role with entity AGY-005)
+      const dtaAdmins = await pool.query(
+        `SELECT DISTINCT u.email
+         FROM users u
+         JOIN user_roles r ON u.role_id = r.role_id
+         WHERE u.entity_id = 'AGY-005'
+           AND r.role_code = 'admin_dta'
+           AND u.is_active = TRUE
+           AND u.email IS NOT NULL
+         ORDER BY u.email`,
+        []
+      );
+
+      if (dtaAdmins.rows.length === 0) {
+        console.warn('⚠️  No active DTA administrators found for notification');
+        return;
+      }
+
+      const adminEmails = dtaAdmins.rows.map((row) => row.email);
+      console.log(`📧 Sending notifications to ${adminEmails.length} DTA administrators`);
+
+      // Use bulk email for efficiency
+      await sendBulkEmail(
+        adminEmails,
+        `New EA Service Request - ${requestData.request_number}`,
+        getDTAServiceRequestNotificationEmail(
+          requestData.request_number,
+          service_name,
+          requestData.requester_name,
+          requestData.requester_email,
+          requestData.requester_ministry,
+          entity_name,
+          requestData.request_description,
+          statusLink
+        )
+      );
+
+      console.log(
+        `✅ DTA admin notification emails sent to ${adminEmails.length} recipients`
+      );
+    } catch (error) {
+      console.error('❌ Failed to send DTA notification emails (non-critical):', error);
+    }
+  } catch (error) {
+    console.error('❌ Email notification handler error (non-critical):', error);
+  }
+}
 
 /**
  * GET /api/admin/service-requests
@@ -406,6 +514,20 @@ export async function POST(request: NextRequest) {
 
       // Commit transaction
       await pool.query('COMMIT');
+
+      // Send email notifications (non-blocking, after successful commit)
+      // Don't await - let it run in background
+      sendServiceRequestNotifications({
+        request_number: requestNumber,
+        requester_name: requester_name,
+        requester_email: requester_email,
+        requester_ministry: requester_ministry || null,
+        service_id: service_id,
+        entity_id: entity_id,
+        request_description: request_description || null,
+      }).catch((error) => {
+        console.error('Email notification failed (non-critical):', error);
+      });
 
       return NextResponse.json({
         success: true,

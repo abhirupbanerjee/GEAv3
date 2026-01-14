@@ -69,7 +69,7 @@ This document provides infrastructure sizing recommendations for the GEA Portal 
 | Traefik | 80 MB | 100 MB | 150 MB |
 | OS + Buffers | 800 MB | 1 GB | 1.5 GB |
 | **Total** | **~1.2 GB** | **~1.7 GB** | **~2.8 GB** |
-| **Recommended RAM** | **4 GB** | **4 GB** | **8 GB** |
+| **Recommended Minimum RAM** | **4 GB** | **4 GB** | **8 GB** |
 
 ### CPU Requirements by Phase
 
