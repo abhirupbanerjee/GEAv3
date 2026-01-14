@@ -36,18 +36,8 @@ export const navigationItems: NavItem[] = [
     type: 'external'
   },
   {
-    label: 'Wiki',
-    href: config.WIKI_URL,
-    type: 'external'
-  },
-  {
-    label: 'Git',                   
-    href: config.GIT_URL,          
-    type: 'external'                
-  },
-  {
-    label: 'Helpdesk',
-    href: config.HELPDESK_URL,
+    label: 'Git',
+    href: config.GIT_URL,
     type: 'external'
   }
 ];

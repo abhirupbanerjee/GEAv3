@@ -48,10 +48,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - WIKI_URL=${WIKI_URL}
         - DMS_URL=${DMS_URL}
         - GIT_URL=${GIT_URL}
-        - HELPDESK_URL=${HELPDESK_URL}
         - CHATBOT_URL=${CHATBOT_URL}
         - GOG_URL=${GOG_URL}
         - ESERVICES_URL=${ESERVICES_URL}
@@ -105,9 +103,6 @@ services:
       - FEEDBACK_DB_NAME=${FEEDBACK_DB_NAME}
       - FEEDBACK_DB_USER=${FEEDBACK_DB_USER}
       - FEEDBACK_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
-      - OSTICKET_API_URL=${OSTICKET_API_URL}
-      - OSTICKET_API_KEY=${OSTICKET_API_KEY}
-      - OSTICKET_SYSTEM_EMAIL=${OSTICKET_SYSTEM_EMAIL}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ADMIN_SESSION_SECRET=${ADMIN_SESSION_SECRET}
 

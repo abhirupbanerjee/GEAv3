@@ -6,10 +6,8 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 # Build arguments (existing)
-ARG WIKI_URL
 ARG DMS_URL
 ARG GIT_URL
-ARG HELPDESK_URL
 ARG CHATBOT_URL
 ARG GOG_URL
 ARG ESERVICES_URL
@@ -61,9 +59,7 @@ COPY ./src/middleware.ts ./src/middleware.ts
 # Generate env.ts from build arguments (UPDATED)
 RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "export const config = {" >> src/config/env.ts && \
-    echo "  WIKI_URL: '${WIKI_URL}'," >> src/config/env.ts && \
     echo "  DMS_URL: '${DMS_URL}'," >> src/config/env.ts && \
-    echo "  HELPDESK_URL: '${HELPDESK_URL}'," >> src/config/env.ts && \
     echo "  GIT_URL: '${GIT_URL}'," >> src/config/env.ts && \
     echo "  CHATBOT_URL: '${CHATBOT_URL}'," >> src/config/env.ts && \
     echo "  GOG_URL: '${GOG_URL}'," >> src/config/env.ts && \

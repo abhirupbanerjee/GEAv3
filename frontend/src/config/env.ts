@@ -34,9 +34,7 @@ export const config = {
   // External URLs
   GOG_URL: process.env.NEXT_PUBLIC_GOG_URL || 'https://www.gov.gd',
   DMS_URL: process.env.NEXT_PUBLIC_DMS_URL || '#',
-  WIKI_URL: process.env.NEXT_PUBLIC_WIKI_URL || '#',
   GIT_URL: process.env.NEXT_PUBLIC_GIT_URL || '#',
-  HELPDESK_URL: process.env.NEXT_PUBLIC_HELPDESK_URL || '#',
   CHATBOT_URL: process.env.NEXT_PUBLIC_CHATBOT_URL || '',
 
   // Contact Info
