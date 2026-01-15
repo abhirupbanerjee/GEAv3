@@ -153,48 +153,79 @@ export default function QRCodeManager() {
     }
   }
 
-  // Download QR code as PNG - FINAL IMPROVED VERSION
+  // Download QR code as PNG - REDESIGNED LAYOUT v2
   const downloadQRCode = (qr: QRCodeData) => {
     const canvas = document.createElement('canvas')
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    
+
     canvas.width = 800
     canvas.height = 1200
+
+    // Grenada flag colors
+    const GRENADA_GREEN = '#007a5e'
+    const GRENADA_YELLOW = '#fcd116'
+    const GRENADA_RED = '#ce1126'
 
     // White background
     ctx.fillStyle = '#FFFFFF'
     ctx.fillRect(0, 0, canvas.width, canvas.height)
 
-    // Draw Grenada flag using official SVG (10% of height = 120px, 50% smaller than before)
+    // Draw Grenada flag using official SVG
     const svgData = `<svg width="600" height="360" viewBox="0 0 500 300" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns="http://www.w3.org/2000/svg"><path fill="#ce1126" d="M0 0h500v300H0z"/><path fill="#007a5e" d="M42 42h416v216H42z"/><path d="M42 42h416L42 258h416z" fill="#fcd116"/><circle r="36" cy="150" cx="250" fill="#ce1126"/><path d="M67.944 150.113c4.262 8.515 12.757 17.893 20.313 21.321.367-8.513-2.341-19.515-6.224-28.33z" fill="#ce1126"/><path d="M60.284 121.487c6.35 13.695-17.533 45.856 21.453 53.976-4.736-6.643-7.33-17.752-6.04-26.456 8.095 3.448 16.212 11.464 19.402 18.972 13.444-37.484-26.456-33.922-34.815-46.492z" fill="#fcd116"/><use xlink:href="#a" fill="#fcd116"/><use xlink:href="#a" x="100" fill="#fcd116"/><use xlink:href="#a" x="200" fill="#fcd116"/><use xlink:href="#a" x="200" y="-258" fill="#fcd116"/><use xlink:href="#a" x="100" y="-258" fill="#fcd116"/><use xlink:href="#a" y="-258" fill="#fcd116"/><path d="m250 117-19.397 59.697 50.782-36.895h-62.769l50.782 36.895z" fill="#fcd116"/><defs><path id="a" d="m150 259.5-11.462 35.276 30.007-21.802h-37.091l30.007 21.802z"/></defs></svg>`
-    
+
     const img = new Image()
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' })
     const url = URL.createObjectURL(svgBlob)
 
     img.onload = () => {
-      // Draw flag at top (200x120px - 50% smaller than original)
-      const flagWidth = 200
-      const flagHeight = 120
-      ctx.drawImage(img, (canvas.width - flagWidth) / 2, 20, flagWidth, flagHeight)
+      // === HEADER SECTION (horizontal layout) ===
+      const headerY = 30
+
+      // Flag on left (smaller: 80x48px)
+      const flagWidth = 80
+      const flagHeight = 48
+      ctx.drawImage(img, 40, headerY, flagWidth, flagHeight)
       URL.revokeObjectURL(url)
 
-      // Header text below flag - Government of Grenada + Citizen Feedback (10% of height)
-      const headerY = 160
+      // Title next to flag
       ctx.fillStyle = '#000000'
-      ctx.font = 'bold 26px Arial'
-      ctx.textAlign = 'center'
-      ctx.fillText('Government of Grenada', canvas.width / 2, headerY)
-      
-      ctx.font = '18px Arial'
-      ctx.fillStyle = '#555555'
-      ctx.fillText('Citizen Feedback', canvas.width / 2, headerY + 32)
+      ctx.font = 'bold 22px Arial'
+      ctx.textAlign = 'left'
+      ctx.fillText('Government of Grenada', 135, headerY + 22)
 
-      // Generate QR code in temporary canvas (35% of height: 550px)
+      ctx.font = '14px Arial'
+      ctx.fillStyle = '#666666'
+      ctx.fillText('Citizen Feedback Initiative', 135, headerY + 42)
+
+      // QR Code ID and date on right
+      ctx.textAlign = 'right'
+      ctx.font = 'bold 14px Arial'
+      ctx.fillStyle = '#333333'
+      ctx.fillText(qr.qr_code_id, 760, headerY + 22)
+
+      const date = new Date(qr.created_at).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+      ctx.font = '12px Arial'
+      ctx.fillStyle = '#888888'
+      ctx.fillText(date, 760, headerY + 42)
+
+      // Horizontal divider with Grenada colors
+      const dividerY = headerY + 65
+      ctx.fillStyle = GRENADA_GREEN
+      ctx.fillRect(40, dividerY, 240, 3)
+      ctx.fillStyle = GRENADA_YELLOW
+      ctx.fillRect(280, dividerY, 240, 3)
+      ctx.fillStyle = GRENADA_RED
+      ctx.fillRect(520, dividerY, 240, 3)
+
+      // Generate QR code in temporary canvas (larger: 480px)
       const tempCanvas = document.createElement('canvas')
       QRCode.toCanvas(tempCanvas, qr.generated_url, {
-        width: 550,
+        width: 480,
         margin: 2,
         color: { dark: '#000000', light: '#FFFFFF' }
       }, (error) => {
@@ -203,136 +234,177 @@ export default function QRCodeManager() {
           return
         }
 
-        // Draw QR code with subtle background (centered)
-        const qrY = headerY + 80
-        const qrSize = 550
-        const qrPadding = 15
-        
-        // Light background for QR code
-        ctx.fillStyle = '#F8F8F8'
+        // === QR CODE SECTION ===
+        const qrY = dividerY + 40
+        const qrSize = 480
+        const qrPadding = 25
+
+        // Light background for QR code with subtle border
+        ctx.fillStyle = '#FAFAFA'
         ctx.fillRect(
           (canvas.width - qrSize) / 2 - qrPadding,
           qrY - qrPadding,
           qrSize + (qrPadding * 2),
           qrSize + (qrPadding * 2)
         )
-        
+
+        // Subtle border around QR area
+        ctx.strokeStyle = '#E0E0E0'
+        ctx.lineWidth = 1
+        ctx.strokeRect(
+          (canvas.width - qrSize) / 2 - qrPadding,
+          qrY - qrPadding,
+          qrSize + (qrPadding * 2),
+          qrSize + (qrPadding * 2)
+        )
+
         // Draw QR code
         ctx.drawImage(tempCanvas, (canvas.width - qrSize) / 2, qrY)
 
-        // Metadata Section - Entity, Service, Location, QR Code ID (20% of height)
-        const metadataY = qrY + qrSize + 60
-        const leftX = 80
-        const rightX = 720
-        const lineSpacing = 36
-        
+        // "Scan Me" prompt below QR with phone icon
+        ctx.textAlign = 'center'
+        ctx.font = '16px Arial'
+        ctx.fillStyle = '#666666'
+        ctx.fillText('📱 Scan with your phone camera', canvas.width / 2, qrY + qrSize + qrPadding + 25)
+
+        // === METADATA SECTION (compact card style) ===
+        const metadataY = qrY + qrSize + qrPadding + 70
+        const cardPadding = 20
+        const cardWidth = 720
+        const cardX = (canvas.width - cardWidth) / 2
+
+        // Card background
+        ctx.fillStyle = '#F5F5F5'
+        ctx.fillRect(cardX, metadataY, cardWidth, 130)
+
+        // Left border accent
+        ctx.fillStyle = GRENADA_GREEN
+        ctx.fillRect(cardX, metadataY, 4, 130)
+
         // Helper function to truncate long text
         const truncateText = (text: string, maxWidth: number, font: string) => {
           ctx.font = font
           if (ctx.measureText(text).width <= maxWidth) return text
-          
+
           let truncated = text
           while (ctx.measureText(truncated + '...').width > maxWidth && truncated.length > 0) {
             truncated = truncated.slice(0, -1)
           }
           return truncated + '...'
         }
-        
-        // Entity
-        ctx.textAlign = 'left'
-        ctx.font = 'bold 15px Arial'
-        ctx.fillStyle = '#555555'
-        ctx.fillText('Entity:', leftX, metadataY)
-        
-        ctx.font = '15px Arial'
-        ctx.fillStyle = '#000000'
-        ctx.textAlign = 'right'
-        const entityText = truncateText(qr.entity_name || '', rightX - leftX - 60, '15px Arial')
-        ctx.fillText(entityText, rightX, metadataY)
-        
-        // Service
-        ctx.textAlign = 'left'
-        ctx.font = 'bold 15px Arial'
-        ctx.fillStyle = '#555555'
-        ctx.fillText('Service:', leftX, metadataY + lineSpacing)
-        
-        ctx.font = '15px Arial'
-        ctx.fillStyle = '#000000'
-        ctx.textAlign = 'right'
-        const serviceText = truncateText(qr.service_name || '', rightX - leftX - 70, '15px Arial')
-        ctx.fillText(serviceText, rightX, metadataY + lineSpacing)
-        
-        // Location
-        ctx.textAlign = 'left'
-        ctx.font = 'bold 15px Arial'
-        ctx.fillStyle = '#555555'
-        ctx.fillText('Location:', leftX, metadataY + (lineSpacing * 2))
-        
-        ctx.font = '15px Arial'
-        ctx.fillStyle = '#000000'
-        ctx.textAlign = 'right'
-        ctx.fillText(qr.location_name, rightX, metadataY + (lineSpacing * 2))
-        
-        // QR Code ID
-        ctx.textAlign = 'left'
-        ctx.font = 'bold 15px Arial'
-        ctx.fillStyle = '#555555'
-        ctx.fillText('QR Code:', leftX, metadataY + (lineSpacing * 3))
-        
-        ctx.font = '15px Arial'
-        ctx.fillStyle = '#000000'
-        ctx.textAlign = 'right'
-        ctx.fillText(qr.qr_code_id, rightX, metadataY + (lineSpacing * 3))
 
-        // Instructions Section (20% of height)
-        const isPhysical = ['office', 'kiosk', 'service_center'].includes(qr.location_type)
-        
-        const instructionsY = metadataY + (lineSpacing * 4) + 20
-        ctx.font = 'bold 18px Arial'
+        // Two-column metadata layout
+        const col1X = cardX + cardPadding + 10
+        const col2X = cardX + cardWidth / 2 + 20
+        const labelWidth = 280
+        const lineHeight = 28
+
+        // Column 1: Entity & Service
+        ctx.textAlign = 'left'
+        ctx.font = 'bold 13px Arial'
+        ctx.fillStyle = '#888888'
+        ctx.fillText('ENTITY', col1X, metadataY + 30)
+        ctx.font = '15px Arial'
         ctx.fillStyle = '#333333'
-        ctx.textAlign = 'center'
-        ctx.fillText('📱 How to Give Feedback', canvas.width / 2, instructionsY)
-        
-        ctx.font = '15px Arial'
-        ctx.fillStyle = '#444444'
-        ctx.textAlign = 'left'
-        const instructionsX = 70
-        const lineHeight = 30
-        
-        if (isPhysical) {
-          // Physical location instructions
-          ctx.fillText('1. Scan this code with your phone camera', instructionsX, instructionsY + 35)
-          ctx.fillText('2. Rate your service experience', instructionsX, instructionsY + 35 + lineHeight)
-          ctx.fillText('3. Share your thoughts or concerns', instructionsX, instructionsY + 35 + (lineHeight * 2))
-        } else {
-          // Digital/web portal instructions
-          ctx.fillText('1. Scan or click this QR code', instructionsX, instructionsY + 35)
-          ctx.fillText('2. Rate your online experience', instructionsX, instructionsY + 35 + lineHeight)
-          ctx.fillText('3. Help us improve digital services', instructionsX, instructionsY + 35 + (lineHeight * 2))
-        }
-        
-        // Grievance notice
-        ctx.textAlign = 'center'
-        ctx.font = 'italic 13px Arial'
-        ctx.fillStyle = '#007a5e' // Grenada green
-        ctx.fillText('⚡ Grievances are immediately sent to our support team for action', canvas.width / 2, instructionsY + 150)
+        const entityText = truncateText(qr.entity_name || '', labelWidth, '15px Arial')
+        ctx.fillText(entityText, col1X, metadataY + 30 + lineHeight)
 
-        // Footer - Branding & Copyright (5% of height)
+        ctx.font = 'bold 13px Arial'
+        ctx.fillStyle = '#888888'
+        ctx.fillText('SERVICE', col1X, metadataY + 30 + lineHeight * 2 + 10)
+        ctx.font = '15px Arial'
+        ctx.fillStyle = '#333333'
+        const serviceText = truncateText(qr.service_name || '', labelWidth, '15px Arial')
+        ctx.fillText(serviceText, col1X, metadataY + 30 + lineHeight * 3 + 10)
+
+        // Column 2: Location
+        ctx.font = 'bold 13px Arial'
+        ctx.fillStyle = '#888888'
+        ctx.fillText('LOCATION', col2X, metadataY + 30)
+        ctx.font = '15px Arial'
+        ctx.fillStyle = '#333333'
+        const locationText = truncateText(qr.location_name || '', labelWidth, '15px Arial')
+        ctx.fillText(locationText, col2X, metadataY + 30 + lineHeight)
+
+        ctx.font = '12px Arial'
+        ctx.fillStyle = '#666666'
+        const addressText = truncateText(qr.location_address || '', labelWidth, '12px Arial')
+        ctx.fillText(addressText, col2X, metadataY + 30 + lineHeight + 20)
+
+        // === INSTRUCTIONS SECTION (horizontal steps) ===
+        const instructionsY = metadataY + 165
+        const isPhysical = ['office', 'kiosk', 'service_center'].includes(qr.location_type)
+
+        // Steps container
+        const stepWidth = 220
+        const stepStartX = 50
+
+        // Draw 3 horizontal steps with icons
+        const steps = isPhysical ? [
+          { icon: '📷', title: 'Scan', desc: 'Point camera at code' },
+          { icon: '⭐', title: 'Rate', desc: 'Share your experience' },
+          { icon: '✓', title: 'Done', desc: 'Help us improve' }
+        ] : [
+          { icon: '👆', title: 'Scan/Click', desc: 'Access feedback form' },
+          { icon: '⭐', title: 'Rate', desc: 'Rate your experience' },
+          { icon: '✓', title: 'Done', desc: 'Submit feedback' }
+        ]
+
+        steps.forEach((step, i) => {
+          const stepX = stepStartX + (i * stepWidth) + (i * 25)
+
+          // Step circle background
+          ctx.beginPath()
+          ctx.arc(stepX + 25, instructionsY + 25, 24, 0, Math.PI * 2)
+          ctx.fillStyle = GRENADA_GREEN
+          ctx.fill()
+
+          // Step icon (emoji)
+          ctx.font = '22px Arial'
+          ctx.fillStyle = '#FFFFFF'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(step.icon, stepX + 25, instructionsY + 26)
+          ctx.textBaseline = 'alphabetic' // Reset
+
+          // Step title
+          ctx.font = 'bold 16px Arial'
+          ctx.fillStyle = '#333333'
+          ctx.textAlign = 'left'
+          ctx.fillText(step.title, stepX + 58, instructionsY + 20)
+
+          // Step description
+          ctx.font = '13px Arial'
+          ctx.fillStyle = '#666666'
+          ctx.fillText(step.desc, stepX + 58, instructionsY + 40)
+
+          // Arrow between steps (except last)
+          if (i < steps.length - 1) {
+            ctx.font = '24px Arial'
+            ctx.fillStyle = '#CCCCCC'
+            ctx.textAlign = 'center'
+            ctx.fillText('→', stepX + stepWidth + 12, instructionsY + 28)
+          }
+        })
+
+        // === FOOTER SECTION ===
+        const footerY = instructionsY + 85
+
+        // Grievance notice with icon
+        ctx.textAlign = 'center'
+        ctx.font = '14px Arial'
+        ctx.fillStyle = GRENADA_GREEN
+        ctx.fillText('⚡ Grievances are sent directly to our support team for action', canvas.width / 2, footerY)
+
+        // Thank you message
         ctx.font = '13px Arial'
         ctx.fillStyle = '#888888'
-        ctx.textAlign = 'center'
-        ctx.fillText('Thank you for helping us improve!', canvas.width / 2, instructionsY + 195)
-        
-        const date = new Date(qr.created_at).toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        })
-        ctx.font = '12px Arial'
-        ctx.fillStyle = '#999999'
-        ctx.fillText(`Generated: ${date}`, canvas.width / 2, instructionsY + 220)
-        
-        ctx.fillText('© Government of Grenada', canvas.width / 2, instructionsY + 240)
+        ctx.fillText('Thank you for helping us serve you better!', canvas.width / 2, footerY + 35)
+
+        // Copyright
+        ctx.font = '11px Arial'
+        ctx.fillStyle = '#AAAAAA'
+        ctx.fillText('© Government of Grenada • Citizen Feedback Initiative', canvas.width / 2, footerY + 60)
 
         // Download
         const link = document.createElement('a')
