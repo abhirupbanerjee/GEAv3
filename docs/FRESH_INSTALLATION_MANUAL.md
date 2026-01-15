@@ -2,8 +2,8 @@
 
 **Complete Step-by-Step Guide for First-Time Installation**
 
-**Version:** 1.0
-**Last Updated:** January 9, 2026
+**Version:** 1.1
+**Last Updated:** January 14, 2026
 **Status:** Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3
 
@@ -36,8 +36,9 @@
 This manual provides complete instructions for performing a **fresh installation** of the GEA Portal v3 on a new virtual machine. This installation will:
 
 ✅ Set up all infrastructure components (Docker, PostgreSQL, Next.js, Traefik)
-✅ Initialize the database schema (30 tables, 44+ indexes)
+✅ Initialize the database schema (33 tables, 44+ indexes)
 ✅ Load **master data only** (entities, services, service attachments)
+✅ Load **system settings** (~40 configurable admin settings)
 ✅ Create initial admin user(s)
 ✅ Configure OAuth authentication
 ✅ Enable SSL certificates
@@ -706,42 +707,64 @@ docker compose ps feedback_db
 
 #### 7.2 Run Database Initialization Script
 
-This script creates all tables, indexes, and reference data.
+This script creates all tables, indexes, reference data, and system settings.
 
 ```bash
 # Navigate to database directory
 cd ~/GEAv3/database
 
-# Run initialization script
-./scripts/01-init-db.sh
+# Run master initialization script (recommended - runs all setup scripts)
+./scripts/00-master-init.sh
 ```
 
 **Expected output:**
 ```
 ╔═══════════════════════════════════════════════════════════════════╗
-║   GEA PORTAL - MASTER DATABASE INITIALIZATION                     ║
+║   GEA PORTAL - MASTER DATABASE INITIALIZATION v7.0                ║
+║   Complete setup: Schema + Auth + Reference Data                  ║
 ╚═══════════════════════════════════════════════════════════════════╝
 
-▶ Step 1: Verifying prerequisites...
-  ✓ Container 'feedback_db' is running
+▶ Step 1: Verifying database connection...
   ✓ Database connection successful
 
-▶ Step 2: Creating database schema...
-  ✓ Created 30 tables
-  ✓ Created 44+ indexes
-  ✓ Created foreign key constraints
+▶ Step 2: Detecting existing database state...
+  ℹ️  Database is empty, creating fresh schema
 
-▶ Step 3: Loading reference data...
-  ✓ Loaded priority levels (4 records)
-  ✓ Loaded ticket statuses (6 records)
-  ✓ Loaded grievance statuses (5 records)
-  ✓ Loaded ticket categories (5 records)
-  ✓ Loaded user roles (3 records)
+▶ Step 3: Running main schema initialization...
+  ✓ Main schema initialized
 
-▶ Step 4: Creating authentication tables...
-  ✓ NextAuth tables created (users, sessions, accounts)
+▶ Step 4: Setting up NextAuth user management...
+  ✓ NextAuth tables created
 
-✓ DATABASE INITIALIZATION COMPLETE
+▶ Step 5: Adding service request comments/notes...
+  ✓ Service request enhancements added
+
+▶ Step 6: Adding production-specific tables...
+  ✓ Production tables added
+
+▶ Step 7: Updating file_extension column size...
+  ✓ File extensions updated to support multiple formats
+
+▶ Step 8: Creating system settings and leadership contacts tables...
+  ✓ System settings and leadership contacts tables created
+
+╔═══════════════════════════════════════════════════════════════════╗
+║                    VERIFICATION SUMMARY                           ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+✓ Total tables created: 33
+
+📊 Summary:
+  ✓ Core schema created (all Phase 2b tables)
+  ✓ NextAuth authentication ready
+  ✓ Service request comments enabled
+  ✓ File extensions support multiple formats
+  ✓ Reference data loaded
+  ✓ 27 EA service attachment requirements configured
+  ✓ System settings and leadership contacts tables created
+  ✓ ~40 configurable settings seeded
+
+✓ MASTER INITIALIZATION COMPLETE
 ```
 
 #### 7.3 Verify Database Tables
@@ -753,8 +776,8 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 # List all tables
 \dt
 
-# Expected output: Should see 30 tables
-# entity_master, service_master, users, tickets, etc.
+# Expected output: Should see 33 tables
+# entity_master, service_master, users, tickets, system_settings, leadership_contacts, etc.
 
 # Check table counts
 SELECT
@@ -1402,7 +1425,7 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 
 ### Appendix B: Database Schema Overview
 
-**30 Tables Organized by Category:**
+**33 Tables Organized by Category:**
 
 **Master Data (7 tables):**
 - `entity_master` - Government entities (66 entities)
@@ -1431,6 +1454,11 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 - `entity_user_assignments` - User-entity mapping
 - `user_permissions` - Fine-grained permissions
 - `user_audit_log` - User activity audit
+
+**Admin Settings (3 tables):**
+- `system_settings` - Admin-configurable application settings (~40 settings)
+- `settings_audit_log` - Settings change history
+- `leadership_contacts` - Dynamic leadership contacts for About page
 
 **Security & Audit (3 tables):**
 - `submission_rate_limit` - Rate limiting
@@ -1566,37 +1594,47 @@ Post-installation security review:
 
 After completing the fresh installation:
 
-1. **Add Government Entities and Services** (if not using default master data)
+1. **Configure Admin Settings** (RECOMMENDED)
+   - Navigate to Admin Portal → Settings
+   - Review and update configurable settings:
+     - **System Tab**: Site name, branding (logo/favicon), contact emails
+     - **Authentication Tab**: OAuth provider credentials (Google/Microsoft)
+     - **Integrations Tab**: SendGrid API key, chatbot URL
+     - **Business Rules Tab**: Rate limits, thresholds, file upload limits
+     - **Content Tab**: Footer URLs, leadership contacts
+   - Settings are pre-seeded with defaults but should be customized
+
+2. **Add Government Entities and Services** (if not using default master data)
    - Navigate to Admin Portal → Manage Data → Entities
    - Add or update government entities
    - Add or update services
 
-2. **Configure Staff Users**
+3. **Configure Staff Users**
    - Navigate to Admin Portal → User Management
    - Add staff users from government entities
    - Assign entity access permissions
 
-3. **Test Citizen-Facing Features**
+4. **Test Citizen-Facing Features**
    - Test feedback submission form
    - Test grievance submission
    - Test service request form
    - Verify email notifications work
 
-4. **Generate QR Codes** (for physical locations)
+5. **Generate QR Codes** (for physical locations)
    - Navigate to Admin Portal → QR Codes
    - Generate QR codes for services
    - Print and deploy to service locations
 
-5. **Review Analytics Dashboard**
+6. **Review Analytics Dashboard**
    - Navigate to Admin Portal → Analytics
    - Review feedback trends
    - Check service performance
    - Monitor SLA compliance
 
-6. **Configure Additional Features**
+7. **Configure Additional Features**
    - Set up external API access (if needed)
    - Configure AI bot integration (if using)
-   - Customize branding and content
+   - Customize branding and content via Settings
 
 ---
 
@@ -1610,7 +1648,7 @@ After completing the fresh installation:
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** January 9, 2026
+**Document Version:** 1.1
+**Last Updated:** January 14, 2026
 **Status:** Production Ready
 **Maintained By:** GEA Portal Development Team

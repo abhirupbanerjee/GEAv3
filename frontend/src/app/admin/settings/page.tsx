@@ -86,6 +86,14 @@ export default function SettingsPage() {
   const [brandingMode, setBrandingMode] = useState<Record<string, 'url' | 'upload'>>({})
   const [uploadingBranding, setUploadingBranding] = useState<string | null>(null)
 
+  // Auto-dismiss error messages after 5 seconds
+  useEffect(() => {
+    if (message?.type === 'error') {
+      const timer = setTimeout(() => setMessage(null), 5000)
+      return () => clearTimeout(timer)
+    }
+  }, [message])
+
   // Load settings
   const loadSettings = useCallback(async () => {
     try {
@@ -255,10 +263,89 @@ export default function SettingsPage() {
     }
   }
 
+  // Validate branding image before upload
+  const validateBrandingImage = (settingKey: string, file: File): Promise<{ valid: boolean; error?: string }> => {
+    return new Promise((resolve) => {
+      const isFavicon = settingKey.includes('FAVICON')
+      const maxSize = 5 * 1024 * 1024 // 5MB
+
+      // Check file size
+      if (file.size > maxSize) {
+        resolve({ valid: false, error: 'File must be less than 5MB' })
+        return
+      }
+
+      // Check file type
+      if (isFavicon) {
+        const faviconTypes = ['image/x-icon', 'image/png', 'image/vnd.microsoft.icon']
+        if (!faviconTypes.includes(file.type) && !file.name.endsWith('.ico')) {
+          resolve({ valid: false, error: 'Favicon must be ICO or PNG format' })
+          return
+        }
+      } else {
+        const logoTypes = ['image/png', 'image/jpeg', 'image/svg+xml']
+        if (!logoTypes.includes(file.type)) {
+          resolve({ valid: false, error: 'Logo must be PNG, JPG, or SVG format' })
+          return
+        }
+      }
+
+      // For SVG files, skip dimension check
+      if (file.type === 'image/svg+xml') {
+        resolve({ valid: true })
+        return
+      }
+
+      // Check dimensions using Image API
+      const img = new window.Image()
+      const objectUrl = URL.createObjectURL(file)
+
+      img.onload = () => {
+        URL.revokeObjectURL(objectUrl)
+
+        if (isFavicon) {
+          // Favicon should be square and between 16-256px (we'll be flexible but warn)
+          if (img.width !== img.height) {
+            resolve({ valid: false, error: `Favicon should be square. Current: ${img.width}x${img.height}px` })
+            return
+          }
+          if (img.width < 16 || img.width > 256) {
+            resolve({ valid: false, error: `Favicon should be 16-256px. Current: ${img.width}px` })
+            return
+          }
+        } else {
+          // Logo should have max 200px height (warn if larger)
+          if (img.height > 200) {
+            resolve({ valid: false, error: `Logo height should be max 200px. Current: ${img.height}px` })
+            return
+          }
+        }
+
+        resolve({ valid: true })
+      }
+
+      img.onerror = () => {
+        URL.revokeObjectURL(objectUrl)
+        resolve({ valid: false, error: 'Failed to read image dimensions' })
+      }
+
+      img.src = objectUrl
+    })
+  }
+
   // Upload branding image
   const uploadBrandingImage = async (settingKey: string, file: File) => {
     try {
       setUploadingBranding(settingKey)
+
+      // Validate before upload
+      const validation = await validateBrandingImage(settingKey, file)
+      if (!validation.valid) {
+        setMessage({ type: 'error', text: validation.error || 'Invalid image' })
+        setUploadingBranding(null)
+        return
+      }
+
       const formData = new FormData()
       formData.append('file', file)
       formData.append('category', 'branding')
@@ -526,6 +613,8 @@ export default function SettingsPage() {
                 onChange={(e) => {
                   const file = e.target.files?.[0]
                   if (file) uploadBrandingImage(setting.setting_key, file)
+                  // Reset input so same file can be re-selected
+                  e.target.value = ''
                 }}
                 className="hidden"
                 disabled={isUploading}
@@ -634,11 +723,20 @@ export default function SettingsPage() {
 
       {/* Message */}
       {message && (
-        <div className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
+        <div className={`mb-4 p-4 rounded-lg flex items-center justify-between ${
           message.type === 'success' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'
         }`}>
-          {message.type === 'success' ? <FiCheckCircle className="w-5 h-5" /> : <FiAlertCircle className="w-5 h-5" />}
-          {message.text}
+          <div className="flex items-center gap-2">
+            {message.type === 'success' ? <FiCheckCircle className="w-5 h-5 flex-shrink-0" /> : <FiAlertCircle className="w-5 h-5 flex-shrink-0" />}
+            {message.text}
+          </div>
+          <button
+            onClick={() => setMessage(null)}
+            className="ml-4 p-1 hover:bg-black/10 rounded transition-colors"
+            aria-label="Dismiss message"
+          >
+            <FiX className="w-4 h-4" />
+          </button>
         </div>
       )}
 

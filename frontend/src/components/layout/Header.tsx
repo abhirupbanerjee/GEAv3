@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { useState } from 'react'
+import Image from 'next/image'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import UserProfileDropdown from './UserProfileDropdown'
 
@@ -12,9 +13,39 @@ const navigationItems = [
   { label: 'Helpdesk', href: '/helpdesk' },
 ]
 
+// Default Grenada flag SVG as fallback
+const DefaultLogo = () => (
+  <svg width="32" height="20" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg" className="rounded-sm">
+    <path fill="#ce1126" d="M0 0h500v300H0z" />
+    <path fill="#007a5e" d="M42 42h416v216H42z" />
+    <path d="M42 42h416L42 258h416z" fill="#fcd116" />
+    <circle r="36" cy="150" cx="250" fill="#ce1126" />
+  </svg>
+)
+
+interface BrandingSettings {
+  siteName: string
+  siteLogo: string
+  siteLogoAlt: string
+  siteFavicon: string
+}
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const { data: session, status } = useSession()
+  const [branding, setBranding] = useState<BrandingSettings>({
+    siteName: 'EA Portal',
+    siteLogo: '',
+    siteLogoAlt: 'EA Portal Logo',
+    siteFavicon: '',
+  })
+
+  useEffect(() => {
+    fetch('/api/settings/branding')
+      .then((res) => res.json())
+      .then((data) => setBranding(data))
+      .catch((err) => console.error('Failed to load branding:', err))
+  }, [])
 
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
@@ -22,13 +53,19 @@ export default function Header() {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <svg width="32" height="20" viewBox="0 0 500 300" xmlns="http://www.w3.org/2000/svg" className="rounded-sm">
-              <path fill="#ce1126" d="M0 0h500v300H0z" />
-              <path fill="#007a5e" d="M42 42h416v216H42z" />
-              <path d="M42 42h416L42 258h416z" fill="#fcd116" />
-              <circle r="36" cy="150" cx="250" fill="#ce1126" />
-            </svg>
-            <div className="text-lg font-bold text-gray-900">EA Portal</div>
+            {branding.siteLogo ? (
+              <Image
+                src={branding.siteLogo}
+                alt={branding.siteLogoAlt}
+                width={32}
+                height={32}
+                className="rounded-sm object-contain"
+                unoptimized={branding.siteLogo.startsWith('http')}
+              />
+            ) : (
+              <DefaultLogo />
+            )}
+            <div className="text-lg font-bold text-gray-900">{branding.siteName}</div>
           </Link>
 
           {/* Desktop Navigation */}

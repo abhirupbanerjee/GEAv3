@@ -5,14 +5,25 @@ import Footer from '@/components/layout/Footer'
 import ChatBot from '@/components/ChatBot'
 import SessionProvider from '@/components/providers/SessionProvider'
 import { ChatContextProvider } from '@/providers/ChatContextProvider'
-import { validateEnvironment } from '@/lib/validateEnv'
+import { getSetting } from '@/lib/settings'
 
-// Validate environment on app startup
-const appConfig = validateEnvironment();
+export async function generateMetadata(): Promise<Metadata> {
+  const siteName = await getSetting('SITE_NAME', process.env.NEXT_PUBLIC_SITE_NAME || 'EA Portal')
+  const siteFavicon = await getSetting('SITE_FAVICON', '')
 
-export const metadata: Metadata = {
-  title: appConfig.SITE_NAME,
-  description: 'Enterprise Architecture Portal for the Government of Grenada',
+  const icons: Metadata['icons'] = siteFavicon
+    ? {
+        icon: siteFavicon,
+        shortcut: siteFavicon,
+        apple: siteFavicon,
+      }
+    : undefined
+
+  return {
+    title: siteName,
+    description: 'Enterprise Architecture Portal for the Government of Grenada',
+    icons,
+  }
 }
 
 export default function RootLayout({

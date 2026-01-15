@@ -12,6 +12,7 @@ import { Pool } from 'pg';
 import { validateEntityAccess } from '@/lib/entity-filter';
 import { sendEmail } from '@/lib/sendgrid';
 import { getServiceRequestStatusChangeEmail } from '@/lib/emailTemplates';
+import { config } from '@/config/env';
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -146,7 +147,7 @@ export async function PUT(
       await pool.query('COMMIT');
 
       // Send email notification (async, don't wait)
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const baseUrl = config.appUrl;
       const statusLink = `${baseUrl}/admin/service-requests/${requestId}`;
 
       sendEmail({

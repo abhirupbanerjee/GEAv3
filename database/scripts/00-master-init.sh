@@ -164,7 +164,18 @@ echo "  ✓ File extensions updated to support multiple formats"
 echo ""
 
 # ============================================================================
-# STEP 8: VERIFICATION
+# STEP 8: CREATE SYSTEM SETTINGS & LEADERSHIP CONTACTS TABLES
+# ============================================================================
+echo "▶ Step 8: Creating system settings and leadership contacts tables..."
+echo ""
+
+"$SCRIPTS_DIR/16-create-system-settings.sh"
+
+echo "  ✓ System settings and leadership contacts tables created"
+echo ""
+
+# ============================================================================
+# STEP 9: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
 echo "║                    VERIFICATION SUMMARY                           ║"
@@ -198,7 +209,9 @@ WHERE table_schema = 'public'
     'users',
     'user_roles',
     'accounts',
-    'sessions'
+    'sessions',
+    'system_settings',
+    'leadership_contacts'
   )
 ORDER BY table_name;
 EOF
@@ -241,6 +254,8 @@ echo "  ✓ Service request comments enabled"
 echo "  ✓ File extensions support multiple formats"
 echo "  ✓ Reference data loaded"
 echo "  ✓ 27 EA service attachment requirements configured"
+echo "  ✓ System settings and leadership contacts tables created"
+echo "  ✓ ~40 configurable settings seeded"
 echo ""
 echo "🎯 Next Steps:"
 echo ""

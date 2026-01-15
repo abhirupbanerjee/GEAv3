@@ -16,7 +16,7 @@ export const config = {
 
   // Environment configuration
   nodeEnv: process.env.NODE_ENV || 'development',
-  appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
+  appUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
 
   // SendGrid Email Configuration
   SENDGRID_API_KEY: process.env.SENDGRID_API_KEY || '',
