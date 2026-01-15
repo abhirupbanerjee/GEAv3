@@ -4,7 +4,7 @@
  * @purpose Manage admin-configurable application settings, integrations, and business rules
  * @audience admin
  * @features
- *   - Tabbed interface with 5 categories: System, Authentication, Integrations, Business Rules, Content
+ *   - Tabbed interface with 6 categories: System, Authentication, Integrations, Business Rules, Content, Service Providers
  *   - Real-time validation and save functionality
  *   - Sensitive value masking with show/hide toggle
  *   - Test email functionality for SendGrid configuration
@@ -25,7 +25,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2 } from 'react-icons/fi'
+import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer } from 'react-icons/fi'
 
 // Types
 interface SystemSetting {
@@ -70,6 +70,7 @@ const CATEGORIES = [
   { key: 'INTEGRATIONS', label: 'Integrations', icon: FiLink, description: 'Email, chatbot, and captcha configuration' },
   { key: 'BUSINESS_RULES', label: 'Business Rules', icon: FiSliders, description: 'Rate limits, thresholds, and file upload' },
   { key: 'CONTENT', label: 'Content', icon: FiFileText, description: 'Footer links and leadership contacts' },
+  { key: 'SERVICE_PROVIDERS', label: 'Service Providers', icon: FiServer, description: 'Configure entities that can receive service requests' },
 ]
 
 export default function SettingsPage() {
@@ -930,12 +931,12 @@ export default function SettingsPage() {
           </div>
         ))}
 
-        {/* Service Providers Section (Business Rules category only) */}
-        {activeCategory === 'BUSINESS_RULES' && (
+        {/* Service Providers Section */}
+        {activeCategory === 'SERVICE_PROVIDERS' && (
           <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
             <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
               <h3 className="font-semibold text-gray-900 flex items-center gap-2">
-                <FiUsers className="w-4 h-4" />
+                <FiServer className="w-4 h-4" />
                 Service Provider Entities
               </h3>
               <p className="text-sm text-gray-500 mt-1">
@@ -1061,7 +1062,7 @@ export default function SettingsPage() {
         )}
 
         {/* Empty state */}
-        {currentCategorySettings.length === 0 && activeCategory !== 'CONTENT' && (
+        {currentCategorySettings.length === 0 && activeCategory !== 'CONTENT' && activeCategory !== 'SERVICE_PROVIDERS' && (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <FiSettings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-gray-600 font-medium">No settings in this category</h3>

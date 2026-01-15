@@ -344,6 +344,7 @@ Admin → ea_service_requests → ea_service_request_attachments (based on servi
 | contact_phone | VARCHAR(50) | | Contact number |
 | description | TEXT | | Entity description |
 | is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| is_service_provider | BOOLEAN | DEFAULT FALSE | Can receive service requests from other entities |
 | created_at | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
 | updated_at | TIMESTAMP | DEFAULT NOW() | Last update |
 
@@ -353,6 +354,7 @@ Admin → ea_service_requests → ea_service_request_attachments (based on servi
 - INDEX on `entity_type`
 - INDEX on `parent_entity_id`
 - INDEX on `is_active`
+- PARTIAL INDEX on `is_service_provider` WHERE TRUE
 
 **Sample Data:**
 ```sql

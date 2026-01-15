@@ -748,6 +748,9 @@ cd ~/GEAv3/database
 ▶ Step 8: Creating system settings and leadership contacts tables...
   ✓ System settings and leadership contacts tables created
 
+▶ Step 9: Adding service provider flag to entity_master...
+  ✓ Service provider flag added (DTA enabled by default)
+
 ╔═══════════════════════════════════════════════════════════════════╗
 ║                    VERIFICATION SUMMARY                           ║
 ╚═══════════════════════════════════════════════════════════════════╝
@@ -763,6 +766,7 @@ cd ~/GEAv3/database
   ✓ 27 EA service attachment requirements configured
   ✓ System settings and leadership contacts tables created
   ✓ ~40 configurable settings seeded
+  ✓ Service provider entities configured
 
 ✓ MASTER INITIALIZATION COMPLETE
 ```
