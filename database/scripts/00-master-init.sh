@@ -175,7 +175,18 @@ echo "  ✓ System settings and leadership contacts tables created"
 echo ""
 
 # ============================================================================
-# STEP 9: VERIFICATION
+# STEP 9: ADD SERVICE PROVIDER FLAG TO ENTITY MASTER
+# ============================================================================
+echo "▶ Step 9: Adding service provider flag to entity_master..."
+echo ""
+
+"$SCRIPTS_DIR/17-add-service-provider-flag.sh"
+
+echo "  ✓ Service provider flag added (DTA enabled by default)"
+echo ""
+
+# ============================================================================
+# STEP 10: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
 echo "║                    VERIFICATION SUMMARY                           ║"

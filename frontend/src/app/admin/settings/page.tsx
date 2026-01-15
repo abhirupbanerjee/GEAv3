@@ -56,6 +56,13 @@ interface LeadershipContact {
   is_active: boolean
 }
 
+interface ServiceProviderEntity {
+  unique_entity_id: string
+  entity_name: string
+  entity_type: string
+  is_service_provider: boolean
+}
+
 // Category configuration
 const CATEGORIES = [
   { key: 'SYSTEM', label: 'System', icon: FiSettings, description: 'General settings, branding, and contact info' },
@@ -85,6 +92,10 @@ export default function SettingsPage() {
   // Branding mode state (url vs upload)
   const [brandingMode, setBrandingMode] = useState<Record<string, 'url' | 'upload'>>({})
   const [uploadingBranding, setUploadingBranding] = useState<string | null>(null)
+  // Service provider state
+  const [serviceProviders, setServiceProviders] = useState<ServiceProviderEntity[]>([])
+  const [loadingProviders, setLoadingProviders] = useState(false)
+  const [togglingProvider, setTogglingProvider] = useState<string | null>(null)
 
   // Auto-dismiss error messages after 5 seconds
   useEffect(() => {
@@ -126,10 +137,63 @@ export default function SettingsPage() {
     }
   }, [])
 
+  // Load service providers
+  const loadServiceProviders = useCallback(async () => {
+    try {
+      setLoadingProviders(true)
+      const response = await fetch('/api/admin/service-providers')
+      if (!response.ok) throw new Error('Failed to fetch service providers')
+      const data = await response.json()
+      if (data.success) {
+        setServiceProviders(data.entities)
+      }
+    } catch (error) {
+      console.error('Error loading service providers:', error)
+    } finally {
+      setLoadingProviders(false)
+    }
+  }, [])
+
+  // Toggle service provider status
+  const toggleServiceProvider = async (entityId: string, currentStatus: boolean) => {
+    try {
+      setTogglingProvider(entityId)
+      const response = await fetch('/api/admin/service-providers', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          entity_id: entityId,
+          is_service_provider: !currentStatus,
+        }),
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: data.message })
+        // Update local state
+        setServiceProviders(prev =>
+          prev.map(e =>
+            e.unique_entity_id === entityId
+              ? { ...e, is_service_provider: !currentStatus }
+              : e
+          )
+        )
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to update' })
+      }
+    } catch (error) {
+      console.error('Error toggling service provider:', error)
+      setMessage({ type: 'error', text: 'Failed to update service provider status' })
+    } finally {
+      setTogglingProvider(null)
+    }
+  }
+
   useEffect(() => {
     loadSettings()
     loadContacts()
-  }, [loadSettings, loadContacts])
+    loadServiceProviders()
+  }, [loadSettings, loadContacts, loadServiceProviders])
 
   // Handle setting value change
   const handleSettingChange = (key: string, value: string) => {
@@ -865,6 +929,74 @@ export default function SettingsPage() {
             </div>
           </div>
         ))}
+
+        {/* Service Providers Section (Business Rules category only) */}
+        {activeCategory === 'BUSINESS_RULES' && (
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+              <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                <FiUsers className="w-4 h-4" />
+                Service Provider Entities
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">
+                Entities enabled as service providers can receive service requests from other entities.
+              </p>
+            </div>
+            <div className="p-4">
+              {loadingProviders ? (
+                <div className="flex items-center justify-center py-8">
+                  <FiRefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="ml-2 text-gray-500">Loading entities...</span>
+                </div>
+              ) : serviceProviders.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No entities found. Run the database migration first.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {serviceProviders.map((entity) => (
+                    <div
+                      key={entity.unique_entity_id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        entity.is_service_provider
+                          ? 'border-blue-200 bg-blue-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">{entity.entity_name}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                            {entity.unique_entity_id}
+                          </span>
+                          <span className="text-xs text-gray-400 capitalize">
+                            {entity.entity_type}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => toggleServiceProvider(entity.unique_entity_id, entity.is_service_provider)}
+                        disabled={togglingProvider === entity.unique_entity_id}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
+                          entity.is_service_provider ? 'bg-blue-600' : 'bg-gray-200'
+                        } ${togglingProvider === entity.unique_entity_id ? 'opacity-50' : ''}`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            entity.is_service_provider ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-4">
+                Note: DTA (AGY-005) is the default service provider. Enable additional entities to allow them to receive service requests.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Leadership Contacts Section (Content category only) */}
         {activeCategory === 'CONTENT' && (

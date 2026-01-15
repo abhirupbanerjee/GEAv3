@@ -66,6 +66,11 @@ interface Entity {
   entity_name: string;
 }
 
+interface ServiceProvider {
+  unique_entity_id: string;
+  entity_name: string;
+}
+
 export default function NewServiceRequestPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -73,6 +78,11 @@ export default function NewServiceRequestPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [attachmentRequirements, setAttachmentRequirements] = useState<ServiceAttachment[]>([]);
   const [entityName, setEntityName] = useState<string>('');
+
+  // Service provider state
+  const [serviceProviders, setServiceProviders] = useState<ServiceProvider[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState('');
+  const [loadingProviders, setLoadingProviders] = useState(true);
 
   // Form state
   const [selectedService, setSelectedService] = useState('');
@@ -97,10 +107,44 @@ export default function NewServiceRequestPage() {
     }
   }, [status, isAdmin, router]);
 
-  const fetchServices = useCallback(async () => {
+  // Fetch service provider entities
+  const fetchServiceProviders = useCallback(async () => {
     try {
-      // Fetch services for the service request entity (AGY-005)
-      const response = await fetch(`/api/managedata/services?entity_id=${config.SERVICE_REQUEST_ENTITY_ID}`);
+      setLoadingProviders(true);
+      const response = await fetch('/api/admin/service-providers?providers_only=true');
+      if (response.ok) {
+        const data = await response.json();
+        const providers = data.entities || [];
+        setServiceProviders(providers);
+
+        // Auto-select if only one provider
+        if (providers.length === 1) {
+          setSelectedProvider(providers[0].unique_entity_id);
+        } else if (providers.length > 0) {
+          // Default to first provider (or could default to config.SERVICE_REQUEST_ENTITY_ID if available)
+          const defaultProvider = providers.find(
+            (p: ServiceProvider) => p.unique_entity_id === config.SERVICE_REQUEST_ENTITY_ID
+          );
+          if (defaultProvider) {
+            setSelectedProvider(defaultProvider.unique_entity_id);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching service providers:', error);
+    } finally {
+      setLoadingProviders(false);
+    }
+  }, []);
+
+  const fetchServices = useCallback(async (providerId: string) => {
+    if (!providerId) {
+      setServices([]);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/managedata/services?entity_id=${providerId}`);
       if (response.ok) {
         const data = await response.json();
         // API returns array directly
@@ -155,8 +199,18 @@ export default function NewServiceRequestPage() {
       fetchEntityName(userEntityId);
     }
 
-    fetchServices();
-  }, [session, isStaff, userEntityId, fetchServices, fetchEntityName]);
+    // Fetch service providers
+    fetchServiceProviders();
+  }, [session, isStaff, userEntityId, fetchServiceProviders, fetchEntityName]);
+
+  // Fetch services when provider changes
+  useEffect(() => {
+    if (selectedProvider) {
+      setSelectedService(''); // Reset service selection
+      setAttachmentRequirements([]); // Clear attachments
+      fetchServices(selectedProvider);
+    }
+  }, [selectedProvider, fetchServices]);
 
   useEffect(() => {
     if (selectedService) {
@@ -344,7 +398,12 @@ export default function NewServiceRequestPage() {
           Back to Service Requests
         </Link>
         <h1 className="text-3xl font-bold text-gray-900">New Service Request</h1>
-        <p className="text-gray-600 mt-1">Submit a request for EA services from DTA</p>
+        <p className="text-gray-600 mt-1">
+          Submit a request for services
+          {selectedProvider && serviceProviders.length > 0 && (
+            <span> from {serviceProviders.find(p => p.unique_entity_id === selectedProvider)?.entity_name}</span>
+          )}
+        </p>
       </div>
 
       {/* Form */}
@@ -354,6 +413,41 @@ export default function NewServiceRequestPage() {
           <h2 className="text-lg font-semibold text-gray-900 mb-4">Service Information</h2>
 
           <div className="space-y-4">
+            {/* Service Provider Selection - Only show if multiple providers */}
+            {serviceProviders.length > 1 && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Service Provider <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedProvider}
+                  onChange={(e) => setSelectedProvider(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  required
+                  disabled={loadingProviders}
+                >
+                  <option value="">Select a service provider...</option>
+                  {serviceProviders.map((provider) => (
+                    <option key={provider.unique_entity_id} value={provider.unique_entity_id}>
+                      {provider.entity_name}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-gray-500">
+                  Select the entity you want to request services from
+                </p>
+              </div>
+            )}
+
+            {/* Single provider info display */}
+            {serviceProviders.length === 1 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Service Provider:</span> {serviceProviders[0].entity_name}
+                </p>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Service <span className="text-red-500">*</span>
@@ -363,8 +457,15 @@ export default function NewServiceRequestPage() {
                 onChange={(e) => setSelectedService(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
+                disabled={!selectedProvider || services.length === 0}
               >
-                <option value="">Select a service...</option>
+                <option value="">
+                  {!selectedProvider
+                    ? 'Select a service provider first...'
+                    : services.length === 0
+                      ? 'No services available...'
+                      : 'Select a service...'}
+                </option>
                 {services.map((service) => (
                   <option key={service.service_id} value={service.service_id}>
                     {service.service_name}
@@ -377,7 +478,7 @@ export default function NewServiceRequestPage() {
             {isStaff && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Requesting Entity
+                  Your Entity
                 </label>
                 <input
                   type="text"
@@ -386,7 +487,7 @@ export default function NewServiceRequestPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600 cursor-not-allowed"
                 />
                 <p className="mt-1 text-xs text-gray-500">
-                  This request will be submitted to the entity shown above
+                  This request will be submitted on behalf of your entity
                 </p>
               </div>
             )}

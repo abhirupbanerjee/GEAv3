@@ -139,6 +139,12 @@ async function sendServiceRequestNotifications(
 /**
  * GET /api/admin/service-requests
  * List service requests with optional filters
+ *
+ * Query params:
+ *   - view: 'submitted' | 'received' | 'all'
+ *     - submitted: Requests this entity submitted to other providers
+ *     - received: Requests other entities submitted TO this entity's services
+ *     - all: Both (admin only)
  */
 export async function GET(request: NextRequest) {
   try {
@@ -153,6 +159,7 @@ export async function GET(request: NextRequest) {
     // Apply entity filter for staff users
     const entityFilter = getEntityFilter(session);
     const entityIdParam = searchParams.get('entity_id');
+    const viewParam = searchParams.get('view') || 'submitted'; // Default to submitted view
 
     // Parse filters
     const statusFilter = searchParams.get('status');
@@ -162,20 +169,70 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
     const offset = (page - 1) * limit;
 
+    // Check if user's entity is a service provider (for received view access)
+    let isServiceProvider = false;
+    if (session.user.entityId) {
+      const providerCheck = await pool.query(
+        'SELECT is_service_provider FROM entity_master WHERE unique_entity_id = $1',
+        [session.user.entityId]
+      );
+      isServiceProvider = providerCheck.rows[0]?.is_service_provider === true;
+    }
+
     // Build WHERE clause
     const whereClauses: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
 
-    // Entity filter (mandatory for staff, optional for admin)
-    const finalEntityId = entityFilter || entityIdParam;
-    if (finalEntityId) {
-      // Handle multiple entity IDs (comma-separated)
-      const entityIds = finalEntityId.split(',').filter(Boolean);
-      if (entityIds.length > 0) {
-        const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
-        whereClauses.push(`r.entity_id IN (${placeholders})`);
-        queryParams.push(...entityIds);
+    // Handle view-based filtering for staff users
+    if (session.user.roleType === 'staff' && session.user.entityId) {
+      if (viewParam === 'received') {
+        // For received view, filter by service provider entity (via service_master)
+        // Only allow if user's entity is a service provider
+        if (!isServiceProvider) {
+          return NextResponse.json({
+            success: true,
+            data: {
+              requests: [],
+              pagination: { page, limit, total_count: 0, total_pages: 0, has_next: false, has_prev: false },
+              filters: { view: viewParam, status: statusFilter, service_id: serviceFilter, search: searchQuery },
+              is_service_provider: false,
+            },
+            message: 'Your entity is not configured as a service provider',
+            timestamp: new Date().toISOString(),
+          });
+        }
+        whereClauses.push(`s.entity_id = $${paramIndex}`);
+        queryParams.push(session.user.entityId);
+        paramIndex++;
+      } else {
+        // Default: submitted view - filter by requesting entity
+        whereClauses.push(`r.entity_id = $${paramIndex}`);
+        queryParams.push(session.user.entityId);
+        paramIndex++;
+      }
+    } else if (session.user.roleType === 'admin') {
+      // Admin can filter by entity_id param or view all
+      const finalEntityId = entityIdParam;
+      if (finalEntityId) {
+        // Handle multiple entity IDs (comma-separated)
+        const entityIds = finalEntityId.split(',').filter(Boolean);
+        if (entityIds.length > 0) {
+          const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+          whereClauses.push(`r.entity_id IN (${placeholders})`);
+          queryParams.push(...entityIds);
+        }
+      }
+    } else {
+      // Fallback for other cases
+      const finalEntityId = entityFilter || entityIdParam;
+      if (finalEntityId) {
+        const entityIds = finalEntityId.split(',').filter(Boolean);
+        if (entityIds.length > 0) {
+          const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+          whereClauses.push(`r.entity_id IN (${placeholders})`);
+          queryParams.push(...entityIds);
+        }
       }
     }
 
@@ -207,22 +264,26 @@ export async function GET(request: NextRequest) {
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
 
-    // Get total count
+    // Get total count (need to join service_master for received view filtering)
     const countQuery = `
       SELECT COUNT(*) as total
       FROM ea_service_requests r
+      JOIN service_master s ON r.service_id = s.service_id
       ${whereClause}
     `;
     const countResult = await pool.query(countQuery, queryParams);
     const totalCount = parseInt(countResult.rows[0]?.total || '0');
 
     // Get paginated requests
+    // Include service provider entity info for context
     const requestsQuery = `
       SELECT
         r.request_id,
         r.request_number,
         r.service_id,
         s.service_name,
+        s.entity_id as service_provider_entity_id,
+        pe.entity_name as service_provider_entity_name,
         r.entity_id,
         e.entity_name,
         r.status,
@@ -240,9 +301,10 @@ export async function GET(request: NextRequest) {
       FROM ea_service_requests r
       JOIN service_master s ON r.service_id = s.service_id
       JOIN entity_master e ON r.entity_id = e.unique_entity_id
+      JOIN entity_master pe ON s.entity_id = pe.unique_entity_id
       LEFT JOIN ea_service_request_attachments a ON r.request_id = a.request_id
       ${whereClause}
-      GROUP BY r.request_id, s.service_name, e.entity_name
+      GROUP BY r.request_id, s.service_name, s.entity_id, pe.entity_name, e.entity_name
       ORDER BY r.created_at DESC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
@@ -265,11 +327,13 @@ export async function GET(request: NextRequest) {
           has_prev: page > 1,
         },
         filters: {
+          view: viewParam,
           status: statusFilter,
           service_id: serviceFilter,
           search: searchQuery,
-          entity_id: entityFilter, // Show applied entity filter
+          entity_id: entityFilter,
         },
+        is_service_provider: isServiceProvider,
       },
       timestamp: new Date().toISOString(),
     });

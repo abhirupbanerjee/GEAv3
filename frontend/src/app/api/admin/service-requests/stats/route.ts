@@ -2,6 +2,8 @@
  * GEA Portal - Service Requests Statistics API
  *
  * GET /api/admin/service-requests/stats - Get service request statistics
+ * Query params:
+ *   - view: 'submitted' | 'received' - filter by view type
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -24,49 +26,85 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const entityIdParam = searchParams.get('entity_id');
+    const viewParam = searchParams.get('view') || 'submitted';
 
     // Apply entity filter for staff users
     const entityFilter = getEntityFilter(session);
-    const finalEntityId = entityFilter || entityIdParam;
+
+    // Check if user's entity is a service provider
+    let isServiceProvider = false;
+    if (session.user.entityId) {
+      const providerCheck = await pool.query(
+        'SELECT is_service_provider FROM entity_master WHERE unique_entity_id = $1',
+        [session.user.entityId]
+      );
+      isServiceProvider = providerCheck.rows[0]?.is_service_provider === true;
+    }
 
     const whereClauses: string[] = [];
     const queryParams: any[] = [];
     let paramIndex = 1;
+    let needsServiceJoin = false;
 
-    if (finalEntityId) {
-      // Handle multiple entity IDs (comma-separated)
-      const entityIds = finalEntityId.split(',').filter(Boolean);
-      if (entityIds.length > 0) {
-        const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
-        whereClauses.push(`entity_id IN (${placeholders})`);
-        queryParams.push(...entityIds);
+    // Handle view-based filtering for staff users
+    if (session.user.roleType === 'staff' && session.user.entityId) {
+      if (viewParam === 'received' && isServiceProvider) {
+        // For received view, filter by service provider entity (via service_master)
+        whereClauses.push(`s.entity_id = $${paramIndex}`);
+        queryParams.push(session.user.entityId);
+        paramIndex++;
+        needsServiceJoin = true;
+      } else {
+        // Default: submitted view - filter by requesting entity
+        whereClauses.push(`r.entity_id = $${paramIndex}`);
+        queryParams.push(session.user.entityId);
+        paramIndex++;
+      }
+    } else if (session.user.roleType === 'admin') {
+      // Admin can filter by entity_id param
+      const finalEntityId = entityIdParam;
+      if (finalEntityId) {
+        const entityIds = finalEntityId.split(',').filter(Boolean);
+        if (entityIds.length > 0) {
+          const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+          whereClauses.push(`r.entity_id IN (${placeholders})`);
+          queryParams.push(...entityIds);
+        }
+      }
+    } else {
+      // Fallback for other cases
+      const finalEntityId = entityFilter || entityIdParam;
+      if (finalEntityId) {
+        const entityIds = finalEntityId.split(',').filter(Boolean);
+        if (entityIds.length > 0) {
+          const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
+          whereClauses.push(`r.entity_id IN (${placeholders})`);
+          queryParams.push(...entityIds);
+        }
       }
     }
 
     const whereClause = whereClauses.length > 0 ? `WHERE ${whereClauses.join(' AND ')}` : '';
+    const serviceJoin = needsServiceJoin ? 'JOIN service_master s ON r.service_id = s.service_id' : '';
 
     // Get status counts
     const statsQuery = `
       SELECT
-        COUNT(*) FILTER (WHERE status = 'submitted') as submitted,
-        COUNT(*) FILTER (WHERE status = 'in_progress') as in_progress,
-        COUNT(*) FILTER (WHERE status = 'under_review') as under_review,
-        COUNT(*) FILTER (WHERE status = 'completed') as completed,
-        COUNT(*) FILTER (WHERE status = 'rejected') as rejected,
+        COUNT(*) FILTER (WHERE r.status = 'submitted') as submitted,
+        COUNT(*) FILTER (WHERE r.status = 'in_progress') as in_progress,
+        COUNT(*) FILTER (WHERE r.status = 'under_review') as under_review,
+        COUNT(*) FILTER (WHERE r.status = 'completed') as completed,
+        COUNT(*) FILTER (WHERE r.status = 'rejected') as rejected,
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '7 days') as last_7_days,
-        COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE - INTERVAL '30 days') as last_30_days
-      FROM ea_service_requests
+        COUNT(*) FILTER (WHERE r.created_at >= CURRENT_DATE - INTERVAL '7 days') as last_7_days,
+        COUNT(*) FILTER (WHERE r.created_at >= CURRENT_DATE - INTERVAL '30 days') as last_30_days
+      FROM ea_service_requests r
+      ${serviceJoin || 'JOIN service_master s ON r.service_id = s.service_id'}
       ${whereClause}
     `;
 
     const statsResult = await pool.query(statsQuery, queryParams);
     const stats = statsResult.rows[0];
-
-    // Build WHERE clause for recent requests query (with table alias r.)
-    const recentWhereClause = whereClauses.length > 0
-      ? `WHERE ${whereClauses.map(clause => clause.replace(/entity_id/g, 'r.entity_id')).join(' AND ')}`
-      : '';
 
     // Get recent requests
     const recentQuery = `
@@ -76,11 +114,13 @@ export async function GET(request: NextRequest) {
         r.status,
         s.service_name,
         e.entity_name,
+        pe.entity_name as provider_entity_name,
         r.created_at
       FROM ea_service_requests r
       JOIN service_master s ON r.service_id = s.service_id
       JOIN entity_master e ON r.entity_id = e.unique_entity_id
-      ${recentWhereClause}
+      JOIN entity_master pe ON s.entity_id = pe.unique_entity_id
+      ${whereClause}
       ORDER BY r.created_at DESC
       LIMIT 5
     `;

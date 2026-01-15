@@ -10,6 +10,11 @@ interface ChatBotSize {
   height: number
 }
 
+interface ChatBotSettings {
+  enabled: boolean
+  url: string
+}
+
 const DEFAULT_SIZE: ChatBotSize = { width: 480, height: 700 }
 const MIN_SIZE = { width: 320, height: 400 }
 const MAX_SIZE = { width: 800, height: 900 }
@@ -19,11 +24,32 @@ export default function ChatBot() {
   const [iframeLoaded, setIframeLoaded] = useState(false)
   const [size, setSize] = useState<ChatBotSize>(DEFAULT_SIZE)
   const [isResizing, setIsResizing] = useState(false)
+  const [chatbotSettings, setChatbotSettings] = useState<ChatBotSettings>({ enabled: false, url: '' })
+  const [settingsLoaded, setSettingsLoaded] = useState(false)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const resizeStartPos = useRef({ x: 0, y: 0, width: 0, height: 0 })
   const pathname = usePathname()
   const { context } = useChatContext()
+
+  // Fetch chatbot settings from API
+  useEffect(() => {
+    fetch('/api/settings/chatbot')
+      .then((res) => res.json())
+      .then((data) => {
+        setChatbotSettings({
+          enabled: data.enabled,
+          url: data.url || config.CHATBOT_URL,
+        })
+        setSettingsLoaded(true)
+      })
+      .catch((err) => {
+        console.error('Failed to load chatbot settings:', err)
+        // Fallback to env config on error
+        setChatbotSettings({ enabled: true, url: config.CHATBOT_URL })
+        setSettingsLoaded(true)
+      })
+  }, [])
 
   // Persist chatbot state and size in localStorage
   useEffect(() => {
@@ -127,21 +153,21 @@ export default function ChatBot() {
   // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    if (isOpen && iframeLoaded && iframeRef.current?.contentWindow) {
+    if (isOpen && iframeLoaded && iframeRef.current?.contentWindow && chatbotSettings.url) {
       const message = {
         type: 'CONTEXT_UPDATE',
         context: context,
       }
 
       try {
-        const botOrigin = new URL(config.CHATBOT_URL).origin
+        const botOrigin = new URL(chatbotSettings.url).origin
         iframeRef.current.contentWindow.postMessage(message, botOrigin)
         console.log('[ChatBot] Sent context on load/change')
       } catch (error) {
         console.error('[ChatBot] Failed to send context:', error)
       }
     }
-  }, [isOpen, iframeLoaded, context])
+  }, [isOpen, iframeLoaded, context, chatbotSettings.url])
 
   // ──────────────────────────────────────────────────────────────────────────
   // Handle iframe load
@@ -156,8 +182,13 @@ export default function ChatBot() {
   // Build iframe URL
   // ──────────────────────────────────────────────────────────────────────────
 
-  const iframeSrc = `${config.CHATBOT_URL}?source=${encodeURIComponent(pathname)}`
+  const chatbotUrl = chatbotSettings.url || config.CHATBOT_URL
+  const iframeSrc = `${chatbotUrl}?source=${encodeURIComponent(pathname)}`
 
+  // Don't render if settings not loaded yet or chatbot is disabled
+  if (!settingsLoaded || !chatbotSettings.enabled) {
+    return null
+  }
 
   return (
     <>

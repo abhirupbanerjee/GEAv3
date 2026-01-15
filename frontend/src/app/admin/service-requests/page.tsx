@@ -51,6 +51,8 @@ interface ServiceRequest {
   request_number: string;
   service_id: string;
   service_name: string;
+  service_provider_entity_id?: string;
+  service_provider_entity_name?: string;
   entity_id: string;
   entity_name: string;
   status: string;
@@ -59,6 +61,8 @@ interface ServiceRequest {
   created_at: string;
   attachment_count: number;
 }
+
+type ViewType = 'submitted' | 'received';
 
 interface Stats {
   submitted: number;
@@ -93,6 +97,10 @@ export default function ServiceRequestsPage() {
     total_pages: 0,
     total_count: 0,
   });
+
+  // View state for submitted/received tabs
+  const [currentView, setCurrentView] = useState<ViewType>('submitted');
+  const [isServiceProvider, setIsServiceProvider] = useState(false);
 
   // Entity filter state (for admin users)
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -158,6 +166,7 @@ export default function ServiceRequestsPage() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: '20',
+        view: currentView,
       });
 
       if (filters.status) params.append('status', filters.status);
@@ -176,16 +185,22 @@ export default function ServiceRequestsPage() {
         total_pages: data.data.pagination.total_pages,
         total_count: data.data.pagination.total_count,
       }));
+
+      // Update service provider status from API response
+      if (data.data.is_service_provider !== undefined) {
+        setIsServiceProvider(data.data.is_service_provider);
+      }
     } catch (error) {
       console.error('Error fetching requests:', error);
     } finally {
       setLoading(false);
     }
-  }, [pagination.page, filters]);
+  }, [pagination.page, filters, currentView]);
 
   const fetchStats = useCallback(async () => {
     try {
       const params = new URLSearchParams();
+      params.append('view', currentView);
       // Send entity_id for both admin and staff users
       if (filters.entity_id) params.append('entity_id', filters.entity_id);
 
@@ -197,7 +212,7 @@ export default function ServiceRequestsPage() {
     } catch (error) {
       console.error('Error fetching stats:', error);
     }
-  }, [filters.entity_id]);
+  }, [filters.entity_id, currentView]);
 
   // Fetch requests when filters change
   useEffect(() => {
@@ -214,6 +229,11 @@ export default function ServiceRequestsPage() {
 
   const handlePageChange = (newPage: number) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
+  };
+
+  const handleViewChange = (view: ViewType) => {
+    setCurrentView(view);
+    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
   if (status === 'loading' || loading) {
@@ -249,11 +269,13 @@ export default function ServiceRequestsPage() {
           <p className="text-gray-600 mt-1">
             {session?.user?.roleType === 'admin'
               ? 'Manage EA service requests from all entities'
-              : 'Submit and track EA service requests for your entity'}
+              : currentView === 'received'
+                ? 'Manage service requests received from other entities'
+                : 'Submit and track EA service requests for your entity'}
           </p>
         </div>
-        {/* Only staff can create new requests */}
-        {session?.user?.roleType === 'staff' && (
+        {/* Only staff can create new requests - hide in received view */}
+        {session?.user?.roleType === 'staff' && currentView === 'submitted' && (
           <Link
             href="/admin/service-requests/new"
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors"
@@ -265,6 +287,50 @@ export default function ServiceRequestsPage() {
           </Link>
         )}
       </div>
+
+      {/* View Tabs - Show for service provider staff or admin */}
+      {(isServiceProvider || isAdmin) && (
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="flex">
+            <button
+              onClick={() => handleViewChange('received')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors border-b-2 ${
+                currentView === 'received'
+                  ? 'text-blue-600 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+                </svg>
+                <span>Requests Received</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Requests from other entities to your services
+              </p>
+            </button>
+            <button
+              onClick={() => handleViewChange('submitted')}
+              className={`flex-1 px-6 py-4 text-center font-medium transition-colors border-b-2 ${
+                currentView === 'submitted'
+                  ? 'text-blue-600 border-blue-600 bg-blue-50'
+                  : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <div className="flex items-center justify-center gap-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                <span>Requests Submitted</span>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Requests your entity submitted to other providers
+              </p>
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Entity Filter (Admin and Staff) */}
       {(isAdmin || isStaff) && (

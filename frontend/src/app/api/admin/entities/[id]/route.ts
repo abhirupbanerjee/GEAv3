@@ -53,12 +53,14 @@ export async function GET(
     const result = await pool.query(`
       SELECT
         unique_entity_id as entity_id,
+        unique_entity_id as entity_code,
         entity_name,
         entity_type,
         parent_entity_id,
         contact_email,
         contact_phone,
         is_active,
+        COALESCE(is_service_provider, FALSE) as is_service_provider,
         created_at,
         updated_at
       FROM entity_master
