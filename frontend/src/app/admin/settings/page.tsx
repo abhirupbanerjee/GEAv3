@@ -633,7 +633,7 @@ export default function SettingsPage() {
           <div className="mt-2">
             <p className="text-xs text-gray-500 mb-1">Preview:</p>
             <img
-              src={value}
+              src={value.startsWith('/uploads/') ? value.replace('/uploads/', '/api/uploads/') : value}
               alt="Preview"
               className={`border border-gray-200 rounded ${isFavicon ? 'w-8 h-8' : 'h-12'}`}
               onError={(e) => {

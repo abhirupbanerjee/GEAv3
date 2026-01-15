@@ -23,11 +23,19 @@ export async function GET() {
       settings[row.setting_key] = row.setting_value || ''
     }
 
+    // Convert legacy /uploads/ paths to /api/uploads/ for proper serving
+    const convertPath = (path: string) => {
+      if (path && path.startsWith('/uploads/')) {
+        return path.replace('/uploads/', '/api/uploads/')
+      }
+      return path
+    }
+
     return NextResponse.json({
       siteName: settings['SITE_NAME'] || process.env.NEXT_PUBLIC_SITE_NAME || 'EA Portal',
-      siteLogo: settings['SITE_LOGO'] || '',
+      siteLogo: convertPath(settings['SITE_LOGO'] || ''),
       siteLogoAlt: settings['SITE_LOGO_ALT'] || 'EA Portal Logo',
-      siteFavicon: settings['SITE_FAVICON'] || '',
+      siteFavicon: convertPath(settings['SITE_FAVICON'] || ''),
     })
   } catch (error) {
     console.error('Error fetching branding settings:', error)

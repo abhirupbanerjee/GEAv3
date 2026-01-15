@@ -56,10 +56,18 @@ export async function GET(request: NextRequest) {
 
     const result = await pool.query<LeadershipContact>(query);
 
+    // Convert legacy /uploads/ paths to /api/uploads/ for proper serving
+    const contacts = result.rows.map(contact => ({
+      ...contact,
+      image_path: contact.image_path?.startsWith('/uploads/')
+        ? contact.image_path.replace('/uploads/', '/api/uploads/')
+        : contact.image_path
+    }));
+
     return NextResponse.json({
       success: true,
-      contacts: result.rows,
-      count: result.rows.length,
+      contacts,
+      count: contacts.length,
     });
   } catch (error) {
     console.error('Error fetching contacts:', error);

@@ -95,8 +95,8 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
     await writeFile(filePath, buffer);
 
-    // Generate public URL path
-    const publicPath = `/${uploadDir.replace('public/', '')}/${filename}`;
+    // Generate public URL path (use API route for serving)
+    const publicPath = `/api/uploads/${category}/${filename}`;
 
     return NextResponse.json({
       success: true,
