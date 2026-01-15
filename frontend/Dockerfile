@@ -85,6 +85,7 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  GRIEVANCE_RATE_LIMIT: ${GRIEVANCE_RATE_LIMIT}," >> src/config/env.ts && \
     echo "  SERVICE_REQUEST_ENTITY_ID: '${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID}'," >> src/config/env.ts && \
     echo "  API_BASE_URL: '${API_BASE_URL}'," >> src/config/env.ts && \
+    echo "  appUrl: '${NEXT_PUBLIC_FRONTEND_URL}'," >> src/config/env.ts && \
     echo "};" >> src/config/env.ts && \
     echo "export type Config = typeof config;" >> src/config/env.ts
 
