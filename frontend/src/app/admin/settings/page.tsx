@@ -4,7 +4,7 @@
  * @purpose Manage admin-configurable application settings, integrations, and business rules
  * @audience admin
  * @features
- *   - Tabbed interface with 6 categories: System, Authentication, Integrations, Business Rules, Content, Service Providers
+ *   - Tabbed interface with 7 categories: System, Authentication, Integrations, Business Rules, Performance, Content, Service Providers
  *   - Real-time validation and save functionality
  *   - Sensitive value masking with show/hide toggle
  *   - Test email functionality for SendGrid configuration
@@ -25,7 +25,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer } from 'react-icons/fi'
+import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer, FiZap } from 'react-icons/fi'
 
 // Types
 interface SystemSetting {
@@ -69,6 +69,7 @@ const CATEGORIES = [
   { key: 'AUTHENTICATION', label: 'Authentication', icon: FiLock, description: 'OAuth providers and login settings' },
   { key: 'INTEGRATIONS', label: 'Integrations', icon: FiLink, description: 'Email, chatbot, and captcha configuration' },
   { key: 'BUSINESS_RULES', label: 'Business Rules', icon: FiSliders, description: 'Rate limits, thresholds, and file upload' },
+  { key: 'PERFORMANCE', label: 'Performance', icon: FiZap, description: 'Caching, connection pooling, and optimization settings' },
   { key: 'CONTENT', label: 'Content', icon: FiFileText, description: 'Footer links and leadership contacts' },
   { key: 'SERVICE_PROVIDERS', label: 'Service Providers', icon: FiServer, description: 'Configure entities that can receive service requests' },
 ]
