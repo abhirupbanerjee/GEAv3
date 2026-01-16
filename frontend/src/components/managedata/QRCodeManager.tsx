@@ -422,6 +422,23 @@ export default function QRCodeManager() {
     img.src = url
   }
 
+  // Copy feedback link to clipboard
+  const copyFeedbackLink = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url)
+      alert('Feedback link copied to clipboard!')
+    } catch (err) {
+      console.error('Failed to copy:', err)
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea')
+      textArea.value = url
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+      alert('Feedback link copied to clipboard!')
+    }
+  }
 
   // Sorting handler
   const handleSort = (field: SortField) => {
@@ -800,20 +817,36 @@ export default function QRCodeManager() {
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-2">
                         <button
+                          onClick={() => downloadQRCode(qr)}
+                          className="px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 rounded text-xs font-semibold"
+                          title="Download QR Poster"
+                        >
+                          QR
+                        </button>
+                        <button
+                          onClick={() => copyFeedbackLink(qr.generated_url)}
+                          className="px-3 py-1 bg-green-100 hover:bg-green-200 text-green-700 rounded text-xs font-semibold"
+                          title="Copy Feedback Link"
+                        >
+                          Link
+                        </button>
+                        <button
                           onClick={() => handleEdit(qr)}
                           className="px-3 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold"
+                          title="Edit QR Code"
                         >
                           Edit
                         </button>
                         <button
                           onClick={() => handleToggleActive(qr)}
                           className={`px-3 py-1 rounded text-xs font-semibold ${
-                            qr.is_active 
-                              ? 'bg-red-100 hover:bg-red-200 text-red-700' 
+                            qr.is_active
+                              ? 'bg-red-100 hover:bg-red-200 text-red-700'
                               : 'bg-green-100 hover:bg-green-200 text-green-700'
                           }`}
+                          title={qr.is_active ? 'Deactivate QR Code' : 'Activate QR Code'}
                         >
-                          {qr.is_active ? 'Deactivate' : 'Activate'}
+                          {qr.is_active ? 'Off' : 'On'}
                         </button>
                       </div>
                     </td>
@@ -877,6 +910,20 @@ export default function QRCodeManager() {
                   <span className="text-sm font-semibold text-gray-600">Entity:</span>
                   <span className="text-sm text-gray-900">{successQRCode.entity_name}</span>
                 </div>
+                <div className="flex justify-between items-center pt-2 border-t border-gray-200 mt-2">
+                  <span className="text-sm font-semibold text-gray-600">Feedback Link:</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-600 font-mono truncate max-w-[200px]" title={successQRCode.generated_url}>
+                      {successQRCode.generated_url}
+                    </span>
+                    <button
+                      onClick={() => copyFeedbackLink(successQRCode.generated_url)}
+                      className="px-2 py-1 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded text-xs font-semibold"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Usage Guidelines */}
@@ -904,15 +951,22 @@ export default function QRCodeManager() {
             <div className="sticky bottom-0 bg-white rounded-b-lg border-t border-gray-200 p-6">
               <div className="flex gap-3">
                 <button
-                  onClick={() => {
-                    downloadQRCode(successQRCode)
-                  }}
+                  onClick={() => downloadQRCode(successQRCode)}
                   className="flex-1 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                  Download PNG
+                  Download QR Poster
+                </button>
+                <button
+                  onClick={() => copyFeedbackLink(successQRCode.generated_url)}
+                  className="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg flex items-center justify-center gap-2 transition"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                  </svg>
+                  Copy Feedback Link
                 </button>
                 <button
                   onClick={() => {
@@ -926,7 +980,7 @@ export default function QRCodeManager() {
                 </button>
               </div>
               <p className="text-center text-sm text-gray-500 mt-3">
-                💡 Tip: You can download this QR code again anytime from the QR Codes table
+                Use QR Poster for office displays, or Copy Link for kiosks and websites
               </p>
             </div>
           </div>

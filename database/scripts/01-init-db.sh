@@ -185,7 +185,7 @@ CREATE TABLE IF NOT EXISTS service_feedback (
     comment_text TEXT,
     recipient_group VARCHAR(50),
     channel VARCHAR(50) DEFAULT 'portal',
-    qr_code_id INTEGER,
+    qr_code_id VARCHAR(50),
     submitted_ip_hash VARCHAR(64),
     submitted_user_agent TEXT,
     is_active BOOLEAN DEFAULT TRUE,
