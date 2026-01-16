@@ -48,16 +48,17 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - DMS_URL=${DMS_URL}
-        - GIT_URL=${GIT_URL}
-        - CHATBOT_URL=${CHATBOT_URL}
-        - GOG_URL=${GOG_URL}
-        - ESERVICES_URL=${ESERVICES_URL}
-        - CONSTITUTION_URL=${CONSTITUTION_URL}
-        - SITE_NAME=${SITE_NAME}
-        - CONTACT_EMAIL=${CONTACT_EMAIL}
-        - ABOUT_CONTACT_EMAIL=${ABOUT_CONTACT_EMAIL}
-        - COPYRIGHT_YEAR=${COPYRIGHT_YEAR}
+        # Using simple form (VAR instead of VAR=${VAR}) so .env takes precedence over empty shell variables
+        - DMS_URL
+        - GIT_URL
+        - CHATBOT_URL
+        - GOG_URL
+        - ESERVICES_URL
+        - CONSTITUTION_URL
+        - SITE_NAME
+        - CONTACT_EMAIL
+        - ABOUT_CONTACT_EMAIL
+        - COPYRIGHT_YEAR
         - FEEDBACK_DB_HOST=feedback_db
         - FEEDBACK_DB_PORT=5432
         - FEEDBACK_DB_NAME=feedback

@@ -322,7 +322,7 @@ NEXTAUTH_SECRET=<paste-generated-secret>
 GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-client-secret
 
-# === SendGrid Email ===
+# === SendGrid Email (OPTIONAL - email notifications disabled if not set) ===
 SENDGRID_API_KEY=SG.your_api_key_here
 SENDGRID_FROM_EMAIL=noreply@your-domain.com
 SERVICE_ADMIN_EMAIL=admin@your-domain.com

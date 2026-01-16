@@ -24,13 +24,18 @@ The GEA Portal uses SendGrid for all transactional email notifications. This doc
 
 ### Environment Variables
 
-**Required Variables:**
+**Optional Variables (Email features disabled if not set):**
 ```bash
 SENDGRID_API_KEY=SG.your_api_key_here          # SendGrid API authentication
 SENDGRID_FROM_EMAIL=noreply@gov.gd             # Sender email address
 SENDGRID_FROM_NAME=GEA Portal                   # Display name in emails
 SERVICE_ADMIN_EMAIL=admin@gov.gd                # Admin notification recipient
 ```
+
+> **Note:** SendGrid configuration is **optional**. The application will build and run without these variables. When not configured:
+> - All email notifications are silently skipped
+> - A warning is logged: "SendGrid not configured - email features disabled"
+> - All other features (feedback, tickets, service requests) work normally
 
 **Configuration Files:**
 - **Setup:** [frontend/src/lib/sendgrid.ts](../frontend/src/lib/sendgrid.ts)
@@ -50,12 +55,24 @@ SERVICE_ADMIN_EMAIL=admin@gov.gd                # Admin notification recipient
 **Location:** [frontend/src/lib/sendgrid.ts](../frontend/src/lib/sendgrid.ts)
 
 ```typescript
-// Send single email
-sendEmail(emailData: EmailData): Promise<SendResponse>
+// Check if email is enabled (SendGrid configured)
+isEmailEnabled(): boolean
+
+// Send single email (returns success: false if not configured)
+sendEmail(emailData: EmailData): Promise<EmailResult>
 
 // Send bulk emails to multiple recipients
-sendBulkEmail(recipients: string[], subject: string, html: string): Promise<SendResponse>
+sendBulkEmail(recipients: string[], subject: string, html: string): Promise<EmailResult>
+
+// EmailResult type
+interface EmailResult {
+  success: boolean;
+  statusCode?: number;
+  error?: string;
+}
 ```
+
+**Graceful Degradation:** When SendGrid is not configured, `sendEmail()` and `sendBulkEmail()` return `{ success: false, error: 'SendGrid not configured' }` instead of throwing errors.
 
 ---
 
@@ -463,18 +480,25 @@ WHERE s.service_id = $1;
 
 #### 1. Emails Not Sending
 
-**Symptoms:** No emails received, no console logs
+**Symptoms:** No emails received, warning in logs
 **Possible Causes:**
-- `SENDGRID_API_KEY` not set or invalid
-- Missing environment variables
+- `SENDGRID_API_KEY` not set (intentional - email disabled)
+- `SENDGRID_API_KEY` invalid
 - SendGrid account suspended
 
-**Debug Steps:**
+**Expected Behavior (No SendGrid Configured):**
+```
+⚠️ SendGrid not configured - email features disabled
+⚠️ Email not sent - SendGrid not configured
+```
+This is normal when SendGrid is not configured. The application works without email.
+
+**Debug Steps (When Email Should Work):**
 ```bash
 # Check environment variables
 docker exec feedback_frontend env | grep SENDGRID
 
-# Check app logs
+# Check app logs for initialization
 docker logs feedback_frontend | grep -i sendgrid
 
 # Verify SendGrid API key
@@ -484,9 +508,9 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 ```
 
 **Solution:**
-- Verify `SENDGRID_API_KEY` in `.env` file
-- Check SendGrid dashboard for account status
-- Ensure all required env vars are set
+- If email is needed: Set `SENDGRID_API_KEY` in `.env` file and restart
+- If email is not needed: Ignore the warnings (application works normally)
+- Check SendGrid dashboard for account status if configured
 
 #### 2. Bulk Emails Only Sending to First Recipient
 

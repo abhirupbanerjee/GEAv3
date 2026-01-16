@@ -18,6 +18,7 @@ This manual covers the following pages accessible to MDA staff (requires login):
 | **Staff Home** | `/admin/staff/home` | Your personalized staff dashboard |
 | **Tickets** | `/admin/tickets` | Manage tickets for your entity only |
 | **Analytics** | `/admin/analytics` | View analytics for your entity |
+| **Service Requests** | `/admin/service-requests` | Submit and manage service requests (service provider entities see received requests) |
 
 ### Public Pages (Also Available to Staff)
 | Page | URL | Purpose |
@@ -40,10 +41,11 @@ This manual covers the following pages accessible to MDA staff (requires login):
 3. [Signing In](#3-signing-in)
 4. [Staff Dashboard](#4-staff-dashboard)
 5. [Managing Tickets](#5-managing-tickets)
-6. [Viewing Analytics](#6-viewing-analytics)
-7. [Using Citizen Features](#7-using-citizen-features)
-8. [Troubleshooting](#8-troubleshooting)
-9. [Contact & Support](#9-contact--support)
+6. [Service Requests](#6-service-requests)
+7. [Viewing Analytics](#7-viewing-analytics)
+8. [Using Citizen Features](#8-using-citizen-features)
+9. [Troubleshooting](#9-troubleshooting)
+10. [Contact & Support](#10-contact--support)
 
 ---
 
@@ -331,16 +333,70 @@ Open → In Progress → Resolved → Closed
 
 ---
 
-## 6. Viewing Analytics
+## 6. Service Requests
 
-### 6.1 Accessing Analytics
+Staff users can submit service requests to service provider entities (such as DTA) and, if their entity is a service provider, manage received requests.
+
+### 6.1 Accessing Service Requests
+
+1. Click **"Service Requests"** in the navigation menu
+2. The page displays based on your entity's role:
+
+**Regular Entity Staff:**
+- See **"Requests Submitted"** tab showing requests your entity has submitted
+
+**Service Provider Entity Staff (e.g., DTA):**
+- See **"Requests Received"** tab showing requests from other entities
+- See **"Requests Submitted"** tab showing requests your entity has submitted
+
+### 6.2 Submitting a New Service Request
+
+1. Click **"New Request"** button
+2. Select the **Service Provider** (if multiple providers are available)
+3. Choose the **Service Type** from available EA services
+4. Fill in request details:
+   - Description of the request
+   - Priority level
+   - Required attachments
+5. Click **"Submit"**
+
+### 6.3 Managing Received Requests (Service Providers Only)
+
+If your entity is configured as a service provider, you can:
+
+1. **View received requests** in the "Requests Received" tab
+2. **Update status** as work progresses:
+   - Draft → Submitted → In Progress → Completed
+3. **Add comments** to communicate with requesters
+4. **Upload deliverables** when work is complete
+
+### 6.4 Tracking Your Submitted Requests
+
+In the "Requests Submitted" tab:
+- View status of all requests you've submitted
+- Add comments or additional information
+- Upload supplementary attachments
+- Track progress through the workflow
+
+### 6.5 Service Request Dashboard Widget
+
+For service provider entities, the Staff Dashboard displays:
+- Count of pending received requests
+- Quick access to "Requests Received" page
+- Recent request activity
+
+---
+
+## 7. Viewing Analytics
+
+### 7.1 Accessing Analytics
 
 1. Click **"Analytics"** in the navigation menu
 2. Dashboard displays your entity's metrics
 
 > **Note:** You can only view analytics for your assigned entity.
 
-### 6.2 Available Metrics
+### 7.2 Available Metrics
 
 **Ticket Metrics:**
 - Total tickets (by period)
@@ -355,7 +411,7 @@ Open → In Progress → Resolved → Closed
 - Rating distribution
 - Comments summary
 
-### 6.3 Time Period Selection
+### 7.3 Time Period Selection
 
 Filter analytics by:
 - Last 7 days
@@ -363,7 +419,7 @@ Filter analytics by:
 - Last 90 days
 - Custom date range
 
-### 6.4 Exporting Data
+### 7.4 Exporting Data
 
 If export is enabled:
 1. Select the desired report
@@ -372,21 +428,21 @@ If export is enabled:
 
 ---
 
-## 7. Using Citizen Features
+## 8. Using Citizen Features
 
 As a staff user, you have full access to citizen features. Refer to the **Citizen User Manual** for detailed instructions on:
 
-### 7.1 Submitting Feedback
+### 8.1 Submitting Feedback
 - Rate government services you have used
 - Provide comments on service quality
 - See: Citizen Manual Section 3
 
-### 7.2 Filing Grievances
+### 8.2 Filing Grievances
 - Submit complaints as a citizen
 - Attach supporting documents
 - See: Citizen Manual Section 4
 
-### 7.3 Checking Ticket Status (Public)
+### 8.3 Checking Ticket Status (Public)
 - Look up any ticket using its number
 - View public ticket information
 - See: Citizen Manual Section 5
@@ -398,9 +454,9 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 
 ---
 
-## 8. Troubleshooting
+## 9. Troubleshooting
 
-### 8.1 Cannot Sign In
+### 9.1 Cannot Sign In
 
 **Problem:** "Unauthorized" or "Access Denied" error
 
@@ -411,7 +467,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 4. Clear browser cache and cookies
 5. Contact DTA Administrator if issue persists
 
-### 8.2 Cannot See Tickets
+### 9.2 Cannot See Tickets
 
 **Problem:** Ticket list is empty or missing tickets
 
@@ -421,7 +477,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 3. Adjust filters (you may have filtered out tickets)
 4. Contact DTA if entity assignment is wrong
 
-### 8.3 Cannot Update Ticket
+### 9.3 Cannot Update Ticket
 
 **Problem:** Update button not working or error on save
 
@@ -432,7 +488,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 4. Check your internet connection
 5. Try a different browser
 
-### 8.4 Session Expired
+### 9.4 Session Expired
 
 **Problem:** Suddenly logged out or "Session Expired" message
 
@@ -440,7 +496,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 
 **Solution:** Simply sign in again. Your work should be saved if you clicked "Update" before the session expired.
 
-### 8.5 Page Not Loading
+### 9.5 Page Not Loading
 
 **Solutions:**
 1. Check your internet connection
@@ -451,9 +507,9 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 
 ---
 
-## 9. Contact & Support
+## 10. Contact & Support
 
-### 9.1 For Account Issues
+### 10.1 For Account Issues
 
 Contact the **DTA Administrator** for:
 - New account creation
@@ -463,17 +519,17 @@ Contact the **DTA Administrator** for:
 
 **Email:** alerts.dtahelpdesk@gmail.com
 
-### 9.2 For Technical Support
+### 10.2 For Technical Support
 
 For system issues or bugs:
 - **Email:** support@dta.gov.gd
 - **Include:** Screenshots, error messages, steps to reproduce
 
-### 9.3 For Training
+### 10.3 For Training
 
 Request additional training through your supervisor or contact DTA directly.
 
-### 9.4 Emergency Contacts
+### 10.4 Emergency Contacts
 
 For urgent system issues affecting service delivery:
 - Contact your DTA liaison

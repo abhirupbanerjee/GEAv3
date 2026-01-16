@@ -15,11 +15,11 @@ Complete digital portal system with:
 - **Native Ticketing System** - Citizen grievances and EA service requests with SLA tracking
 - **Admin Portal** - Ticket management, analytics, and master data administration
 - **Staff Portal** - Entity-specific access for ministry/department officers
-- **Context-Aware AI Assistant** - Real-time UI state tracking with intelligent, context-aware help
+- **AI Chatbot Assistant** - Embedded chatbot (Azure Cloud hosted, can be enabled/disabled)
 - **AI Bot Integration** - Centralized bot inventory and iframe-based chat interface
 - **OAuth Authentication** - Google & Microsoft sign-in with role-based access control
 
-**Status:** ✅ Production-ready | **Version:** 3.1.0 (External API for Bot Integration)
+**Status:** ✅ Production-ready | **Version:** 3.2.0 (Multi-Entity Service Requests + Admin Settings)
 
 ---
 
@@ -168,7 +168,7 @@ gogeaportal/v3/
 │       ├── API_REFERENCE.md               # All API endpoints
 │       ├── DATABASE_REFERENCE.md          # Database schema & setup
 │       ├── AUTHENTICATION.md              # OAuth setup & configuration
-│       └── AI_BOT_INTEGRATION.md          # Context-aware AI bot integration guide
+│       └── AI_BOT_INTEGRATION.md          # AI chatbot configuration guide
 │
 ├── 🗄️ Database
 │   └── database/
@@ -243,7 +243,7 @@ gogeaportal/v3/
             │   │       ├── grievances/    # Grievance queries
             │   │       └── services/      # Service requirements
             │   │
-            │   ├── layout.tsx             # Root layout (with ChatContextProvider)
+            │   ├── layout.tsx             # Root layout
             │   ├── page.tsx               # Home page
             │   ├── about/                 # About page
             │   ├── auth/                  # Sign-in & error pages
@@ -253,19 +253,16 @@ gogeaportal/v3/
             │   └── feedback/              # Feedback forms
             │
             ├── components/                # React components
-            │   ├── ChatBot.tsx            # AI bot iframe with context tracking
+            │   ├── ChatBot.tsx            # AI chatbot iframe component
             │   ├── layout/                # Header, Footer, Navigation
             │   ├── home/                  # Homepage components
             │   └── admin/                 # Admin UI components
             │
             ├── providers/                 # React Context providers
-            │   └── ChatContextProvider.tsx # AI bot context management
             │
             ├── hooks/                     # Custom React hooks
-            │   └── useChatContext.ts      # Hook for AI bot context
             │
             ├── types/                     # TypeScript type definitions
-            │   └── chat-context.ts        # AI bot context types
             │
             ├── lib/                       # Utilities & configurations
             │   ├── auth.ts                # NextAuth configuration
@@ -531,13 +528,24 @@ sudo ufw enable
 
 ### Ticketing & Grievance Management ✅
 - Citizen grievance submission with attachments
-- EA service request management
+- EA service request management with **multi-entity support**
+- **Service Provider Entities** - Configure which entities can receive service requests
 - Native ticketing system with SLA tracking
 - Ticket activity timeline with resolution tracking
 - IP-based rate limiting protection
 - Email notifications via SendGrid integration
 - Master data management (entities, services, QR codes)
 - Admin ticket management dashboard
+
+### Admin Settings ✅
+- **6 configuration tabs:** System, Authentication, Integrations, Business Rules, Content, Service Providers
+- Branding management (logo, favicon)
+- OAuth provider configuration
+- SendGrid email integration
+- Chatbot enable/disable and URL configuration
+- Rate limits and file upload settings
+- Leadership contacts management
+- Service provider entity management
 
 ### Authentication & Authorization ✅
 - NextAuth v4 with OAuth providers (Google, Microsoft)
@@ -549,19 +557,16 @@ sudo ufw enable
 - Email whitelist authorization
 
 ### AI Integration ✅
-- **Context-Aware AI Assistant** - Real-time UI state tracking
-- **Dual-Channel Context System:**
-  - Static page metadata (build-time generation from JSDoc)
-  - Dynamic UI state (real-time postMessage updates)
-- **Intelligent Context Tracking:**
-  - Modal awareness (knows what ticket/user you're viewing)
-  - Tab switching detection (tracks active tab)
-  - Form progress monitoring (tracks completion status)
-  - Edit mode tracking (knows what you're editing)
-- **Page Context API** - `/api/content/page-context` endpoint
-- **Type-Safe Implementation** - Full TypeScript coverage
-- Centralized AI bot inventory and management
-- Iframe-based chat interface with postMessage communication
+- **AI Chatbot Assistant** - Embedded iframe chatbot for user assistance
+- **Chatbot Hosting:**
+  - Current: Azure Cloud (Microsoft Azure)
+  - Future: GoG Data Center (when subscriptions available)
+- **Admin Configuration:**
+  - Enable/disable chatbot via Admin Settings → Integrations
+  - Configurable chatbot URL
+- **External API Access** - Chatbot can access portal data via API
+- Centralized AI bot inventory and management (`/admin/ai-inventory`)
+- Iframe-based chat interface
 
 ### External API (Bot/Integration Access) ✅ **NEW**
 - **API Key Authentication** - Secure access for external systems and AI bots
@@ -579,96 +584,42 @@ sudo ufw enable
 
 ---
 
-## 🤖 Context-Aware AI Assistant
+## 🤖 AI Chatbot Assistant
 
-The portal features an intelligent AI assistant that understands exactly what users are doing in real-time.
+The portal features an embedded AI chatbot that provides assistance to users.
 
-### How It Works
+### Current Implementation
 
-**Dual-Channel Context System:**
+| Feature | Status |
+|---------|--------|
+| Embedded iframe chatbot | ✅ Active |
+| Enable/Disable toggle | ✅ Admin Settings |
+| Azure Cloud hosting | ✅ Current |
+| GoG Data Center hosting | 🔜 Future |
+| External API data access | ✅ Available |
 
-1. **Static Page Context (Build-Time)**
-   ```typescript
-   /**
-    * @pageContext
-    * @title Ticket Management Dashboard
-    * @purpose View and manage support tickets
-    * @steps
-    *   - Review statistics
-    *   - Use filters
-    *   - Click ticket to view details
-    */
-   ```
-   - Extracted from `@pageContext` JSDoc tags
-   - Generated at build time into JSON
-   - Served via `/api/content/page-context` endpoint
+### Configuration
 
-2. **Dynamic UI Context (Real-Time)**
-   ```typescript
-   // When user opens ticket modal
-   openModal('view-ticket', {
-     entityId: 'TKT-2025-001',
-     entityName: 'Passport Issue',
-     data: { status: 'Open', priority: 'High' }
-   });
-   // AI bot receives update via postMessage
-   ```
+**Admin Settings → Integrations → Chatbot:**
+- Toggle chatbot on/off
+- Configure chatbot URL
+- Test chatbot connection
 
-### What the AI Knows
+### Chatbot Hosting
 
-- ✅ **Current page** - Route, title, purpose, features
-- ✅ **Active modal** - Type, entity details, data
-- ✅ **Edit state** - What entity is being edited
-- ✅ **Active tab** - Which tab in tabbed interfaces
-- ✅ **Form progress** - Completed/pending fields
-
-### Integration Points
-
-Pages integrated with context tracking:
-- `/admin/tickets` - Modal tracking for ticket details
-- `/admin/users` - Modal tracking for user add/edit
-- `/admin/managedata` - Tab switching (entities/services/QR codes)
-- `/feedback` - Form progress tracking (service selection, ratings)
-
-### Example AI Interaction
-
-**User Context:**
-- Viewing ticket TKT-2025-001
-- Status: Open, Priority: High
-- Subject: Passport Issue
-
-**User asks:** "What should I do next?"
-
-**AI Response:**
-> Based on the ticket you're viewing (TKT-2025-001: Passport Issue), here's what you should do next:
-> 1. **Update status** - Change from Open to In Progress
-> 2. **Check SLA** - High priority tickets need response within 24 hours
-> 3. **Add notes** - Document your actions (internal notes only)
+| Environment | Location | Status |
+|-------------|----------|--------|
+| **Current** | Azure Cloud | Active |
+| **Future** | GoG Data Center | Planned (when subscriptions available) |
 
 ### For Developers
 
-**Using Context in Components:**
-```typescript
-import { useChatContext } from '@/hooks/useChatContext';
-
-function MyComponent() {
-  const { openModal, closeModal, switchTab } = useChatContext();
-
-  const handleView = (item) => {
-    openModal('view-item', {
-      entityType: 'ticket',
-      entityId: item.id,
-      entityName: item.subject,
-      data: { status: item.status }
-    });
-  };
-
-  return <button onClick={() => handleView(item)}>View</button>;
-}
-```
+The chatbot is embedded as a simple iframe. Configuration is managed via:
+- `CHATBOT_ENABLED` - System setting to enable/disable
+- `CHATBOT_URL` - URL of the chatbot application
 
 **Complete Documentation:**
-- [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md) - Full integration, testing, and bot inventory management
+- [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md) - Configuration, troubleshooting, and bot inventory management
 
 ---
 
@@ -937,8 +888,8 @@ Before going live:
 - **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
 - **Docker Volumes:** 2 active (`traefik_acme`, `feedback_db_data`)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
-- **AI Integration:** Context-aware assistant with real-time tracking + External API for bots
-- **Page Context Coverage:** 22 pages, 100% documented
+- **AI Integration:** Embedded chatbot (Azure Cloud) + External API for bot data access
+- **Admin Settings Tabs:** 6 (System, Authentication, Integrations, Business Rules, Content, Service Providers)
 - **OpenAPI Specs:** 6 YAML files for bot/integration access
 
 ### Production Resource Usage
@@ -985,15 +936,15 @@ Before going live:
 
 ## 📄 License
 
-© 2025 Government of Grenada. All rights reserved.
+© 2026 Government of Grenada. All rights reserved.
 
 ---
 
-**Last Updated:** December 19, 2025 | **Version:** 3.1.0 | **Status:** ✅ Production Ready
+**Last Updated:** January 2026 | **Version:** 3.2.0 | **Status:** ✅ Production Ready
 
 > **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
 
-**Note:** This project has been co-developed with AI (Claude) for documentation, code implementation, generation of synthetic data, and test scenarios. The context-aware AI assistant feature was implemented with full AI assistance.
+**Note:** This project has been co-developed with AI (Claude) for documentation, code implementation, generation of synthetic data, and test scenarios.
 
 ---
 
@@ -1005,7 +956,7 @@ Before going live:
 - 🔌 [API Reference](docs/API_REFERENCE.md) - All API endpoints including External API
 - 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
 - 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
-- 🤖 [**AI Bot Integration**](docs/AI_BOT_INTEGRATION.md) - Context-aware assistant guide
+- 🤖 [**AI Bot Integration**](docs/AI_BOT_INTEGRATION.md) - Chatbot configuration and management
 - 🔗 [**External API**](docs/API_REFERENCE.md#external-api-botintegration-access) - Bot/integration data access **NEW**
 
 ---
@@ -1020,7 +971,7 @@ Before going live:
 - [UI Modification Guide](docs/developer-guides/UI_MODIFICATION_GUIDE.md) - Complete guide for UI development and customization
 - [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
 - [External API Guide](docs/API_REFERENCE.md#external-api-botintegration-access) - Bot/integration data access endpoints
-- [AI Bot Integration](docs/AI_BOT_INTEGRATION.md) - Context-aware assistant implementation
+- [AI Bot Integration](docs/AI_BOT_INTEGRATION.md) - Chatbot configuration and management
 - [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
 - [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
 

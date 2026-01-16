@@ -1,9 +1,9 @@
 # AI Bot Integration Guide
 
-**GEA Portal v3 - Context-Aware AI Assistant**
+**GEA Portal v3 - AI Chatbot Assistant**
 
-**Version:** 1.2
-**Last Updated:** December 19, 2025
+**Version:** 2.0
+**Last Updated:** January 2026
 **Status:** Production Ready
 
 ---
@@ -12,31 +12,35 @@
 
 1. [Overview](#overview)
 2. [Architecture](#architecture)
-3. [Quick Reference](#quick-reference)
-4. [Implementation Guide](#implementation-guide)
+3. [Configuration](#configuration)
+4. [Admin Settings](#admin-settings)
 5. [Bot Inventory Management](#bot-inventory-management)
-6. [Testing Guide](#testing-guide)
-7. [Troubleshooting](#troubleshooting)
-8. [External API for Bot Data Access](#external-api-for-bot-data-access)
+6. [External API for Bot Data Access](#external-api-for-bot-data-access)
+7. [Future Roadmap](#future-roadmap)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
 ## Overview
 
-The GEA Portal integrates an AI-powered chatbot that provides context-aware assistance. The bot understands:
+The GEA Portal integrates an AI-powered chatbot that provides assistance to users. The chatbot is embedded as an iframe and can be enabled or disabled through Admin Settings.
 
-- **Who the user is** - Role (admin/staff/public), name, entity
-- **What page** the user is viewing
-- **What action** they're performing (viewing ticket, editing user, etc.)
-- **Where they are** in a multi-step process
-- **What data** they're working with
+### Current Implementation
 
-### Dual-Context System
+| Feature | Status |
+|---------|--------|
+| Embedded iframe chatbot | Active |
+| Enable/Disable toggle | Available in Admin Settings |
+| State tracking (page context) | Not implemented |
+| Real-time UI context | Not implemented |
+| External API data access | Available |
 
-| System | Purpose | Update Frequency |
-|--------|---------|------------------|
-| **Static Page Context** (API) | Pre-built metadata about each page | Build time |
-| **Dynamic UI Context** (postMessage) | Real-time UI state + user session | Real-time |
+### Hosting
+
+| Environment | Location | Notes |
+|-------------|----------|-------|
+| **Current** | Azure Cloud | Microsoft Azure hosting |
+| **Future** | GoG Data Center | Migration planned when subscriptions available |
 
 ---
 
@@ -47,25 +51,20 @@ The GEA Portal integrates an AI-powered chatbot that provides context-aware assi
 │                        GEA Portal (Next.js)                          │
 │                                                                      │
 │  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  ChatContextProvider (React Context)                           │ │
-│  │                                                                 │ │
-│  │  State Tracking:                                                │ │
-│  │  • user (session)  • route  • modal                            │ │
-│  │  • edit  • tab  • form                                         │ │
+│  │  ChatBot.tsx Component                                         │ │
+│  │  • Checks CHATBOT_ENABLED setting                              │ │
+│  │  • Renders iframe if enabled                                   │ │
+│  │  • Displays chatbot URL from settings                          │ │
 │  └────────────────────────────────────────────────────────────────┘ │
-│                          │                                           │
-│                          ▼                                           │
-│  ┌────────────────────────────────────────────────────────────────┐ │
-│  │  ChatBot.tsx - Sends postMessage to iframe                     │ │
-│  └────────────────────────────────────────────────────────────────┘ │
-└──────────────────────────┼───────────────────────────────────────────┘
-                           │ postMessage (CONTEXT_UPDATE)
+└──────────────────────────────────────────────────────────────────────┘
+                           │
+                           │ iframe embed
                            ▼
 ┌──────────────────────────────────────────────────────────────────────┐
-│                    AI Bot (Vercel - Separate App)                    │
-│  • Receives context via postMessage                                  │
-│  • Fetches static page context via API                              │
-│  • Generates context-aware responses                                 │
+│                    AI Chatbot (Azure Cloud)                          │
+│  • Standalone chatbot application                                    │
+│  • No state tracking from portal                                     │
+│  • Can access portal data via External API (if configured)           │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -73,210 +72,57 @@ The GEA Portal integrates an AI-powered chatbot that provides context-aware assi
 
 | File | Purpose |
 |------|---------|
-| `frontend/src/types/chat-context.ts` | TypeScript interfaces |
-| `frontend/src/providers/ChatContextProvider.tsx` | React Context provider |
-| `frontend/src/hooks/useChatContext.ts` | Hook export |
-| `frontend/src/components/ChatBot.tsx` | ChatBot with postMessage |
-| `frontend/src/app/layout.tsx` | Provider setup |
+| `frontend/src/components/ChatBot.tsx` | ChatBot iframe component |
+| `frontend/src/app/layout.tsx` | ChatBot placement |
+| `frontend/public/config/bots-config.json` | Bot inventory configuration |
 
 ---
 
-## Quick Reference
+## Configuration
 
-### Import the Hook
+### Environment Variables
 
-```typescript
-import { useChatContext } from '@/hooks/useChatContext';
+```bash
+# .env
+NEXT_PUBLIC_CHATBOT_URL=https://your-chatbot.azurewebsites.net
+NEXT_PUBLIC_SITE_URL=https://gea.your-domain.com
 ```
 
-### Modal Management
+### Database Settings
 
-```typescript
-const { openModal, closeModal } = useChatContext();
+The chatbot is controlled via system settings in the `system_settings` table:
 
-// Open a modal with context
-openModal('view-ticket', {
-  title: 'Ticket Details',
-  entityType: 'ticket',
-  entityId: 'TKT-001',
-  entityName: 'Display Name',
-  data: { status: 'Open', priority: 'High' }
-});
-
-// Close the modal
-closeModal();
-```
-
-### Tab Switching
-
-```typescript
-const { switchTab } = useChatContext();
-
-// Switch tab
-switchTab('managedata', 'services', ['entities', 'services', 'qrcodes']);
-```
-
-### Form Progress
-
-```typescript
-const { updateFormProgress, clearForm } = useChatContext();
-
-// Update progress
-updateFormProgress('service-feedback', {
-  completedFields: ['service', 'recipient'],
-  pendingFields: ['ratings (3/5 completed)']
-});
-
-// Clear on unmount
-useEffect(() => () => clearForm(), []);
-```
-
-### Edit Mode
-
-```typescript
-const { startEditing, stopEditing } = useChatContext();
-
-startEditing('entity', entityId, {
-  entityName: 'Ministry of Finance',
-  fields: ['name', 'abbreviation']
-});
-
-stopEditing();
-```
+| Setting Key | Type | Description |
+|-------------|------|-------------|
+| `CHATBOT_ENABLED` | boolean | Enable/disable the chatbot globally |
+| `CHATBOT_URL` | url | URL of the chatbot application |
 
 ---
 
-## Implementation Guide
+## Admin Settings
 
-### Context Message Structure
+### Enabling/Disabling the Chatbot
 
-```typescript
-{
-  type: 'CONTEXT_UPDATE',
-  context: {
-    route: '/admin/tickets',
-    timestamp: 1234567890,
-    changeType: 'modal' | 'edit' | 'tab' | 'form' | 'navigation',
+1. Navigate to **Admin Portal** → **Settings**
+2. Go to the **Integrations** tab
+3. Find the **Chatbot** section
+4. Toggle **Enable Chatbot** on or off
+5. Click **Save Changes**
 
-    user: {
-      id: 'user-123',
-      name: 'John Doe',
-      email: 'john@example.com',
-      role: 'admin' | 'staff' | 'public',
-      roleName: 'Staff',
-      entity: { id: 5, name: 'Ministry of Finance' },
-      isAuthenticated: true
-    },
+### Configuring the Chatbot URL
 
-    modal?: {
-      type: 'view-ticket',
-      title: 'Ticket Details',
-      entityType: 'ticket',
-      entityId: 'TKT-2025-001',
-      entityName: 'Subject',
-      data: { status: 'Open', priority: 'High' }
-    },
+1. In the **Integrations** tab → **Chatbot** section
+2. Enter the chatbot URL in the **Chatbot URL** field
+3. Click **Save Changes**
+4. Use the **Open Chatbot** button to test the configuration
 
-    tab?: {
-      tabGroup: 'managedata',
-      activeTab: 'services',
-      availableTabs: ['entities', 'services', 'qrcodes']
-    },
+### When to Disable
 
-    form?: {
-      formName: 'service-feedback',
-      completedFields: ['service', 'recipient'],
-      pendingFields: ['ratings']
-    }
-  }
-}
-```
-
-### Page Integration Examples
-
-**Tickets Page:**
-```typescript
-const { openModal, closeModal } = useChatContext();
-
-const handleViewTicket = (ticket) => {
-  openModal('view-ticket', {
-    entityType: 'ticket',
-    entityId: ticket.ticket_number,
-    entityName: ticket.subject,
-    data: { status: ticket.status.name, priority: ticket.priority.name }
-  });
-};
-```
-
-**Manage Data Page (Tabs):**
-```typescript
-const { switchTab } = useChatContext();
-
-useEffect(() => {
-  switchTab('managedata', activeTab, ['entities', 'services', 'qrcodes']);
-}, []);
-
-const handleTabChange = (tabId) => {
-  setActiveTab(tabId);
-  switchTab('managedata', tabId, ['entities', 'services', 'qrcodes']);
-};
-```
-
-**Feedback Form:**
-```typescript
-const { updateFormProgress, clearForm } = useChatContext();
-
-useEffect(() => {
-  const completed = [];
-  const pending = [];
-
-  if (selectedService) completed.push('service');
-  else pending.push('service');
-
-  const ratingCount = Object.values(ratings).filter(r => r > 0).length;
-  if (ratingCount === 5) completed.push('ratings');
-  else pending.push(`ratings (${ratingCount}/5 completed)`);
-
-  updateFormProgress('service-feedback', { completedFields: completed, pendingFields: pending });
-}, [selectedService, ratings]);
-
-useEffect(() => () => clearForm(), []);
-```
-
-### AI Bot Implementation (Receiving Context)
-
-```typescript
-// AI Bot - Context Listener
-export function usePortalContext() {
-  const [context, setContext] = useState(null);
-
-  useEffect(() => {
-    const handleMessage = (event) => {
-      // Validate origin
-      if (event.origin !== process.env.NEXT_PUBLIC_PORTAL_URL) return;
-      if (event.data?.type !== 'CONTEXT_UPDATE') return;
-
-      setContext(event.data.context);
-    };
-
-    window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, []);
-
-  return context;
-}
-```
-
-### Fetching Static Page Context
-
-```typescript
-async function fetchPageContext(route) {
-  const response = await fetch(
-    `${process.env.NEXT_PUBLIC_API_URL}/content/page-context?route=${encodeURIComponent(route)}`
-  );
-  return response.json();
-}
-```
+Consider disabling the chatbot if:
+- The Azure subscription is inactive
+- Migration to GoG DC is in progress
+- Performance issues are observed
+- Maintenance is required
 
 ---
 
@@ -286,7 +132,9 @@ async function fetchPageContext(route) {
 
 Navigate to: `/admin/ai-inventory` (Admin role required)
 
-### Adding a New Bot
+The inventory provides an overview of all configured AI bots and their status.
+
+### Bot Configuration File
 
 Edit `frontend/public/config/bots-config.json`:
 
@@ -294,17 +142,21 @@ Edit `frontend/public/config/bots-config.json`:
 {
   "bots": [
     {
-      "id": "unique-bot-id",
-      "name": "Bot Display Name",
-      "url": "https://your-bot-url.com",
-      "description": "Brief description",
+      "id": "gea-assistant",
+      "name": "GEA AI Assistant",
+      "url": "https://your-chatbot.azurewebsites.net",
+      "description": "AI assistant for GEA Portal users",
       "status": "active",
       "deployment": "cloud",
       "audience": "all",
       "modality": "text",
       "category": "General Assistance",
       "icon": "🤖",
-      "features": ["Feature 1", "Feature 2"]
+      "features": [
+        "Answer questions about government services",
+        "Guide users through portal features",
+        "Provide service information"
+      ]
     }
   ]
 }
@@ -312,150 +164,30 @@ Edit `frontend/public/config/bots-config.json`:
 
 ### Bot Configuration Fields
 
-| Field | Required | Values |
-|-------|----------|--------|
-| `id` | Yes | Unique identifier (lowercase, hyphens) |
-| `name` | Yes | Display name |
-| `url` | Yes | Full URL to bot interface |
-| `description` | Yes | Brief description |
-| `status` | Yes | `active`, `planned`, `deprecated` |
-| `deployment` | No | `cloud`, `on-premise`, `hybrid` |
-| `audience` | No | `admin`, `staff`, `public`, `all` |
-| `modality` | No | `text`, `voice`, `multimodal` |
-| `category` | No | Category name |
-| `icon` | No | Emoji icon |
-| `features` | No | Array of feature descriptions |
-
-### ChatBot Environment Configuration
-
-```bash
-# .env
-NEXT_PUBLIC_CHATBOT_URL=https://your-bot-url.vercel.app
-NEXT_PUBLIC_SITE_URL=https://gea.your-domain.com
-```
-
----
-
-## Testing Guide
-
-### Browser Console Testing
-
-```javascript
-// Listen for context updates
-window.addEventListener('message', (e) => {
-  if (e.data?.type === 'CONTEXT_UPDATE') {
-    console.log('📨 Context:', e.data.context);
-  }
-});
-
-// Check iframe exists
-const iframe = document.querySelector('iframe[title="Grenada AI Assistant"]');
-console.log('Iframe found:', !!iframe);
-```
-
-### Test Scenarios
-
-| Scenario | Expected Context |
-|----------|------------------|
-| Navigate to `/admin/tickets` | `changeType: 'navigation'`, `route: '/admin/tickets'` |
-| Click ticket row | `changeType: 'modal'`, `modal.type: 'view-ticket'` |
-| Close modal | `changeType: 'modal'`, `modal: null` |
-| Switch to Services tab | `changeType: 'tab'`, `tab.activeTab: 'services'` |
-| Fill feedback form | `changeType: 'form'`, `form.completedFields: [...]` |
-
-### API Testing
-
-```bash
-# Get page context
-curl "https://gea.your-domain.com/api/content/page-context?route=/admin/tickets"
-
-# Check coverage
-curl "https://gea.your-domain.com/api/content/page-context/status"
-```
-
-### Integration Checklist
-
-- [ ] ChatContextProvider wraps app in layout.tsx
-- [ ] ChatBot component receives context from provider
-- [ ] postMessage sent to iframe with correct origin
-- [ ] Console shows `[ChatContext] Sent:` messages
-- [ ] Context updates on navigation, modal, tab, form changes
-
----
-
-## Troubleshooting
-
-### postMessage Not Received
-
-**Check:**
-1. Iframe exists: `document.querySelector('iframe[title="Grenada AI Assistant"]')`
-2. ChatBot is open (context only sent when visible)
-3. `NEXT_PUBLIC_CHATBOT_URL` in environment variables
-
-### Context Not Updating
-
-**Check:**
-1. Component uses `useChatContext()` hook
-2. Handler functions call context methods
-3. Console shows `[ChatContext] Sent:` messages
-
-### Bot Not Receiving Context
-
-**AI Bot must:**
-```javascript
-window.addEventListener('message', (event) => {
-  if (event.origin !== 'https://gea.your-domain.com') return;
-  if (event.data?.type === 'CONTEXT_UPDATE') {
-    // Process context
-  }
-});
-```
-
-### Bot Not Appearing in Inventory
-
-1. Verify `bots-config.json` is valid JSON
-2. Ensure bot entry has all required fields
-3. Rebuild frontend: `docker compose build frontend`
-
----
-
-## Security Considerations
-
-### postMessage Origin Validation
-
-**Portal (sender):**
-```typescript
-const botOrigin = new URL(config.CHATBOT_URL).origin;
-iframe.contentWindow.postMessage(message, botOrigin);
-```
-
-**AI Bot (receiver):**
-```typescript
-if (event.origin !== process.env.NEXT_PUBLIC_PORTAL_URL) {
-  return; // Reject untrusted origins
-}
-```
-
-### Data Sent in Context
-
-- ✅ Ticket numbers (visible to user)
-- ✅ Entity names (public information)
-- ✅ Status/priority (user has access)
-- ❌ Password hashes
-- ❌ API keys
-- ❌ User tokens
+| Field | Required | Values | Description |
+|-------|----------|--------|-------------|
+| `id` | Yes | string | Unique identifier (lowercase, hyphens) |
+| `name` | Yes | string | Display name |
+| `url` | Yes | url | Full URL to bot interface |
+| `description` | Yes | string | Brief description |
+| `status` | Yes | `active`, `planned`, `deprecated` | Current status |
+| `deployment` | No | `cloud`, `on-premise`, `hybrid` | Deployment type |
+| `audience` | No | `admin`, `staff`, `public`, `all` | Target users |
+| `modality` | No | `text`, `voice`, `multimodal` | Interaction mode |
+| `category` | No | string | Category name |
+| `icon` | No | string | Emoji icon |
+| `features` | No | array | List of feature descriptions |
 
 ---
 
 ## External API for Bot Data Access
 
-In addition to real-time context via postMessage, bots can access GEA Portal data programmatically using the External API.
+The chatbot can access GEA Portal data programmatically using the External API.
 
 ### Overview
 
 | Method | Use Case | Authentication |
 |--------|----------|----------------|
-| **postMessage** | Real-time UI context (page, modal, form state) | None (same-origin iframe) |
 | **External API** | Dashboard data (feedback, tickets, entities) | API Key |
 
 ### External API Endpoint
@@ -510,56 +242,120 @@ stats = get_portal_data(sections=["feedback", "tickets"])
 entity_data = get_portal_data(entity_id="AGY-001")
 ```
 
-### Combining Context Sources
-
-A bot can use both data sources together:
-
-1. **postMessage** for understanding user's current context:
-   - What page they're viewing
-   - What modal is open
-   - What form they're filling
-
-2. **External API** for fetching actual data:
-   - Current feedback statistics
-   - Ticket counts and status
-   - Entity and service information
-
-```javascript
-// Bot receives postMessage context
-window.addEventListener('message', async (event) => {
-  if (event.data?.type === 'CONTEXT_UPDATE') {
-    const context = event.data.context;
-
-    // User is viewing a specific entity's data
-    if (context.route === '/admin/dashboard' && context.tab?.activeTab) {
-      // Fetch relevant data via External API
-      const data = await fetch('/api/external/dashboard?include=feedback,tickets', {
-        headers: { 'X-API-Key': API_KEY }
-      });
-
-      // Use context + data to generate informed response
-    }
-  }
-});
-```
-
 ### Documentation Reference
 
 For complete External API documentation, see:
 - [API_REFERENCE.md - External API Section](API_REFERENCE.md#external-api-botintegration-access)
-- OpenAPI Specification: `/openapi.yaml`
 
 ---
 
-## Performance Notes
+## Future Roadmap
 
-- **postMessage frequency:** 1-3 messages per user action
-- **Static Context API:** Cached 15 minutes, < 30ms response
-- **Bundle size impact:** ~10.5 KB (minified + gzipped)
-- **localStorage writes:** Only after resize completes
+### Migration to GoG Data Center
+
+The chatbot is currently hosted on Azure Cloud. Migration to the Government of Grenada Data Center is planned when:
+
+1. Required Azure subscriptions are provisioned for GoG DC
+2. Infrastructure is ready to host the chatbot application
+3. Network connectivity is established
+
+**Migration Steps (Future):**
+1. Deploy chatbot application to GoG DC infrastructure
+2. Update DNS/routing to point to new location
+3. Update `CHATBOT_URL` in Admin Settings
+4. Verify functionality
+5. Decommission Azure deployment
+
+### Potential Enhancements
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| State tracking (page context) | Not planned | Current chatbot doesn't support this |
+| Real-time UI context | Not planned | Would require chatbot modifications |
+| Voice interaction | Not planned | Future consideration |
+| Multi-language support | Possible | Depends on chatbot capabilities |
 
 ---
 
-**Document Version:** 1.2
-**Last Updated:** December 19, 2025
+## Troubleshooting
+
+### Chatbot Not Appearing
+
+**Check:**
+1. Chatbot is enabled in Admin Settings → Integrations → Chatbot
+2. `CHATBOT_URL` is configured correctly
+3. Azure deployment is running and accessible
+
+**Solution:**
+```bash
+# Test chatbot URL directly
+curl -I https://your-chatbot.azurewebsites.net
+
+# Check if URL returns 200 OK
+```
+
+### Chatbot Shows Error or Blank
+
+**Check:**
+1. Browser console for errors (F12 → Console)
+2. Network tab for failed requests
+3. CORS configuration on chatbot server
+
+**Common Issues:**
+- Mixed content (HTTP chatbot on HTTPS portal)
+- CORS blocking iframe
+- Azure app not running
+
+### Chatbot Not Responding
+
+**Check:**
+1. Azure subscription status
+2. App Service health in Azure Portal
+3. Chatbot application logs
+
+**Solution:**
+- Restart the Azure App Service
+- Check Azure subscription billing status
+- Contact Azure support if persistent
+
+### Disabling Chatbot Temporarily
+
+If issues persist:
+1. Go to Admin Settings → Integrations → Chatbot
+2. Toggle **Enable Chatbot** to OFF
+3. Click **Save Changes**
+4. Chatbot will no longer appear for users
+
+---
+
+## Security Considerations
+
+### iframe Security
+
+The chatbot is embedded via iframe. Security measures:
+
+- **X-Frame-Options:** Portal should allow embedding from configured chatbot URL
+- **Content Security Policy:** Chatbot URL should be in allowed frame-src
+- **HTTPS:** Both portal and chatbot should use HTTPS
+
+### Data Access
+
+When using External API:
+- API key should be stored securely on chatbot server
+- Use HTTPS for all API calls
+- Limit data access to necessary sections only
+
+### Data Sent to Chatbot
+
+| Allowed | Not Allowed |
+|---------|-------------|
+| Public service information | User passwords |
+| Ticket numbers (user has access) | API keys |
+| Entity names (public info) | Session tokens |
+| Status/priority info | Personal data without consent |
+
+---
+
+**Document Version:** 2.0
+**Last Updated:** January 2026
 **Maintained By:** GEA Portal Development Team

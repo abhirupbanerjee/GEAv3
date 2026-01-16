@@ -1313,6 +1313,93 @@ List all entities for entity assignment (used when adding/editing staff users).
 
 ---
 
+#### GET /api/admin/service-providers
+
+List all entities with their service provider status, or get only service providers.
+
+**Authentication:** Required (admin session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| providers_only | boolean | No | If `true`, only return entities enabled as service providers |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "entities": [
+    {
+      "unique_entity_id": "MIN-001",
+      "entity_name": "Ministry of Digital Transformation",
+      "entity_type": "ministry",
+      "is_service_provider": false
+    },
+    {
+      "unique_entity_id": "AGY-005",
+      "entity_name": "Digital Transformation Agency (DTA)",
+      "entity_type": "agency",
+      "is_service_provider": true
+    }
+  ]
+}
+```
+
+**Example Request:**
+```bash
+# Get all entities with service provider status
+curl https://gea.your-domain.com/api/admin/service-providers \
+  -H "Cookie: next-auth.session-token=..."
+
+# Get only service providers
+curl https://gea.your-domain.com/api/admin/service-providers?providers_only=true \
+  -H "Cookie: next-auth.session-token=..."
+```
+
+---
+
+#### PUT /api/admin/service-providers
+
+Update an entity's service provider status.
+
+**Authentication:** Required (admin session)
+
+**Request Body:**
+```json
+{
+  "entity_id": "AGY-005",
+  "is_service_provider": true
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Digital Transformation Agency (DTA) is now a service provider"
+}
+```
+
+**Error Response (400):**
+```json
+{
+  "success": false,
+  "error": "entity_id and is_service_provider are required"
+}
+```
+
+**Example Request:**
+```bash
+# Enable entity as service provider
+curl -X PUT https://gea.your-domain.com/api/admin/service-providers \
+  -H "Content-Type: application/json" \
+  -H "Cookie: next-auth.session-token=..." \
+  -d '{"entity_id": "AGY-005", "is_service_provider": true}'
+```
+
+---
+
 ### 2. Ticket Management
 
 #### GET /api/admin/tickets/dashboard-stats
@@ -1698,6 +1785,103 @@ Destroy admin session.
 ```bash
 curl -X POST https://gea.your-domain.com/api/admin/auth/logout \
   -b cookies.txt
+```
+
+---
+
+### 4. EA Service Requests
+
+#### GET /api/admin/service-requests
+
+List EA service requests with filtering and pagination.
+
+**Authentication:** Required (admin/staff session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| view | string | No | `submitted` (requests from your entity), `received` (requests to your entity - service providers only), `all` (admin only) |
+| status | string | No | Filter by status: `Draft`, `Submitted`, `In Progress`, `Completed`, `Cancelled` |
+| page | number | No | Page number (default: 1) |
+| limit | number | No | Results per page (default: 20) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "requests": [
+    {
+      "id": 1,
+      "request_number": "EA-20260115-0001",
+      "service_id": "SVC-ARCH-001",
+      "service_name": "Architecture Review",
+      "entity_id": "DEPT-001",
+      "entity_name": "Department of e-Government",
+      "service_provider_entity_id": "AGY-005",
+      "service_provider_entity_name": "Digital Transformation Agency (DTA)",
+      "requester_name": "John Smith",
+      "requester_email": "john@gov.gd",
+      "status": "Submitted",
+      "priority": "Medium",
+      "created_at": "2026-01-15T10:30:00Z"
+    }
+  ],
+  "total": 15,
+  "page": 1,
+  "limit": 20,
+  "is_service_provider": true
+}
+```
+
+**Example Requests:**
+```bash
+# Get submitted requests (from your entity)
+curl https://gea.your-domain.com/api/admin/service-requests?view=submitted \
+  -H "Cookie: next-auth.session-token=..."
+
+# Get received requests (for service provider entities)
+curl https://gea.your-domain.com/api/admin/service-requests?view=received \
+  -H "Cookie: next-auth.session-token=..."
+
+# Get all requests (admin only)
+curl https://gea.your-domain.com/api/admin/service-requests?view=all \
+  -H "Cookie: next-auth.session-token=..."
+```
+
+---
+
+#### GET /api/admin/service-requests/stats
+
+Get service request statistics.
+
+**Authentication:** Required (admin/staff session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| view | string | No | `submitted`, `received`, or `all` - affects which requests are counted |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "stats": {
+    "total": 25,
+    "by_status": {
+      "Draft": 2,
+      "Submitted": 5,
+      "In Progress": 10,
+      "Completed": 8
+    },
+    "by_priority": {
+      "High": 3,
+      "Medium": 15,
+      "Low": 7
+    }
+  }
+}
 ```
 
 ---

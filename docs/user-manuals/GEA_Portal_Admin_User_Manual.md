@@ -23,6 +23,7 @@ This manual covers the following pages accessible to DTA administrators (require
 | **Service Requests** | `/admin/service-requests` | EA service request management |
 | **Service Request Analytics** | `/admin/service-requests/analytics` | Detailed service request metrics |
 | **AI Bots** | `/admin/ai-inventory` | Manage AI chatbot integrations |
+| **Settings** | `/admin/settings` | System configuration and service providers |
 
 ### Public Pages (Also Available to Admins)
 | Page | URL | Purpose |
@@ -49,9 +50,10 @@ This manual covers the following pages accessible to DTA administrators (require
 7. [Analytics & Reporting](#7-analytics--reporting)
 8. [AI Bot Inventory](#8-ai-bot-inventory)
 9. [EA Service Requests](#9-ea-service-requests)
-10. [System Administration](#10-system-administration)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Appendices](#12-appendices)
+10. [Settings](#10-settings)
+11. [System Administration](#11-system-administration)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Appendices](#13-appendices)
 
 ---
 
@@ -703,9 +705,21 @@ Bots are managed via configuration file (`bots-config.json`). To add, edit, or r
 
 ### 9.1 Overview
 
-EA Service Requests are formal requests for Enterprise Architecture services from MDAs.
+EA Service Requests are formal requests for Enterprise Architecture services from MDAs. Multiple entities can be configured as **service providers** to receive service requests.
 
-### 9.2 Types of EA Services
+### 9.2 Multi-Entity Service Provider Support
+
+The portal supports multiple service provider entities:
+
+- **Service Providers**: Entities enabled to receive service requests from other entities
+- **Default Provider**: DTA (AGY-005) is the default service provider
+- **Configuration**: Manage service providers via Settings → Service Providers tab
+
+**Staff from service provider entities** will see:
+- **Requests Received** tab: Service requests received from other entities
+- **Requests Submitted** tab: Service requests submitted by their own entity
+
+### 9.3 Types of EA Services
 
 1. **Architecture Review** - Review of existing systems
 2. **Solution Design** - New solution architecture
@@ -715,14 +729,16 @@ EA Service Requests are formal requests for Enterprise Architecture services fro
 6. **Training & Support** - EA knowledge transfer
 7. **Documentation** - Architecture documentation
 
-### 9.3 Viewing EA Requests
+### 9.4 Viewing EA Requests
 
-1. Navigate to **EA Requests**
-2. View all submitted requests
+1. Navigate to **Service Requests**
+2. Use tabs to switch between views:
+   - **Requests Received**: Requests your entity needs to fulfill (service providers only)
+   - **Requests Submitted**: Requests your entity has submitted
 
 **Request Information:**
 - Request Number
-- Requesting Entity
+- Requesting Entity / Service Provider Entity
 - Service Type
 - Description
 - Priority
@@ -730,7 +746,7 @@ EA Service Requests are formal requests for Enterprise Architecture services fro
 - Attachments
 - Due Date
 
-### 9.4 Processing EA Requests
+### 9.5 Processing EA Requests
 
 **Step 1: Review Request**
 - Read full description
@@ -751,7 +767,7 @@ EA Service Requests are formal requests for Enterprise Architecture services fro
 - Set status to "Resolved"
 - Add completion notes
 
-### 9.5 EA Request Attachments
+### 9.6 EA Request Attachments
 
 Requesters may attach:
 - Current architecture diagrams
@@ -768,9 +784,62 @@ Requesters may attach:
 
 ---
 
-## 10. System Administration
+## 10. Settings
 
-### 10.1 System Health Monitoring
+The Settings page (`/admin/settings`) allows administrators to configure system-wide settings and service providers.
+
+### 10.1 Accessing Settings
+
+1. Navigate to **Admin Portal** → **Settings**
+2. Settings are organized into 6 tabs
+
+### 10.2 Settings Tabs
+
+| Tab | Purpose |
+|-----|---------|
+| **System** | Site name, branding (logo/favicon), contact emails |
+| **Authentication** | OAuth provider credentials (Google/Microsoft) |
+| **Integrations** | SendGrid API key, chatbot URL and configuration |
+| **Business Rules** | Rate limits, thresholds, file upload limits |
+| **Content** | Footer URLs, leadership contacts |
+| **Service Providers** | Configure which entities can receive service requests |
+
+### 10.3 Service Providers Configuration
+
+The **Service Providers** tab controls which entities can receive service requests from other entities.
+
+**To enable an entity as a service provider:**
+1. Navigate to Settings → Service Providers tab
+2. Find the entity in the list
+3. Toggle the switch to enable/disable service provider status
+
+**Effects of enabling service provider:**
+- Entity staff will see "Requests Received" tab in Service Requests
+- Entity appears in the provider dropdown when submitting new service requests
+- Entity dashboard shows received request statistics
+
+**Default Configuration:**
+- DTA (AGY-005) is enabled as the default service provider
+
+### 10.4 Branding Settings
+
+Under the **System** tab, you can customize:
+- **Site Logo**: Upload or provide URL for the portal logo
+- **Favicon**: Upload or provide URL for the browser tab icon
+- **Site Name**: Customize the portal name
+- **Contact Email**: Set the primary contact email
+
+### 10.5 Saving Changes
+
+- Changes are tracked with "unsaved changes" indicator
+- Click **Save Changes** to apply modifications
+- Some settings require application restart (marked with badge)
+
+---
+
+## 11. System Administration
+
+### 11.1 System Health Monitoring
 
 Check system health regularly:
 
@@ -790,7 +859,7 @@ docker-compose logs -f feedback_db
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "SELECT 1"
 ```
 
-### 10.2 Database Maintenance
+### 11.2 Database Maintenance
 
 **Backup Database:**
 ```bash
@@ -803,17 +872,17 @@ docker exec -it feedback_db psql -U feedback_user -d feedback -c "
 SELECT pg_size_pretty(pg_database_size('feedback'));"
 ```
 
-### 10.3 User Session Management
+### 11.3 User Session Management
 
 Sessions expire after **2 hours** of inactivity. No manual session management is typically required.
 
-### 10.4 Email Notification Configuration
+### 11.4 Email Notification Configuration
 
 Email notifications use SendGrid. Current configuration:
 - **Admin Email:** alerts.dtahelpdesk@gmail.com
 - Notifications sent for: New tickets, Status changes
 
-### 10.5 Rate Limiting
+### 11.5 Rate Limiting
 
 Current rate limits:
 - Feedback: 5/hour
@@ -822,7 +891,7 @@ Current rate limits:
 
 These protect against abuse while allowing legitimate use.
 
-### 10.6 Security Best Practices
+### 11.6 Security Best Practices
 
 **For Administrators:**
 - Use strong, unique passwords for OAuth accounts
@@ -840,9 +909,9 @@ These protect against abuse while allowing legitimate use.
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
-### 11.1 User Cannot Sign In
+### 12.1 User Cannot Sign In
 
 **Check:**
 1. Email exists in users table
@@ -855,7 +924,7 @@ These protect against abuse while allowing legitimate use.
 - Reactivate if inactive
 - Verify email matches exactly
 
-### 11.2 Missing Tickets
+### 12.2 Missing Tickets
 
 **Check:**
 1. Filter settings (may be filtering out tickets)
@@ -867,7 +936,7 @@ These protect against abuse while allowing legitimate use.
 - Verify entity assignment
 - Expand date range
 
-### 11.3 Email Notifications Not Sending
+### 12.3 Email Notifications Not Sending
 
 **Check:**
 1. SendGrid API key is valid
@@ -879,7 +948,7 @@ These protect against abuse while allowing legitimate use.
 - Check container logs for errors
 - Test API key manually
 
-### 11.4 Database Connection Errors
+### 12.4 Database Connection Errors
 
 **Check:**
 1. Database container is running
@@ -892,7 +961,7 @@ docker-compose restart feedback_db
 docker-compose restart frontend
 ```
 
-### 11.5 Performance Issues
+### 12.5 Performance Issues
 
 **Check:**
 1. Container resource usage: `docker stats`
@@ -904,7 +973,7 @@ docker-compose restart frontend
 - Optimize slow queries
 - Check server capacity
 
-### 11.6 SSL Certificate Issues
+### 12.6 SSL Certificate Issues
 
 **Check:**
 1. Certificate expiry date
@@ -918,7 +987,7 @@ docker-compose restart frontend
 
 ---
 
-## 12. Appendices
+## 13. Appendices
 
 ### Appendix A: Role Permissions Matrix
 

@@ -85,10 +85,10 @@ You will need accounts and credentials for:
    - Example: `your-domain.com`
    - Ability to create A records
 
-2. **SendGrid Account** (for email notifications)
+2. **SendGrid Account** (for email notifications) - **OPTIONAL**
    - Free tier available
    - Sign up: https://app.sendgrid.com/
-   - API key required
+   - API key optional - application works without email notifications
 
 3. **hCaptcha Account** (for spam protection) *** Optional ***
    - Free tier available
@@ -114,7 +114,7 @@ Before starting the installation, ensure you have:
 - [ ] VM provisioned with Ubuntu 22.04+ and public IP address
 - [ ] SSH access to the VM (root or sudo user)
 - [ ] Domain name registered and DNS access configured
-- [ ] SendGrid API key obtained
+- [ ] SendGrid API key obtained (optional - for email notifications)
 - [ ] hCaptcha site key and secret obtained
 - [ ] Google OAuth client ID and secret obtained (or Microsoft)
 - [ ] Firewall rules allow ports 22, 80, 443
@@ -482,16 +482,18 @@ FEEDBACK_DB_USER=feedback_user
 FEEDBACK_DB_PASSWORD=<paste-your-generated-db-password>  # REQUIRED
 ```
 
-##### E. SendGrid Email Configuration (REQUIRED)
+##### E. SendGrid Email Configuration (OPTIONAL)
+
+> **Note:** SendGrid is optional. If not configured, the application will work normally but email notifications will be disabled.
 
 ```bash
 # SendGrid API key (get from https://app.sendgrid.com/settings/api_keys)
-SENDGRID_API_KEY=SG.your_sendgrid_api_key_here         # REQUIRED
-SENDGRID_FROM_EMAIL=noreply@your-domain.com            # REQUIRED
+SENDGRID_API_KEY=SG.your_sendgrid_api_key_here         # OPTIONAL - leave empty to disable email
+SENDGRID_FROM_EMAIL=noreply@your-domain.com            # OPTIONAL
 SENDGRID_FROM_NAME=GEA Portal
 
 # Admin email (receives notifications)
-SERVICE_ADMIN_EMAIL=admin@your-domain.com              # REQUIRED
+SERVICE_ADMIN_EMAIL=admin@your-domain.com              # OPTIONAL
 REPLY_TO_EMAIL=admin@your-domain.com
 ```
 
@@ -1381,11 +1383,14 @@ docker compose logs frontend
 
 **Symptoms:**
 - No email notifications received
-- Errors in frontend logs
+- Warning logs: "SendGrid not configured - email features disabled"
 
-**Solution:**
+**Expected Behavior (No SendGrid):**
+This is normal if SendGrid is not configured. The application works without email.
+
+**Solution (If Email is Needed):**
 ```bash
-# Verify SendGrid API key
+# Verify SendGrid API key is set
 grep SENDGRID_API_KEY ~/GEAv3/.env
 
 # Test SendGrid API key manually
@@ -1403,6 +1408,9 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 # https://app.sendgrid.com/
 
 # Verify sender email is verified in SendGrid
+
+# Restart frontend after adding/updating SendGrid config
+docker compose restart frontend
 ```
 
 ---
@@ -1417,7 +1425,9 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 | `FRONTEND_DOMAIN` | Yes | Portal subdomain | `gea.gov.gd` |
 | `LETS_ENCRYPT_EMAIL` | Yes | Email for SSL cert notifications | `admin@gov.gd` |
 | `FEEDBACK_DB_PASSWORD` | Yes | PostgreSQL password | `<generated>` |
-| `SENDGRID_API_KEY` | Yes | SendGrid API key | `SG.xxxxx` |
+| `SENDGRID_API_KEY` | No | SendGrid API key (for email notifications) | `SG.xxxxx` |
+| `SENDGRID_FROM_EMAIL` | No | Sender email address | `noreply@gov.gd` |
+| `SERVICE_ADMIN_EMAIL` | No | Admin notification recipient | `admin@gov.gd` |
 | `NEXTAUTH_SECRET` | Yes | NextAuth encryption secret | `<generated>` |
 | `GOOGLE_CLIENT_ID` | Yes | Google OAuth client ID | `xxxxx.apps.googleusercontent.com` |
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth secret | `<from Google>` |
@@ -1426,6 +1436,8 @@ curl -X POST https://api.sendgrid.com/v3/mail/send \
 | `HCAPTCHA_SITEKEY` | Yes | hCaptcha site key | `<from hCaptcha>` |
 | `HCAPTCHA_SECRET` | Yes | hCaptcha secret | `<from hCaptcha>` |
 | `EXTERNAL_API_KEY` | No | External API access | `<generated or empty>` |
+
+> **Note:** SendGrid variables are optional. When not configured, email notifications are disabled but the application works normally.
 
 ### Appendix B: Database Schema Overview
 
@@ -1606,7 +1618,9 @@ After completing the fresh installation:
      - **Integrations Tab**: SendGrid API key, chatbot URL
      - **Business Rules Tab**: Rate limits, thresholds, file upload limits
      - **Content Tab**: Footer URLs, leadership contacts
+     - **Service Providers Tab**: Configure which entities can receive service requests
    - Settings are pre-seeded with defaults but should be customized
+   - DTA (AGY-005) is enabled as the default service provider
 
 2. **Add Government Entities and Services** (if not using default master data)
    - Navigate to Admin Portal → Manage Data → Entities
