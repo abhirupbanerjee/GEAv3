@@ -1,8 +1,10 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 10.1
-**Last Updated:** December 19, 2025
-**Database:** PostgreSQL 15.15
+**Document Version:** 10.2
+**Last Updated:** January 2026
+**Database:** PostgreSQL 15.14-alpine
+**Connection Pool:** PgBouncer v1.23.1-p3
+**Cache:** Redis 7.4.4-alpine
 **Schema Version:** Production-Aligned v10.0 (30 tables)
 
 ---
@@ -40,6 +42,18 @@
 
 ### Connection Details
 
+**Application connects via PgBouncer (recommended):**
+```bash
+Host: pgbouncer (Docker)
+Port: 5432
+Database: feedback
+User: feedback_user
+Password: [Set in FEEDBACK_DB_PASSWORD env var]
+Pool Mode: transaction
+Max Clients: 200
+```
+
+**Direct database access (for admin/debugging):**
 ```bash
 Host: feedback_db (Docker) / localhost (local)
 Port: 5432
@@ -48,14 +62,27 @@ User: feedback_user
 Password: [Set in FEEDBACK_DB_PASSWORD env var]
 ```
 
+**Redis Cache:**
+```bash
+Host: redis (Docker)
+Port: 6379
+Max Memory: 256MB
+Eviction Policy: allkeys-lru
+```
+
 ### Environment Variables
 
 ```env
-FEEDBACK_DB_HOST=feedback_db
+# Database (via PgBouncer)
+FEEDBACK_DB_HOST=pgbouncer
 FEEDBACK_DB_PORT=5432
 FEEDBACK_DB_NAME=feedback
 FEEDBACK_DB_USER=feedback_user
 FEEDBACK_DB_PASSWORD=<your_password>
+
+# Redis Cache
+REDIS_HOST=redis
+REDIS_PORT=6379
 ```
 
 ---

@@ -1,8 +1,8 @@
-R# GEA Portal v3 - Solution Architecture
+# GEA Portal v3 - Solution Architecture
 
-**Document Version:** 1.1
-**Last Updated:** December 19, 2025
-**System Version:** Phase 3.1.0 (Authentication + External API)
+**Document Version:** 1.2
+**Last Updated:** January 2026
+**System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
 **Status:** ✅ Production Ready
 
 ---
@@ -54,7 +54,9 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 
 - **Frontend:** Next.js 14 (React, TypeScript, Tailwind CSS)
 - **Backend:** Next.js API Routes (Node.js)
-- **Database:** PostgreSQL 15
+- **Database:** PostgreSQL 15.14-alpine
+- **Connection Pool:** PgBouncer v1.23.1 (transaction mode)
+- **Cache:** Redis 7.4.4-alpine (analytics caching)
 - **Authentication:** NextAuth v4 with OAuth
 - **Reverse Proxy:** Traefik v3.0 with automatic SSL
 - **Email:** SendGrid API
@@ -92,18 +94,27 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
                  │ • Middleware │
                  └───────┬──────┘
                          │
-         ┌───────────────┼───────────────┐
-         │               │               │
-         ▼               ▼               ▼
-┌─────────────┐  ┌──────────────┐  ┌──────────┐
-│  DATABASE   │  │   SENDGRID   │  │ EXTERNAL │
-│ PostgreSQL  │  │     EMAIL    │  │   APIs   │
-│     15      │  │   SERVICE    │  │ (Future) │
-├─────────────┤  └──────────────┘  └──────────┘
-│ • 23 Tables │
-│ • 52+ IDX   │
-│ • JSONB     │
-└─────────────┘
+    ┌────────────────────┼────────────────────┐
+    │                    │                    │
+    ▼                    ▼                    ▼
+┌─────────────┐  ┌──────────────┐  ┌──────────────┐
+│    REDIS    │  │  PGBOUNCER   │  │   SENDGRID   │
+│   (Cache)   │  │ (Conn Pool)  │  │    EMAIL     │
+├─────────────┤  ├──────────────┤  └──────────────┘
+│ • Analytics │  │ • Transaction│
+│ • 256MB max │  │   mode       │
+│ • 5min TTL  │  │ • 200 conns  │
+└─────────────┘  └───────┬──────┘
+                         │
+                         ▼
+                 ┌──────────────┐
+                 │  POSTGRESQL  │
+                 │  15.14-alpine│
+                 ├──────────────┤
+                 │ • 30 Tables  │
+                 │ • 44+ IDX    │
+                 │ • JSONB      │
+                 └──────────────┘
 ```
 
 ### Core Use Cases
@@ -185,17 +196,25 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 │  │  • Port 3000 (internal)                                │    │
 │  │  • Environment: Production                             │    │
 │  │  • Health Check: /api/health                           │    │
-│  └─────────────────────┬──────────────────────────────────┘    │
-│                        │                                         │
-│  ┌─────────────────────▼──────────────────────────────────┐    │
-│  │  DATABASE CONTAINER (postgres:15-alpine)               │    │
-│  │  • PostgreSQL 15                                       │    │
-│  │  • Port 5432 (internal)                                │    │
-│  │  • Volume: postgres_data (persistent)                  │    │
-│  │  • Database: feedback                                  │    │
-│  └────────────────────────────────────────────────────────┘    │
+│  └──────────┬─────────────────────────────┬───────────────┘    │
+│             │                             │                      │
+│  ┌──────────▼──────────┐      ┌──────────▼──────────┐          │
+│  │  REDIS (7.4.4-alpine)│      │ PGBOUNCER (v1.23.1) │          │
+│  │  • Port 6379         │      │ • Port 5432         │          │
+│  │  • Volume: redis_data│      │ • Transaction mode  │          │
+│  │  • 256MB max memory  │      │ • 200 max clients   │          │
+│  └──────────────────────┘      └──────────┬──────────┘          │
+│                                           │                      │
+│                           ┌───────────────▼───────────────┐     │
+│                           │  DATABASE (postgres:15.14)    │     │
+│                           │  • PostgreSQL 15.14-alpine    │     │
+│                           │  • Port 5432 (internal)       │     │
+│                           │  • Volume: feedback_db_data   │     │
+│                           │  • Database: feedback         │     │
+│                           └───────────────────────────────┘     │
 │                                                                  │
-│  NETWORK: gea_network (bridge)                                  │
+│  NETWORK: geav3_network (bridge)                                │
+│  VOLUMES: traefik_acme, feedback_db_data, redis_data            │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -281,10 +300,11 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 │                              │                                     │
 │  ┌───────────────────────────▼─────────────────────────────┐     │
 │  │              DATA ACCESS LAYER                           │     │
-│  │  • Database Connection Pool (node-postgres)              │     │
+│  │  • Database Connection via PgBouncer (connection pool)   │     │
+│  │  • Redis Caching (analytics data, configurable TTL)      │     │
 │  │  • Parameterized Queries (SQL Injection Prevention)      │     │
 │  │  • Transaction Management                                │     │
-│  │  • Connection Pooling (max 20 connections)               │     │
+│  │  • Centralized pool (lib/db.ts)                          │     │
 │  └──────────────────────────────────────────────────────────┘     │
 │                                                                    │
 └───────────────────────────────────────────────────────────────────┘
@@ -324,9 +344,12 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
-| **Containerization** | Docker | 24.x | Application containers |
-| **Orchestration** | Docker Compose | 2.x | Multi-container management |
-| **Reverse Proxy** | Traefik | 3.0.x | Load balancing & SSL |
+| **Containerization** | Docker | 27.5.1 | Application containers (required) |
+| **Orchestration** | Docker Compose | v2.40+ | Multi-container management |
+| **Reverse Proxy** | Traefik | v3.0 | Load balancing & SSL |
+| **Database** | PostgreSQL | 15.14-alpine | Relational database |
+| **Connection Pool** | PgBouncer | v1.23.1-p3 | Database connection pooling |
+| **Cache** | Redis | 7.4.4-alpine | Analytics caching |
 | **SSL** | Let's Encrypt | - | Free SSL certificates |
 | **Version Control** | Git | 2.x | Source code management |
 | **CI/CD** | GitHub Actions | - | Automated deployments (future) |
@@ -844,47 +867,91 @@ services:
       - "443:443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - ./letsencrypt:/letsencrypt
+      - ./traefik.yml:/traefik.yml:ro
+      - traefik_acme:/acme
     networks:
-      - gea_network
+      - geav3_network
+
+  feedback_db:
+    image: postgres:15.14-alpine
+    environment:
+      - POSTGRES_DB=feedback
+      - POSTGRES_USER=feedback_user
+      - POSTGRES_PASSWORD=${FEEDBACK_DB_PASSWORD}
+    volumes:
+      - feedback_db_data:/var/lib/postgresql/data
+    networks:
+      - geav3_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedback_user -d feedback"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7.4.4-alpine
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - geav3_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  pgbouncer:
+    image: edoburu/pgbouncer:v1.23.1-p3
+    environment:
+      - DATABASE_URL=postgres://${FEEDBACK_DB_USER}:${FEEDBACK_DB_PASSWORD}@feedback_db:5432/${FEEDBACK_DB_NAME}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=200
+      - DEFAULT_POOL_SIZE=20
+      - MIN_POOL_SIZE=5
+      - RESERVE_POOL_SIZE=5
+    depends_on:
+      feedback_db:
+        condition: service_healthy
+    networks:
+      - geav3_network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   frontend:
-    image: node:20-alpine
     build: ./frontend
     environment:
       - NODE_ENV=production
       - NEXTAUTH_URL=https://gea.domain.com
-      - DATABASE_URL=postgresql://user:pass@feedback_db:5432/feedback
+      - FEEDBACK_DB_HOST=pgbouncer
+      - FEEDBACK_DB_PORT=5432
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.frontend.rule=Host(`gea.domain.com`)"
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
     depends_on:
-      - feedback_db
+      feedback_db:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
-      - gea_network
-
-  feedback_db:
-    image: postgres:15-alpine
-    environment:
-      - POSTGRES_DB=feedback
-      - POSTGRES_USER=feedback_user
-      - POSTGRES_PASSWORD=${DB_PASSWORD}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - gea_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U feedback_user"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      - geav3_network
 
 volumes:
-  postgres_data:
+  traefik_acme:
+  feedback_db_data:
+  redis_data:
 
 networks:
-  gea_network:
+  geav3_network:
+    name: geav3_network
     driver: bridge
 ```
 
@@ -990,15 +1057,16 @@ docker exec traefik cat /letsencrypt/acme.json | jq '.letsencrypt.Certificates[0
 ### Performance Optimizations
 
 #### Database Level
-- **Indexes:** 52+ indexes on foreign keys and query columns
-- **Connection Pooling:** Max 20 connections
+- **Indexes:** 44+ indexes on foreign keys and query columns
+- **Connection Pooling:** PgBouncer (200 max clients, 20 pool size)
 - **Prepared Statements:** All queries use parameterized statements
-- **JSONB Indexing:** GIN indexes on JSONB columns (future)
+- **Centralized Pool:** Single connection pool via `lib/db.ts`
 
 #### Application Level
 - **Next.js SSG:** Static pages for public content
 - **Next.js ISR:** Incremental Static Regeneration for dynamic content
-- **API Response Caching:** Redis cache for frequently accessed data (future)
+- **Redis Caching:** Analytics data cached (configurable TTL, default 5 min)
+- **Cache Invalidation:** Auto-invalidate on admin service request submission
 - **Image Optimization:** Next.js automatic image optimization
 
 #### Infrastructure Level
@@ -1243,7 +1311,7 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-**Document Version:** 1.1
-**Last Updated:** December 19, 2025
+**Document Version:** 1.2
+**Last Updated:** January 2026
 **Maintained By:** GEA Portal Development Team
-**System Version:** Phase 3.1.0 (Authentication + External API)
+**System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)

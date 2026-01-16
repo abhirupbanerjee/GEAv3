@@ -47,7 +47,9 @@ Complete digital portal system with:
 | **Docker** | 27.5.1 | ⚠️ Required - v28+/29+ incompatible with Traefik |
 | **Docker Compose** | v2.40+ | Plugin version |
 | **Node.js** | 20.x (container) | Alpine-based image |
-| **PostgreSQL** | 15-alpine | Container |
+| **PostgreSQL** | 15.14-alpine | Database container |
+| **PgBouncer** | v1.23.1-p3 | Connection pooling (edoburu/pgbouncer) |
+| **Redis** | 7.4.4-alpine | Analytics caching |
 | **Traefik** | v3.0 | Reverse proxy + SSL |
 
 > **⚠️ Docker Version Requirement:** Use Docker 27.5.1. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x. See [Docker & Traefik Compatibility Guide](docs/DOCKER_TRAEFIK_COMPATIBILITY.md) for details.
@@ -118,7 +120,9 @@ Run this on your existing VM to generate specs for replication:
 | Component | Technology | Purpose | Container |
 |-----------|-----------|---------|-----------|
 | **Frontend** | Next.js 14 (App Router) | Main portal & admin UI | `frontend` |
-| **Database** | PostgreSQL 15-alpine | Data storage & user management | `feedback_db` |
+| **Database** | PostgreSQL 15.14-alpine | Data storage & user management | `feedback_db` |
+| **Connection Pool** | PgBouncer v1.23.1 | Database connection pooling | `pgbouncer` |
+| **Cache** | Redis 7.4.4-alpine | Analytics caching | `redis` |
 | **Reverse Proxy** | Traefik v3.0 | SSL termination & routing | `traefik` |
 | **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | (in frontend) |
 
@@ -126,10 +130,12 @@ Run this on your existing VM to generate specs for replication:
 
 ```bash
 # Expected output from: docker compose ps
-NAMES         IMAGE                STATUS                    PORTS
-frontend      geav3-frontend       Up X minutes              3000/tcp
-feedback_db   postgres:15-alpine   Up X minutes (healthy)    5432/tcp
-traefik       traefik:v3.0         Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
+NAMES         IMAGE                            STATUS                    PORTS
+frontend      geav3-frontend                   Up X minutes              3000/tcp
+feedback_db   postgres:15.14-alpine            Up X minutes (healthy)    5432/tcp
+pgbouncer     edoburu/pgbouncer:v1.23.1-p3     Up X minutes (healthy)    5432/tcp
+redis         redis:7.4.4-alpine               Up X minutes (healthy)    6379/tcp
+traefik       traefik:v3.0                     Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
 ```
 
 ### Technology Stack
@@ -151,6 +157,8 @@ traefik       traefik:v3.0         Up X minutes              0.0.0.0:80->80/tcp,
 - Docker & Docker Compose
 - Traefik v3.0 (reverse proxy & SSL)
 - Let's Encrypt (auto-SSL)
+- PgBouncer (database connection pooling)
+- Redis (analytics caching)
 
 ---
 
@@ -451,12 +459,13 @@ UPDATE users SET is_active=false WHERE email='user@example.com';"
 
 ### Docker Volumes
 
-Production uses 2 active volumes:
+Production uses 3 active volumes:
 
 | Volume | Purpose | Typical Size |
 |--------|---------|--------------|
 | `traefik_acme` | SSL certificates (Let's Encrypt) | ~1 MB |
 | `feedback_db_data` | PostgreSQL data | ~70 MB |
+| `redis_data` | Redis cache persistence | ~10 MB |
 
 ```bash
 # Check volume usage
@@ -885,8 +894,8 @@ Before going live:
 - **Foreign Keys:** 18+
 - **Environment Variables:** ~63 configurable options (includes EXTERNAL_API_KEY)
 - **Lines of Code:** ~23,000+
-- **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
-- **Docker Volumes:** 2 active (`traefik_acme`, `feedback_db_data`)
+- **Docker Services:** 5 (Traefik, PostgreSQL, PgBouncer, Redis, Frontend)
+- **Docker Volumes:** 3 active (`traefik_acme`, `feedback_db_data`, `redis_data`)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
 - **AI Integration:** Embedded chatbot (Azure Cloud) + External API for bot data access
 - **Admin Settings Tabs:** 6 (System, Authentication, Integrations, Business Rules, Content, Service Providers)
