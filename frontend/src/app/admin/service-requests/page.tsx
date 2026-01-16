@@ -337,7 +337,11 @@ export default function ServiceRequestsPage() {
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
           <div className="flex items-center gap-4">
             <label className="text-sm font-medium text-gray-700 whitespace-nowrap">
-              {isStaff ? 'Service Owner:' : 'Filter by Service Owner:'}
+              {isStaff
+                ? 'Service Owner:'
+                : currentView === 'received'
+                  ? 'Filter by Service Provider:'
+                  : 'Filter by Requesting Entity:'}
             </label>
             <div className="relative flex-1 max-w-md" ref={dropdownRef}>
               <button

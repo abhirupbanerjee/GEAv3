@@ -209,7 +209,13 @@ export async function GET(request: NextRequest) {
         const entityIds = finalEntityId.split(',').filter(Boolean);
         if (entityIds.length > 0) {
           const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
-          whereClauses.push(`r.entity_id IN (${placeholders})`);
+          if (viewParam === 'received') {
+            // Admin received view: filter by service provider entity
+            whereClauses.push(`s.entity_id IN (${placeholders})`);
+          } else {
+            // Admin submitted view: filter by requesting entity
+            whereClauses.push(`r.entity_id IN (${placeholders})`);
+          }
           queryParams.push(...entityIds);
         }
       }
@@ -220,7 +226,13 @@ export async function GET(request: NextRequest) {
         const entityIds = finalEntityId.split(',').filter(Boolean);
         if (entityIds.length > 0) {
           const placeholders = entityIds.map(() => `$${paramIndex++}`).join(',');
-          whereClauses.push(`r.entity_id IN (${placeholders})`);
+          if (viewParam === 'received') {
+            // Received view: filter by service provider entity
+            whereClauses.push(`s.entity_id IN (${placeholders})`);
+          } else {
+            // Submitted view: filter by requesting entity
+            whereClauses.push(`r.entity_id IN (${placeholders})`);
+          }
           queryParams.push(...entityIds);
         }
       }
