@@ -1,41 +1,32 @@
 /**
  * GEA Ticket System - Database Helpers
- * Version: 1.0
+ * Version: 1.1
  * Purpose: PostgreSQL query helpers and data access
  * Location: app/lib/db/tickets.ts
+ *
+ * Updated: Now uses centralized pool from lib/db.ts
  */
 
-import { Pool, PoolClient } from 'pg';
+import { PoolClient } from 'pg';
+import { getPool as getCentralPool } from '@/lib/db';
 
 /**
  * ============================================
- * DATABASE INITIALIZATION
+ * DATABASE ACCESS (via centralized pool)
  * ============================================
  */
 
-// Connection pool (initialize in your app)
-let pool: Pool;
-
-export function initializePool(connectionString: string) {
-  pool = new Pool({
-    connectionString,
-    max: 20,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
-  });
-
-  pool.on('error', (err) => {
-    console.error('Unexpected error on idle client', err);
-  });
-
-  return pool;
+/**
+ * @deprecated Use getPool() from '@/lib/db' directly
+ * Kept for backward compatibility
+ */
+export function initializePool(_connectionString?: string) {
+  console.warn('initializePool() is deprecated - using centralized pool from lib/db.ts');
+  return getCentralPool();
 }
 
-export function getPool(): Pool {
-  if (!pool) {
-    throw new Error('Database pool not initialized. Call initializePool() first.');
-  }
-  return pool;
+export function getPool() {
+  return getCentralPool();
 }
 
 /**

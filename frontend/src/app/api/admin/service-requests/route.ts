@@ -8,7 +8,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Pool } from 'pg';
+import { pool } from '@/lib/db';
 import { getEntityFilter } from '@/lib/entity-filter';
 import { sendEmail, sendBulkEmail } from '@/lib/sendgrid';
 import {
@@ -20,17 +20,7 @@ import {
   getDTAAdminRoleCode,
 } from '@/lib/settings';
 import { config } from '@/config/env';
-
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'feedback',
-  user: process.env.DB_USER || 'feedback_user',
-  password: process.env.DB_PASSWORD,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+import { invalidateCache } from '@/lib/redis';
 
 /**
  * Send email notifications for new service request
@@ -584,6 +574,12 @@ export async function POST(request: NextRequest) {
 
       // Commit transaction
       await pool.query('COMMIT');
+
+      // Invalidate analytics cache (non-blocking)
+      // Staff/Admin submissions trigger cache refresh for fresh stats
+      invalidateCache('analytics:*').catch((err) => {
+        console.warn('Cache invalidation failed (non-critical):', err);
+      });
 
       // Send email notifications (non-blocking, after successful commit)
       // Don't await - let it run in background

@@ -8,22 +8,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import { Pool } from 'pg';
+import { pool } from '@/lib/db';
 import { validateEntityAccess } from '@/lib/entity-filter';
 import { sendEmail } from '@/lib/sendgrid';
 import { getServiceRequestStatusChangeEmail } from '@/lib/emailTemplates';
 import { config } from '@/config/env';
-
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'feedback',
-  user: process.env.DB_USER || 'feedback_user',
-  password: process.env.DB_PASSWORD,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
 
 /**
  * PUT /api/admin/service-requests/[id]/status

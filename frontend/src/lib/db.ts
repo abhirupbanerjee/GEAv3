@@ -1,9 +1,13 @@
 /**
  * Database Connection Utility
- * 
+ *
  * Manages PostgreSQL connection pooling with proper error handling
  * and connection lifecycle management.
- * 
+ *
+ * Environment Variables (checked in order):
+ * - FEEDBACK_DB_* (primary, used by docker-compose)
+ * - DB_* (fallback, for backward compatibility)
+ *
  * Usage:
  *   const result = await pool.query('SELECT * FROM tickets WHERE id = $1', [ticketId])
  */
@@ -23,12 +27,13 @@ export function initializePool(): Pool {
     return poolInstance
   }
 
+  // Support both FEEDBACK_DB_* and DB_* env vars for compatibility
   const config = {
-    user: process.env.FEEDBACK_DB_USER || 'feedback_user',
-    password: process.env.FEEDBACK_DB_PASSWORD || '',
-    host: process.env.FEEDBACK_DB_HOST || 'localhost',
-    port: parseInt(process.env.FEEDBACK_DB_PORT || '5432'),
-    database: process.env.FEEDBACK_DB_NAME || 'feedback',
+    user: process.env.FEEDBACK_DB_USER || process.env.DB_USER || 'feedback_user',
+    password: process.env.FEEDBACK_DB_PASSWORD || process.env.DB_PASSWORD || '',
+    host: process.env.FEEDBACK_DB_HOST || process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.FEEDBACK_DB_PORT || process.env.DB_PORT || '5432'),
+    database: process.env.FEEDBACK_DB_NAME || process.env.DB_NAME || 'feedback',
     max: 20, // Maximum connections in pool
     idleTimeoutMillis: 30000, // 30 seconds
     connectionTimeoutMillis: 5000, // 5 seconds

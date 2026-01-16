@@ -576,6 +576,26 @@ export async function getFooterLinks(): Promise<{
   };
 }
 
+/**
+ * Get analytics cache settings
+ * Configurable via Admin → Settings
+ */
+export async function getAnalyticsCacheSettings(): Promise<{
+  enabled: boolean;
+  ttlSeconds: number;
+}> {
+  const settings = await getSettings([
+    'ANALYTICS_CACHE_ENABLED',
+    'ANALYTICS_CACHE_TTL',
+  ]);
+
+  return {
+    enabled: settings['ANALYTICS_CACHE_ENABLED'] !== 'false',
+    // Clamp TTL between 60 and 600 seconds (1-10 minutes)
+    ttlSeconds: Math.min(600, Math.max(60, Number(settings['ANALYTICS_CACHE_TTL']) || 300)),
+  };
+}
+
 export default {
   getSetting,
   getSettings,
@@ -592,4 +612,5 @@ export default {
   getThresholdSettings,
   getSendGridSettings,
   getFooterLinks,
+  getAnalyticsCacheSettings,
 };

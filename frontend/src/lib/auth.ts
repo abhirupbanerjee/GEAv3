@@ -22,22 +22,7 @@
 import { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import AzureADProvider from 'next-auth/providers/azure-ad';
-import { Pool } from 'pg';
-
-// ============================================================================
-// DATABASE CONNECTION POOL
-// ============================================================================
-
-const pool = new Pool({
-  host: process.env.DB_HOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || '5432'),
-  database: process.env.DB_NAME || 'feedback',
-  user: process.env.DB_USER || 'feedback_user',
-  password: process.env.DB_PASSWORD,
-  max: 20,
-  idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
-});
+import { pool } from '@/lib/db';
 
 // ============================================================================
 // AUTHORIZATION HELPER FUNCTION

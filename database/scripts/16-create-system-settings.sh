@@ -227,6 +227,14 @@ SELECT * FROM (VALUES
 ) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Footer Links' LIMIT 1);
 
+-- Category: PERFORMANCE - Caching (Redis)
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('ANALYTICS_CACHE_ENABLED', 'true', 'boolean', 'PERFORMANCE', 'Caching', 'Enable Analytics Caching', 'Enable Redis caching for analytics dashboard data', 'true', NULL, NULL, true, 1),
+    ('ANALYTICS_CACHE_TTL', '300', 'number', 'PERFORMANCE', 'Caching', 'Analytics Cache TTL (seconds)', 'Time-to-live for cached analytics data (60-600 seconds)', '300', 60, 600, true, 2)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Caching' LIMIT 1);
+
 -- ============================================================================
 -- SEED INITIAL LEADERSHIP CONTACTS (only if table is empty)
 -- ============================================================================
@@ -250,7 +258,8 @@ SELECT
     COUNT(*) FILTER (WHERE category = 'AUTHENTICATION') AS auth_settings,
     COUNT(*) FILTER (WHERE category = 'INTEGRATIONS') AS integration_settings,
     COUNT(*) FILTER (WHERE category = 'BUSINESS_RULES') AS business_rules,
-    COUNT(*) FILTER (WHERE category = 'CONTENT') AS content_settings
+    COUNT(*) FILTER (WHERE category = 'CONTENT') AS content_settings,
+    COUNT(*) FILTER (WHERE category = 'PERFORMANCE') AS performance_settings
 FROM system_settings;
 
 SELECT
