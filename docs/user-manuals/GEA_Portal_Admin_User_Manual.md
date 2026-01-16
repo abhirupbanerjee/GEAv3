@@ -791,7 +791,7 @@ The Settings page (`/admin/settings`) allows administrators to configure system-
 ### 10.1 Accessing Settings
 
 1. Navigate to **Admin Portal** → **Settings**
-2. Settings are organized into 6 tabs
+2. Settings are organized into 7 tabs
 
 ### 10.2 Settings Tabs
 
@@ -801,6 +801,7 @@ The Settings page (`/admin/settings`) allows administrators to configure system-
 | **Authentication** | OAuth provider credentials (Google/Microsoft) |
 | **Integrations** | SendGrid API key, chatbot URL and configuration |
 | **Business Rules** | Rate limits, thresholds, file upload limits |
+| **Performance** | Analytics caching settings (enable/disable, TTL) |
 | **Content** | Footer URLs, leadership contacts |
 | **Service Providers** | Configure which entities can receive service requests |
 
@@ -821,7 +822,25 @@ The **Service Providers** tab controls which entities can receive service reques
 **Default Configuration:**
 - DTA (AGY-005) is enabled as the default service provider
 
-### 10.4 Branding Settings
+### 10.4 Performance Settings
+
+The **Performance** tab controls caching behavior for the analytics dashboard.
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| **Enable Analytics Caching** | Toggle Redis caching for dashboard data | Enabled |
+| **Analytics Cache TTL** | How long cached data remains valid (60-600 seconds) | 300 seconds |
+
+**Benefits of caching:**
+- Faster dashboard load times (1-5ms vs 200-500ms)
+- Reduced database load during peak usage
+- Automatic cache invalidation on admin service request submissions
+
+**When to disable caching:**
+- During troubleshooting if dashboard shows stale data
+- For real-time monitoring needs (use refresh button instead)
+
+### 10.5 Branding Settings
 
 Under the **System** tab, you can customize:
 - **Site Logo**: Upload or provide URL for the portal logo
@@ -829,7 +848,7 @@ Under the **System** tab, you can customize:
 - **Site Name**: Customize the portal name
 - **Contact Email**: Set the primary contact email
 
-### 10.5 Saving Changes
+### 10.6 Saving Changes
 
 - Changes are tracked with "unsaved changes" indicator
 - Click **Save Changes** to apply modifications

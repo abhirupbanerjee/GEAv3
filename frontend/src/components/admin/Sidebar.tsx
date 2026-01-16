@@ -154,7 +154,7 @@ export default function Sidebar() {
       {/* Sidebar - Responsive with collapse */}
       <div
         className={`
-          fixed left-0 top-16 z-30 bg-gray-50 border-r border-gray-200 flex flex-col
+          fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col
           transform transition-all duration-200 ease-in-out
           h-[calc(100vh-4rem)]
           ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}

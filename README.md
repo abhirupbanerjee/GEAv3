@@ -898,7 +898,7 @@ Before going live:
 - **Docker Volumes:** 3 active (`traefik_acme`, `feedback_db_data`, `redis_data`)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
 - **AI Integration:** Embedded chatbot (Azure Cloud) + External API for bot data access
-- **Admin Settings Tabs:** 6 (System, Authentication, Integrations, Business Rules, Content, Service Providers)
+- **Admin Settings Tabs:** 7 (System, Authentication, Integrations, Business Rules, Performance, Content, Service Providers)
 - **OpenAPI Specs:** 6 YAML files for bot/integration access
 
 ### Production Resource Usage
