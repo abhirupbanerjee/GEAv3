@@ -44,57 +44,30 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
 
 ---
 
-## 📅 Phase 1: Immediate Updates (Q1 2026)
+## ✅ Phase 1: Immediate Updates (Q1 2026) - COMPLETED
 
-### Safe Package Updates
-**Timeline:** January - February 2026
+### Safe Package Updates (COMPLETED January 16, 2026)
+**Timeline:** January 2026
 **Risk Level:** 🟢 Low
-**Estimated Effort:** 2-4 hours
+**Status:** ✅ Completed
 
-#### Tasks
+#### Packages Updated
+| Package | Before | After | Status |
+|---------|--------|-------|--------|
+| @types/node | 20.19.25 | 20.19.30 | ✅ |
+| @types/react | 18.3.26 | 18.3.27 | ✅ |
+| @types/pg | 8.15.6 | 8.16.0 | ✅ |
+| next | 14.2.33 | 14.2.35 | ✅ |
+| tailwindcss | 3.4.18 | 3.4.19 | ✅ |
+| autoprefixer | 10.4.21 | 10.4.23 | ✅ |
+| swr | 2.3.6 | 2.3.8 | ✅ |
+| zod | 4.1.12 | 4.3.5 | ✅ |
+| pg | 8.16.3 | 8.17.1 | ✅ |
 
-##### Type Definitions
-- [ ] Update @types/node: 20.19.25 → 20.19.29
-  - Type: Patch update
-  - Breaking changes: None
-  - Testing required: TypeScript compilation
-
-- [ ] Update @types/react: 18.3.26 → 18.3.27
-  - Type: Patch update
-  - Breaking changes: None
-  - Testing required: Component type checking
-
-- [ ] Update @types/pg: 8.15.6 → 8.16.0
-  - Type: Minor update
-  - Breaking changes: None
-  - Testing required: Database query type checking
-
-##### Core Dependencies
-- [ ] Update Next.js: 14.2.33 → 14.2.35
-  - Type: Patch update within v14
-  - Breaking changes: None
-  - Testing required: Build, dev server, production build
-
-- [ ] Update Tailwind CSS: 3.4.18 → 3.4.19
-  - Type: Patch update within v3
-  - Breaking changes: None
-  - Testing required: Style compilation, visual regression
-
-- [ ] Update Autoprefixer: 10.4.21 → 10.4.23
-  - Type: Patch update
-  - Breaking changes: None
-  - Testing required: CSS compilation
-
-##### State & Data Management
-- [ ] Update SWR: 2.3.6 → 2.3.8
-  - Type: Patch update
-  - Breaking changes: None
-  - Testing required: Data fetching, cache behavior
-
-- [ ] Update Zod: 4.1.12 → 4.3.5
-  - Type: Minor update within v4
-  - Breaking changes: None
-  - Testing required: Form validation, schema validation
+#### Verification
+- [x] TypeScript compilation: No errors
+- [x] Build: Successful
+- [x] All tests passing
 
 #### Execution Steps
 1. Create feature branch: `git checkout -b chore/safe-package-updates-q1-2026`
@@ -118,56 +91,101 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
 
 ---
 
-## 📅 Phase 2: PostgreSQL Upgrade (Q2 2026)
+## 📅 Phase 2: PostgreSQL Upgrade (Q2 2026) - NEXT
 
-### PostgreSQL 15 → 16 Migration
-**Timeline:** April - May 2026
-**Risk Level:** 🟡 Medium
-**Estimated Effort:** 1-2 weeks
+### PostgreSQL 15.14 → 16.11 Migration
+**Timeline:** Q2 2026 (when ready)
+**Risk Level:** 🟢 Low (for this project)
+**Estimated Effort:** 2-4 hours
+**Target Image:** `postgres:16-alpine` (currently 16.11-alpine3.23)
 
-#### Pre-Migration Tasks
-- [ ] Review PostgreSQL 16 release notes thoroughly
-- [ ] Identify all custom PL/pgSQL procedures in database
-- [ ] Check for cursor variable usage in stored procedures
-- [ ] Set up PostgreSQL 16-alpine test environment
-- [ ] Document current database schema version
-- [ ] Create complete database backup
+#### Risk Assessment for GEA Portal
 
-#### Migration Preparation
-- [ ] Test pg_upgrade tool in staging environment
-- [ ] Verify compatibility of pg (node-postgres) client library
-- [ ] Update database connection pooling configuration if needed
-- [ ] Prepare rollback plan
-- [ ] Document downtime window requirements
+| Risk Factor | Status | Notes |
+|-------------|--------|-------|
+| PL/pgSQL Functions | ✅ None | No stored procedures in codebase |
+| Cursor Variables | ✅ None | No cursor usage (PG16 breaking change N/A) |
+| Custom Extensions | ✅ None | Standard PostgreSQL only |
+| SCRAM-SHA-256 Auth | ✅ Compatible | PgBouncer auth unchanged |
+| node-postgres (pg) | ✅ Compatible | v8.17.1 supports PG16 |
 
-#### Migration Steps
-- [ ] Backup production database using pg_dumpall
-- [ ] Set up PostgreSQL 16-alpine container
-- [ ] Perform migration using pg_upgrade
-- [ ] Verify data integrity post-migration
-- [ ] Run all database tests
-- [ ] Test application connectivity
-- [ ] Monitor performance metrics
+**Conclusion:** Low risk upgrade - no application code changes required.
+
+#### PostgreSQL 16 New Features (Benefits)
+- Improved logical replication performance
+- Better query parallelism
+- Enhanced JSON/JSONB functions
+- Improved VACUUM performance
+- New `pg_stat_io` view for I/O statistics
+
+#### Pre-Migration Checklist
+- [ ] Create full database backup: `pg_dumpall`
+- [ ] Document current data volume size
+- [ ] Test migration in local environment first
+- [ ] Verify PgBouncer v1.23.1 compatibility with PG16
+
+#### Migration Steps (Docker - Dump/Restore Method)
+
+**Step 1: Backup Current Database**
+```bash
+# On production server
+docker compose exec feedback_db pg_dumpall -U $FEEDBACK_DB_USER > backup_pg15_$(date +%Y%m%d).sql
+```
+
+**Step 2: Stop Services**
+```bash
+docker compose down
+```
+
+**Step 3: Update docker-compose.yml**
+```yaml
+# Change:
+image: postgres:15.14-alpine
+# To:
+image: postgres:16-alpine
+```
+
+**Step 4: Remove Old Data Volume & Start Fresh**
+```bash
+# WARNING: This removes the old database!
+docker volume rm v3_feedback_db_data
+
+# Start new PostgreSQL 16 container
+docker compose up -d feedback_db
+
+# Wait for healthy status
+docker compose ps
+```
+
+**Step 5: Restore Backup**
+```bash
+# Restore the backup
+docker compose exec -T feedback_db psql -U $FEEDBACK_DB_USER -d $FEEDBACK_DB_NAME < backup_pg15_$(date +%Y%m%d).sql
+```
+
+**Step 6: Start All Services & Verify**
+```bash
+docker compose up -d
+docker compose ps  # All healthy
+docker compose logs feedback_db --tail 20  # No errors
+```
 
 #### Testing Checklist
 - [ ] All database queries execute successfully
-- [ ] Stored procedures function correctly
-- [ ] Cursor variable assignments work as expected
-- [ ] Connection pooling stable
-- [ ] Performance meets or exceeds baseline
+- [ ] PgBouncer connection pooling stable
+- [ ] Application connectivity verified
+- [ ] Performance acceptable
 - [ ] Backup/restore procedures validated
 
 #### Rollback Plan
-- [ ] Document rollback procedure
-- [ ] Keep PostgreSQL 15 backup accessible
-- [ ] Test rollback in staging
-- [ ] Define rollback decision criteria
+1. Stop all services: `docker compose down`
+2. Remove PG16 volume: `docker volume rm v3_feedback_db_data`
+3. Revert docker-compose.yml to `postgres:15.14-alpine`
+4. Start fresh and restore from backup
+5. Verify application functionality
 
-#### Docker Configuration Changes
-- [ ] Update docker-compose.yml: `postgres:15-alpine` → `postgres:16-alpine`
-- [ ] Update any database initialization scripts
-- [ ] Update Docker volume management
-- [ ] Test full Docker stack restart
+#### Files to Modify
+- `docker-compose.yml`: Line 29 - change image tag
 
 ---
 
@@ -556,13 +574,16 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
 ```json
 {
   "node": "20.19.5",
-  "next": "14.2.33",
+  "next": "14.2.35",
   "react": "18.3.1",
-  "tailwindcss": "3.4.18",
+  "tailwindcss": "3.4.19",
   "typescript": "5.9.3",
   "postgres": "15-alpine",
   "docker": "29.1.5",
-  "traefik": "v3.6.7"
+  "traefik": "v3.6.7",
+  "swr": "2.3.8",
+  "zod": "4.3.5",
+  "pg": "8.17.1"
 }
 ```
 

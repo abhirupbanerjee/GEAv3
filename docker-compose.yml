@@ -26,7 +26,7 @@ services:
       - LETS_ENCRYPT_EMAIL=mailabhirupbanerjee@gmail.com
 
   feedback_db:
-    image: postgres:15.14-alpine
+    image: postgres:16-alpine
     container_name: feedback_db
     restart: unless-stopped
     networks:
