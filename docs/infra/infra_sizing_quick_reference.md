@@ -40,9 +40,9 @@ This document provides infrastructure sizing recommendations for the GEA Portal 
 | PostgreSQL 15 | Primary database |
 | PgBouncer | Connection pooling (future) |
 | Redis | API caching + sessions (future) |
-| Traefik v3.0 | Reverse proxy + SSL |
+| Traefik v3.6 | Reverse proxy + SSL |
 
-> **⚠️ Docker Requirement:** Docker 27.5.1 is required. Docker 28.x/29.x are incompatible with Traefik v3.x. See [Docker & Traefik Compatibility Guide](../DOCKER_TRAEFIK_COMPATIBILITY.md).
+> **ℹ️ Version Info:** Docker 29.x is the current supported version (Docker 27.x is EOL). Traefik v3.6+ includes automatic Docker API version negotiation.
 
 ---
 

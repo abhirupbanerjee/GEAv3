@@ -32,7 +32,7 @@ This guide walks you through deploying the GEA Portal v3 on a fresh virtual mach
 
 - **Frontend** - Next.js 14 application
 - **Database** - PostgreSQL 15
-- **Reverse Proxy** - Traefik v3.0 with automatic SSL
+- **Reverse Proxy** - Traefik v3.6 with automatic SSL
 
 **Estimated Time:** 30-45 minutes for first deployment
 
@@ -175,11 +175,11 @@ su - geaportal
 
 ---
 
-## Step 3: Install Docker 27.5.1
+## Step 3: Install Docker Engine
 
-> **⚠️ Important:** The portal requires **Docker 27.5.1**. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x and will **not work**. See [Docker & Traefik Compatibility Guide](DOCKER_TRAEFIK_COMPATIBILITY.md) for details.
+> **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation for full compatibility. Docker 27.x has reached EOL (no security patches).
 
-### Install Docker Engine (Version 27.5.1)
+### Install Docker Engine (Latest)
 
 ```bash
 # Remove old versions
@@ -199,18 +199,14 @@ echo \
   $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
   sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
 
-# Install Docker 27.5.1 (SPECIFIC VERSION REQUIRED)
+# Install Docker (latest supported version)
 sudo apt update
-VERSION_STRING=5:27.5.1-1~ubuntu.24.04~noble
 sudo apt install -y \
-  docker-ce=$VERSION_STRING \
-  docker-ce-cli=$VERSION_STRING \
+  docker-ce \
+  docker-ce-cli \
   containerd.io \
   docker-buildx-plugin \
   docker-compose-plugin
-
-# Prevent auto-upgrade to incompatible versions
-sudo apt-mark hold docker-ce docker-ce-cli
 
 # Add current user to docker group
 sudo usermod -aG docker $USER
@@ -224,31 +220,26 @@ newgrp docker
 ```bash
 # Check Docker version
 docker --version
-# Expected: Docker version 27.5.1, build 9f9e405
+# Expected: Docker version 29.x.x
 
 # Check Docker Compose version
 docker compose version
-# Expected: Docker Compose version v2.40.x or higher
+# Expected: Docker Compose version v5.0.x or higher
 
 # Test Docker
 docker run hello-world
 ```
 
-### If You Have Docker 28+ or 29+ Installed
+### EOL Information
 
-If you already have Docker 28.x or 29.x installed, you must downgrade:
+| Component | Version | Support Status |
+|-----------|---------|----------------|
+| Docker 29.x | Current | ✅ Actively supported |
+| Docker 28.x | EOL | ❌ EOL since Nov 2025 |
+| Docker 27.x | EOL | ❌ EOL since early 2025 |
+| Traefik v3.6 | Current | ✅ Latest minor, actively supported |
 
-```bash
-# Stop all containers first
-docker compose down 2>/dev/null
-
-# Remove current Docker installation
-sudo apt-get purge -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-sudo rm -rf /var/lib/docker
-sudo rm -rf /var/lib/containerd
-
-# Then follow the installation steps above for Docker 27.5.1
-```
+> Docker follows ~1 month support after next major release. Traefik supports only the latest minor version.
 
 ---
 

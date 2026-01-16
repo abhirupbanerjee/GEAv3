@@ -30,8 +30,8 @@ Complete digital portal system with:
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
 | **OS** | Ubuntu 22.04 LTS | **Ubuntu 24.04 LTS** |
-| **Docker** | 27.5.1 | **27.5.1** (Required) |
-| **Docker Compose** | v2.20+ | **v2.40+** |
+| **Docker** | 27.x+ | **29.x** (Latest supported) |
+| **Docker Compose** | v2.20+ | **v5.0+** |
 | **RAM** | 4 GB | 8 GB |
 | **vCPUs** | 2 | 2-4 |
 | **Disk** | 30 GB | **50 GB** (single disk) |
@@ -44,15 +44,15 @@ Complete digital portal system with:
 | Component | Version | Notes |
 |-----------|---------|-------|
 | **OS** | Ubuntu 24.04.3 LTS | Azure VM (kernel 6.14.0-azure) |
-| **Docker** | 27.5.1 | ⚠️ Required - v28+/29+ incompatible with Traefik |
-| **Docker Compose** | v2.40+ | Plugin version |
+| **Docker** | 29.1.5 | Latest supported (Docker 27.x is EOL) |
+| **Docker Compose** | v5.0.1 | Plugin version |
 | **Node.js** | 20.x (container) | Alpine-based image |
 | **PostgreSQL** | 15.14-alpine | Database container |
 | **PgBouncer** | v1.23.1-p3 | Connection pooling (edoburu/pgbouncer) |
 | **Redis** | 7.4.4-alpine | Analytics caching |
-| **Traefik** | v3.0 | Reverse proxy + SSL |
+| **Traefik** | v3.6 | Reverse proxy + SSL (supports Docker 29 API) |
 
-> **⚠️ Docker Version Requirement:** Use Docker 27.5.1. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x. See [Docker & Traefik Compatibility Guide](docs/DOCKER_TRAEFIK_COMPATIBILITY.md) for details.
+> **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation for full compatibility.
 
 ### Deploy in 5 Steps
 
@@ -123,7 +123,7 @@ Run this on your existing VM to generate specs for replication:
 | **Database** | PostgreSQL 15.14-alpine | Data storage & user management | `feedback_db` |
 | **Connection Pool** | PgBouncer v1.23.1 | Database connection pooling | `pgbouncer` |
 | **Cache** | Redis 7.4.4-alpine | Analytics caching | `redis` |
-| **Reverse Proxy** | Traefik v3.0 | SSL termination & routing | `traefik` |
+| **Reverse Proxy** | Traefik v3.6 | SSL termination & routing | `traefik` |
 | **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | (in frontend) |
 
 ### Production Container Status
@@ -135,7 +135,7 @@ frontend      geav3-frontend                   Up X minutes              3000/tc
 feedback_db   postgres:15.14-alpine            Up X minutes (healthy)    5432/tcp
 pgbouncer     edoburu/pgbouncer:v1.23.1-p3     Up X minutes (healthy)    5432/tcp
 redis         redis:7.4.4-alpine               Up X minutes (healthy)    6379/tcp
-traefik       traefik:v3.0                     Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
+traefik       traefik:v3.6                     Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
 ```
 
 ### Technology Stack
@@ -155,7 +155,7 @@ traefik       traefik:v3.0                     Up X minutes              0.0.0.0
 
 **Infrastructure:**
 - Docker & Docker Compose
-- Traefik v3.0 (reverse proxy & SSL)
+- Traefik v3.6 (reverse proxy & SSL)
 - Let's Encrypt (auto-SSL)
 - PgBouncer (database connection pooling)
 - Redis (analytics caching)

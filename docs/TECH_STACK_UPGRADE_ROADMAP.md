@@ -3,32 +3,44 @@
 ## Document Overview
 This roadmap outlines the strategic plan for upgrading key technologies in the GoGeaPortal v3 project. Each major upgrade has been analyzed for breaking changes, migration complexity, and optimal timing.
 
-**Last Updated:** 2026-01-14
-**Status:** Planning Phase
+**Last Updated:** 2026-01-16
+**Status:** In Progress (Docker/Traefik upgrade completed)
 **Risk Level:** High (Multiple major version upgrades)
 
 ---
 
-## 🚨 Critical Infrastructure Issues
+## ✅ Resolved Infrastructure Issues
 
-### Docker-Traefik API Compatibility (IMMEDIATE ATTENTION)
+### Docker-Traefik API Compatibility (RESOLVED)
 
-**Priority:** 🔴 Critical
-**Status:** ⚠️ Blocking Production Issue
+**Priority:** ✅ Resolved
+**Status:** ✅ Fixed - January 16, 2026
+**Resolution:** Upgraded Traefik v3.0 → v3.6.7, then Docker 27.5.1 → 29.1.5
 
-#### Issue Description
+#### Issue Description (Historical)
 - **Problem:** Traefik container using Docker API v1.24, but Docker daemon requires v1.44+
 - **Error:** `client version 1.24 is too old. Minimum supported API version is 1.44`
-- **Impact:** Traefik cannot properly discover and route to Docker containers
-- **Current State:** Container running but non-functional
+- **Root Cause:** Docker 29 enforced minimum API v1.44; Traefik v3.0 used API v1.24
 
-#### Action Items
-- [ ] Investigate Docker daemon version on host system
-- [ ] Check Traefik image compatibility with current Docker version
-- [ ] Evaluate Traefik v3.2+ for better Docker API compatibility
-- [ ] Test static configuration as temporary workaround (loses auto-discovery)
-- [ ] Document root cause and permanent fix
-- [ ] **DO NOT update Traefik version** until underlying issue resolved
+#### Resolution Applied
+- [x] Upgraded Traefik v3.0 → v3.6.7 (includes Docker API auto-negotiation)
+- [x] Upgraded Docker 27.5.1 → 29.1.5 (after Traefik upgrade)
+- [x] Verified all containers running correctly
+- [x] Documented upgrade procedure for other systems
+
+#### Current Production Status
+| Component | Version | Status |
+|-----------|---------|--------|
+| Docker | 29.1.5 | ✅ Latest supported |
+| Traefik | v3.6.7 | ✅ With API auto-negotiation |
+
+#### EOL Information
+| Component | Version | Support Status |
+|-----------|---------|----------------|
+| Docker 29.x | Current | ✅ Actively supported |
+| Docker 28.x | EOL | ❌ EOL since Nov 2025 |
+| Docker 27.x | EOL | ❌ EOL since early 2025 |
+| Traefik v3.6 | Current | ✅ Latest minor, actively supported |
 
 ---
 
@@ -540,7 +552,7 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
 
 ## 📝 Notes
 
-### Current Stable Configuration
+### Current Stable Configuration (Updated January 16, 2026)
 ```json
 {
   "node": "20.19.5",
@@ -548,7 +560,9 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
   "react": "18.3.1",
   "tailwindcss": "3.4.18",
   "typescript": "5.9.3",
-  "postgres": "15-alpine"
+  "postgres": "15-alpine",
+  "docker": "29.1.5",
+  "traefik": "v3.6.7"
 }
 ```
 
@@ -560,7 +574,9 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
   "react": "19.x",
   "tailwindcss": "4.x",
   "typescript": "5.x",
-  "postgres": "16-alpine"
+  "postgres": "16-alpine",
+  "docker": "29.x (current)",
+  "traefik": "v3.6+ (current)"
 }
 ```
 

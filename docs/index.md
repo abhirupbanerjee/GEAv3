@@ -99,12 +99,12 @@
 ### Infrastructure
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Docker | 27.5.1 | Containerization (⚠️ v28+/29+ incompatible with Traefik) |
-| Docker Compose | 2.40+ | Multi-container orchestration |
-| Traefik | 3.0 | Reverse proxy & SSL |
+| Docker | 29.x | Containerization (latest supported, Docker 27.x is EOL) |
+| Docker Compose | 5.0+ | Multi-container orchestration |
+| Traefik | 3.6 | Reverse proxy & SSL (supports Docker 29 API) |
 | Nginx | Alpine | Static file serving |
 
-> **⚠️ Docker Version Requirement:** Docker 27.5.1 is required. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x. See [Docker & Traefik Compatibility Guide](DOCKER_TRAEFIK_COMPATIBILITY.md).
+> **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation.
 
 ### Development Tools
 | Tool | Purpose |
@@ -246,12 +246,12 @@ gogeaportal/v3/
 
 **Required Software:**
 - Git 2.x+
-- Docker 27.5.1 (⚠️ Required - v28+/29+ incompatible with Traefik v3.x)
-- Docker Compose 2.40+
+- Docker 29.x (latest supported, Docker 27.x is EOL)
+- Docker Compose 5.0+
 - Domain with DNS access (or localhost for testing)
 - Linux/MacOS (or WSL2 on Windows)
 
-> **⚠️ Important:** See [VM_SETUP_GUIDE.md](VM_SETUP_GUIDE.md#step-3-install-docker-2751) for Docker installation with correct version.
+> **ℹ️ Info:** See [VM_SETUP_GUIDE.md](VM_SETUP_GUIDE.md#step-3-install-docker-engine) for Docker installation instructions.
 
 **System Requirements:**
 - 4GB RAM minimum (8GB recommended)

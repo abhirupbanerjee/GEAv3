@@ -16,7 +16,7 @@
 3. [Pre-Installation Checklist](#pre-installation-checklist)
 4. [Installation Steps](#installation-steps)
    - [Step 1: Initial Server Setup](#step-1-initial-server-setup)
-   - [Step 2: Install Docker 27.5.1](#step-2-install-docker-2751)
+   - [Step 2: Install Docker Engine](#step-2-install-docker-engine)
    - [Step 3: Clone Repository](#step-3-clone-repository)
    - [Step 4: Configure Environment](#step-4-configure-environment)
    - [Step 5: Configure DNS](#step-5-configure-dns)
@@ -207,9 +207,9 @@ To                         Action      From
 
 ---
 
-### Step 2: Install Docker 27.5.1
+### Step 2: Install Docker Engine
 
-> **⚠️ CRITICAL:** GEA Portal v3 requires **Docker version 27.5.1 exactly**. Docker 28.x and 29.x have API compatibility issues with Traefik v3.x and **will not work**.
+> **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation for full compatibility. Docker 27.x has reached EOL (no security patches).
 
 #### 2.1 Remove Old Docker Versions (if any)
 
@@ -256,31 +256,16 @@ echo \
 sudo apt update
 ```
 
-#### 2.4 Install Docker 27.5.1 (Specific Version)
+#### 2.4 Install Docker (Latest Supported Version)
 
 ```bash
-# For Ubuntu 24.04
-VERSION_STRING=5:27.5.1-1~ubuntu.24.04~noble
-
-# For Ubuntu 22.04, use this instead:
-# VERSION_STRING=5:27.5.1-1~ubuntu.22.04~jammy
-
-# Install Docker with specific version
+# Install Docker (latest supported version)
 sudo apt install -y \
-    docker-ce=$VERSION_STRING \
-    docker-ce-cli=$VERSION_STRING \
+    docker-ce \
+    docker-ce-cli \
     containerd.io \
     docker-buildx-plugin \
     docker-compose-plugin
-
-# Prevent auto-upgrade to incompatible versions
-sudo apt-mark hold docker-ce docker-ce-cli
-```
-
-**Expected output:**
-```
-docker-ce set on hold.
-docker-ce-cli set on hold.
 ```
 
 #### 2.5 Configure Docker for Non-Root User
@@ -302,7 +287,7 @@ docker --version
 
 **Expected output:**
 ```
-Docker version 27.5.1, build 9f9e405
+Docker version 29.x.x
 ```
 
 ```bash
@@ -312,8 +297,17 @@ docker compose version
 
 **Expected output:**
 ```
-Docker Compose version v2.40.x
+Docker Compose version v5.0.x
 ```
+
+#### EOL Information
+
+| Component | Version | Support Status |
+|-----------|---------|----------------|
+| Docker 29.x | Current | ✅ Actively supported |
+| Docker 28.x | EOL | ❌ EOL since Nov 2025 |
+| Docker 27.x | EOL | ❌ EOL since early 2025 |
+| Traefik v3.6 | Current | ✅ Latest minor, actively supported |
 
 ```bash
 # Test Docker

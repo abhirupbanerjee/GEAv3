@@ -58,7 +58,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 - **Connection Pool:** PgBouncer v1.23.1 (transaction mode)
 - **Cache:** Redis 7.4.4-alpine (analytics caching)
 - **Authentication:** NextAuth v4 with OAuth
-- **Reverse Proxy:** Traefik v3.0 with automatic SSL
+- **Reverse Proxy:** Traefik v3.6 with automatic SSL
 - **Email:** SendGrid API
 - **Deployment:** Docker Compose
 
@@ -75,7 +75,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
                          │ HTTPS (Port 443)
                          ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    TRAEFIK REVERSE PROXY (v3.0)                      │
+│                    TRAEFIK REVERSE PROXY (v3.6)                      │
 │  • SSL Termination (Let's Encrypt)                                   │
 │  • Routing (gea.domain.com → frontend:3000)                         │
 │  • Load Balancing                                                    │
@@ -184,7 +184,7 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 │                      DOCKER HOST SERVER                          │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────┐    │
-│  │  TRAEFIK CONTAINER (traefik:v3.0)                      │    │
+│  │  TRAEFIK CONTAINER (traefik:v3.6)                      │    │
 │  │  • Port 80/443 exposed                                  │    │
 │  │  • SSL Certificates (Let's Encrypt)                     │    │
 │  │  • Dashboard: traefik.gea.domain.com                   │    │
@@ -344,9 +344,9 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
-| **Containerization** | Docker | 27.5.1 | Application containers (required) |
-| **Orchestration** | Docker Compose | v2.40+ | Multi-container management |
-| **Reverse Proxy** | Traefik | v3.0 | Load balancing & SSL |
+| **Containerization** | Docker | 29.x | Application containers (Docker 27.x EOL) |
+| **Orchestration** | Docker Compose | v5.0+ | Multi-container management |
+| **Reverse Proxy** | Traefik | v3.6 | Load balancing & SSL |
 | **Database** | PostgreSQL | 15.14-alpine | Relational database |
 | **Connection Pool** | PgBouncer | v1.23.1-p3 | Database connection pooling |
 | **Cache** | Redis | 7.4.4-alpine | Analytics caching |
@@ -861,7 +861,7 @@ const result = await pool.query(query, params)
 ```yaml
 services:
   traefik:
-    image: traefik:v3.0
+    image: traefik:v3.6
     ports:
       - "80:80"
       - "443:443"
