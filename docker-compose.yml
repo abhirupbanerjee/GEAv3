@@ -60,28 +60,23 @@ services:
       retries: 5
 
   pgbouncer:
-    image: bitnami/pgbouncer:1.24
+    image: edoburu/pgbouncer:1.23.1-p3
     container_name: pgbouncer
     restart: unless-stopped
     networks:
       - geav3_network
     environment:
-      - POSTGRESQL_HOST=feedback_db
-      - POSTGRESQL_PORT=5432
-      - POSTGRESQL_DATABASE=${FEEDBACK_DB_NAME}
-      - POSTGRESQL_USERNAME=${FEEDBACK_DB_USER}
-      - POSTGRESQL_PASSWORD=${FEEDBACK_DB_PASSWORD}
-      - PGBOUNCER_POOL_MODE=transaction
-      - PGBOUNCER_MAX_CLIENT_CONN=200
-      - PGBOUNCER_DEFAULT_POOL_SIZE=20
-      - PGBOUNCER_MIN_POOL_SIZE=5
-      - PGBOUNCER_RESERVE_POOL_SIZE=5
-      - PGBOUNCER_PORT=6432
+      - DATABASE_URL=postgres://${FEEDBACK_DB_USER}:${FEEDBACK_DB_PASSWORD}@feedback_db:5432/${FEEDBACK_DB_NAME}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=200
+      - DEFAULT_POOL_SIZE=20
+      - MIN_POOL_SIZE=5
+      - RESERVE_POOL_SIZE=5
     depends_on:
       feedback_db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "6432"]
+      test: ["CMD", "pg_isready", "-h", "localhost", "-p", "5432"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -143,7 +138,7 @@ services:
     environment:
       # Runtime environment variables for database connection (via PgBouncer)
       - FEEDBACK_DB_HOST=pgbouncer
-      - FEEDBACK_DB_PORT=6432
+      - FEEDBACK_DB_PORT=5432
       - FEEDBACK_DB_NAME=${FEEDBACK_DB_NAME}
       - FEEDBACK_DB_USER=${FEEDBACK_DB_USER}
       - FEEDBACK_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
@@ -166,7 +161,7 @@ services:
 
       # Database connection for NextAuth (via PgBouncer)
       - DB_HOST=pgbouncer
-      - DB_PORT=6432
+      - DB_PORT=5432
       - DB_NAME=feedback
       - DB_USER=feedback_user
       - DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
