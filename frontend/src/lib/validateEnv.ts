@@ -7,13 +7,17 @@
 import { config } from '@/config/env';
 
 export function validateEnvironment() {
-  // Check critical variables exist
+  // Critical required variables (app won't work without these)
   const required = [
     'SITE_NAME',
+    'API_BASE_URL',
+  ];
+
+  // Optional variables (features disabled if missing)
+  const optional = [
     'SENDGRID_API_KEY',
     'SENDGRID_FROM_EMAIL',
     'SERVICE_ADMIN_EMAIL',
-    'API_BASE_URL',
   ];
 
   const missing = required.filter((key) => {
@@ -22,12 +26,22 @@ export function validateEnvironment() {
   });
 
   if (missing.length > 0) {
-    console.error('❌ Missing environment variables:', missing);
+    console.error('❌ Missing required environment variables:', missing);
     throw new Error(`Missing required env vars: ${missing.join(', ')}`);
   }
 
+  // Warn about optional missing vars (don't fail build)
+  const missingOptional = optional.filter((key) => {
+    const value = config[key as keyof typeof config];
+    return !value || value === '';
+  });
+
+  if (missingOptional.length > 0) {
+    console.warn('⚠️ Optional features disabled (missing env vars):', missingOptional);
+  }
+
   console.log('✅ Environment validation passed');
-  
+
   // Return config for use in app
   return config;
 }

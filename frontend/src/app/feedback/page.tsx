@@ -289,11 +289,12 @@ function FeedbackPageContent() {
   // If submission successful, show success message
   if (submitSuccess) {
     return (
-      <SuccessMessage 
+      <SuccessMessage
         feedbackId={feedbackId}
         submittedAt={submittedAt}
         ticket={ticketInfo}
         onSubmitAnother={resetForm}
+        kioskMode={!!qrCodeId}
       />
     )
   }

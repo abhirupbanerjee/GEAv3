@@ -1,4 +1,6 @@
-import React from 'react'
+'use client'
+
+import React, { useState } from 'react'
 
 interface TicketInfo {
   created: boolean;
@@ -11,14 +13,17 @@ interface SuccessMessageProps {
   submittedAt: string;
   ticket?: TicketInfo | null;
   onSubmitAnother: () => void;
+  kioskMode?: boolean;
 }
 
-export default function SuccessMessage({ 
-  feedbackId, 
+export default function SuccessMessage({
+  feedbackId,
   submittedAt,
   ticket,
-  onSubmitAnother 
+  onSubmitAnother,
+  kioskMode = false
 }: SuccessMessageProps) {
+  const [showTicketModal, setShowTicketModal] = useState(false)
   return (
     <div className="max-w-3xl mx-auto py-12">
       <div className="bg-white rounded-lg shadow-xl p-8 text-center">
@@ -106,12 +111,21 @@ export default function SuccessMessage({
                         <strong>Reason:</strong> {ticket.reason}
                       </p>
                     )}
-                    <a
-                      href={`/helpdesk/ticket/${ticket.ticketNumber}`}
-                      className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
-                    >
-                      Track Ticket Status →
-                    </a>
+                    {kioskMode ? (
+                      <button
+                        onClick={() => setShowTicketModal(true)}
+                        className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
+                      >
+                        View Ticket Status
+                      </button>
+                    ) : (
+                      <a
+                        href={`/helpdesk/ticket/${ticket.ticketNumber}`}
+                        className="inline-block mt-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded transition-colors"
+                      >
+                        Track Ticket Status →
+                      </a>
+                    )}
                     <p className="text-xs text-blue-700 mt-2">
                       Our team will review your feedback and reach out if additional information is needed.
                     </p>
@@ -214,26 +228,86 @@ export default function SuccessMessage({
           >
             Submit Another Feedback
           </button>
-          
-          <a
-            href="/"
-            className="px-8 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-lg border-2 border-gray-300 transition-colors text-center"
-          >
-            Return to Home
-          </a>
+
+          {!kioskMode && (
+            <a
+              href="/"
+              className="px-8 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-lg border-2 border-gray-300 transition-colors text-center"
+            >
+              Return to Home
+            </a>
+          )}
         </div>
 
-        {/* Additional Help */}
-        <div className="mt-12 text-center text-sm text-gray-600">
-          <p className="mb-2">Need to report a serious issue or make a formal complaint?</p>
-          <a 
-            href="/services" 
-            className="text-blue-600 hover:text-blue-700 font-semibold"
-          >
-            Visit our Service Request Portal →
-          </a>
-        </div>
+        {/* Additional Help - Hidden in kiosk mode */}
+        {!kioskMode && (
+          <div className="mt-12 text-center text-sm text-gray-600">
+            <p className="mb-2">Need to report a serious issue or make a formal complaint?</p>
+            <a
+              href="/services"
+              className="text-blue-600 hover:text-blue-700 font-semibold"
+            >
+              Visit our Service Request Portal →
+            </a>
+          </div>
+        )}
       </div>
+
+      {/* Ticket Status Modal - For kiosk mode */}
+      {showTicketModal && ticket && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-2xl max-w-md w-full">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-bold text-gray-900">Ticket Status</h3>
+                <button
+                  onClick={() => setShowTicketModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex justify-between items-center mb-3">
+                    <span className="text-sm text-gray-600">Ticket Number</span>
+                    <span className="text-lg font-bold text-blue-600">#{ticket.ticketNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Status</span>
+                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 text-sm font-semibold rounded-full">
+                      Open
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-sm text-gray-600">
+                  Your support ticket has been created and will be reviewed by our team.
+                  They will investigate your concern and work toward a resolution.
+                </p>
+
+                {ticket.reason && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                    <p className="text-xs text-blue-700">
+                      <strong>Reason:</strong> {ticket.reason}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={() => setShowTicketModal(false)}
+                className="mt-6 w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

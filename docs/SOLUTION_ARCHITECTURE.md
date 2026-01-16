@@ -1,4 +1,4 @@
-# GEA Portal v3 - Solution Architecture
+R# GEA Portal v3 - Solution Architecture
 
 **Document Version:** 1.1
 **Last Updated:** December 19, 2025
