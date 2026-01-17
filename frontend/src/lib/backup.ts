@@ -18,9 +18,10 @@ const execAsync = promisify(exec)
 
 // Configuration constants
 export const BACKUP_DIR = '/tmp/gea_backups'
-export const DB_CONTAINER = 'feedback_db'
-export const DB_USER = 'feedback_user'
-export const DB_NAME = 'feedback'
+export const DB_HOST = process.env.FEEDBACK_DB_HOST || 'feedback_db'
+export const DB_USER = process.env.FEEDBACK_DB_USER || 'feedback_user'
+export const DB_NAME = process.env.FEEDBACK_DB_NAME || 'feedback'
+export const DB_PASSWORD = process.env.FEEDBACK_DB_PASSWORD || ''
 
 // Backup file interface
 export interface BackupFile {
@@ -182,8 +183,8 @@ export async function createBackup(type: string = 'manual'): Promise<BackupFile>
   const filePath = path.join(BACKUP_DIR, filename)
 
   // Use pg_dumpall for complete dump (includes roles, tablespaces, databases)
-  // PostgreSQL 16 compatible flags
-  const command = `docker exec ${DB_CONTAINER} pg_dumpall -U ${DB_USER} --clean --if-exists`
+  // PostgreSQL 16 compatible flags - connect directly via Docker network
+  const command = `PGPASSWORD="${DB_PASSWORD}" pg_dumpall -h ${DB_HOST} -U ${DB_USER} --clean --if-exists`
 
   try {
     const { stdout } = await execAsync(command, {
@@ -241,25 +242,26 @@ export async function restoreBackup(
 
     // Step 3: Drop and recreate database
     progress('dropping', 'Dropping existing database...', 50)
-    const dropCmd = `docker exec ${DB_CONTAINER} psql -U ${DB_USER} -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME};"`
+    const dropCmd = `PGPASSWORD="${DB_PASSWORD}" psql -h ${DB_HOST} -U ${DB_USER} -d postgres -c "DROP DATABASE IF EXISTS ${DB_NAME};"`
     execSync(dropCmd, { stdio: 'pipe' })
 
-    const createCmd = `docker exec ${DB_CONTAINER} psql -U ${DB_USER} -d postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"`
+    const createCmd = `PGPASSWORD="${DB_PASSWORD}" psql -h ${DB_HOST} -U ${DB_USER} -d postgres -c "CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};"`
     execSync(createCmd, { stdio: 'pipe' })
 
     // Step 4: Restore from backup
     progress('restoring', 'Restoring database from backup...', 70)
-    const restoreCmd = `docker exec -i ${DB_CONTAINER} psql -U ${DB_USER} -d postgres`
+    const restoreCmd = `PGPASSWORD="${DB_PASSWORD}" psql -h ${DB_HOST} -U ${DB_USER} -d postgres`
     execSync(restoreCmd, {
       input: backupContent,
       stdio: ['pipe', 'pipe', 'pipe'],
       maxBuffer: 1024 * 1024 * 500,
       timeout: 600000, // 10 minute timeout
+      env: { ...process.env, PGPASSWORD: DB_PASSWORD },
     })
 
     // Step 5: Verify restoration
     progress('verifying', 'Verifying database restoration...', 90)
-    const verifyCmd = `docker exec ${DB_CONTAINER} psql -U ${DB_USER} -d ${DB_NAME} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"`
+    const verifyCmd = `PGPASSWORD="${DB_PASSWORD}" psql -h ${DB_HOST} -U ${DB_USER} -d ${DB_NAME} -t -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public'"`
     const { stdout } = await execAsync(verifyCmd)
     const tables = parseInt(stdout.trim(), 10)
 
