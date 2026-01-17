@@ -17,16 +17,15 @@ import { validateEntityAccess } from '@/lib/entity-filter';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: requestId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const requestId = params.id;
 
     // First verify access to this request
     const requestCheck = await pool.query(
@@ -98,8 +97,9 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: requestId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -107,7 +107,6 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const requestId = params.id;
     const body = await request.json();
     const { comment_text, comment_type, is_visible_to_staff } = body;
 

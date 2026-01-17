@@ -8,8 +8,9 @@ export const dynamic = 'force-dynamic'
 // GET - Fetch service by ID (public endpoint)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const result = await pool.query(`
       SELECT
@@ -25,7 +26,7 @@ export async function GET(
       WHERE s.service_id = $1
         AND s.is_active = TRUE
         AND e.is_active = TRUE
-    `, [params.id])
+    `, [id])
 
     if (result.rows.length === 0) {
       return NextResponse.json(

@@ -21,8 +21,9 @@ import { config } from '@/config/env';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: requestId } = await params;
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);
@@ -38,7 +39,6 @@ export async function PUT(
       );
     }
 
-    const requestId = params.id;
     const body = await request.json();
     const { new_status, comment } = body;
 

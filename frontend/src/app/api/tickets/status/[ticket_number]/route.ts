@@ -52,13 +52,13 @@ interface ActivityResult {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ticket_number: string } }
+  { params }: { params: Promise<{ ticket_number: string }> }
 ) {
   const requestId = generateRequestId()
   const startTime = Date.now()
-  
+  const { ticket_number: ticketNumber } = await params
+
   try {
-    const ticketNumber = params.ticket_number
     
     // 1. VALIDATE TICKET NUMBER FORMAT
     const ticketNumberRegex = /^\d{6}-\d{6}$/
@@ -185,7 +185,7 @@ export async function GET(
     
   } catch (error) {
     const duration = Date.now() - startTime
-    logError('GET', `/api/tickets/status/${params.ticket_number}`, error instanceof Error ? error.message : String(error), requestId)
+    logError('GET', `/api/tickets/status/${ticketNumber}`, error instanceof Error ? error.message : String(error), requestId)
     return respondServerError(error, requestId)
   }
 }

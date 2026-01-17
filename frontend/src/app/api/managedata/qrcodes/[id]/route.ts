@@ -6,15 +6,16 @@ export const dynamic = 'force-dynamic'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await request.json()
     const { service_id, entity_id, location_name, location_address, location_type, notes, is_active } = body
 
     await pool.query(`
       UPDATE qr_codes
-      SET 
+      SET
         service_id = $1,
         entity_id = $2,
         location_name = $3,
@@ -23,7 +24,7 @@ export async function PUT(
         notes = $6,
         is_active = $7
       WHERE qr_code_id = $8
-    `, [service_id, entity_id, location_name, location_address, location_type, notes, is_active, params.id])
+    `, [service_id, entity_id, location_name, location_address, location_type, notes, is_active, id])
 
     return NextResponse.json({ success: true, message: 'QR code updated' })
   } catch (error) {

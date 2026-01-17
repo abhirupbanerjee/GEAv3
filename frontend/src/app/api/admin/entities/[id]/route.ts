@@ -15,8 +15,9 @@ import { pool } from '@/lib/db';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: entityId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -27,8 +28,6 @@ export async function GET(
         { status: 401 }
       );
     }
-
-    const entityId = params.id;
 
     // For staff users, verify they can only access their own entity
     if (session.user.roleType === 'staff' && session.user.entityId !== entityId) {

@@ -7,11 +7,12 @@ export const dynamic = 'force-dynamic'
 // GET - Fetch QR code data by code ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
+  const { code } = await params
   try {
     const result = await pool.query(`
-      SELECT 
+      SELECT
         q.qr_code_id,
         q.service_id,
         q.entity_id,
@@ -25,7 +26,7 @@ export async function GET(
       JOIN service_master s ON q.service_id = s.service_id
       JOIN entity_master e ON q.entity_id = e.unique_entity_id
       WHERE q.qr_code_id = $1 AND q.is_active = TRUE
-    `, [params.code])
+    `, [code])
 
     if (result.rows.length === 0) {
       return NextResponse.json(

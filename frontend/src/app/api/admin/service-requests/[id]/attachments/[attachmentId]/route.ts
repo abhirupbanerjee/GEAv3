@@ -16,17 +16,15 @@ import { validateEntityAccess } from '@/lib/entity-filter';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; attachmentId: string } }
+  { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
+  const { id: requestId, attachmentId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const requestId = params.id;
-    const attachmentId = params.attachmentId;
 
     // First, get the request to validate entity access
     const requestQuery = `

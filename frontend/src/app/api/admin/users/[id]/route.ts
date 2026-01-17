@@ -19,8 +19,9 @@ import { pool } from '@/lib/db';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: userId } = await params;
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);
@@ -32,7 +33,6 @@ export async function PATCH(
       );
     }
 
-    const userId = params.id;
     const body = await request.json();
 
     // Get old user data for audit log
@@ -117,8 +117,9 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: userId } = await params;
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);
@@ -129,8 +130,6 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const userId = params.id;
 
     // Prevent self-deletion
     if (userId === session.user.id) {

@@ -7,22 +7,23 @@ export const dynamic = 'force-dynamic'
 // PUT - Update entity
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     const body = await request.json()
     const { entity_name, entity_type, parent_entity_id, is_active } = body
 
     await pool.query(`
       UPDATE entity_master
-      SET 
+      SET
         entity_name = $1,
         entity_type = $2,
         parent_entity_id = $3,
         is_active = $4,
         updated_at = CURRENT_TIMESTAMP
       WHERE unique_entity_id = $5
-    `, [entity_name, entity_type, parent_entity_id || null, is_active, params.id])
+    `, [entity_name, entity_type, parent_entity_id || null, is_active, id])
 
     return NextResponse.json({ success: true, message: 'Entity updated' })
   } catch (error) {

@@ -25,8 +25,9 @@ import { getEntityFilter } from '@/lib/entity-filter'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params
   try {
     // Check authentication
     const session = await getServerSession(authOptions)
@@ -44,7 +45,7 @@ export async function PUT(
       )
     }
 
-    const ticketId = parseInt(params.id)
+    const ticketId = parseInt(id)
 
     if (isNaN(ticketId)) {
       return NextResponse.json(
@@ -244,7 +245,7 @@ export async function PUT(
             success: false,
             error: {
               code: 'NOT_FOUND',
-              message: `Ticket with ID ${params.id} not found`
+              message: `Ticket with ID ${id} not found`
             },
             timestamp: new Date().toISOString()
           },

@@ -7,14 +7,15 @@ export const dynamic = 'force-dynamic'
 // POST - Increment scan count for QR code
 export async function POST(
   request: NextRequest,
-  { params }: { params: { code: string } }
+  { params }: { params: Promise<{ code: string }> }
 ) {
+  const { code } = await params
   try {
     await pool.query(`
       UPDATE qr_codes
       SET scan_count = scan_count + 1
       WHERE qr_code_id = $1 AND is_active = TRUE
-    `, [params.code])
+    `, [code])
 
     return NextResponse.json({ success: true })
   } catch (error) {

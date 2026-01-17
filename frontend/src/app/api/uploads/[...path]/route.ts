@@ -34,10 +34,10 @@ const ALLOWED_DIRS = ['branding', 'contacts'];
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { path: string[] } }
+  { params }: { params: Promise<{ path: string[] }> }
 ) {
+  const { path: pathSegments } = await params;
   try {
-    const pathSegments = params.path;
 
     // Validate path
     if (!pathSegments || pathSegments.length < 2) {

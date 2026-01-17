@@ -11,10 +11,10 @@ import { pool } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { ticketNumber: string } }
+  { params }: { params: Promise<{ ticketNumber: string }> }
 ) {
+  const { ticketNumber } = await params;
   try {
-    const { ticketNumber } = params;
 
     // Validate ticket number format (YYYYMM-XXXXXX)
     const ticketNumberRegex = /^\d{6}-\d{6}$/;

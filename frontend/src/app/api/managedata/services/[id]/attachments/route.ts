@@ -16,8 +16,9 @@ import { pool } from '@/lib/db';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: serviceId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -28,8 +29,6 @@ export async function GET(
     if (session.user.roleType !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
-    const serviceId = params.id;
 
     // Verify service exists
     const serviceCheck = await pool.query(
@@ -78,8 +77,9 @@ export async function GET(
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: serviceId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -91,7 +91,6 @@ export async function POST(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const serviceId = params.id;
     const body = await request.json();
 
     const { filename, file_extension, is_mandatory, description, sort_order } = body;

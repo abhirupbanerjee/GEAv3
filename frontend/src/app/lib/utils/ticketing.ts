@@ -37,8 +37,8 @@ export function getClientIp(request: NextRequest): string {
     return cfIp;
   }
 
-  // Fallback to socket address
-  return request.ip || '0.0.0.0';
+  // Fallback when behind proxy (headers should provide IP)
+  return '0.0.0.0';
 }
 
 /**

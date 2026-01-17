@@ -15,16 +15,15 @@ import { pool } from '@/lib/db';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: serviceId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const serviceId = params.id;
 
     // Fetch attachment requirements for this service
     const query = `

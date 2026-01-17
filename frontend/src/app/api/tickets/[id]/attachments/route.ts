@@ -62,13 +62,14 @@ function getTicketIdFromParams(params: any): string {
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   const startTime = Date.now();
-  
+  const { id } = await params;
+
   try {
     // Get ticket ID from route params
-    const ticketId = getTicketIdFromParams(params);
+    const ticketId = id;
     
     // ============================================
     // STEP 1: Validate ticket exists
@@ -241,10 +242,11 @@ export async function POST(
 // List all attachments for a ticket (metadata only, no file content)
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await params;
   try {
-    const ticketId = getTicketIdFromParams(params);
+    const ticketId = id;
     
     // Validate ticket exists
     const ticket = await validateTicketExists(ticketId);

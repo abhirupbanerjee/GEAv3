@@ -1,8 +1,8 @@
 {
-  "totalPages": 23,
+  "totalPages": 25,
   "documented": 23,
-  "inferred": 0,
-  "coverage": "100%",
+  "inferred": 2,
+  "coverage": "92%",
   "documentedRoutes": [
     "/",
     "/about",
@@ -28,6 +28,9 @@
     "/helpdesk/ticket/:ticketNumber",
     "/services"
   ],
-  "inferredRoutes": [],
-  "generatedAt": "2026-01-17T17:11:13.375Z"
+  "inferredRoutes": [
+    "/admin/setting",
+    "/admin/staff/settings"
+  ],
+  "generatedAt": "2026-01-17T22:22:59.769Z"
 }

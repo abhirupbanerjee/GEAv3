@@ -17,8 +17,9 @@ import { pool } from '@/lib/db';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string; attachmentId: string } }
+  { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
+  const { id: serviceId, attachmentId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -28,8 +29,6 @@ export async function GET(
     if (session.user.roleType !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
-    const { id: serviceId, attachmentId } = params;
 
     const result = await pool.query(
       `SELECT * FROM service_attachments
@@ -60,8 +59,9 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; attachmentId: string } }
+  { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
+  const { id: serviceId, attachmentId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -72,7 +72,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const { id: serviceId, attachmentId } = params;
     const body = await request.json();
 
     const { filename, file_extension, is_mandatory, description, sort_order, is_active } = body;
@@ -171,8 +170,9 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; attachmentId: string } }
+  { params }: { params: Promise<{ id: string; attachmentId: string }> }
 ) {
+  const { id: serviceId, attachmentId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
@@ -182,8 +182,6 @@ export async function DELETE(
     if (session.user.roleType !== 'admin') {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-
-    const { id: serviceId, attachmentId } = params;
 
     const result = await pool.query(
       `DELETE FROM service_attachments

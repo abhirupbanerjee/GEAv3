@@ -18,16 +18,15 @@ import { validateEntityAccess } from '@/lib/entity-filter';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: requestId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const requestId = params.id;
 
     // Fetch request with related data
     const query = `
@@ -121,8 +120,9 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: requestId } = await params;
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
@@ -130,7 +130,6 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const requestId = params.id;
     const body = await request.json();
 
     // First, get current request to validate access
@@ -219,8 +218,9 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const { id: requestId } = await params;
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);
@@ -235,8 +235,6 @@ export async function DELETE(
         { status: 403 }
       );
     }
-
-    const requestId = params.id;
 
     // Delete request (attachments will be cascade deleted)
     const result = await pool.query(
