@@ -42,12 +42,6 @@ const UsersIcon = () => (
   </svg>
 )
 
-const AIBotsIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-  </svg>
-)
-
 const SettingsIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -76,6 +70,7 @@ const SubItemIcon = () => (
 interface SubItem {
   label: string
   tabKey: string
+  href?: string
 }
 
 interface NavigationItem {
@@ -87,22 +82,24 @@ interface NavigationItem {
 }
 
 const navigationItems: NavigationItem[] = [
+  // Admin-only home
   {
     label: 'Admin Home',
     href: '/admin/home',
     icon: <HomeIcon />,
-    requiredRole: null,
+    requiredRole: 'admin',
+  },
+  // Staff-only home
+  {
+    label: 'Staff Home',
+    href: '/admin/staff/home',
+    icon: <HomeIcon />,
+    requiredRole: 'staff',
   },
   {
     label: 'Analytics',
     href: '/admin/analytics',
     icon: <AnalyticsIcon />,
-    requiredRole: null,
-  },
-  {
-    label: 'Tickets',
-    href: '/admin/tickets',
-    icon: <TicketsIcon />,
     requiredRole: null,
   },
   {
@@ -117,22 +114,22 @@ const navigationItems: NavigationItem[] = [
     ],
   },
   {
-    label: 'Service Requests',
-    href: '/admin/service-requests',
-    icon: <ServiceRequestsIcon />,
-    requiredRole: null,
-  },
-  {
     label: 'Users',
     href: '/admin/users',
     icon: <UsersIcon />,
     requiredRole: 'admin',
   },
   {
-    label: 'AI Bots',
-    href: '/admin/ai-inventory',
-    icon: <AIBotsIcon />,
-    requiredRole: 'admin',
+    label: 'Services',
+    href: '/admin/service-requests',
+    icon: <ServiceRequestsIcon />,
+    requiredRole: null,
+  },
+  {
+    label: 'Tickets',
+    href: '/admin/tickets',
+    icon: <TicketsIcon />,
+    requiredRole: null,
   },
   {
     label: 'Settings',
@@ -148,7 +145,8 @@ const navigationItems: NavigationItem[] = [
       { label: 'Content', tabKey: 'CONTENT' },
       { label: 'Admin Management', tabKey: 'USER_MANAGEMENT' },
       { label: 'Service Providers', tabKey: 'SERVICE_PROVIDERS' },
-      { label: 'Database', tabKey: 'DATABASE' },
+      { label: 'AI Bots', tabKey: 'AI_BOTS', href: '/admin/ai-inventory' },
+      { label: 'Backups', tabKey: 'DATABASE' },
     ],
   },
 ]
@@ -371,11 +369,14 @@ function SidebarContent() {
                     {!isCollapsed && isExpanded && (
                       <div className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1 relative z-10">
                         {item.children!.map((child) => {
-                          const isChildActive = isSubItemActive(item.href, child.tabKey)
+                          const childHref = child.href || `${item.href}?tab=${child.tabKey}`
+                          const isChildActive = child.href
+                            ? pathname === child.href
+                            : isSubItemActive(item.href, child.tabKey)
                           return (
                             <Link
                               key={child.tabKey}
-                              href={`${item.href}?tab=${child.tabKey}`}
+                              href={childHref}
                               prefetch={false}
                               onClick={() => setIsMobileOpen(false)}
                               className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
