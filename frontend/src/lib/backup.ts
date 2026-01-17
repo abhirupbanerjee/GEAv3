@@ -18,7 +18,8 @@ const execAsync = promisify(exec)
 
 // Configuration constants
 export const BACKUP_DIR = '/tmp/gea_backups'
-export const DB_HOST = process.env.FEEDBACK_DB_HOST || 'feedback_db'
+// For backups, connect directly to PostgreSQL (not pgbouncer) since pg_dumpall needs template1 access
+export const DB_HOST = process.env.BACKUP_DB_HOST || 'feedback_db'
 export const DB_USER = process.env.FEEDBACK_DB_USER || 'feedback_user'
 export const DB_NAME = process.env.FEEDBACK_DB_NAME || 'feedback'
 export const DB_PASSWORD = process.env.FEEDBACK_DB_PASSWORD || ''
