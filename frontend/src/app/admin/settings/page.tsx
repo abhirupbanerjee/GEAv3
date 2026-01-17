@@ -80,7 +80,7 @@ const CATEGORIES = [
   { key: 'BUSINESS_RULES', label: 'Business Rules', icon: FiSliders, description: 'Rate limits, thresholds, and file upload' },
   { key: 'PERFORMANCE', label: 'Performance', icon: FiZap, description: 'Caching, connection pooling, and optimization settings' },
   { key: 'CONTENT', label: 'Content', icon: FiFileText, description: 'Footer links and leadership contacts' },
-  { key: 'USER_MANAGEMENT', label: 'User Management', icon: FiUsers, description: 'Configure which entities can have admin users' },
+  { key: 'USER_MANAGEMENT', label: 'Admin Management', icon: FiUsers, description: 'Configure which entities can have admin users' },
   { key: 'SERVICE_PROVIDERS', label: 'Service Providers', icon: FiServer, description: 'Configure entities that can receive service requests' },
   { key: 'DATABASE', label: 'Database', icon: FiDatabase, description: 'Backup and restore database, manage scheduled backups' },
 ]
