@@ -197,7 +197,18 @@ echo "  ✓ Backup settings created"
 echo ""
 
 # ============================================================================
-# STEP 11: VERIFICATION
+# STEP 11: ADD BACKUP TIMEZONE SETTING
+# ============================================================================
+echo "▶ Step 11: Adding backup timezone setting..."
+echo ""
+
+"$SCRIPTS_DIR/19-add-backup-timezone.sh"
+
+echo "  ✓ Backup timezone setting added"
+echo ""
+
+# ============================================================================
+# STEP 12: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
 echo "║                    VERIFICATION SUMMARY                           ║"

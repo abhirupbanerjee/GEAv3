@@ -154,6 +154,7 @@ export async function initBackupScheduler(): Promise<void> {
     const scheduleType = await getSetting('BACKUP_SCHEDULE_TYPE', 'daily')
     const scheduleTime = await getSetting('BACKUP_SCHEDULE_TIME', '02:00')
     const scheduleDay = await getNumberSetting('BACKUP_SCHEDULE_DAY', 0)
+    const scheduleTimezone = await getSetting('BACKUP_SCHEDULE_TIMEZONE', 'America/Grenada')
 
     // Build cron expression
     const cronExpression = buildCronExpression(scheduleType, scheduleTime, scheduleDay)
@@ -172,12 +173,12 @@ export async function initBackupScheduler(): Promise<void> {
 
     // Schedule the backup task
     scheduledTask = cron.schedule(cronExpression, executeScheduledBackup, {
-      timezone: 'America/Grenada', // Use Grenada timezone
+      timezone: scheduleTimezone,
     })
 
     isInitialized = true
     console.log(
-      `[BackupScheduler] Initialized with schedule: ${scheduleType} at ${scheduleTime} (cron: ${cronExpression})`
+      `[BackupScheduler] Initialized with schedule: ${scheduleType} at ${scheduleTime} (${scheduleTimezone}) (cron: ${cronExpression})`
     )
   } catch (error) {
     console.error('[BackupScheduler] Failed to initialize:', error)
