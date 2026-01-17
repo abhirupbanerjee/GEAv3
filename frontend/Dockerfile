@@ -103,17 +103,20 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
-# Copy necessary files from builder
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/next.config.js ./
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
-
-# Create non-root user
+# Create non-root user FIRST (before copying files)
 RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 nextjs && \
-    chown -R nextjs:nodejs /app
+    adduser --system --uid 1001 nextjs
+
+# Copy necessary files from builder (with ownership set during copy)
+COPY --from=builder --chown=nextjs:nodejs /app/package*.json ./
+COPY --from=builder --chown=nextjs:nodejs /app/next.config.js ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
+
+# Pre-create upload directories for runtime writes
+RUN mkdir -p /app/public/uploads/branding /app/public/uploads/contacts && \
+    chown -R nextjs:nodejs /app/public/uploads
 
 USER nextjs
 
