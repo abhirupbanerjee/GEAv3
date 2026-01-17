@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useState, useEffect, Suspense, useCallback } from 'react'
+import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Icons as separate components for reusability
@@ -156,7 +156,8 @@ const navigationItems: NavigationItem[] = [
 function SidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
+  const prevPathRef = useRef<string | null>(null)
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
@@ -173,6 +174,20 @@ function SidebarContent() {
       setExpandedItems(JSON.parse(savedExpanded))
     }
   }, [])
+
+  // Refresh session ONLY when entering admin area from non-admin route
+  // This fixes stale sidebar menu without causing page blinking on admin-to-admin navigation
+  useEffect(() => {
+    const wasInAdmin = prevPathRef.current?.startsWith('/admin')
+    const nowInAdmin = pathname.startsWith('/admin')
+
+    // Only update session when transitioning FROM non-admin TO admin
+    if (nowInAdmin && !wasInAdmin) {
+      updateSession()
+    }
+
+    prevPathRef.current = pathname
+  }, [pathname, updateSession])
 
   // Auto-expand parent when navigating to a child route
   useEffect(() => {
