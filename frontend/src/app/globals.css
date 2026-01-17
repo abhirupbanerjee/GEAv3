@@ -1,6 +1,24 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+  /* Primary color palette */
+  --color-primary-50: #f0f4ff;
+  --color-primary-100: #e0e7ff;
+  --color-primary-200: #c7d2fe;
+  --color-primary-300: #a5b4fc;
+  --color-primary-400: #818cf8;
+  --color-primary-500: #667eea;
+  --color-primary-600: #5568d3;
+  --color-primary-700: #4c51bf;
+  --color-primary-800: #434190;
+  --color-primary-900: #3c366b;
+
+  /* Secondary color */
+  --color-secondary-500: #764ba2;
+
+  /* Font family */
+  --font-sans: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
 
 @layer base {
   body {
