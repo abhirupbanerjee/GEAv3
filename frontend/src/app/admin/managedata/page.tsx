@@ -49,6 +49,13 @@ import { useChatContext } from '@/hooks/useChatContext'
 type Tab = 'entities' | 'services' | 'qrcodes'
 const VALID_TABS: Tab[] = ['entities', 'services', 'qrcodes']
 
+// Tab configuration - defined outside component for stable reference (prevents infinite re-render)
+const TABS = [
+  { id: 'entities' as Tab, label: 'Entities', icon: '🏛️', count: 'Ministries, Depts, Agencies' },
+  { id: 'services' as Tab, label: 'Services', icon: '📋', count: 'Government Services' },
+  { id: 'qrcodes' as Tab, label: 'QR Codes', icon: '📱', count: 'Physical Locations' }
+]
+
 // Download helper for JSON export
 function downloadJSON(data: any, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -184,16 +191,10 @@ function ManageDataPageContent() {
     }
   }, [])
 
-  const tabs = [
-    { id: 'entities' as Tab, label: 'Entities', icon: '🏛️', count: 'Ministries, Depts, Agencies' },
-    { id: 'services' as Tab, label: 'Services', icon: '📋', count: 'Government Services' },
-    { id: 'qrcodes' as Tab, label: 'QR Codes', icon: '📱', count: 'Physical Locations' }
-  ]
-
   // Initialize tab context on mount and sync when tab changes via sidebar
   useEffect(() => {
-    switchTab('managedata', activeTab, tabs.map(t => t.id))
-  }, [activeTab, switchTab, tabs])
+    switchTab('managedata', activeTab, TABS.map(t => t.id))
+  }, [activeTab, switchTab])
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
