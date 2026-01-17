@@ -40,7 +40,7 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
-import { useSearchParams, useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
 import QRCodeManager from '@/components/managedata/QRCodeManager'
@@ -65,7 +65,6 @@ function downloadJSON(data: any, filename: string) {
 // Inner component that uses useSearchParams - must be wrapped in Suspense
 function ManageDataPageContent() {
   const searchParams = useSearchParams()
-  const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('entities')
   const [isExporting, setIsExporting] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
@@ -191,17 +190,10 @@ function ManageDataPageContent() {
     { id: 'qrcodes' as Tab, label: 'QR Codes', icon: '📱', count: 'Physical Locations' }
   ]
 
-  // Initialize tab context on mount
+  // Initialize tab context on mount and sync when tab changes via sidebar
   useEffect(() => {
     switchTab('managedata', activeTab, tabs.map(t => t.id))
-  }, [])
-
-  // Handle tab changes
-  const handleTabChange = (tabId: Tab) => {
-    setActiveTab(tabId)
-    switchTab('managedata', tabId, tabs.map(t => t.id))
-    router.push(`/admin/managedata?tab=${tabId}`, { scroll: false })
-  }
+  }, [activeTab, switchTab, tabs])
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -270,35 +262,8 @@ function ManageDataPageContent() {
           </div>
         </div>
 
-        {/* Tabs */}
+        {/* Tab Content */}
         <div className="bg-white rounded-lg shadow-md mb-6">
-          <div className="border-b border-gray-200">
-            <nav className="flex -mb-px">
-              {tabs.map((tab) => (
-                <button
-                  key={tab.id}
-                  onClick={() => handleTabChange(tab.id)}
-                  className={`
-                    flex-1 py-4 px-6 text-center font-semibold transition-all
-                    ${activeTab === tab.id
-                      ? 'border-b-2 border-blue-600 text-blue-600 bg-blue-50'
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-                    }
-                  `}
-                >
-                  <div className="flex items-center justify-center gap-2">
-                    <span className="text-2xl">{tab.icon}</span>
-                    <div className="text-left">
-                      <div className="font-bold">{tab.label}</div>
-                      <div className="text-xs text-gray-500">{tab.count}</div>
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </nav>
-          </div>
-
-          {/* Tab Content */}
           <div className="p-6">
             {activeTab === 'entities' && <EntityManager />}
             {activeTab === 'services' && <ServiceManager />}

@@ -1023,42 +1023,17 @@ function SettingsPageContent() {
         </div>
       )}
 
-      {/* Category Tabs */}
-      <div className="border-b border-gray-200 mb-6">
-        <nav className="flex space-x-4 overflow-x-auto">
-          {CATEGORIES.map((category) => {
-            const Icon = category.icon
-            const isActive = activeCategory === category.key
-            const categoryHasChanges = Object.keys(pendingChanges).some(key =>
-              (settings[category.key] || []).some(s => s.setting_key === key)
-            )
-
-            return (
-              <button
-                key={category.key}
-                onClick={() => handleCategoryChange(category.key)}
-                className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
-                  isActive
-                    ? 'border-blue-600 text-blue-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
-              >
-                <Icon className="w-4 h-4" />
-                {category.label}
-                {categoryHasChanges && (
-                  <span className="w-2 h-2 bg-yellow-400 rounded-full" />
-                )}
-              </button>
-            )
-          })}
-        </nav>
-      </div>
-
-      {/* Category Description */}
-      <div className="mb-6">
+      {/* Category Description - shows which section is active */}
+      <div className="mb-6 pb-4 border-b border-gray-200">
         <p className="text-gray-600">
           {CATEGORIES.find(c => c.key === activeCategory)?.description}
         </p>
+        {Object.keys(pendingChanges).length > 0 && (
+          <p className="text-yellow-600 text-sm mt-2 flex items-center gap-2">
+            <span className="w-2 h-2 bg-yellow-400 rounded-full" />
+            You have unsaved changes
+          </p>
+        )}
       </div>
 
       {/* Settings Content */}
