@@ -80,6 +80,7 @@ const CATEGORIES = [
   { key: 'BUSINESS_RULES', label: 'Business Rules', icon: FiSliders, description: 'Rate limits, thresholds, and file upload' },
   { key: 'PERFORMANCE', label: 'Performance', icon: FiZap, description: 'Caching, connection pooling, and optimization settings' },
   { key: 'CONTENT', label: 'Content', icon: FiFileText, description: 'Footer links and leadership contacts' },
+  { key: 'USER_MANAGEMENT', label: 'User Management', icon: FiUsers, description: 'Configure which entities can have admin users' },
   { key: 'SERVICE_PROVIDERS', label: 'Service Providers', icon: FiServer, description: 'Configure entities that can receive service requests' },
   { key: 'DATABASE', label: 'Database', icon: FiDatabase, description: 'Backup and restore database, manage scheduled backups' },
 ]
@@ -128,6 +129,12 @@ function SettingsPageContent() {
   const [serviceProviders, setServiceProviders] = useState<ServiceProviderEntity[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
   const [togglingProvider, setTogglingProvider] = useState<string | null>(null)
+
+  // Admin allowed entities state
+  const [allEntities, setAllEntities] = useState<ServiceProviderEntity[]>([])
+  const [adminAllowedEntities, setAdminAllowedEntities] = useState<string[]>([])
+  const [loadingAdminEntities, setLoadingAdminEntities] = useState(false)
+  const [savingAdminEntities, setSavingAdminEntities] = useState(false)
 
   // Database backup state
   const [backups, setBackups] = useState<BackupFile[]>([])
@@ -232,6 +239,74 @@ function SettingsPageContent() {
       setMessage({ type: 'error', text: 'Failed to update service provider status' })
     } finally {
       setTogglingProvider(null)
+    }
+  }
+
+  // Load admin allowed entities setting and all entities
+  const loadAdminAllowedEntities = useCallback(async () => {
+    try {
+      setLoadingAdminEntities(true)
+      // Fetch all entities and the setting in parallel
+      const [entitiesRes, settingRes] = await Promise.all([
+        fetch('/api/admin/service-providers'),
+        fetch('/api/admin/settings/ADMIN_ALLOWED_ENTITIES')
+      ])
+
+      if (entitiesRes.ok) {
+        const entitiesData = await entitiesRes.json()
+        if (entitiesData.success) {
+          setAllEntities(entitiesData.entities)
+        }
+      }
+
+      if (settingRes.ok) {
+        const settingData = await settingRes.json()
+        if (settingData.success && settingData.setting?.setting_value) {
+          const value = settingData.setting.setting_value
+          const parsed = typeof value === 'string' ? JSON.parse(value) : value
+          setAdminAllowedEntities(Array.isArray(parsed) ? parsed : [])
+        }
+      }
+    } catch (error) {
+      console.error('Error loading admin allowed entities:', error)
+    } finally {
+      setLoadingAdminEntities(false)
+    }
+  }, [])
+
+  // Toggle admin allowed entity
+  const toggleAdminAllowedEntity = (entityId: string) => {
+    setAdminAllowedEntities(prev =>
+      prev.includes(entityId)
+        ? prev.filter(id => id !== entityId)
+        : [...prev, entityId]
+    )
+  }
+
+  // Save admin allowed entities
+  const saveAdminAllowedEntities = async () => {
+    try {
+      setSavingAdminEntities(true)
+      const response = await fetch('/api/admin/settings/ADMIN_ALLOWED_ENTITIES', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          value: JSON.stringify(adminAllowedEntities),
+          reason: 'Updated admin allowed entities via settings page'
+        })
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Admin allowed entities updated successfully' })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to update setting' })
+      }
+    } catch (error) {
+      console.error('Error saving admin allowed entities:', error)
+      setMessage({ type: 'error', text: 'Failed to save admin allowed entities' })
+    } finally {
+      setSavingAdminEntities(false)
     }
   }
 
@@ -413,6 +488,13 @@ function SettingsPageContent() {
       loadBackups()
     }
   }, [activeCategory, loadBackups])
+
+  // Load admin allowed entities when User Management tab is selected
+  useEffect(() => {
+    if (activeCategory === 'USER_MANAGEMENT') {
+      loadAdminAllowedEntities()
+    }
+  }, [activeCategory, loadAdminAllowedEntities])
 
   // Handle setting value change
   const handleSettingChange = (key: string, value: string) => {
@@ -747,6 +829,82 @@ function SettingsPageContent() {
     const isChanged = pendingChanges[setting.setting_key] !== undefined
     const showSecret = showSecrets[setting.setting_key]
 
+    // Special handling for BACKUP_SCHEDULE_TIME - time picker with guidance
+    if (setting.setting_key === 'BACKUP_SCHEDULE_TIME') {
+      return (
+        <div className="space-y-2">
+          <input
+            type="time"
+            value={value}
+            onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+              isChanged ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+            }`}
+          />
+          <p className="text-xs text-amber-600 bg-amber-50 p-2 rounded flex items-center gap-2">
+            <FiClock className="w-3 h-3" />
+            Recommended: Schedule backups during non-business hours (02:00-05:00)
+          </p>
+        </div>
+      )
+    }
+
+    // Special handling for BACKUP_SCHEDULE_DAY - context-aware radio buttons
+    if (setting.setting_key === 'BACKUP_SCHEDULE_DAY') {
+      const scheduleTypeSetting = currentCategorySettings.find(s => s.setting_key === 'BACKUP_SCHEDULE_TYPE')
+      const scheduleType = scheduleTypeSetting ? getCurrentValue(scheduleTypeSetting) : 'daily'
+
+      if (scheduleType === 'daily') {
+        return <p className="text-sm text-gray-500 italic">Not applicable for daily backups</p>
+      }
+
+      if (scheduleType === 'weekly') {
+        const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
+        return (
+          <div className="flex flex-wrap gap-2">
+            {days.map((day, idx) => (
+              <label
+                key={idx}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                  value === String(idx)
+                    ? 'border-blue-500 bg-blue-50 text-blue-700'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="backup_day"
+                  value={idx}
+                  checked={value === String(idx)}
+                  onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+                  className="sr-only"
+                />
+                <span className="text-sm">{day}</span>
+              </label>
+            ))}
+          </div>
+        )
+      }
+
+      if (scheduleType === 'monthly') {
+        return (
+          <select
+            value={value}
+            onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+            className={`px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+              isChanged ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+            }`}
+          >
+            {Array.from({length: 28}, (_, i) => i + 1).map(day => (
+              <option key={day} value={day}>Day {day}</option>
+            ))}
+          </select>
+        )
+      }
+
+      return <p className="text-sm text-gray-500 italic">Select a schedule type first</p>
+    }
+
     switch (setting.setting_type) {
       case 'boolean':
         return (
@@ -810,6 +968,23 @@ function SettingsPageContent() {
             }`}
           />
         )
+
+      case 'select': {
+        const selectOptions = (setting.options?.values as Array<{value: string; label: string}>) || []
+        return (
+          <select
+            value={value}
+            onChange={(e) => handleSettingChange(setting.setting_key, e.target.value)}
+            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+              isChanged ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+            }`}
+          >
+            {selectOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </select>
+        )
+      }
 
       default:
         return (
@@ -1063,7 +1238,14 @@ function SettingsPageContent() {
                     )}
                   </div>
                   <div className="lg:col-span-2">
-                    {isBrandingSetting(setting)
+                    {setting.subcategory === 'Configuration' ? (
+                      <input
+                        type="text"
+                        value={getCurrentValue(setting)}
+                        disabled
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-100 text-gray-500 cursor-not-allowed"
+                      />
+                    ) : isBrandingSetting(setting)
                       ? renderBrandingInput(setting)
                       : renderSettingInput(setting)
                     }
@@ -1123,6 +1305,87 @@ function SettingsPageContent() {
             </div>
           </div>
         ))}
+
+        {/* User Management - Admin Allowed Entities Section */}
+        {activeCategory === 'USER_MANAGEMENT' && (
+          <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+            <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <FiUsers className="w-4 h-4" />
+                  Entities Allowed to Have Admin Users
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Select which entities can have admin users assigned to them. Admin users from these entities will have full system access.
+                </p>
+              </div>
+              <button
+                onClick={saveAdminAllowedEntities}
+                disabled={savingAdminEntities}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+              >
+                {savingAdminEntities ? (
+                  <FiRefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <FiSave className="w-4 h-4" />
+                )}
+                {savingAdminEntities ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+            <div className="p-4">
+              {loadingAdminEntities ? (
+                <div className="flex items-center justify-center py-8">
+                  <FiRefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="ml-2 text-gray-500">Loading entities...</span>
+                </div>
+              ) : allEntities.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">
+                  No entities found. Run the database migration first.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {allEntities.map((entity) => (
+                    <div
+                      key={entity.unique_entity_id}
+                      className={`flex items-center justify-between p-3 rounded-lg border ${
+                        adminAllowedEntities.includes(entity.unique_entity_id)
+                          ? 'border-purple-200 bg-purple-50'
+                          : 'border-gray-200 bg-white'
+                      }`}
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-gray-900">{entity.entity_name}</span>
+                          <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                            {entity.unique_entity_id}
+                          </span>
+                          <span className="text-xs text-gray-400 capitalize">
+                            {entity.entity_type}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => toggleAdminAllowedEntity(entity.unique_entity_id)}
+                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 ${
+                          adminAllowedEntities.includes(entity.unique_entity_id) ? 'bg-purple-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                            adminAllowedEntities.includes(entity.unique_entity_id) ? 'translate-x-5' : 'translate-x-0'
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-gray-400 mt-4">
+                Note: DTA (AGY-005) is the default. Admin users have full system-wide access regardless of their assigned entity.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Service Providers Section */}
         {activeCategory === 'SERVICE_PROVIDERS' && (
@@ -1416,7 +1679,7 @@ function SettingsPageContent() {
         )}
 
         {/* Empty state */}
-        {currentCategorySettings.length === 0 && activeCategory !== 'CONTENT' && activeCategory !== 'SERVICE_PROVIDERS' && activeCategory !== 'DATABASE' && (
+        {currentCategorySettings.length === 0 && activeCategory !== 'CONTENT' && activeCategory !== 'SERVICE_PROVIDERS' && activeCategory !== 'USER_MANAGEMENT' && activeCategory !== 'DATABASE' && (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <FiSettings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-gray-600 font-medium">No settings in this category</h3>

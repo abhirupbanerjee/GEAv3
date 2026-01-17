@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { pool } from '@/lib/db';
-import { getServiceRequestEntityId } from '@/lib/settings';
+import { getServiceRequestEntityId, getSetting } from '@/lib/settings';
 
 /**
  * GET /api/admin/users
@@ -123,10 +123,32 @@ export async function POST(request: NextRequest) {
 
     const { role_type: roleType, role_code: roleCode } = roleCheck.rows[0];
 
-    // Auto-assign entity for DTA administrators
+    // Get allowed admin entities from settings
+    const allowedEntitiesRaw = await getSetting<string>('ADMIN_ALLOWED_ENTITIES', '["AGY-005"]');
+    const allowedAdminEntities: string[] = typeof allowedEntitiesRaw === 'string'
+      ? JSON.parse(allowedEntitiesRaw)
+      : (Array.isArray(allowedEntitiesRaw) ? allowedEntitiesRaw : ['AGY-005']);
+
     let finalEntityId = entity_id;
-    if (roleCode === 'admin_dta' && !entity_id) {
-      finalEntityId = await getServiceRequestEntityId(); // Digital Transformation Agency
+
+    // Handle admin role entity assignment
+    if (roleType === 'admin') {
+      if (entity_id) {
+        // Validate entity is in allowed list
+        if (!allowedAdminEntities.includes(entity_id)) {
+          return NextResponse.json(
+            { error: 'Selected entity is not allowed to have admin users' },
+            { status: 400 }
+          );
+        }
+        finalEntityId = entity_id;
+      } else {
+        // Default to DTA if in allowed list
+        const dtaEntityId = await getServiceRequestEntityId();
+        if (allowedAdminEntities.includes(dtaEntityId)) {
+          finalEntityId = dtaEntityId;
+        }
+      }
     }
 
     // Validate entity requirement for staff

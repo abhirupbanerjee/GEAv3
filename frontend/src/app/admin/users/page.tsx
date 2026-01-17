@@ -430,9 +430,30 @@ function AddUserModal({
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [allowedAdminEntities, setAllowedAdminEntities] = useState<string[]>([]);
+
+  // Fetch allowed admin entities setting
+  useEffect(() => {
+    fetch('/api/admin/settings/ADMIN_ALLOWED_ENTITIES')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && data.setting?.setting_value) {
+          // Parse JSON if string, otherwise use as-is
+          const value = data.setting.setting_value;
+          const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+          setAllowedAdminEntities(Array.isArray(parsed) ? parsed : []);
+        }
+      })
+      .catch(err => console.error('Failed to fetch admin allowed entities:', err));
+  }, []);
 
   const selectedRole = roles.find((r) => r.role_id.toString() === formData.role_id);
+  const isAdminRole = selectedRole?.role_type === 'admin';
   const requiresEntity = selectedRole?.role_type === 'staff';
+  const showEntityForAdmin = isAdminRole && allowedAdminEntities.length > 0;
+
+  // Filter entities for admin dropdown (only allowed entities)
+  const adminEntities = entities.filter(e => allowedAdminEntities.includes(e.entity_id));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -545,6 +566,29 @@ function AddUserModal({
               </select>
               <p className="text-xs text-gray-500 mt-1">
                 Staff users can only access data for their assigned entity
+              </p>
+            </div>
+          )}
+
+          {showEntityForAdmin && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Entity (Optional)
+              </label>
+              <select
+                value={formData.entity_id}
+                onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Default (DTA)</option>
+                {adminEntities.map((entity) => (
+                  <option key={entity.entity_id} value={entity.entity_id}>
+                    {entity.entity_name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Admin users have full system access regardless of entity
               </p>
             </div>
           )}

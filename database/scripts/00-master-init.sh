@@ -186,7 +186,18 @@ echo "  ✓ Service provider flag added (DTA enabled by default)"
 echo ""
 
 # ============================================================================
-# STEP 10: VERIFICATION
+# STEP 10: CREATE BACKUP SETTINGS
+# ============================================================================
+echo "▶ Step 10: Creating backup settings and audit table..."
+echo ""
+
+"$SCRIPTS_DIR/18-create-backup-settings.sh"
+
+echo "  ✓ Backup settings created"
+echo ""
+
+# ============================================================================
+# STEP 11: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
 echo "║                    VERIFICATION SUMMARY                           ║"
