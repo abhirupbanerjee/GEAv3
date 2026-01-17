@@ -86,7 +86,7 @@ fi
 # Insert default roles
 if ! docker exec $DB_CONTAINER psql -U $DB_USER -d $DB_NAME -c "
 INSERT INTO user_roles (role_code, role_name, role_type, description) VALUES
-    ('admin_dta', 'DTA Administrator', 'admin', 'Full system access - Digital Transformation Agency administrators'),
+    ('admin_dta', 'Admin', 'admin', 'Full system access - administrators with entity association'),
     ('staff_mda', 'MDA Staff Officer', 'staff', 'Entity-specific access - Ministry/Department/Agency officers'),
     ('public_user', 'Public User', 'public', 'Limited public access - Future use for citizen portal')
 ON CONFLICT (role_code) DO NOTHING;" > /dev/null 2>&1; then
@@ -477,7 +477,7 @@ echo "    - user_permissions (fine-grained access)"
 echo "    - user_audit_log (activity tracking)"
 echo ""
 echo "  ✓ 3 default roles created:"
-echo "    - admin_dta (Full system access)"
+echo "    - admin_dta / Admin (Full system access)"
 echo "    - staff_mda (Entity-specific access)"
 echo "    - public_user (Limited public access)"
 echo ""
