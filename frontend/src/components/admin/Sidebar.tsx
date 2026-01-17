@@ -1,99 +1,164 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 
-const navigationItems = [
+// Icons as separate components for reusability
+const HomeIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+  </svg>
+)
+
+const AnalyticsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+  </svg>
+)
+
+const TicketsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+  </svg>
+)
+
+const MasterDataIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
+  </svg>
+)
+
+const ServiceRequestsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+  </svg>
+)
+
+const UsersIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+  </svg>
+)
+
+const AIBotsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+  </svg>
+)
+
+const SettingsIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+
+const ChevronDownIcon = ({ isOpen }: { isOpen: boolean }) => (
+  <svg
+    className={`w-4 h-4 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+  </svg>
+)
+
+// Sub-item icon (smaller dot/circle)
+const SubItemIcon = () => (
+  <svg className="w-2 h-2" fill="currentColor" viewBox="0 0 8 8">
+    <circle cx="4" cy="4" r="3" />
+  </svg>
+)
+
+interface SubItem {
+  label: string
+  tabKey: string
+}
+
+interface NavigationItem {
+  label: string
+  href: string
+  icon: React.ReactNode
+  requiredRole: string | null
+  children?: SubItem[]
+}
+
+const navigationItems: NavigationItem[] = [
   {
     label: 'Admin Home',
     href: '/admin/home',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-      </svg>
-    ),
-    requiredRole: null, // Available to all
+    icon: <HomeIcon />,
+    requiredRole: null,
   },
   {
     label: 'Analytics',
     href: '/admin/analytics',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-      </svg>
-    ),
-    requiredRole: null, // Available to all
+    icon: <AnalyticsIcon />,
+    requiredRole: null,
   },
   {
     label: 'Tickets',
     href: '/admin/tickets',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
-      </svg>
-    ),
-    requiredRole: null, // Available to all
+    icon: <TicketsIcon />,
+    requiredRole: null,
   },
   {
     label: 'Master Data',
     href: '/admin/managedata',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
-      </svg>
-    ),
-    requiredRole: null, // Available to all
+    icon: <MasterDataIcon />,
+    requiredRole: null,
+    children: [
+      { label: 'Entities', tabKey: 'entities' },
+      { label: 'Services', tabKey: 'services' },
+      { label: 'QR Codes', tabKey: 'qrcodes' },
+    ],
   },
   {
     label: 'Service Requests',
     href: '/admin/service-requests',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-      </svg>
-    ),
-    requiredRole: null, // Available to all
+    icon: <ServiceRequestsIcon />,
+    requiredRole: null,
   },
   {
     label: 'Users',
     href: '/admin/users',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-      </svg>
-    ),
-    requiredRole: 'admin', // Admin only
+    icon: <UsersIcon />,
+    requiredRole: 'admin',
   },
   {
     label: 'AI Bots',
     href: '/admin/ai-inventory',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-      </svg>
-    ),
-    requiredRole: 'admin', // Admin only
+    icon: <AIBotsIcon />,
+    requiredRole: 'admin',
   },
   {
     label: 'Settings',
     href: '/admin/settings',
-    icon: (
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    ),
-    requiredRole: 'admin', // Admin only
+    icon: <SettingsIcon />,
+    requiredRole: 'admin',
+    children: [
+      { label: 'System', tabKey: 'SYSTEM' },
+      { label: 'Authentication', tabKey: 'AUTHENTICATION' },
+      { label: 'Integrations', tabKey: 'INTEGRATIONS' },
+      { label: 'Business Rules', tabKey: 'BUSINESS_RULES' },
+      { label: 'Performance', tabKey: 'PERFORMANCE' },
+      { label: 'Content', tabKey: 'CONTENT' },
+      { label: 'Service Providers', tabKey: 'SERVICE_PROVIDERS' },
+      { label: 'Database', tabKey: 'DATABASE' },
+    ],
   },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [expandedItems, setExpandedItems] = useState<string[]>([])
 
   // Load collapse state from localStorage
   useEffect(() => {
@@ -101,7 +166,23 @@ export default function Sidebar() {
     if (savedState !== null) {
       setIsCollapsed(savedState === 'true')
     }
+    // Load expanded items state
+    const savedExpanded = localStorage.getItem('ea-portal-sidebar-expanded')
+    if (savedExpanded) {
+      setExpandedItems(JSON.parse(savedExpanded))
+    }
   }, [])
+
+  // Auto-expand parent when navigating to a child route
+  useEffect(() => {
+    navigationItems.forEach(item => {
+      if (item.children && pathname === item.href) {
+        if (!expandedItems.includes(item.href)) {
+          setExpandedItems(prev => [...prev, item.href])
+        }
+      }
+    })
+  }, [pathname])
 
   // Listen for sidebar toggle events from header
   useEffect(() => {
@@ -118,8 +199,18 @@ export default function Sidebar() {
     const newState = !isCollapsed
     setIsCollapsed(newState)
     localStorage.setItem('ea-portal-sidebar-collapsed', String(newState))
-    // Dispatch custom event to notify other components
     window.dispatchEvent(new Event('sidebar-toggled'))
+  }
+
+  // Toggle expanded state for items with children
+  const toggleExpanded = (href: string) => {
+    setExpandedItems(prev => {
+      const newExpanded = prev.includes(href)
+        ? prev.filter(h => h !== href)
+        : [...prev, href]
+      localStorage.setItem('ea-portal-sidebar-expanded', JSON.stringify(newExpanded))
+      return newExpanded
+    })
   }
 
   // Keyboard shortcut: Ctrl/Cmd + B to toggle sidebar
@@ -137,9 +228,28 @@ export default function Sidebar() {
 
   // Filter navigation items based on user role
   const visibleMenuItems = navigationItems.filter((item) => {
-    if (!item.requiredRole) return true // Available to all
+    if (!item.requiredRole) return true
     return session?.user?.roleType === item.requiredRole
   })
+
+  // Check if current path and tab matches a sub-item
+  const isSubItemActive = (parentHref: string, tabKey: string) => {
+    if (pathname !== parentHref) return false
+    const currentTab = searchParams.get('tab')
+    return currentTab === tabKey
+  }
+
+  // Check if parent is active (either direct match or any child is active)
+  const isParentActive = (item: NavigationItem) => {
+    if (pathname === item.href) {
+      // If it has children and a tab is specified, don't highlight parent
+      if (item.children && searchParams.get('tab')) {
+        return false
+      }
+      return true
+    }
+    return false
+  }
 
   return (
     <>
@@ -195,37 +305,106 @@ export default function Sidebar() {
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
           {visibleMenuItems.map((item) => {
-            const isActive = pathname === item.href
+            const isActive = isParentActive(item)
+            const isExpanded = expandedItems.includes(item.href)
+            const hasChildren = item.children && item.children.length > 0
+
             return (
               <div key={item.href} className="relative group">
-                <Link
-                  href={item.href}
-                  onClick={() => setIsMobileOpen(false)}
-                  className={`flex items-center rounded-lg transition-all ${
-                    isCollapsed
-                      ? 'justify-center p-3'
-                      : 'space-x-3 px-4 py-3'
-                  } ${
-                    isActive
-                      ? isCollapsed
-                        ? 'bg-blue-100 text-blue-700'
-                        : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                  aria-label={isCollapsed ? item.label : undefined}
-                  title={isCollapsed ? item.label : undefined}
-                >
-                  <span className={isCollapsed ? '' : 'flex-shrink-0'}>
-                    {item.icon}
-                  </span>
-                  {!isCollapsed && <span>{item.label}</span>}
-                </Link>
+                {/* Main menu item */}
+                {hasChildren ? (
+                  // Parent item with children - clickable to expand/collapse
+                  <div className="flex flex-col">
+                    <button
+                      onClick={() => {
+                        if (isCollapsed) {
+                          // When collapsed, navigate to parent page
+                          window.location.href = item.href
+                        } else {
+                          toggleExpanded(item.href)
+                        }
+                      }}
+                      className={`flex items-center w-full rounded-lg transition-all ${
+                        isCollapsed
+                          ? 'justify-center p-3'
+                          : 'justify-between px-4 py-3'
+                      } ${
+                        isActive || (pathname === item.href && !searchParams.get('tab'))
+                          ? isCollapsed
+                            ? 'bg-blue-100 text-blue-700'
+                            : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                      aria-label={isCollapsed ? item.label : undefined}
+                      title={isCollapsed ? item.label : undefined}
+                    >
+                      <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+                        <span className={isCollapsed ? '' : 'flex-shrink-0'}>
+                          {item.icon}
+                        </span>
+                        {!isCollapsed && <span>{item.label}</span>}
+                      </div>
+                      {!isCollapsed && <ChevronDownIcon isOpen={isExpanded} />}
+                    </button>
+
+                    {/* Sub-items */}
+                    {!isCollapsed && isExpanded && (
+                      <div className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1">
+                        {item.children!.map((child) => {
+                          const isChildActive = isSubItemActive(item.href, child.tabKey)
+                          return (
+                            <Link
+                              key={child.tabKey}
+                              href={`${item.href}?tab=${child.tabKey}`}
+                              onClick={() => setIsMobileOpen(false)}
+                              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm ${
+                                isChildActive
+                                  ? 'bg-blue-50 text-blue-700 font-medium'
+                                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                              }`}
+                            >
+                              <SubItemIcon />
+                              <span>{child.label}</span>
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  // Regular menu item without children
+                  <Link
+                    href={item.href}
+                    onClick={() => setIsMobileOpen(false)}
+                    className={`flex items-center rounded-lg transition-all ${
+                      isCollapsed
+                        ? 'justify-center p-3'
+                        : 'space-x-3 px-4 py-3'
+                    } ${
+                      isActive
+                        ? isCollapsed
+                          ? 'bg-blue-100 text-blue-700'
+                          : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
+                        : 'text-gray-700 hover:bg-gray-100'
+                    }`}
+                    aria-label={isCollapsed ? item.label : undefined}
+                    title={isCollapsed ? item.label : undefined}
+                  >
+                    <span className={isCollapsed ? '' : 'flex-shrink-0'}>
+                      {item.icon}
+                    </span>
+                    {!isCollapsed && <span>{item.label}</span>}
+                  </Link>
+                )}
 
                 {/* Tooltip for collapsed state - Desktop only */}
                 {isCollapsed && (
                   <div className="hidden lg:group-hover:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
                     <div className="bg-gray-800 text-white text-sm px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
                       {item.label}
+                      {hasChildren && (
+                        <span className="text-gray-400 text-xs ml-1">({item.children!.length})</span>
+                      )}
                       <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
                     </div>
                   </div>

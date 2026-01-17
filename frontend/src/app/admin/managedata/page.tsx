@@ -40,12 +40,14 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
 import QRCodeManager from '@/components/managedata/QRCodeManager'
 import { useChatContext } from '@/hooks/useChatContext'
 
 type Tab = 'entities' | 'services' | 'qrcodes'
+const VALID_TABS: Tab[] = ['entities', 'services', 'qrcodes']
 
 // Download helper for JSON export
 function downloadJSON(data: any, filename: string) {
@@ -61,11 +63,21 @@ function downloadJSON(data: any, filename: string) {
 }
 
 export default function ManageDataPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('entities')
   const [isExporting, setIsExporting] = useState(false)
   const [showExportMenu, setShowExportMenu] = useState(false)
   const exportMenuRef = useRef<HTMLDivElement>(null)
   const { switchTab } = useChatContext()
+
+  // Read tab from URL on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab') as Tab
+    if (tabParam && VALID_TABS.includes(tabParam)) {
+      setActiveTab(tabParam)
+    }
+  }, [searchParams])
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -187,6 +199,7 @@ export default function ManageDataPage() {
   const handleTabChange = (tabId: Tab) => {
     setActiveTab(tabId)
     switchTab('managedata', tabId, tabs.map(t => t.id))
+    router.push(`/admin/managedata?tab=${tabId}`, { scroll: false })
   }
 
   return (

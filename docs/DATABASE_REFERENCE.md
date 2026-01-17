@@ -1,11 +1,11 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 10.2
-**Last Updated:** January 2026
-**Database:** PostgreSQL 15.14-alpine
+**Document Version:** 10.3
+**Last Updated:** January 16, 2026
+**Database:** PostgreSQL 16.11-alpine (upgraded from 15.14)
 **Connection Pool:** PgBouncer v1.23.1-p3
 **Cache:** Redis 7.4.4-alpine
-**Schema Version:** Production-Aligned v10.0 (30 tables)
+**Schema Version:** Production-Aligned v10.1 (31 tables)
 
 ---
 
@@ -2186,13 +2186,72 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 
 ### External Resources
 
-- **[PostgreSQL 15 Documentation](https://www.postgresql.org/docs/15/)** - Official PostgreSQL docs
+- **[PostgreSQL 16 Documentation](https://www.postgresql.org/docs/16/)** - Official PostgreSQL docs
+- **[PostgreSQL 16 Release Notes](https://www.postgresql.org/docs/16/release-16.html)** - What's new in PG16
 - **[PostgreSQL Performance Tuning](https://wiki.postgresql.org/wiki/Performance_Optimization)** - Optimization guide
 - **[pg_stat_statements](https://www.postgresql.org/docs/current/pgstatstatements.html)** - Query performance analysis
 
 ---
 
-**Document Version:** 10.1
-**Last Updated:** December 19, 2025
-**Schema Version:** Production-Aligned v10.0 (30 tables)
+## New Tables (January 2026)
+
+### 30. backup_audit_log
+
+**Purpose:** Audit trail for all database backup and restore operations
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| audit_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| action | VARCHAR(20) | NOT NULL, CHECK | create, download, restore, delete, scheduled |
+| filename | VARCHAR(255) | NOT NULL | Backup filename |
+| performed_by | VARCHAR(255) | NOT NULL | User email or 'system' |
+| ip_address | VARCHAR(45) | | Client IP address |
+| user_agent | TEXT | | Browser/client info |
+| details | JSONB | | Additional action details |
+| safety_backup_filename | VARCHAR(255) | | Safety backup created before restore |
+| tables_restored | INTEGER | | Number of tables restored |
+| rows_restored | INTEGER | | Number of rows restored |
+| file_size | BIGINT | | Backup file size in bytes |
+| duration_ms | INTEGER | | Operation duration in milliseconds |
+| status | VARCHAR(20) | DEFAULT 'success' | success, failed, in_progress |
+| error_message | TEXT | | Error details if failed |
+| created_at | TIMESTAMP | DEFAULT NOW() | Action timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `audit_id`
+- INDEX on `action`
+- INDEX on `performed_by`
+- INDEX on `created_at DESC`
+
+**Action Types:**
+- `create` - Manual backup created
+- `scheduled` - Automatic scheduled backup
+- `download` - Backup file downloaded
+- `restore` - Database restored from backup
+- `delete` - Backup file deleted
+
+**Commands:**
+```bash
+# View recent backup operations
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT action, filename, performed_by, status, duration_ms, created_at
+FROM backup_audit_log
+ORDER BY created_at DESC
+LIMIT 20;
+EOF
+
+# Check restore history
+docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
+SELECT filename, performed_by, tables_restored, duration_ms, status, created_at
+FROM backup_audit_log
+WHERE action = 'restore'
+ORDER BY created_at DESC;
+EOF
+```
+
+---
+
+**Document Version:** 10.3
+**Last Updated:** January 16, 2026
+**Schema Version:** Production-Aligned v10.1 (31 tables)
 **Maintained By:** GEA Portal Development Team

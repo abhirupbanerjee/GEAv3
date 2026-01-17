@@ -520,6 +520,58 @@ cp /tmp/gea_backups/feedback_backup_*.sql ~/critical_backups/
 
 ---
 
+---
+
+## Admin UI Backup Management (January 2026)
+
+In addition to command-line backup operations, administrators can now manage backups directly from the web interface.
+
+### Accessing Backup Management
+
+1. Sign in to the Admin Portal
+2. Navigate to **Settings → Database** tab
+3. View, create, download, restore, and delete backups
+
+### UI Features
+
+| Feature | Description |
+|---------|-------------|
+| **Backup List** | View all backups with filename, date, size, type |
+| **Create Backup** | One-click manual backup creation |
+| **Download** | Download backup files to local computer |
+| **Restore** | Restore database with safety confirmation |
+| **Delete** | Remove old backup files |
+| **Scheduled Backups** | Configure daily/weekly/monthly automatic backups |
+| **Retention Policy** | Auto-delete old backups based on age or count |
+
+### Safety Confirmation for Restore
+
+The UI requires typing **"RESTORE DATABASE"** exactly to confirm restore operations, preventing accidental data loss.
+
+### Audit Logging
+
+All backup operations performed through the UI are logged to `backup_audit_log` table:
+- Action type (create, download, restore, delete, scheduled)
+- User who performed the action
+- Timestamp
+- IP address
+- Duration
+- Success/failure status
+
+### Related API Endpoints
+
+```
+GET  /api/admin/backups              - List all backups
+POST /api/admin/backups              - Create new backup
+GET  /api/admin/backups/[filename]   - Get backup info
+DELETE /api/admin/backups/[filename] - Delete backup
+GET  /api/admin/backups/[filename]/download - Download backup
+POST /api/admin/backups/[filename]/restore  - Restore from backup
+```
+
+---
+
 **Script Version:** v8.0+
 **Safety Features Added:** November 25, 2025
+**Admin UI Added:** January 16, 2026
 **Maintained By:** GEA Portal Development Team

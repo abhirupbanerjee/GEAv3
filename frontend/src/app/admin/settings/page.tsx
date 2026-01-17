@@ -25,7 +25,8 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer, FiZap } from 'react-icons/fi'
+import { useSearchParams, useRouter } from 'next/navigation'
+import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer, FiZap, FiDatabase, FiDownload, FiPlay, FiClock, FiHardDrive, FiAlertTriangle } from 'react-icons/fi'
 
 // Types
 interface SystemSetting {
@@ -63,6 +64,14 @@ interface ServiceProviderEntity {
   is_service_provider: boolean
 }
 
+interface BackupFile {
+  filename: string
+  created_at: string
+  size: number
+  size_formatted: string
+  type: 'manual' | 'scheduled' | 'pre_restore' | 'unknown'
+}
+
 // Category configuration
 const CATEGORIES = [
   { key: 'SYSTEM', label: 'System', icon: FiSettings, description: 'General settings, branding, and contact info' },
@@ -72,15 +81,35 @@ const CATEGORIES = [
   { key: 'PERFORMANCE', label: 'Performance', icon: FiZap, description: 'Caching, connection pooling, and optimization settings' },
   { key: 'CONTENT', label: 'Content', icon: FiFileText, description: 'Footer links and leadership contacts' },
   { key: 'SERVICE_PROVIDERS', label: 'Service Providers', icon: FiServer, description: 'Configure entities that can receive service requests' },
+  { key: 'DATABASE', label: 'Database', icon: FiDatabase, description: 'Backup and restore database, manage scheduled backups' },
 ]
 
 export default function SettingsPage() {
   const { data: session } = useSession()
+  const searchParams = useSearchParams()
+  const router = useRouter()
   const [settings, setSettings] = useState<Record<string, SystemSetting[]>>({})
   const [contacts, setContacts] = useState<LeadershipContact[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [activeCategory, setActiveCategory] = useState('SYSTEM')
+
+  // Read tab from URL on mount
+  useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam) {
+      const validTabs = CATEGORIES.map(c => c.key)
+      if (validTabs.includes(tabParam)) {
+        setActiveCategory(tabParam)
+      }
+    }
+  }, [searchParams])
+
+  // Update URL when tab changes
+  const handleCategoryChange = (categoryKey: string) => {
+    setActiveCategory(categoryKey)
+    router.push(`/admin/settings?tab=${categoryKey}`, { scroll: false })
+  }
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({})
   const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({})
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null)
@@ -98,6 +127,20 @@ export default function SettingsPage() {
   const [serviceProviders, setServiceProviders] = useState<ServiceProviderEntity[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
   const [togglingProvider, setTogglingProvider] = useState<string | null>(null)
+
+  // Database backup state
+  const [backups, setBackups] = useState<BackupFile[]>([])
+  const [loadingBackups, setLoadingBackups] = useState(false)
+  const [creatingBackup, setCreatingBackup] = useState(false)
+  const [deletingBackup, setDeletingBackup] = useState<string | null>(null)
+  const [downloadingBackup, setDownloadingBackup] = useState<string | null>(null)
+  const [backupDirInfo, setBackupDirInfo] = useState<{ backup_dir: string; total_size: string; total_count: number } | null>(null)
+  // Restore modal state
+  const [restoreModalOpen, setRestoreModalOpen] = useState(false)
+  const [selectedBackup, setSelectedBackup] = useState<BackupFile | null>(null)
+  const [restoreConfirmText, setRestoreConfirmText] = useState('')
+  const [isRestoring, setIsRestoring] = useState(false)
+  const [restoreResult, setRestoreResult] = useState<{ success: boolean; message: string; tables?: number; safety_backup?: string } | null>(null)
 
   // Auto-dismiss error messages after 5 seconds
   useEffect(() => {
@@ -191,11 +234,184 @@ export default function SettingsPage() {
     }
   }
 
+  // Load database backups
+  const loadBackups = useCallback(async () => {
+    try {
+      setLoadingBackups(true)
+      const response = await fetch('/api/admin/backups')
+      if (!response.ok) throw new Error('Failed to fetch backups')
+      const data = await response.json()
+      if (data.success) {
+        setBackups(data.backups)
+        setBackupDirInfo({
+          backup_dir: data.backup_dir,
+          total_size: data.total_size,
+          total_count: data.total_count,
+        })
+      }
+    } catch (error) {
+      console.error('Error loading backups:', error)
+    } finally {
+      setLoadingBackups(false)
+    }
+  }, [])
+
+  // Create a new backup
+  const createBackup = async () => {
+    try {
+      setCreatingBackup(true)
+      const response = await fetch('/api/admin/backups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      })
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: `Backup created: ${data.backup.filename} (${data.backup.size_formatted})` })
+        loadBackups()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to create backup' })
+      }
+    } catch (error) {
+      console.error('Error creating backup:', error)
+      setMessage({ type: 'error', text: 'Failed to create backup' })
+    } finally {
+      setCreatingBackup(false)
+    }
+  }
+
+  // Download a backup
+  const downloadBackup = async (filename: string) => {
+    try {
+      setDownloadingBackup(filename)
+      const response = await fetch(`/api/admin/backups/${encodeURIComponent(filename)}/download`)
+      if (!response.ok) throw new Error('Failed to download backup')
+
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = filename
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+
+      setMessage({ type: 'success', text: `Downloaded ${filename}` })
+    } catch (error) {
+      console.error('Error downloading backup:', error)
+      setMessage({ type: 'error', text: 'Failed to download backup' })
+    } finally {
+      setDownloadingBackup(null)
+    }
+  }
+
+  // Delete a backup
+  const deleteBackup = async (filename: string) => {
+    if (!confirm(`Are you sure you want to delete ${filename}? This cannot be undone.`)) return
+
+    try {
+      setDeletingBackup(filename)
+      const response = await fetch(`/api/admin/backups/${encodeURIComponent(filename)}`, {
+        method: 'DELETE',
+      })
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: `Deleted ${filename}` })
+        loadBackups()
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to delete backup' })
+      }
+    } catch (error) {
+      console.error('Error deleting backup:', error)
+      setMessage({ type: 'error', text: 'Failed to delete backup' })
+    } finally {
+      setDeletingBackup(null)
+    }
+  }
+
+  // Open restore modal
+  const openRestoreModal = (backup: BackupFile) => {
+    setSelectedBackup(backup)
+    setRestoreConfirmText('')
+    setRestoreResult(null)
+    setRestoreModalOpen(true)
+  }
+
+  // Execute restore
+  const executeRestore = async () => {
+    if (!selectedBackup || restoreConfirmText !== 'RESTORE DATABASE') return
+
+    try {
+      setIsRestoring(true)
+      setRestoreResult(null)
+      const response = await fetch(`/api/admin/backups/${encodeURIComponent(selectedBackup.filename)}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          confirm: true,
+          confirmation_text: 'RESTORE DATABASE',
+        }),
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        setRestoreResult({
+          success: true,
+          message: data.message,
+          tables: data.tables_restored,
+          safety_backup: data.safety_backup,
+        })
+        setMessage({ type: 'success', text: `Database restored successfully. ${data.tables_restored} tables restored.` })
+        loadBackups()
+      } else {
+        setRestoreResult({
+          success: false,
+          message: data.error || 'Restore failed',
+          safety_backup: data.safety_backup,
+        })
+        setMessage({ type: 'error', text: data.error || 'Failed to restore backup' })
+      }
+    } catch (error) {
+      console.error('Error restoring backup:', error)
+      setRestoreResult({
+        success: false,
+        message: 'Network error during restore',
+      })
+      setMessage({ type: 'error', text: 'Failed to restore backup' })
+    } finally {
+      setIsRestoring(false)
+    }
+  }
+
+  // Restart backup scheduler (call after saving schedule settings)
+  const restartScheduler = async () => {
+    try {
+      const response = await fetch('/api/admin/backups/scheduler', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'restart' }),
+      })
+      const data = await response.json()
+      if (data.success) {
+        setMessage({ type: 'success', text: 'Backup scheduler restarted' })
+      }
+    } catch (error) {
+      console.error('Error restarting scheduler:', error)
+    }
+  }
+
   useEffect(() => {
     loadSettings()
     loadContacts()
     loadServiceProviders()
   }, [loadSettings, loadContacts, loadServiceProviders])
+
+  // Load backups when Database tab is selected
+  useEffect(() => {
+    if (activeCategory === 'DATABASE') {
+      loadBackups()
+    }
+  }, [activeCategory, loadBackups])
 
   // Handle setting value change
   const handleSettingChange = (key: string, value: string) => {
@@ -819,7 +1035,7 @@ export default function SettingsPage() {
             return (
               <button
                 key={category.key}
-                onClick={() => setActiveCategory(category.key)}
+                onClick={() => handleCategoryChange(category.key)}
                 className={`flex items-center gap-2 px-4 py-3 border-b-2 font-medium text-sm whitespace-nowrap transition-colors ${
                   isActive
                     ? 'border-blue-600 text-blue-600'
@@ -1062,8 +1278,169 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Database Backup Section */}
+        {activeCategory === 'DATABASE' && (
+          <>
+            {/* Manual Backup Section */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <FiHardDrive className="w-4 h-4" />
+                  Database Backups
+                </h3>
+                <button
+                  onClick={createBackup}
+                  disabled={creatingBackup}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-400"
+                >
+                  {creatingBackup ? (
+                    <FiRefreshCw className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <FiDatabase className="w-4 h-4" />
+                  )}
+                  {creatingBackup ? 'Creating...' : 'Create Backup'}
+                </button>
+              </div>
+
+              <div className="p-4">
+                {loadingBackups ? (
+                  <div className="flex items-center justify-center py-8">
+                    <FiRefreshCw className="w-5 h-5 animate-spin text-gray-400" />
+                    <span className="ml-2 text-gray-500">Loading backups...</span>
+                  </div>
+                ) : backups.length === 0 ? (
+                  <div className="text-center py-8">
+                    <FiDatabase className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">No backups found</p>
+                    <p className="text-sm text-gray-400 mt-1">Click &quot;Create Backup&quot; to create your first backup</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {backups.map((backup) => (
+                      <div
+                        key={backup.filename}
+                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 truncate">{backup.filename}</span>
+                            <span className={`text-xs px-2 py-0.5 rounded ${
+                              backup.type === 'scheduled' ? 'bg-green-100 text-green-700' :
+                              backup.type === 'pre_restore' ? 'bg-orange-100 text-orange-700' :
+                              'bg-blue-100 text-blue-700'
+                            }`}>
+                              {backup.type}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                            <span className="flex items-center gap-1">
+                              <FiClock className="w-3 h-3" />
+                              {new Date(backup.created_at).toLocaleString()}
+                            </span>
+                            <span>{backup.size_formatted}</span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 ml-4">
+                          <button
+                            onClick={() => downloadBackup(backup.filename)}
+                            disabled={downloadingBackup === backup.filename}
+                            className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            title="Download"
+                          >
+                            {downloadingBackup === backup.filename ? (
+                              <FiRefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FiDownload className="w-4 h-4" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => openRestoreModal(backup)}
+                            className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                            title="Restore"
+                          >
+                            <FiPlay className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => deleteBackup(backup.filename)}
+                            disabled={deletingBackup === backup.filename}
+                            className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                            title="Delete"
+                          >
+                            {deletingBackup === backup.filename ? (
+                              <FiRefreshCw className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <FiTrash2 className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Warning notice */}
+              <div className="px-4 py-3 bg-yellow-50 border-t border-yellow-100">
+                <p className="text-sm text-yellow-800 flex items-center gap-2">
+                  <FiAlertTriangle className="w-4 h-4 flex-shrink-0" />
+                  <span><strong>Warning:</strong> Restoring a backup will overwrite ALL current data. A safety backup is automatically created before restore.</span>
+                </p>
+              </div>
+            </div>
+
+            {/* Backup Directory Info */}
+            {backupDirInfo && (
+              <div className="bg-white border border-gray-200 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                  <FiHardDrive className="w-4 h-4" />
+                  Backup Directory (Read-Only)
+                </h4>
+                <dl className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                  <div>
+                    <dt className="text-gray-500">Location</dt>
+                    <dd className="font-mono text-gray-900 mt-1">{backupDirInfo.backup_dir}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Total Backups</dt>
+                    <dd className="text-gray-900 mt-1">{backupDirInfo.total_count} files</dd>
+                  </div>
+                  <div>
+                    <dt className="text-gray-500">Total Size</dt>
+                    <dd className="text-gray-900 mt-1">{backupDirInfo.total_size}</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
+
+            {/* Schedule Settings Info */}
+            <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+              <div className="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                <h3 className="font-semibold text-gray-900 flex items-center gap-2">
+                  <FiClock className="w-4 h-4" />
+                  Scheduled Backups
+                </h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Configure automatic backups in the settings below. After changing schedule settings, click &quot;Save Changes&quot; then restart the scheduler.
+                </p>
+              </div>
+              <div className="p-4">
+                <p className="text-sm text-gray-600 mb-3">
+                  Schedule settings (BACKUP_SCHEDULE_*) and retention settings (BACKUP_RETENTION_*) are managed in the DATABASE category of system_settings.
+                </p>
+                <button
+                  onClick={restartScheduler}
+                  className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <FiRefreshCw className="w-4 h-4" />
+                  Restart Scheduler
+                </button>
+              </div>
+            </div>
+          </>
+        )}
+
         {/* Empty state */}
-        {currentCategorySettings.length === 0 && activeCategory !== 'CONTENT' && activeCategory !== 'SERVICE_PROVIDERS' && (
+        {currentCategorySettings.length === 0 && activeCategory !== 'CONTENT' && activeCategory !== 'SERVICE_PROVIDERS' && activeCategory !== 'DATABASE' && (
           <div className="text-center py-12 bg-gray-50 rounded-lg">
             <FiSettings className="w-12 h-12 text-gray-300 mx-auto mb-4" />
             <h3 className="text-gray-600 font-medium">No settings in this category</h3>
@@ -1220,6 +1597,115 @@ export default function SettingsPage() {
                   {editingContact ? 'Save Changes' : 'Add Contact'}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Restore Modal */}
+      {restoreModalOpen && selectedBackup && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-red-50">
+              <h2 className="text-lg font-semibold text-red-800 flex items-center gap-2">
+                <FiAlertTriangle className="w-5 h-5" />
+                Confirm Database Restore
+              </h2>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-4">
+              {isRestoring ? (
+                <div className="text-center py-8">
+                  <FiRefreshCw className="w-12 h-12 text-blue-600 animate-spin mx-auto" />
+                  <p className="mt-4 font-medium text-gray-900">Restoring database...</p>
+                  <p className="text-sm text-gray-500 mt-1">This may take a few minutes. Please do not close this window.</p>
+                </div>
+              ) : restoreResult ? (
+                <div className="text-center py-4">
+                  {restoreResult.success ? (
+                    <>
+                      <FiCheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+                      <p className="mt-4 font-medium text-green-700">Restore Successful!</p>
+                      <p className="text-sm text-gray-600 mt-2">{restoreResult.message}</p>
+                      {restoreResult.tables && (
+                        <p className="text-sm text-gray-500 mt-1">{restoreResult.tables} tables restored</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <FiAlertCircle className="w-12 h-12 text-red-500 mx-auto" />
+                      <p className="mt-4 font-medium text-red-700">Restore Failed</p>
+                      <p className="text-sm text-gray-600 mt-2">{restoreResult.message}</p>
+                    </>
+                  )}
+                  {restoreResult.safety_backup && (
+                    <p className="text-xs text-gray-400 mt-3">
+                      Safety backup: {restoreResult.safety_backup}
+                    </p>
+                  )}
+                </div>
+              ) : (
+                <>
+                  <p className="text-gray-700 mb-4">
+                    You are about to restore the database from:
+                  </p>
+                  <div className="bg-gray-100 rounded-lg p-3 mb-4">
+                    <p className="font-mono text-sm text-gray-800 break-all">{selectedBackup.filename}</p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {new Date(selectedBackup.created_at).toLocaleString()} | {selectedBackup.size_formatted}
+                    </p>
+                  </div>
+
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4">
+                    <p className="text-red-800 text-sm font-medium">This action will:</p>
+                    <ul className="list-disc list-inside text-red-700 text-sm mt-1 space-y-1">
+                      <li>Create a safety backup of current data</li>
+                      <li>DROP the current database</li>
+                      <li>Restore all data from the selected backup</li>
+                      <li>All current data will be lost</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Type <code className="bg-gray-100 px-1 py-0.5 rounded text-red-600">RESTORE DATABASE</code> to confirm:
+                    </label>
+                    <input
+                      type="text"
+                      value={restoreConfirmText}
+                      onChange={(e) => setRestoreConfirmText(e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500"
+                      placeholder="RESTORE DATABASE"
+                      autoComplete="off"
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setRestoreModalOpen(false)
+                  setRestoreResult(null)
+                  setRestoreConfirmText('')
+                }}
+                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                {restoreResult ? 'Close' : 'Cancel'}
+              </button>
+              {!restoreResult && (
+                <button
+                  onClick={executeRestore}
+                  disabled={isRestoring || restoreConfirmText !== 'RESTORE DATABASE'}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:bg-red-300 disabled:cursor-not-allowed"
+                >
+                  {isRestoring ? 'Restoring...' : 'Restore Database'}
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -2,8 +2,8 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.1
-**Last Updated:** January 2026
+**Version:** 1.2
+**Last Updated:** January 16, 2026
 **Audience:** Digital Transformation Agency (DTA) Administrators
 
 ---
@@ -791,7 +791,7 @@ The Settings page (`/admin/settings`) allows administrators to configure system-
 ### 10.1 Accessing Settings
 
 1. Navigate to **Admin Portal** → **Settings**
-2. Settings are organized into 7 tabs
+2. Settings are organized into 8 tabs
 
 ### 10.2 Settings Tabs
 
@@ -804,6 +804,7 @@ The Settings page (`/admin/settings`) allows administrators to configure system-
 | **Performance** | Analytics caching settings (enable/disable, TTL) |
 | **Content** | Footer URLs, leadership contacts |
 | **Service Providers** | Configure which entities can receive service requests |
+| **Database** | Backup/restore operations and scheduled backup configuration |
 
 ### 10.3 Service Providers Configuration
 
@@ -848,7 +849,84 @@ Under the **System** tab, you can customize:
 - **Site Name**: Customize the portal name
 - **Contact Email**: Set the primary contact email
 
-### 10.6 Saving Changes
+### 10.6 Database Backup & Restore
+
+The **Database** tab provides comprehensive backup and restore functionality directly from the admin interface.
+
+#### Backup List
+
+The backup list displays all available backups with:
+- **Filename** - Backup file name (format: `gea_backup_YYYYMMDD_HHMMSS.sql`)
+- **Created** - Date and time the backup was created
+- **Size** - File size of the backup
+- **Type** - Manual or Scheduled
+- **Actions** - Download, Restore, Delete buttons
+
+#### Creating a Backup
+
+1. Navigate to **Settings → Database**
+2. Click **"Create Backup"** button
+3. Wait for backup to complete (progress indicator shown)
+4. Backup appears in the list when complete
+
+**What's included in backups:**
+- All database tables and data
+- Indexes and constraints
+- Sequences
+- Functions and triggers (if any)
+
+#### Downloading a Backup
+
+1. Find the backup in the list
+2. Click the **Download** icon
+3. Backup file downloads to your computer
+4. Keep a local copy for disaster recovery
+
+**Note:** Downloads keep the server copy intact - use this to maintain offsite backups.
+
+#### Restoring from Backup
+
+> **Warning:** Restore operations overwrite all current data. This action cannot be undone.
+
+1. Find the backup you want to restore from
+2. Click the **Restore** icon
+3. A confirmation dialog appears
+4. Type **"RESTORE DATABASE"** exactly in the confirmation field
+5. Click **Confirm Restore**
+6. Wait for restore to complete
+
+**Safety Features:**
+- A safety backup is automatically created before restore
+- If restore fails, you can recover from the safety backup
+- All restore operations are logged to the audit trail
+
+#### Scheduled Backups
+
+Configure automatic backups to run on a schedule:
+
+**Schedule Settings:**
+| Setting | Options | Description |
+|---------|---------|-------------|
+| Enable Scheduled Backups | On/Off | Toggle automatic backups |
+| Schedule Type | Daily, Weekly, Monthly | How often to run |
+| Time | HH:MM (24hr) | What time to run backup |
+| Day | (for weekly/monthly) | Which day to run |
+
+**Retention Policy:**
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Auto-delete old backups | Enabled | Automatically remove old backups |
+| Retention Days | 30 | Delete backups older than X days |
+| Minimum Keep | 10 | Always keep at least X backups |
+
+#### Backup Directory
+
+The backup directory path is displayed (read-only):
+- Default: `/tmp/gea_backups/`
+- Shows total backup count and size
+- Cannot be changed from the UI (requires server configuration)
+
+### 10.7 Saving Changes
 
 - Changes are tracked with "unsaved changes" indicator
 - Click **Save Changes** to apply modifications
