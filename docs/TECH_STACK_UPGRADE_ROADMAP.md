@@ -245,6 +245,42 @@ $ npm run build
 
 ---
 
+## ✅ Phase 3.5: Node.js 22 Upgrade (COMPLETED)
+
+### Node.js 20 → 22 LTS Migration
+**Timeline:** Completed January 17, 2026
+**Risk Level:** 🟢 Low
+**Actual Effort:** 30 minutes
+
+#### Migration Summary
+Upgraded from Node.js 20 to 22 LTS before Node.js 20 EOL (April 30, 2026).
+
+| Component | Before | After | Status |
+|-----------|--------|-------|--------|
+| Docker Image | node:20-alpine | node:22-alpine | ✅ |
+| @types/node | ^20.19.25 | ^22 | ✅ |
+
+#### Node.js LTS Schedule Reference
+
+| Version | EOL Date | Status |
+|---------|----------|--------|
+| Node.js 20 | April 30, 2026 | ⚠️ Maintenance |
+| Node.js 22 | April 30, 2027 | ✅ Active LTS |
+| Node.js 24 | April 30, 2028 | Current |
+
+#### Compatibility Verified
+- ✅ Native fetch (32 files) - stable since Node 18
+- ✅ crypto APIs (AES-256-GCM, SHA-256) - no changes
+- ✅ fs/promises - stable
+- ✅ child_process - stable
+- ✅ All dependencies compatible (next, next-auth, pg, redis, etc.)
+
+#### Files Modified
+- `frontend/Dockerfile` - Lines 5 and 100: `node:20-alpine` → `node:22-alpine`
+- `frontend/package.json` - `@types/node` updated to ^22
+
+---
+
 ## 📅 Phase 4: React 19 Migration (Q4 2026)
 
 ### React 18 → 19 Migration
@@ -547,7 +583,7 @@ $ npm run build
 ### Current Stable Configuration (Updated January 17, 2026)
 ```json
 {
-  "node": "20.19.5",
+  "node": "22-alpine",
   "next": "16.1.3",
   "react": "18.3.1",
   "tailwindcss": "3.4.19",
@@ -565,7 +601,7 @@ $ npm run build
 ### Post-Migration Target Configuration
 ```json
 {
-  "node": "20.x (LTS)",
+  "node": "22.x (LTS) - EOL April 2027",
   "next": "16.x",
   "react": "19.x",
   "tailwindcss": "4.x",
