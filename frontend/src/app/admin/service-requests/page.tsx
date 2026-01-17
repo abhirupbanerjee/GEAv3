@@ -111,12 +111,14 @@ export default function ServiceRequestsPage() {
   const isAdmin = session?.user?.roleType === 'admin';
   const isStaff = session?.user?.roleType === 'staff';
 
-  // Set default entity filter for staff users
+  // Set default entity filter for staff users and admin users
   useEffect(() => {
     if (isStaff && filters.entity_id === '') {
       setFilters(prev => ({ ...prev, entity_id: config.SERVICE_REQUEST_ENTITY_ID }));
+    } else if (isAdmin && filters.entity_id === '' && session?.user?.entityId) {
+      setFilters(prev => ({ ...prev, entity_id: session.user.entityId as string }));
     }
-  }, [isStaff]);
+  }, [isStaff, isAdmin, session?.user?.entityId]);
 
   // Load entities (admin: all, staff: only service request entity)
   useEffect(() => {
