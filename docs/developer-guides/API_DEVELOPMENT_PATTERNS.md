@@ -43,6 +43,7 @@ This guide provides **step-by-step patterns** for developing API endpoints in th
 |---------|---------|
 | `next-auth` | Authentication & session management |
 | `pg` (node-postgres) | PostgreSQL database driver |
+| `redis` | Redis client for caching |
 | `zod` | Schema validation (optional but recommended) |
 
 ---
@@ -83,6 +84,7 @@ frontend/src/app/api/
 frontend/src/lib/
 ├── auth.ts                  # NextAuth configuration
 ├── db.ts                    # Database connection pool
+├── redis.ts                 # Redis caching utilities
 ├── response.ts              # Response helpers & error codes
 └── schemas/                 # Zod validation schemas (if used)
 ```
@@ -772,6 +774,68 @@ try {
 }
 ```
 
+### 9.5 Redis Caching
+
+The portal uses Redis for caching expensive queries (e.g., analytics). Use the helpers from `@/lib/redis`:
+
+```typescript
+import { withCache, invalidateCache, buildCacheKey } from '@/lib/redis'
+
+// Cache expensive analytics query for 5 minutes (300 seconds)
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const entityId = searchParams.get('entity_id')
+  const forceRefresh = searchParams.get('refresh') === 'true'
+
+  // Build a unique cache key
+  const cacheKey = buildCacheKey('analytics', { entityId })
+
+  // Use withCache wrapper - falls back to fetcher if Redis unavailable
+  const data = await withCache(
+    cacheKey,
+    300, // TTL in seconds
+    async () => {
+      // This only runs on cache miss
+      const result = await pool.query(`
+        SELECT ... expensive aggregation query ...
+      `)
+      return result.rows
+    },
+    forceRefresh // Pass true to bypass cache
+  )
+
+  return respondSuccess(data)
+}
+```
+
+**When to use caching:**
+- Analytics and aggregation queries
+- Data that doesn't change frequently
+- Expensive database operations
+
+**When NOT to cache:**
+- User-specific data that changes often
+- Real-time data (ticket status, etc.)
+- Write operations
+
+**Invalidating cache after data changes:**
+
+```typescript
+// After creating/updating data that affects cached results
+import { invalidateCache } from '@/lib/redis'
+
+export async function POST(request: NextRequest) {
+  // ... create new record ...
+
+  // Invalidate related cache entries
+  await invalidateCache('analytics:*')  // Pattern-based invalidation
+
+  return respondSuccess(newRecord)
+}
+```
+
+**Note:** Redis is optional - if unavailable, `withCache` automatically falls back to direct database queries without failing the request.
+
 ---
 
 ## 10. Testing Your API
@@ -864,6 +928,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { pool, executeQuery, withTransaction } from '@/lib/db'
+import { withCache, invalidateCache, buildCacheKey } from '@/lib/redis'
 import {
   respondSuccess,
   respondList,

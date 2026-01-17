@@ -40,25 +40,10 @@ type ModalMode = 'view' | 'edit' | 'add' | null
 
 export default function AIInventoryPage() {
   const { data: session, status } = useSession()
+
+  // All hooks must be called before any conditional returns (React Rules of Hooks)
   const [bots, setBots] = useState<Bot[]>([])
   const [loading, setLoading] = useState(true)
-
-  // Block non-admin access
-  if (status !== 'loading' && session?.user?.roleType !== 'admin') {
-    return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-red-800 font-semibold text-lg mb-2">Access Denied</h2>
-          <p className="text-red-600 mb-4">
-            Only administrators can access AI bot management.
-          </p>
-          <a href="/admin/staff/home" className="text-blue-600 hover:underline">
-            ← Return to Staff Home
-          </a>
-        </div>
-      </div>
-    )
-  }
   const [error, setError] = useState('')
   const [selectedBot, setSelectedBot] = useState<Bot | null>(null)
   const [filter, setFilter] = useState<'all' | 'active' | 'planned'>('all')
@@ -253,6 +238,23 @@ export default function AIInventoryPage() {
     } catch (err) {
       alert(err instanceof Error ? err.message : 'Failed to delete bot')
     }
+  }
+
+  // Block non-admin access (placed after all hooks to follow React Rules of Hooks)
+  if (status !== 'loading' && session?.user?.roleType !== 'admin') {
+    return (
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-red-800 font-semibold text-lg mb-2">Access Denied</h2>
+          <p className="text-red-600 mb-4">
+            Only administrators can access AI bot management.
+          </p>
+          <a href="/admin/staff/home" className="text-blue-600 hover:underline">
+            &larr; Return to Staff Home
+          </a>
+        </div>
+      </div>
+    )
   }
 
   if (loading) {

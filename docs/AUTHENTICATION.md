@@ -56,9 +56,11 @@ The GEA Portal uses **NextAuth v4** for authentication with OAuth providers, pro
 | `/auth/unauthorized` | Public | Access denied page |
 | `/api/auth/[...nextauth]` | Public | NextAuth endpoints |
 | `/admin` | Admin only | Admin dashboard |
-| `/admin/users` | Admin only | User management |
+| `/admin/users` | Admin & Staff | User management (staff: view/add for own entity only) |
+| `/admin/settings` | Admin only | System settings |
+| `/admin/ai-inventory` | Admin only | AI bot management |
 | `/staff` | Staff only | Staff portal |
-| `/api/admin/*` | Admin only | Admin APIs |
+| `/api/admin/*` | Admin/Staff | Admin APIs (with role-based restrictions) |
 
 ---
 
@@ -1061,6 +1063,6 @@ const result = await pool.query(query, params);
 
 ---
 
-**Document Version:** 2.0
-**Last Updated:** December 19, 2025
+**Document Version:** 2.1
+**Last Updated:** January 17, 2026
 **Maintained By:** GEA Portal Development Team

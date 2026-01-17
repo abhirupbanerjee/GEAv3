@@ -454,6 +454,7 @@ function AddUserModal({
   onSuccess: () => void;
 }) {
   // Staff can only create staff users, not admins
+  // Note: The roles API already filters to staff roles for staff users
   const availableRoles = isAdmin ? roles : roles.filter(r => r.role_type !== 'admin');
   const [formData, setFormData] = useState({
     email: '',
@@ -464,6 +465,17 @@ function AddUserModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [allowedAdminEntities, setAllowedAdminEntities] = useState<string[]>([]);
+
+  // Auto-select staff role for staff users when roles are loaded
+  useEffect(() => {
+    if (!isAdmin && availableRoles.length > 0 && !formData.role_id) {
+      // Find the staff_mda role or use the first available role
+      const staffRole = availableRoles.find(r => r.role_code === 'staff_mda') || availableRoles[0];
+      if (staffRole) {
+        setFormData(prev => ({ ...prev, role_id: staffRole.role_id.toString() }));
+      }
+    }
+  }, [isAdmin, availableRoles, formData.role_id]);
 
   // Fetch allowed admin entities setting
   useEffect(() => {
@@ -564,23 +576,29 @@ function AddUserModal({
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Role *
             </label>
-            <select
-              required
-              value={formData.role_id}
-              onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            >
-              <option value="">Select a role</option>
-              {availableRoles.map((role) => (
-                <option key={role.role_id} value={role.role_id}>
-                  {role.role_name}
-                </option>
-              ))}
-            </select>
-            {!isAdmin && (
-              <p className="text-xs text-gray-500 mt-1">
-                You can only add staff users for your entity
-              </p>
+            {isAdmin ? (
+              <select
+                required
+                value={formData.role_id}
+                onChange={(e) => setFormData({ ...formData, role_id: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">Select a role</option>
+                {availableRoles.map((role) => (
+                  <option key={role.role_id} value={role.role_id}>
+                    {role.role_name}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <>
+                <div className="w-full px-3 py-2 border border-gray-200 rounded-lg bg-gray-50 text-gray-700">
+                  {selectedRole?.role_name || 'MDA Staff Officer'}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">
+                  You can only add staff users for your entity
+                </p>
+              </>
             )}
           </div>
 

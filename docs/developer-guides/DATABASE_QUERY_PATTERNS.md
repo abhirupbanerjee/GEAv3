@@ -32,7 +32,7 @@ This guide provides **database query patterns** specific to the GEA Portal. Foll
 
 | Metric | Value |
 |--------|-------|
-| **Database** | PostgreSQL 15 |
+| **Database** | PostgreSQL 16 |
 | **Total Tables** | 30 |
 | **Indexes** | 60+ |
 | **Connection Pool** | 20 max connections |

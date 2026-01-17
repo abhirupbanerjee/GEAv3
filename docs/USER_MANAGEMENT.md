@@ -64,7 +64,7 @@ if (session.user.roleType === 'admin') return null;
 
 | Feature | Access Level | Details |
 |---------|--------------|---------|
-| **User Management** | ❌ No Access | Cannot view or manage users |
+| **User Management** | 🟡 Limited | Can view entity users and add new staff users for their entity only |
 | **Master Data** | 🟡 View Only | Can view but filtered to their entity |
 | **Analytics Dashboard** | 🟡 Entity-Only | Only see data for their assigned MDA |
 | **Service Requests** | 🟡 Entity-Only | Can only create/view requests for their MDA |
@@ -75,19 +75,38 @@ if (session.user.roleType === 'admin') return null;
 | **Entity Assignment** | ✅ Required | MUST have entity_id assigned in database |
 | **Data Scope** | Restricted | Only data for their assigned entity |
 
+#### User Management for Staff
+
+Staff users have limited user management capabilities:
+
+| Capability | Allowed |
+|------------|---------|
+| View users from own entity | ✅ Yes |
+| Add new staff users for own entity | ✅ Yes |
+| Edit existing users | ❌ No |
+| Change user status (activate/deactivate) | ❌ No |
+| Create admin users | ❌ No |
+
+**API Behavior for Staff:**
+```typescript
+// GET /api/admin/users - Returns only users from staff's entity
+// POST /api/admin/users - Forces entity_id to staff's entity, rejects admin role
+```
+
 #### UI Access
 
 **Available Pages:**
 - `/admin/staff/home` - Staff dashboard (auto-redirected from `/admin/home`)
 - `/admin/analytics` - Entity-scoped analytics
+- `/admin/users` - Entity-scoped user list (view and add only)
 - `/admin/tickets` - Entity-scoped tickets
 - `/admin/service-requests` - Entity-scoped service requests
 - `/admin/managedata/*` - View-only, entity-scoped master data
 - `/admin/feedback` - Entity-scoped feedback
 
 **Blocked Pages:**
-- `/admin/users` - User management
-- `/admin/ai-inventory` - AI bot management
+- `/admin/settings` - System settings (shows Access Denied)
+- `/admin/ai-inventory` - AI bot management (shows Access Denied)
 
 **Code Reference:**
 ```typescript
@@ -1088,16 +1107,16 @@ POST /api/admin/users
 
 | Endpoint | Method | Auth | Description |
 |----------|--------|------|-------------|
-| `/api/admin/users` | GET | Admin | List all users |
-| `/api/admin/users` | POST | Admin | Create new user |
+| `/api/admin/users` | GET | Admin/Staff | List users (staff: entity-filtered) |
+| `/api/admin/users` | POST | Admin/Staff | Create user (staff: own entity + staff roles only) |
 | `/api/admin/users/[id]` | PATCH | Admin | Update user |
 | `/api/admin/users/[id]` | DELETE | Admin | Deactivate user |
-| `/api/admin/roles` | GET | Admin | List all roles |
+| `/api/admin/roles` | GET | Admin/Staff | List all roles |
 | `/api/admin/service-requests` | GET | Admin/Staff | List service requests (entity-filtered) |
 | `/api/admin/tickets/list` | GET | Admin/Staff | List tickets (entity-filtered) |
 
 ---
 
-**Last Updated:** 2025-01-14
-**Version:** 3.0
+**Last Updated:** 2026-01-17
+**Version:** 3.1
 **Maintainer:** Digital Transformation Agency

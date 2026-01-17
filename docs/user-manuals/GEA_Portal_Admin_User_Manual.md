@@ -2,8 +2,8 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.2
-**Last Updated:** January 16, 2026
+**Version:** 1.3
+**Last Updated:** January 17, 2026
 **Audience:** Digital Transformation Agency (DTA) Administrators
 
 ---
@@ -76,7 +76,7 @@ DTA Administrators have the highest level of access:
 | View entity tickets | ❌ | Own Entity | **All Entities** |
 | Update ticket status | ❌ | Own Entity | **All Entities** |
 | Manage master data | ❌ | ❌ | ✅ |
-| Manage users | ❌ | ❌ | ✅ |
+| Manage users | ❌ | 🟡 Limited | ✅ |
 | View all analytics | ❌ | Own Entity | **All Entities** |
 | Manage AI bots | ❌ | ❌ | ✅ |
 | EA service requests | ❌ | ❌ | ✅ |
@@ -162,14 +162,18 @@ The Admin Dashboard provides a system-wide view:
 
 ### 3.2 Navigation Menu
 
+The admin sidebar is organized in the following order:
+
 **Main Sections:**
 - **Admin Home** - System overview
-- **Tickets** - All ticket management
+- **Analytics** - Reports and charts
 - **Master Data** - Entities, Services, QR Codes
 - **Users** - User management
-- **Analytics** - Reports and charts
-- **AI Bots** - Bot management
-- **EA Requests** - Service requests
+- **Services** - EA service requests
+- **Tickets** - All ticket management
+- **Settings** - System configuration
+  - AI Bots - Bot management
+  - Backups - Database backup and restore
 
 ### 3.3 Quick Stats Panel
 
@@ -791,7 +795,7 @@ The Settings page (`/admin/settings`) allows administrators to configure system-
 ### 10.1 Accessing Settings
 
 1. Navigate to **Admin Portal** → **Settings**
-2. Settings are organized into 8 tabs
+2. Settings are organized into 9 tabs
 
 ### 10.2 Settings Tabs
 
@@ -803,8 +807,9 @@ The Settings page (`/admin/settings`) allows administrators to configure system-
 | **Business Rules** | Rate limits, thresholds, file upload limits |
 | **Performance** | Analytics caching settings (enable/disable, TTL) |
 | **Content** | Footer URLs, leadership contacts |
+| **User Management** | Configure entities allowed to have admin users |
 | **Service Providers** | Configure which entities can receive service requests |
-| **Database** | Backup/restore operations and scheduled backup configuration |
+| **Backups** | Backup/restore operations and scheduled backup configuration |
 
 ### 10.3 Service Providers Configuration
 
@@ -849,9 +854,9 @@ Under the **System** tab, you can customize:
 - **Site Name**: Customize the portal name
 - **Contact Email**: Set the primary contact email
 
-### 10.6 Database Backup & Restore
+### 10.6 Backups
 
-The **Database** tab provides comprehensive backup and restore functionality directly from the admin interface.
+The **Backups** tab provides comprehensive backup and restore functionality directly from the admin interface.
 
 #### Backup List
 
@@ -1102,7 +1107,8 @@ docker-compose restart frontend
 | Manage entities | ✅ | ❌ | ❌ |
 | Manage services | ✅ | ❌ | ❌ |
 | Manage QR codes | ✅ | ❌ | ❌ |
-| Create users | ✅ | ❌ | ❌ |
+| Create users (all) | ✅ | ❌ | ❌ |
+| Create staff users (own entity) | ✅ | ✅ | ❌ |
 | Modify users | ✅ | ❌ | ❌ |
 | View all analytics | ✅ | ❌ | ❌ |
 | Manage AI bots | ✅ | ❌ | ❌ |

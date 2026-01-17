@@ -1,8 +1,8 @@
 # 📚 Grenada EA Portal v3 - Complete Documentation Index
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-**Version:** 3.1.0 (Phase 2b + Authentication + External API)
-**Last Updated:** December 19, 2025
+**Version:** 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
+**Last Updated:** January 2026
 **Status:** ✅ Production Ready
 
 ---
@@ -102,7 +102,8 @@
 | Docker | 29.x | Containerization (latest supported, Docker 27.x is EOL) |
 | Docker Compose | 5.0+ | Multi-container orchestration |
 | Traefik | 3.6 | Reverse proxy & SSL (supports Docker 29 API) |
-| Nginx | Alpine | Static file serving |
+| PgBouncer | 1.23.1 | Database connection pooling |
+| Redis | 7.4.4 | Analytics caching |
 
 > **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation.
 

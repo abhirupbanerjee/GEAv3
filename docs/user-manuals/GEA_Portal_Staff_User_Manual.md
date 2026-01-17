@@ -2,8 +2,8 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.1
-**Last Updated:** January 2026
+**Version:** 1.2
+**Last Updated:** January 17, 2026
 **Audience:** Ministry, Department, and Agency (MDA) Staff Officers
 
 ---
@@ -16,9 +16,11 @@ This manual covers the following pages accessible to MDA staff (requires login):
 | Page | URL | Purpose |
 |------|-----|---------|
 | **Staff Home** | `/admin/staff/home` | Your personalized staff dashboard |
-| **Tickets** | `/admin/tickets` | Manage tickets for your entity only |
 | **Analytics** | `/admin/analytics` | View analytics for your entity |
-| **Service Requests** | `/admin/service-requests` | Submit and manage service requests (service provider entities see received requests) |
+| **Master Data** | `/admin/managedata` | View entities and services (read-only) |
+| **Users** | `/admin/users` | View entity users and add new staff users |
+| **Service Requests** | `/admin/service-requests` | Submit and manage service requests |
+| **Tickets** | `/admin/tickets` | Manage tickets for your entity only |
 
 ### Public Pages (Also Available to Staff)
 | Page | URL | Purpose |
@@ -42,10 +44,11 @@ This manual covers the following pages accessible to MDA staff (requires login):
 4. [Staff Dashboard](#4-staff-dashboard)
 5. [Managing Tickets](#5-managing-tickets)
 6. [Service Requests](#6-service-requests)
-7. [Viewing Analytics](#7-viewing-analytics)
-8. [Using Citizen Features](#8-using-citizen-features)
-9. [Troubleshooting](#9-troubleshooting)
-10. [Contact & Support](#10-contact--support)
+7. [User Management](#7-user-management)
+8. [Viewing Analytics](#8-viewing-analytics)
+9. [Using Citizen Features](#9-using-citizen-features)
+10. [Troubleshooting](#10-troubleshooting)
+11. [Contact & Support](#11-contact--support)
 
 ---
 
@@ -67,6 +70,8 @@ This manual is designed for **Ministry, Department, and Agency (MDA) staff** who
 | Update ticket status | ❌ | ✅ |
 | Add ticket comments | ❌ | ✅ |
 | View entity analytics | ❌ | ✅ |
+| View entity users | ❌ | ✅ |
+| Add staff users (own entity) | ❌ | ✅ |
 
 ### 1.3 Your Role
 
@@ -192,12 +197,14 @@ After signing in, you will see the Staff Dashboard with:
 
 ### 4.3 Navigation Menu
 
-The staff menu includes:
+The staff sidebar is organized in the following order:
 
-- **Dashboard** - Overview and quick stats
+- **Staff Home** - Overview and quick stats
+- **Analytics** - Charts and reports for your entity
+- **Master Data** - View entities and services (read-only)
+- **Users** - View and add staff users for your entity
+- **Services** - EA service requests
 - **Tickets** - Full ticket list and management
-- **Analytics** - Charts and reports (if enabled)
-- **Profile** - Your account settings
 
 ---
 
@@ -387,16 +394,72 @@ For service provider entities, the Staff Dashboard displays:
 
 ---
 
-## 7. Viewing Analytics
+## 7. User Management
 
-### 7.1 Accessing Analytics
+Staff users have limited user management capabilities for their own entity.
+
+### 7.1 What You Can Do
+
+| Capability | Allowed |
+|------------|---------|
+| View users from your entity | ✅ Yes |
+| Add new staff users for your entity | ✅ Yes |
+| Edit existing users | ❌ No |
+| Change user status (activate/deactivate) | ❌ No |
+| Create admin users | ❌ No |
+
+### 7.2 Viewing Entity Users
+
+1. Click **"Users"** in the navigation menu
+2. The user list shows all users assigned to your entity
+3. You can see each user's name, email, role, and status
+
+### 7.3 Adding a New Staff User
+
+You can add new staff users for your entity only.
+
+**Step 1: Click "Add User"**
+- Click the **"Add User"** button at the top of the Users page
+
+**Step 2: Enter User Details**
+- **Email** - Must match their Google or Microsoft account email
+- **Name** - Full name of the user
+- **Role** - Select from available staff roles (admin roles are not available)
+
+**Note:** The new user will automatically be assigned to your entity.
+
+**Step 3: Create User**
+- Click **"Create User"**
+- The user will appear in your entity's user list
+
+**Important:**
+- The email must exactly match the user's Google or Microsoft account email
+- Once created, only DTA administrators can edit or deactivate users
+- You cannot create admin users - only staff-level users
+
+### 7.4 Limitations
+
+Staff user management has the following restrictions:
+
+- **Entity Scope**: You can only see and add users for your assigned entity
+- **No Edit Access**: You cannot modify existing users - contact DTA for changes
+- **No Status Changes**: You cannot activate/deactivate users - contact DTA
+- **Staff Roles Only**: You cannot assign admin roles to new users
+
+For full user management capabilities, contact a DTA Administrator.
+
+---
+
+## 8. Viewing Analytics
+
+### 8.1 Accessing Analytics
 
 1. Click **"Analytics"** in the navigation menu
 2. Dashboard displays your entity's metrics
 
 > **Note:** You can only view analytics for your assigned entity.
 
-### 7.2 Available Metrics
+### 8.2 Available Metrics
 
 **Ticket Metrics:**
 - Total tickets (by period)
@@ -411,7 +474,7 @@ For service provider entities, the Staff Dashboard displays:
 - Rating distribution
 - Comments summary
 
-### 7.3 Time Period Selection
+### 8.3 Time Period Selection
 
 Filter analytics by:
 - Last 7 days
@@ -419,7 +482,7 @@ Filter analytics by:
 - Last 90 days
 - Custom date range
 
-### 7.4 Exporting Data
+### 8.4 Exporting Data
 
 If export is enabled:
 1. Select the desired report
@@ -428,35 +491,35 @@ If export is enabled:
 
 ---
 
-## 8. Using Citizen Features
+## 9. Using Citizen Features
 
 As a staff user, you have full access to citizen features. Refer to the **Citizen User Manual** for detailed instructions on:
 
-### 8.1 Submitting Feedback
+### 9.1 Submitting Feedback
 - Rate government services you have used
 - Provide comments on service quality
 - See: Citizen Manual Section 3
 
-### 8.2 Filing Grievances
+### 9.2 Filing Grievances
 - Submit complaints as a citizen
 - Attach supporting documents
 - See: Citizen Manual Section 4
 
-### 8.3 Checking Ticket Status (Public)
+### 9.3 Checking Ticket Status (Public)
 - Look up any ticket using its number
 - View public ticket information
 - See: Citizen Manual Section 5
 
-### 7.4 Using QR Codes
+### 9.4 Using QR Codes
 - Scan QR codes at service locations
 - Submit quick feedback
 - See: Citizen Manual Section 6
 
 ---
 
-## 9. Troubleshooting
+## 10. Troubleshooting
 
-### 9.1 Cannot Sign In
+### 10.1 Cannot Sign In
 
 **Problem:** "Unauthorized" or "Access Denied" error
 
@@ -467,7 +530,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 4. Clear browser cache and cookies
 5. Contact DTA Administrator if issue persists
 
-### 9.2 Cannot See Tickets
+### 10.2 Cannot See Tickets
 
 **Problem:** Ticket list is empty or missing tickets
 
@@ -477,7 +540,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 3. Adjust filters (you may have filtered out tickets)
 4. Contact DTA if entity assignment is wrong
 
-### 9.3 Cannot Update Ticket
+### 10.3 Cannot Update Ticket
 
 **Problem:** Update button not working or error on save
 
@@ -488,7 +551,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 4. Check your internet connection
 5. Try a different browser
 
-### 9.4 Session Expired
+### 10.4 Session Expired
 
 **Problem:** Suddenly logged out or "Session Expired" message
 
@@ -496,7 +559,7 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 
 **Solution:** Simply sign in again. Your work should be saved if you clicked "Update" before the session expired.
 
-### 9.5 Page Not Loading
+### 10.5 Page Not Loading
 
 **Solutions:**
 1. Check your internet connection
@@ -507,9 +570,9 @@ As a staff user, you have full access to citizen features. Refer to the **Citize
 
 ---
 
-## 10. Contact & Support
+## 11. Contact & Support
 
-### 10.1 For Account Issues
+### 11.1 For Account Issues
 
 Contact the **DTA Administrator** for:
 - New account creation
@@ -519,17 +582,17 @@ Contact the **DTA Administrator** for:
 
 **Email:** alerts.dtahelpdesk@gmail.com
 
-### 10.2 For Technical Support
+### 11.2 For Technical Support
 
 For system issues or bugs:
 - **Email:** support@dta.gov.gd
 - **Include:** Screenshots, error messages, steps to reproduce
 
-### 10.3 For Training
+### 11.3 For Training
 
 Request additional training through your supervisor or contact DTA directly.
 
-### 10.4 Emergency Contacts
+### 11.4 Emergency Contacts
 
 For urgent system issues affecting service delivery:
 - Contact your DTA liaison
@@ -548,6 +611,8 @@ For urgent system issues affecting service delivery:
 | Update Status | Open Ticket → Update Status → Select Status → Add Comment → Save |
 | Add Comment | Open Ticket → Add Comment → Type → Submit |
 | View Analytics | Dashboard → Analytics → Select Period |
+| View Entity Users | Dashboard → Users → Browse |
+| Add Staff User | Dashboard → Users → Add User → Enter Details → Create |
 | Sign Out | Profile Icon → Sign Out |
 
 ### Keyboard Shortcuts
