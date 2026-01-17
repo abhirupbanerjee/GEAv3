@@ -192,10 +192,12 @@ export const authOptions: NextAuthOptions = {
      * This enriches the JWT token with user role and entity data
      * from our database. This data will be available in the session.
      */
-    async jwt({ token, user, account }) {
-      // Initial sign in
-      if (user && user.email) {
-        const authCheck = await isUserAuthorized(user.email);
+    async jwt({ token, user, account, trigger }) {
+      // Initial sign in OR session update (when updateSession() is called)
+      const email = user?.email || (token?.email as string | undefined);
+
+      if (email && (user || trigger === 'update')) {
+        const authCheck = await isUserAuthorized(email);
 
         if (authCheck.authorized && authCheck.user) {
           token.id = authCheck.user.id;
