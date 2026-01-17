@@ -146,6 +146,7 @@ const navigationItems: NavigationItem[] = [
       { label: 'Business Rules', tabKey: 'BUSINESS_RULES' },
       { label: 'Performance', tabKey: 'PERFORMANCE' },
       { label: 'Content', tabKey: 'CONTENT' },
+      { label: 'Admin Management', tabKey: 'USER_MANAGEMENT' },
       { label: 'Service Providers', tabKey: 'SERVICE_PROVIDERS' },
       { label: 'Database', tabKey: 'DATABASE' },
     ],
