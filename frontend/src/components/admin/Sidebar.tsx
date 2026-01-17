@@ -320,8 +320,7 @@ function SidebarContent() {
                   // Parent item with children - clickable to expand/collapse
                   <div className="flex flex-col">
                     <button
-                      onClick={(e) => {
-                        e.stopPropagation()
+                      onClick={() => {
                         if (isCollapsed) {
                           // When collapsed, navigate to parent page
                           window.location.href = item.href
@@ -362,11 +361,7 @@ function SidebarContent() {
                               key={child.tabKey}
                               href={`${item.href}?tab=${child.tabKey}`}
                               prefetch={false}
-                              onClick={(e) => {
-                                setIsMobileOpen(false)
-                                // Ensure the click propagates correctly
-                                e.stopPropagation()
-                              }}
+                              onClick={() => setIsMobileOpen(false)}
                               className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
                                 isChildActive
                                   ? 'bg-blue-50 text-blue-700 font-medium'
