@@ -17,21 +17,26 @@ import { getServiceRequestEntityId, getSetting } from '@/lib/settings';
 /**
  * GET /api/admin/users
  * List all users with their roles and entities
+ * Admin: sees all users
+ * Staff: sees only users from their own entity
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication and authorization
+    // Check authentication
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.roleType !== 'admin') {
+    if (!session || !['admin', 'staff'].includes(session.user.roleType)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Admin or staff access required' },
         { status: 403 }
       );
     }
 
-    // Fetch all users with role and entity information
-    const result = await pool.query(`
+    const isAdmin = session.user.roleType === 'admin';
+    const userEntityId = session.user.entityId;
+
+    // Build query based on role
+    let query = `
       SELECT
         u.id,
         u.email,
@@ -51,12 +56,24 @@ export async function GET(request: NextRequest) {
       FROM users u
       JOIN user_roles r ON u.role_id = r.role_id
       LEFT JOIN entity_master e ON u.entity_id = e.unique_entity_id
-      ORDER BY u.created_at DESC
-    `);
+    `;
+
+    const params: string[] = [];
+
+    // Staff can only see users from their own entity
+    if (!isAdmin && userEntityId) {
+      query += ` WHERE u.entity_id = $1`;
+      params.push(userEntityId);
+    }
+
+    query += ` ORDER BY u.created_at DESC`;
+
+    const result = await pool.query(query, params);
 
     return NextResponse.json({
       success: true,
       users: result.rows,
+      isStaffView: !isAdmin,
     });
   } catch (error) {
     console.error('Error fetching users:', error);
@@ -70,18 +87,23 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/admin/users
  * Add a new user to the system
+ * Admin: can add any user type
+ * Staff: can only add staff users for their own entity
  */
 export async function POST(request: NextRequest) {
   try {
-    // Check authentication and authorization
+    // Check authentication
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.roleType !== 'admin') {
+    if (!session || !['admin', 'staff'].includes(session.user.roleType)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Admin or staff access required' },
         { status: 403 }
       );
     }
+
+    const isAdmin = session.user.roleType === 'admin';
+    const creatorEntityId = session.user.entityId;
 
     // Parse request body
     const body = await request.json();
@@ -123,6 +145,25 @@ export async function POST(request: NextRequest) {
 
     const { role_type: roleType, role_code: roleCode } = roleCheck.rows[0];
 
+    // Staff users can only create staff users for their own entity
+    if (!isAdmin) {
+      // Staff cannot create admin users
+      if (roleType === 'admin') {
+        return NextResponse.json(
+          { error: 'Staff users cannot create admin accounts' },
+          { status: 403 }
+        );
+      }
+
+      // Staff can only create users for their own entity
+      if (!creatorEntityId) {
+        return NextResponse.json(
+          { error: 'Staff user has no assigned entity' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Get allowed admin entities from settings
     const allowedEntitiesRaw = await getSetting<string>('ADMIN_ALLOWED_ENTITIES', '["AGY-005"]');
     const allowedAdminEntities: string[] = typeof allowedEntitiesRaw === 'string'
@@ -131,8 +172,13 @@ export async function POST(request: NextRequest) {
 
     let finalEntityId = entity_id;
 
-    // Handle admin role entity assignment
-    if (roleType === 'admin') {
+    // Staff users must create users for their own entity only
+    if (!isAdmin) {
+      finalEntityId = creatorEntityId;
+    }
+
+    // Handle admin role entity assignment (admin users only)
+    if (isAdmin && roleType === 'admin') {
       if (entity_id) {
         // Validate entity is in allowed list
         if (!allowedAdminEntities.includes(entity_id)) {

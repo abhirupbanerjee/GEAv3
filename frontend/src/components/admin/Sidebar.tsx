@@ -117,7 +117,7 @@ const navigationItems: NavigationItem[] = [
     label: 'Users',
     href: '/admin/users',
     icon: <UsersIcon />,
-    requiredRole: 'admin',
+    requiredRole: null,  // Allow both admin and staff
   },
   {
     label: 'Services',

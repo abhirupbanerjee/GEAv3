@@ -87,16 +87,18 @@ export default function UsersPage() {
   // Chat context
   const { openModal, closeModal } = useChatContext();
 
-  // Check if user is admin
+  // Check if user is admin or staff
   const isAdmin = session?.user?.roleType === 'admin';
+  const isStaff = session?.user?.roleType === 'staff';
+  const canAccessUsers = isAdmin || isStaff;
 
   useEffect(() => {
-    if (status === 'authenticated' && isAdmin) {
+    if (status === 'authenticated' && canAccessUsers) {
       fetchUsers();
       fetchRoles();
       fetchEntities();
     }
-  }, [status, isAdmin]);
+  }, [status, canAccessUsers]);
 
   const fetchUsers = async () => {
     try {
@@ -165,11 +167,11 @@ export default function UsersPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessUsers) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <h2 className="text-red-800 font-semibold mb-2">Access Denied</h2>
-        <p className="text-red-600">Only administrators can access user management.</p>
+        <p className="text-red-600">You do not have permission to access user management.</p>
       </div>
     );
   }
@@ -181,7 +183,9 @@ export default function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Users</h1>
           <p className="text-sm text-gray-600 mt-1">
-            Manage authorized users and their access permissions
+            {isAdmin
+              ? 'Manage authorized users and their access permissions'
+              : 'View and add staff users for your entity'}
           </p>
         </div>
         <button
@@ -283,24 +287,44 @@ export default function UsersPage() {
                     )}
                   </td>
                   <td className="px-6 py-4">
-                    <button
-                      onClick={() => toggleUserStatus(user.id, user.is_active)}
-                      className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                        user.is_active
-                          ? 'bg-green-100 text-green-800 hover:bg-green-200'
-                          : 'bg-red-100 text-red-800 hover:bg-red-200'
-                      }`}
-                    >
-                      {user.is_active ? (
-                        <>
-                          <FiCheckCircle /> Active
-                        </>
-                      ) : (
-                        <>
-                          <FiXCircle /> Inactive
-                        </>
-                      )}
-                    </button>
+                    {isAdmin ? (
+                      <button
+                        onClick={() => toggleUserStatus(user.id, user.is_active)}
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                          user.is_active
+                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                            : 'bg-red-100 text-red-800 hover:bg-red-200'
+                        }`}
+                      >
+                        {user.is_active ? (
+                          <>
+                            <FiCheckCircle /> Active
+                          </>
+                        ) : (
+                          <>
+                            <FiXCircle /> Inactive
+                          </>
+                        )}
+                      </button>
+                    ) : (
+                      <span
+                        className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium ${
+                          user.is_active
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-red-100 text-red-800'
+                        }`}
+                      >
+                        {user.is_active ? (
+                          <>
+                            <FiCheckCircle /> Active
+                          </>
+                        ) : (
+                          <>
+                            <FiXCircle /> Inactive
+                          </>
+                        )}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {user.last_login
@@ -312,30 +336,34 @@ export default function UsersPage() {
                       : 'Never'}
                   </td>
                   <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => {
-                          setEditingUser(user);
-                          setShowEditModal(true);
-                          openModal('edit-user', {
-                            title: 'Edit User',
-                            entityType: 'user',
-                            entityId: user.id,
-                            entityName: user.name,
-                            data: {
-                              email: user.email,
-                              role: user.role_name,
-                              entity: user.entity_name,
-                              status: user.is_active ? 'Active' : 'Inactive',
-                            },
-                          });
-                        }}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit user"
-                      >
-                        <FiEdit2 />
-                      </button>
-                    </div>
+                    {isAdmin ? (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            setEditingUser(user);
+                            setShowEditModal(true);
+                            openModal('edit-user', {
+                              title: 'Edit User',
+                              entityType: 'user',
+                              entityId: user.id,
+                              entityName: user.name,
+                              data: {
+                                email: user.email,
+                                role: user.role_name,
+                                entity: user.entity_name,
+                                status: user.is_active ? 'Active' : 'Inactive',
+                              },
+                            });
+                          }}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Edit user"
+                        >
+                          <FiEdit2 />
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 text-sm">—</span>
+                    )}
                   </td>
                 </tr>
               ))
@@ -375,6 +403,7 @@ export default function UsersPage() {
         <AddUserModal
           roles={roles}
           entities={entities}
+          isAdmin={isAdmin}
           onClose={() => {
             setShowAddModal(false);
             closeModal();
@@ -414,14 +443,18 @@ export default function UsersPage() {
 function AddUserModal({
   roles,
   entities,
+  isAdmin,
   onClose,
   onSuccess,
 }: {
   roles: Role[];
   entities: Entity[];
+  isAdmin: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }) {
+  // Staff can only create staff users, not admins
+  const availableRoles = isAdmin ? roles : roles.filter(r => r.role_type !== 'admin');
   const [formData, setFormData] = useState({
     email: '',
     name: '',
@@ -447,10 +480,10 @@ function AddUserModal({
       .catch(err => console.error('Failed to fetch admin allowed entities:', err));
   }, []);
 
-  const selectedRole = roles.find((r) => r.role_id.toString() === formData.role_id);
+  const selectedRole = availableRoles.find((r) => r.role_id.toString() === formData.role_id);
   const isAdminRole = selectedRole?.role_type === 'admin';
   const requiresEntity = selectedRole?.role_type === 'staff';
-  const showEntityForAdmin = isAdminRole && allowedAdminEntities.length > 0;
+  const showEntityForAdmin = isAdmin && isAdminRole && allowedAdminEntities.length > 0;
 
   // Filter entities for admin dropdown (only allowed entities)
   const adminEntities = entities.filter(e => allowedAdminEntities.includes(e.entity_id));
@@ -538,15 +571,20 @@ function AddUserModal({
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             >
               <option value="">Select a role</option>
-              {roles.map((role) => (
+              {availableRoles.map((role) => (
                 <option key={role.role_id} value={role.role_id}>
                   {role.role_name}
                 </option>
               ))}
             </select>
+            {!isAdmin && (
+              <p className="text-xs text-gray-500 mt-1">
+                You can only add staff users for your entity
+              </p>
+            )}
           </div>
 
-          {requiresEntity && (
+          {requiresEntity && isAdmin && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Entity *
@@ -566,6 +604,14 @@ function AddUserModal({
               </select>
               <p className="text-xs text-gray-500 mt-1">
                 Staff users can only access data for their assigned entity
+              </p>
+            </div>
+          )}
+
+          {requiresEntity && !isAdmin && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                This user will be assigned to your entity automatically.
               </p>
             </div>
           )}

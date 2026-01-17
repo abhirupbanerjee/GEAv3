@@ -87,8 +87,25 @@ const CATEGORIES = [
 
 // Inner component that uses useSearchParams - must be wrapped in Suspense
 function SettingsPageContent() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const searchParams = useSearchParams()
+
+  // Block non-admin access
+  if (status !== 'loading' && session?.user?.roleType !== 'admin') {
+    return (
+      <div className="p-6 max-w-2xl mx-auto">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <h2 className="text-red-800 font-semibold text-lg mb-2">Access Denied</h2>
+          <p className="text-red-600 mb-4">
+            Only administrators can access system settings.
+          </p>
+          <a href="/admin/staff/home" className="text-blue-600 hover:underline">
+            ← Return to Staff Home
+          </a>
+        </div>
+      </div>
+    )
+  }
   const router = useRouter()
   const [settings, setSettings] = useState<Record<string, SystemSetting[]>>({})
   const [contacts, setContacts] = useState<LeadershipContact[]>([])
