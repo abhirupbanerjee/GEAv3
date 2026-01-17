@@ -156,7 +156,7 @@ const navigationItems: NavigationItem[] = [
 function SidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
-  const { data: session } = useSession()
+  const { data: session, update: updateSession } = useSession()
   const [isMobileOpen, setIsMobileOpen] = useState(false)
   const [isCollapsed, setIsCollapsed] = useState(false)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
@@ -185,6 +185,13 @@ function SidebarContent() {
       }
     })
   }, [pathname])
+
+  // Refresh session when navigating to admin routes to ensure menu reflects current role
+  useEffect(() => {
+    if (pathname.startsWith('/admin')) {
+      updateSession()
+    }
+  }, [pathname, updateSession])
 
   // Listen for sidebar toggle events from header
   useEffect(() => {
