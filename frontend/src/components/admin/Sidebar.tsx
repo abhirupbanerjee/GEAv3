@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 
 // Icons as separate components for reusability
@@ -152,7 +152,8 @@ const navigationItems: NavigationItem[] = [
   },
 ]
 
-export default function Sidebar() {
+// Inner component that uses useSearchParams - must be wrapped in Suspense
+function SidebarContent() {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const { data: session } = useSession()
@@ -182,7 +183,7 @@ export default function Sidebar() {
         }
       }
     })
-  }, [pathname])
+  }, [pathname, expandedItems])
 
   // Listen for sidebar toggle events from header
   useEffect(() => {
@@ -195,12 +196,14 @@ export default function Sidebar() {
   }, [])
 
   // Save collapse state to localStorage
-  const toggleCollapse = () => {
-    const newState = !isCollapsed
-    setIsCollapsed(newState)
-    localStorage.setItem('ea-portal-sidebar-collapsed', String(newState))
-    window.dispatchEvent(new Event('sidebar-toggled'))
-  }
+  const toggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => {
+      const newState = !prev
+      localStorage.setItem('ea-portal-sidebar-collapsed', String(newState))
+      window.dispatchEvent(new Event('sidebar-toggled'))
+      return newState
+    })
+  }, [])
 
   // Toggle expanded state for items with children
   const toggleExpanded = (href: string) => {
@@ -224,7 +227,7 @@ export default function Sidebar() {
 
     window.addEventListener('keydown', handleKeyboard)
     return () => window.removeEventListener('keydown', handleKeyboard)
-  }, [isCollapsed])
+  }, [toggleCollapse])
 
   // Filter navigation items based on user role
   const visibleMenuItems = navigationItems.filter((item) => {
@@ -415,5 +418,33 @@ export default function Sidebar() {
         </nav>
       </div>
     </>
+  )
+}
+
+// Fallback loading state for Suspense
+function SidebarFallback() {
+  return (
+    <div className="fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col h-[calc(100vh-4rem)] w-64 lg:w-64">
+      <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-white">
+        <div className="w-5 h-5" />
+      </div>
+      <nav className="flex-1 p-2 space-y-1">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <div key={i} className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-gray-100 animate-pulse">
+            <div className="w-5 h-5 bg-gray-300 rounded" />
+            <div className="h-4 bg-gray-300 rounded w-24" />
+          </div>
+        ))}
+      </nav>
+    </div>
+  )
+}
+
+// Main export wrapped in Suspense for useSearchParams
+export default function Sidebar() {
+  return (
+    <Suspense fallback={<SidebarFallback />}>
+      <SidebarContent />
+    </Suspense>
   )
 }

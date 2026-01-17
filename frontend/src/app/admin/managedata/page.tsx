@@ -39,7 +39,7 @@
 
 'use client'
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
@@ -62,7 +62,8 @@ function downloadJSON(data: any, filename: string) {
   URL.revokeObjectURL(url)
 }
 
-export default function ManageDataPage() {
+// Inner component that uses useSearchParams - must be wrapped in Suspense
+function ManageDataPageContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
   const [activeTab, setActiveTab] = useState<Tab>('entities')
@@ -333,5 +334,40 @@ export default function ManageDataPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Loading fallback for Suspense
+function ManageDataPageFallback() {
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
+      <div className="max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-8 bg-gray-200 rounded w-48 animate-pulse" />
+          <div className="h-10 bg-gray-200 rounded w-32 animate-pulse" />
+        </div>
+        <div className="flex space-x-2 mb-6">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="h-10 bg-gray-200 rounded w-28 animate-pulse" />
+          ))}
+        </div>
+        <div className="bg-white rounded-xl shadow-sm p-6">
+          <div className="space-y-4">
+            {[1, 2, 3, 4, 5].map((i) => (
+              <div key={i} className="h-16 bg-gray-100 rounded animate-pulse" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// Main export wrapped in Suspense for useSearchParams
+export default function ManageDataPage() {
+  return (
+    <Suspense fallback={<ManageDataPageFallback />}>
+      <ManageDataPageContent />
+    </Suspense>
   )
 }
