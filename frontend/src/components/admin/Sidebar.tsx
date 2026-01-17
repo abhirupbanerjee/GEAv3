@@ -178,12 +178,13 @@ function SidebarContent() {
   useEffect(() => {
     navigationItems.forEach(item => {
       if (item.children && pathname === item.href) {
-        if (!expandedItems.includes(item.href)) {
-          setExpandedItems(prev => [...prev, item.href])
-        }
+        setExpandedItems(prev => {
+          if (prev.includes(item.href)) return prev
+          return [...prev, item.href]
+        })
       }
     })
-  }, [pathname, expandedItems])
+  }, [pathname])
 
   // Listen for sidebar toggle events from header
   useEffect(() => {
@@ -206,7 +207,7 @@ function SidebarContent() {
   }, [])
 
   // Toggle expanded state for items with children
-  const toggleExpanded = (href: string) => {
+  const toggleExpanded = useCallback((href: string) => {
     setExpandedItems(prev => {
       const newExpanded = prev.includes(href)
         ? prev.filter(h => h !== href)
@@ -214,7 +215,7 @@ function SidebarContent() {
       localStorage.setItem('ea-portal-sidebar-expanded', JSON.stringify(newExpanded))
       return newExpanded
     })
-  }
+  }, [])
 
   // Keyboard shortcut: Ctrl/Cmd + B to toggle sidebar
   useEffect(() => {
@@ -319,7 +320,8 @@ function SidebarContent() {
                   // Parent item with children - clickable to expand/collapse
                   <div className="flex flex-col">
                     <button
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation()
                         if (isCollapsed) {
                           // When collapsed, navigate to parent page
                           window.location.href = item.href
@@ -352,15 +354,20 @@ function SidebarContent() {
 
                     {/* Sub-items */}
                     {!isCollapsed && isExpanded && (
-                      <div className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1">
+                      <div className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1 relative z-10">
                         {item.children!.map((child) => {
                           const isChildActive = isSubItemActive(item.href, child.tabKey)
                           return (
                             <Link
                               key={child.tabKey}
                               href={`${item.href}?tab=${child.tabKey}`}
-                              onClick={() => setIsMobileOpen(false)}
-                              className={`flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm ${
+                              prefetch={false}
+                              onClick={(e) => {
+                                setIsMobileOpen(false)
+                                // Ensure the click propagates correctly
+                                e.stopPropagation()
+                              }}
+                              className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
                                 isChildActive
                                   ? 'bg-blue-50 text-blue-700 font-medium'
                                   : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
