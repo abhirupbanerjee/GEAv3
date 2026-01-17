@@ -172,7 +172,6 @@ export async function initBackupScheduler(): Promise<void> {
 
     // Schedule the backup task
     scheduledTask = cron.schedule(cronExpression, executeScheduledBackup, {
-      scheduled: true,
       timezone: 'America/Grenada', // Use Grenada timezone
     })
 
