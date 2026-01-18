@@ -1,7 +1,7 @@
 'use client'
 
 import { usePathname, useRouter } from 'next/navigation'
-import { SessionProvider, useSession } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useEffect } from 'react'
 import Sidebar from '@/components/admin/Sidebar'
 import AdminContentWrapper from '@/components/admin/AdminContentWrapper'
@@ -59,10 +59,6 @@ export default function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Wrap everything with SessionProvider for NextAuth
-  return (
-    <SessionProvider>
-      <AdminLayoutContent>{children}</AdminLayoutContent>
-    </SessionProvider>
-  )
+  // SessionProvider is already provided at root layout level
+  return <AdminLayoutContent>{children}</AdminLayoutContent>
 }

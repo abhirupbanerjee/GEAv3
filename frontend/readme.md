@@ -82,7 +82,7 @@ Configuration is generated during Docker build from `.env.dev` file.
 
 Place your images in `public/images/`:
 
-1. **grenada-coastal.jpg** - Hero image (1920x500px recommended)
+1. **grenada-coastal.png** - Hero image (1920x500px recommended)
 2. **digital-strategy.jpg** - Vision section (800x600px recommended)
 
 ## Pages

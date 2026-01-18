@@ -2,7 +2,7 @@
 
 Please place the following images in this directory:
 
-1. **grenada-coastal.jpg** - Hero image for homepage (coastal Grenada cityscape)
+1. **grenada-coastal.png** - Hero image for homepage (coastal Grenada cityscape)
 2. **digital-strategy.jpg** - Image for Vision & Strategy section (device/technology theme)
 
 ## Image Requirements
@@ -10,7 +10,7 @@ Please place the following images in this directory:
 - **Format:** JPG or PNG
 - **Size:** Optimized for web (< 500KB each)
 - **Dimensions:** 
-  - grenada-coastal.jpg: 1920x500px (recommended)
+  - grenada-coastal.png: 1920x500px (recommended)
   - digital-strategy.jpg: 800x600px (recommended)
 
 ## Placeholder Images
