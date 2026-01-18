@@ -208,7 +208,18 @@ echo "  ✓ Backup timezone setting added"
 echo ""
 
 # ============================================================================
-# STEP 12: VERIFICATION
+# STEP 12: CREATE CITIZEN PORTAL TABLES
+# ============================================================================
+echo "▶ Step 12: Creating citizen portal tables..."
+echo ""
+
+"$SCRIPTS_DIR/21-citizen-portal.sh"
+
+echo "  ✓ Citizen portal tables created"
+echo ""
+
+# ============================================================================
+# STEP 13: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
 echo "║                    VERIFICATION SUMMARY                           ║"
