@@ -38,6 +38,8 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
         return '📝'
       case 'resolution_comment':
         return '✅'
+      case 'admin_comment':
+        return '💬'
       case 'comment':
         return '💬'
       case 'assigned':
@@ -61,6 +63,8 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
         return 'bg-purple-100 border-purple-300'
       case 'resolution_comment':
         return 'bg-green-100 border-green-400'
+      case 'admin_comment':
+        return 'bg-blue-100 border-blue-300'
       default:
         return 'bg-gray-100 border-gray-300'
     }
@@ -80,6 +84,8 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
         // Use display_type if available (for public view with resolution comments), otherwise use activity_type
         const displayType = (activity as any).display_type || activity.activity_type
         const isResolutionComment = displayType === 'resolution_comment'
+        const isAdminComment = displayType === 'admin_comment'
+        const isVisibleToCitizen = (activity as any).visible_to_citizen === true
 
         return (
           <div key={activity.activity_id} className="flex gap-3">
@@ -103,6 +109,8 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
                 className={`rounded-lg p-3 border ${
                   isResolutionComment
                     ? 'bg-green-50 border-green-300'
+                    : isAdminComment
+                    ? 'bg-blue-50 border-blue-300'
                     : 'bg-gray-50 border-gray-200'
                 }`}
               >
@@ -110,6 +118,13 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
                   <div className="mb-2">
                     <span className="inline-block text-xs font-semibold text-green-700 bg-green-200 px-2 py-1 rounded">
                       Resolution Comment
+                    </span>
+                  </div>
+                )}
+                {isAdminComment && (
+                  <div className="mb-2">
+                    <span className="inline-block text-xs font-semibold text-blue-700 bg-blue-200 px-2 py-1 rounded">
+                      Admin Response
                     </span>
                   </div>
                 )}
@@ -121,9 +136,16 @@ export function ActivityTimeline({ activities }: ActivityTimelineProps) {
                     {formatDateTime(activity.created_at)}
                   </span>
                 </div>
-                <p className="text-xs text-gray-600">
-                  by {activity.performed_by || 'System'}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-gray-600">
+                    by {activity.performed_by || 'System'}
+                  </p>
+                  {activity.activity_type === 'internal_note' && isVisibleToCitizen && (
+                    <span className="text-xs font-medium text-green-600 bg-green-100 px-2 py-0.5 rounded">
+                      Visible to citizen
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>

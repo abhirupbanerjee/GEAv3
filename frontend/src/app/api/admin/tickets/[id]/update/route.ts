@@ -99,7 +99,7 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { status_id, priority_id, internal_note, performed_by = 'admin' } = body
+    const { status_id, priority_id, internal_note, visible_to_citizen = false, performed_by = 'admin' } = body
 
     // Validate at least one field is being updated
     if (!status_id && !priority_id && !internal_note) {
@@ -209,9 +209,9 @@ export async function PUT(
       // Note: We don't have a ticket_notes table in the schema, so we'll log it as an activity
       if (internal_note && internal_note.trim()) {
         await client.query(
-          `INSERT INTO ticket_activity (ticket_id, activity_type, performed_by, description, created_at)
-           VALUES ($1, $2, $3, $4, NOW())`,
-          [ticketId, 'internal_note', performed_by, internal_note.trim()]
+          `INSERT INTO ticket_activity (ticket_id, activity_type, performed_by, description, visible_to_citizen, created_at)
+           VALUES ($1, $2, $3, $4, $5, NOW())`,
+          [ticketId, 'internal_note', performed_by, internal_note.trim(), visible_to_citizen]
         )
       }
 

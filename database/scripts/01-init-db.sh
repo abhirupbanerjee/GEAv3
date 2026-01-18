@@ -340,12 +340,17 @@ CREATE TABLE IF NOT EXISTS ticket_activity (
     activity_type VARCHAR(100) NOT NULL,
     performed_by VARCHAR(255),
     description TEXT,
+    visible_to_citizen BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Add visible_to_citizen column if missing (migration safety)
+ALTER TABLE ticket_activity ADD COLUMN IF NOT EXISTS visible_to_citizen BOOLEAN DEFAULT FALSE;
 
 -- Create indexes for ticket_activity
 CREATE INDEX IF NOT EXISTS idx_ticket_activity_ticket ON ticket_activity(ticket_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_activity_created ON ticket_activity(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ticket_activity_visible ON ticket_activity(visible_to_citizen) WHERE visible_to_citizen = TRUE;
 
 -- Seed initial activity records for existing tickets (one-time migration)
 INSERT INTO ticket_activity (ticket_id, activity_type, performed_by, description, created_at)

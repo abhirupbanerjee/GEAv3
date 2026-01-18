@@ -24,6 +24,7 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
   const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null)
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(null)
   const [internalNote, setInternalNote] = useState<string>('')
+  const [visibleToCitizen, setVisibleToCitizen] = useState<boolean>(false)
   const [hasChanges, setHasChanges] = useState(false)
 
   // Debug logging
@@ -80,6 +81,7 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
     }
     if (internalNote.trim().length > 0) {
       payload.internal_note = internalNote.trim()
+      payload.visible_to_citizen = visibleToCitizen
     }
 
     console.log('Attempting to save ticket update:', {
@@ -95,8 +97,9 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
       const result = await updateTicket(ticketId, payload)
       console.log('Ticket update successful:', result)
 
-      // Clear the note input after successful save
+      // Clear the note input and checkbox after successful save
       setInternalNote('')
+      setVisibleToCitizen(false)
 
       // Refresh data
       await mutate()
@@ -267,6 +270,20 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
                         rows={3}
                         className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
                       />
+                      {internalNote.trim().length > 0 && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <input
+                            type="checkbox"
+                            id="visibleToCitizen"
+                            checked={visibleToCitizen}
+                            onChange={(e) => setVisibleToCitizen(e.target.checked)}
+                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <label htmlFor="visibleToCitizen" className="text-sm text-gray-700">
+                            Show this comment to citizen
+                          </label>
+                        </div>
+                      )}
                     </div>
 
                     {hasChanges && (

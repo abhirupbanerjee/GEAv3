@@ -69,13 +69,15 @@ export async function GET(
 
     const ticket = result.rows[0];
 
-    // Fetch public activities (exclude internal notes UNLESS ticket is resolved/closed)
-    // For resolved/closed tickets, include the last internal note as resolution comment
+    // Fetch public activities
+    // - Always include non-internal activities
+    // - Include internal_notes where visible_to_citizen = TRUE as 'admin_comment'
+    // - For resolved/closed tickets, also include the last internal_note (if not already visible) as resolution_comment
     const isResolvedOrClosed = ticket.status_code === 'resolved' || ticket.status_code === 'closed';
 
     let activitiesResult;
     if (isResolvedOrClosed) {
-      // Include all public activities + last internal note
+      // Include all public activities + visible internal notes + last internal note as resolution
       activitiesResult = await pool.query(
         `SELECT
           activity_id,
@@ -83,39 +85,53 @@ export async function GET(
           performed_by,
           description,
           created_at,
+          visible_to_citizen,
           CASE
+            WHEN activity_type = 'internal_note' AND visible_to_citizen = TRUE THEN 'admin_comment'
             WHEN activity_type = 'internal_note' THEN 'resolution_comment'
             ELSE activity_type
           END as display_type
         FROM (
-          -- Get all public activities
+          -- Get all public activities (non-internal notes)
           SELECT * FROM ticket_activity
           WHERE ticket_id = $1 AND activity_type != 'internal_note'
 
-          UNION
+          UNION ALL
 
-          -- Get last internal note for resolved/closed tickets
+          -- Get all visible internal notes
           SELECT * FROM ticket_activity
-          WHERE ticket_id = $1 AND activity_type = 'internal_note'
-          ORDER BY created_at DESC
-          LIMIT 1
+          WHERE ticket_id = $1 AND activity_type = 'internal_note' AND visible_to_citizen = TRUE
+
+          UNION ALL
+
+          -- Get last internal note for resolution comment (only if not already visible)
+          SELECT * FROM (
+            SELECT * FROM ticket_activity
+            WHERE ticket_id = $1 AND activity_type = 'internal_note' AND (visible_to_citizen = FALSE OR visible_to_citizen IS NULL)
+            ORDER BY created_at DESC
+            LIMIT 1
+          ) as last_note
         ) as combined_activities
         ORDER BY created_at DESC`,
         [ticket.ticket_id]
       );
     } else {
-      // Only public activities for open/in-progress tickets
+      // For open/in-progress: public activities + visible internal notes as admin_comment
       activitiesResult = await pool.query(
         `SELECT
           activity_id,
           activity_type,
-          activity_type as display_type,
           performed_by,
           description,
-          created_at
+          created_at,
+          visible_to_citizen,
+          CASE
+            WHEN activity_type = 'internal_note' AND visible_to_citizen = TRUE THEN 'admin_comment'
+            ELSE activity_type
+          END as display_type
         FROM ticket_activity
         WHERE ticket_id = $1
-          AND activity_type != 'internal_note'
+          AND (activity_type != 'internal_note' OR visible_to_citizen = TRUE)
         ORDER BY created_at DESC`,
         [ticket.ticket_id]
       );
