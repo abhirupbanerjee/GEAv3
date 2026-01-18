@@ -191,7 +191,30 @@ describe('YourComponent', () => {
 })
 ```
 
-### 3.7 Troubleshooting Automated Tests
+### 3.7 CI/CD Integration
+
+Tests run automatically via GitHub Actions on:
+- Every push to `main` or `develop` branches
+- Every pull request targeting `main` or `develop`
+
+**Workflow file:** `.github/workflows/test.yml`
+
+**What runs:**
+1. `npm run test:run` - All 121 tests
+2. `npm run test:coverage` - Coverage report
+3. `npm run lint` - ESLint checks
+4. `npx tsc --noEmit` - TypeScript type checking
+
+**Viewing results:**
+- Go to the **Actions** tab in GitHub
+- Click on the workflow run to see test output
+- Download coverage report from **Artifacts**
+
+**PR Requirements:**
+- All tests must pass before merging
+- Consider adding branch protection rules in GitHub settings
+
+### 3.8 Troubleshooting Automated Tests
 
 | Issue | Solution |
 |-------|----------|
@@ -199,6 +222,7 @@ describe('YourComponent', () => {
 | "Multiple elements found" | Use more specific selectors (`getByRole`, `getByTestId`) |
 | Async state warnings | Wrap assertions in `waitFor()` |
 | Mock not working | Ensure `vi.mock()` at top level, call `vi.clearAllMocks()` in `beforeEach` |
+| CI fails but local passes | Check Node.js version matches (v22) |
 
 ---
 
