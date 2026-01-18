@@ -72,7 +72,7 @@ jobs:
         run: npm ci
 
       - name: Run ESLint
-        run: npm run lint -- --dir src
+        run: npx next lint src
 
       - name: Type check
         run: npx tsc --noEmit
