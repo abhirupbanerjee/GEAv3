@@ -89,7 +89,7 @@ interface SidebarMenuItemProps {
   pathname: string
   searchParams: ReturnType<typeof useSearchParams>
   onToggleExpand: (href: string) => void
-  onMobileClose: () => void
+  onExpandSidebar: () => void
 }
 
 // Extracted component to reduce cognitive complexity
@@ -101,7 +101,7 @@ function SidebarMenuItem({
   pathname,
   searchParams,
   onToggleExpand,
-  onMobileClose,
+  onExpandSidebar,
 }: SidebarMenuItemProps) {
   const hasChildren = item.children && item.children.length > 0
 
@@ -125,9 +125,11 @@ function SidebarMenuItem({
       <div className="relative group">
         <div className="flex flex-col">
           <button
-            onClick={() => {
+            onClick={(e) => {
+              e.stopPropagation()
               if (isCollapsed) {
-                window.location.href = item.href
+                // Expand sidebar first to show sub-menu items
+                onExpandSidebar()
               } else {
                 onToggleExpand(item.href)
               }
@@ -163,7 +165,7 @@ function SidebarMenuItem({
                     key={child.tabKey}
                     href={childHref}
                     prefetch={false}
-                    onClick={onMobileClose}
+                    onClick={(e) => e.stopPropagation()}
                     className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
                       isChildActive
                         ? 'bg-blue-50 text-blue-700 font-medium'
@@ -196,7 +198,7 @@ function SidebarMenuItem({
     <div className="relative group">
       <Link
         href={item.href}
-        onClick={onMobileClose}
+        onClick={(e) => e.stopPropagation()}
         className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
         aria-label={isCollapsed ? item.label : undefined}
         title={isCollapsed ? item.label : undefined}
@@ -295,16 +297,14 @@ function SidebarContent() {
   const searchParams = useSearchParams()
   const { data: session, update: updateSession } = useSession()
   const prevPathRef = useRef<string | null>(null)
-  const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
   const [expandedItems, setExpandedItems] = useState<string[]>([])
 
-  // Load collapse state from localStorage
+  // Load collapse state from localStorage (default to collapsed if no saved state)
   useEffect(() => {
     const savedState = localStorage.getItem('ea-portal-sidebar-collapsed')
-    if (savedState !== null) {
-      setIsCollapsed(savedState === 'true')
-    }
+    // Default to collapsed (true) if no saved state exists
+    setIsCollapsed(savedState === null ? true : savedState === 'true')
     // Load expanded items state
     const savedExpanded = localStorage.getItem('ea-portal-sidebar-expanded')
     if (savedExpanded) {
@@ -338,15 +338,6 @@ function SidebarContent() {
     })
   }, [pathname])
 
-  // Listen for sidebar toggle events from header
-  useEffect(() => {
-    const handleToggleSidebar = () => {
-      setIsMobileOpen(prev => !prev)
-    }
-
-    window.addEventListener('toggle-mobile-sidebar', handleToggleSidebar)
-    return () => window.removeEventListener('toggle-mobile-sidebar', handleToggleSidebar)
-  }, [])
 
   // Save collapse state to localStorage
   const toggleCollapse = useCallback(() => {
@@ -400,44 +391,39 @@ function SidebarContent() {
     return false
   }
 
+  // Expand sidebar (for menu items with children when collapsed)
+  const expandSidebar = useCallback(() => {
+    if (isCollapsed) {
+      setIsCollapsed(false)
+      localStorage.setItem('ea-portal-sidebar-collapsed', 'false')
+      window.dispatchEvent(new Event('sidebar-toggled'))
+    }
+  }, [isCollapsed])
+
   return (
     <>
-      {/* Overlay for mobile */}
-      {isMobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40 top-16"
-          onClick={() => setIsMobileOpen(false)}
-        />
-      )}
-
-      {/* Sidebar - Responsive with collapse */}
+      {/* Sidebar - Always visible, icon-only when collapsed */}
       <div
+        onClick={() => {
+          if (isCollapsed) {
+            expandSidebar()
+          }
+        }}
         className={`
           fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col
-          transform transition-all duration-200 ease-in-out
+          transition-all duration-200 ease-in-out
           h-[calc(100vh-4rem)]
-          ${isMobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-          ${isCollapsed ? 'lg:w-16' : 'lg:w-64'}
-          w-64
+          ${isCollapsed ? 'w-16 cursor-pointer' : 'w-64'}
         `}
       >
-        {/* Header - Mobile Close Button / Desktop Collapse Toggle */}
-        <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-white">
-          {/* Mobile: Close button */}
+        {/* Header - Collapse Toggle */}
+        <div className="flex items-center justify-end p-2 border-b border-gray-200 bg-white">
           <button
-            onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
-            aria-label="Close sidebar"
-          >
-            <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-
-          {/* Desktop: Collapse toggle */}
-          <button
-            onClick={toggleCollapse}
-            className="hidden lg:block ml-auto p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            onClick={(e) => {
+              e.stopPropagation()
+              toggleCollapse()
+            }}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
           >
@@ -463,7 +449,7 @@ function SidebarContent() {
               pathname={pathname}
               searchParams={searchParams}
               onToggleExpand={toggleExpanded}
-              onMobileClose={() => setIsMobileOpen(false)}
+              onExpandSidebar={expandSidebar}
             />
           ))}
         </nav>
@@ -472,18 +458,17 @@ function SidebarContent() {
   )
 }
 
-// Fallback loading state for Suspense
+// Fallback loading state for Suspense (collapsed view by default)
 function SidebarFallback() {
   return (
-    <div className="fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col h-[calc(100vh-4rem)] w-64 lg:w-64">
-      <div className="flex items-center justify-between p-2 border-b border-gray-200 bg-white">
+    <div className="fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col h-[calc(100vh-4rem)] w-16">
+      <div className="flex items-center justify-end p-2 border-b border-gray-200 bg-white">
         <div className="w-5 h-5" />
       </div>
       <nav className="flex-1 p-2 space-y-1">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="flex items-center space-x-3 px-4 py-3 rounded-lg bg-gray-100 animate-pulse">
+          <div key={i} className="flex items-center justify-center p-3 rounded-lg bg-gray-100 animate-pulse">
             <div className="w-5 h-5 bg-gray-300 rounded" />
-            <div className="h-4 bg-gray-300 rounded w-24" />
           </div>
         ))}
       </nav>

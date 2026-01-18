@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react'
 
 export default function AdminContentWrapper({ children }: { children: React.ReactNode }) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isCollapsed, setIsCollapsed] = useState(true)
 
   useEffect(() => {
-    // Check initial state
+    // Check initial state (default to collapsed if no saved state)
     const checkCollapsedState = () => {
       const savedState = localStorage.getItem('ea-portal-sidebar-collapsed')
-      setIsCollapsed(savedState === 'true')
+      setIsCollapsed(savedState === null ? true : savedState === 'true')
     }
 
     checkCollapsedState()
@@ -39,7 +39,7 @@ export default function AdminContentWrapper({ children }: { children: React.Reac
   return (
     <div
       className={`transition-all duration-200 ${
-        isCollapsed ? 'lg:ml-16' : 'lg:ml-64'
+        isCollapsed ? 'ml-16' : 'ml-64'
       }`}
     >
       <main className="p-6">{children}</main>
