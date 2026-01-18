@@ -38,13 +38,13 @@ The GEA Portal implements a Role-Based Access Control (RBAC) system with three d
 
 **Available Pages:**
 - `/admin/home` - Admin dashboard
-- `/admin/users` - User management (ADMIN ONLY)
+- `/admin/users` - User management
 - `/admin/analytics` - System-wide analytics
 - `/admin/tickets` - All tickets
 - `/admin/service-requests` - All service requests
-- `/admin/ai-inventory` - AI bot management (ADMIN ONLY)
+- `/admin/settings` - System settings (ADMIN ONLY)
+- `/admin/ai-inventory` - AI bot management (via Settings > AI Bots)
 - `/admin/managedata/*` - Master data management
-- `/admin/feedback` - Feedback across all entities
 
 **Code Reference:**
 ```typescript
@@ -96,17 +96,17 @@ Staff users have limited user management capabilities:
 #### UI Access
 
 **Available Pages:**
-- `/admin/staff/home` - Staff dashboard (auto-redirected from `/admin/home`)
+- `/admin/staff/home` - Staff dashboard (shown instead of Admin Home in menu)
 - `/admin/analytics` - Entity-scoped analytics
-- `/admin/users` - Entity-scoped user list (view and add only)
+- `/admin/users` - Entity-scoped user list (view and add staff only)
 - `/admin/tickets` - Entity-scoped tickets
 - `/admin/service-requests` - Entity-scoped service requests
 - `/admin/managedata/*` - View-only, entity-scoped master data
-- `/admin/feedback` - Entity-scoped feedback
 
-**Blocked Pages:**
-- `/admin/settings` - System settings (shows Access Denied)
-- `/admin/ai-inventory` - AI bot management (shows Access Denied)
+**Hidden/Blocked Pages:**
+- `/admin/home` - Admin dashboard (hidden from menu, staff sees Staff Home instead)
+- `/admin/settings` - System settings (hidden from menu, admin-only)
+- `/admin/ai-inventory` - AI bot management (hidden from menu, admin-only)
 
 **Code Reference:**
 ```typescript
@@ -332,9 +332,9 @@ CREATE TABLE IF NOT EXISTS user_audit_log (
 
 #### GET `/api/admin/users`
 
-**Description:** List all users (admin only)
+**Description:** List all users (admin sees all, staff sees entity-filtered)
 
-**Authorization:** Admin only (`roleType === 'admin'`)
+**Authorization:** Admin or Staff (`roleType === 'admin'` or `roleType === 'staff'`)
 
 **Query Parameters:**
 - `search` (optional) - Search by email or name
@@ -366,9 +366,9 @@ CREATE TABLE IF NOT EXISTS user_audit_log (
 
 **Error Responses:**
 - `401 Unauthorized` - No valid session
-- `403 Forbidden` - Not an admin user
+- `403 Forbidden` - Not an admin or staff user
 
-**Code Reference:** `frontend/src/app/api/admin/users/route.ts:19-95`
+**Code Reference:** `frontend/src/app/api/admin/users/route.ts:19-85`
 
 ---
 
@@ -833,10 +833,25 @@ If not found OR is_active = false → Redirect to /auth/unauthorized
 
 ### 2. Session Enrichment
 
-NextAuth enriches the session with role and entity data:
+NextAuth enriches the session with role and entity data via the JWT callback:
 
 ```typescript
-// Join users with user_roles
+// frontend/src/lib/auth.ts - JWT callback
+async jwt({ token, user, account, trigger }) {
+  // Refresh on initial sign-in OR when updateSession() is called
+  const email = user?.email || token?.email;
+
+  if (email && (user || trigger === 'update')) {
+    const authCheck = await isUserAuthorized(email);
+    // ... updates token with roleType, entityId, etc.
+  }
+}
+```
+
+**Important:** The `trigger === 'update'` check ensures that when the UI calls `updateSession()` (e.g., when navigating to admin area), the token claims are refreshed from the database. This prevents stale role data from causing menu visibility issues.
+
+**Database Query:**
+```sql
 SELECT
     u.id, u.email, u.name, u.role_id,
     r.role_code, r.role_type,
@@ -1118,5 +1133,5 @@ POST /api/admin/users
 ---
 
 **Last Updated:** 2026-01-17
-**Version:** 3.1
+**Version:** 3.2
 **Maintainer:** Digital Transformation Agency

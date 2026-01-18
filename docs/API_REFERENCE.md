@@ -1,7 +1,7 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 3.3
-**Last Updated:** December 19, 2025
+**Document Version:** 3.4
+**Last Updated:** January 17, 2026
 **API Base URL:** `https://gea.your-domain.com` (Production)
 **Framework:** Next.js 14 App Router
 **Authentication:** NextAuth v4 with OAuth (Google, Microsoft)
@@ -136,9 +136,11 @@ session = {
     entityId: "MIN-001" | null,        // Entity ID (null for admin)
     isActive: true                     // Active status
   },
-  expires: "2025-11-24T12:00:00Z"      // Session expiration (2 hours)
+  expires: "2026-01-17T12:00:00Z"      // Session expiration (2 hours)
 }
 ```
+
+**Session Refresh:** The UI calls `updateSession()` when navigating to the admin area. This triggers the JWT callback with `trigger === 'update'`, which refreshes user role data from the database to ensure menu visibility matches current permissions.
 
 ### Using Authentication in API Routes
 
@@ -1073,7 +1075,9 @@ curl https://gea.your-domain.com/api/helpdesk/ticket/202511-000456
 
 List all users with their roles and entity assignments.
 
-**Authentication:** Required (admin session with `admin` role)
+**Authentication:** Required (admin or staff session)
+- **Admin:** Sees all users across the system
+- **Staff:** Sees only users from their assigned entity
 
 **Query Parameters:**
 
@@ -1133,15 +1137,18 @@ GET /api/admin/users?role_type=staff&is_active=true
 
 Add a new user to the system.
 
-**Authentication:** Required (admin session with `admin` role)
+**Authentication:** Required (admin or staff session)
+- **Admin:** Can create any user type
+- **Staff:** Can only create staff users for their own entity
 
 **Request Body:**
 ```json
 {
   "email": "newuser@gov.gd",
   "name": "New User",
-  "role_id": 2,
-  "entity_id": "MIN-001"
+  "roleCode": "staff_mda",
+  "entity_id": "MIN-001",
+  "is_active": true
 }
 ```
 
@@ -1151,8 +1158,9 @@ Add a new user to the system.
 |-------|------|----------|-------------|
 | email | string | Yes | User email (must match OAuth account) |
 | name | string | Yes | Full name |
-| role_id | integer | Yes | Role ID (1=Admin, 2=Staff, 3=Public) |
-| entity_id | string | Conditional | Required if role is Staff |
+| roleCode | string | Yes | Role code (admin_dta, staff_mda, public_user) |
+| entity_id | string | Conditional | Required for staff users, auto-assigns AGY-005 for admin_dta if not specified |
+| is_active | boolean | No | Active status (default: true) |
 
 **Success Response (201 Created):**
 ```json
@@ -3322,6 +3330,6 @@ const RATE_LIMITS = {
 
 ---
 
-**Document Version:** 3.3
-**Last Updated:** December 19, 2025
+**Document Version:** 3.4
+**Last Updated:** January 17, 2026
 **Maintained By:** GEA Portal Development Team

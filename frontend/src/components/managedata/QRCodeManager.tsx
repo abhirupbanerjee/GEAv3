@@ -429,14 +429,7 @@ export default function QRCodeManager() {
       alert('Feedback link copied to clipboard!')
     } catch (err) {
       console.error('Failed to copy:', err)
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea')
-      textArea.value = url
-      document.body.appendChild(textArea)
-      textArea.select()
-      document.execCommand('copy')
-      document.body.removeChild(textArea)
-      alert('Feedback link copied to clipboard!')
+      alert('Failed to copy link. Please copy manually: ' + url)
     }
   }
 

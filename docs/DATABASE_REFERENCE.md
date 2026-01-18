@@ -1,7 +1,7 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 10.3
-**Last Updated:** January 16, 2026
+**Document Version:** 10.4
+**Last Updated:** January 17, 2026
 **Database:** PostgreSQL 16.11-alpine (upgraded from 15.14)
 **Connection Pool:** PgBouncer v1.23.1-p3
 **Cache:** Redis 7.4.4-alpine
@@ -29,7 +29,7 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 30 |
+| **Tables** | 31 |
 | **Reference Data** | 5 |
 | **Auth & Users** | 8 |
 | **Feedback & Grievances** | 4 |
@@ -2251,7 +2251,7 @@ EOF
 
 ---
 
-**Document Version:** 10.3
-**Last Updated:** January 16, 2026
+**Document Version:** 10.4
+**Last Updated:** January 17, 2026
 **Schema Version:** Production-Aligned v10.1 (31 tables)
 **Maintained By:** GEA Portal Development Team

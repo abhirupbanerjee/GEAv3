@@ -10,7 +10,7 @@
 import { useSession } from 'next-auth/react'
 
 export default function StaffSettingsPage() {
-  const { data: session, status } = useSession()
+  const { status } = useSession()
 
   // Show loading while checking session
   if (status === 'loading') {

@@ -4,8 +4,8 @@
 This roadmap outlines the strategic plan for upgrading key technologies in the GoGeaPortal v3 project. Each major upgrade has been analyzed for breaking changes, migration complexity, and optimal timing.
 
 **Last Updated:** 2026-01-17
-**Status:** In Progress (Next.js 16, Node.js 22, Tailwind 4 completed)
-**Risk Level:** Medium (React 19 pending)
+**Status:** In Progress (Next.js 16, Node.js 22, Tailwind 4 completed; next-auth v5 deferred)
+**Risk Level:** Medium (React 19 pending Q4 2026)
 
 ---
 
@@ -357,6 +357,53 @@ Upgraded from Node.js 20 to 22 LTS before Node.js 20 EOL (April 30, 2026).
 - [ ] Test Suspense boundaries
 - [ ] Cross-browser testing
 
+#### Why Deferring to Q4 2026
+
+**Decision Date:** January 17, 2026
+**Current Version:** 18.3.1
+**Target Version:** 19.x
+**Status:** ⏳ Scheduled Q4 2026
+
+##### Reasons for Deferral
+
+1. **Ecosystem Maturity:** React 19 released December 2024. Third-party libraries (recharts, next-auth) need time to fully adopt and stabilize their React 19 support.
+
+2. **next-auth Dependency:** React 19 migration may require next-auth v5, which we've deferred indefinitely (see next-auth v5 section). Need to verify v4 compatibility with React 19.
+
+3. **No Urgent Need:** React 18.3.1 is stable, performant, and actively maintained with security updates.
+
+4. **Low ROI Now:** The codebase has NO breaking patterns (verified audit):
+   - 0 forwardRef usages (React 19 changes ref handling)
+   - 0 PropTypes usages (100% TypeScript)
+   - 0 defaultProps usages
+   - 0 string refs
+   - 0 class components (100% functional)
+
+##### Migration Risks
+
+| Risk | Level | Description | Mitigation |
+|------|-------|-------------|------------|
+| next-auth compatibility | 🔴 High | v4 may not work with React 19 | Verify before upgrade or accept v5 migration |
+| recharts breakage | 🟡 Medium | Chart rendering issues possible | Upgrade to recharts 3.x simultaneously |
+| useEffect behavior changes | 🟡 Medium | Stricter cleanup requirements | Audit 71 useEffect usages |
+| useCallback optimization | 🟢 Low | React Compiler may conflict with manual memoization | Review 37 useCallback usages |
+| Type definition changes | 🟢 Low | @types/react v19 has breaking changes | TypeScript will catch issues |
+
+##### Codebase Readiness (January 2026 Audit)
+
+| Pattern | Count | Status |
+|---------|-------|--------|
+| forwardRef | 0 | ✅ No migration needed |
+| PropTypes | 0 | ✅ Uses TypeScript |
+| defaultProps | 0 | ✅ Uses ES6 defaults |
+| String refs | 0 | ✅ Modern ref patterns |
+| Class components | 0 | ✅ 100% functional |
+| useEffect | 71 | ⚠️ Audit cleanup functions |
+| useCallback | 37 | ⚠️ React Compiler review |
+| useContext | 4 | ✅ Modern pattern |
+| Suspense | 2 | ✅ Proper usage |
+| Error Boundaries | 0 | ⚠️ Consider adding |
+
 ---
 
 ## ✅ Phase 5: Tailwind CSS 4 Migration (COMPLETED)
@@ -483,6 +530,45 @@ $ npm run build
 - [ ] Export functionality
 - [ ] Print layouts
 
+#### Why Deferring (Depends on React 19)
+
+**Decision Date:** January 17, 2026
+**Current Version:** 2.15.4
+**Target Version:** 3.x
+**Status:** ⏳ Blocked by React 19
+
+##### Reasons for Deferral
+
+1. **React 19 Dependency:** Recharts 3.x is optimized for React 19. Upgrading to v3 on React 18 may cause compatibility issues or miss performance benefits.
+
+2. **Coupled Migration:** Best practice is to upgrade React 19 first, then recharts 3 immediately after to ensure full compatibility.
+
+3. **Current Version Stable:** Recharts 2.15.4 works well with React 18.3.1 and has no known issues in the application.
+
+4. **Limited Chart Usage:** Only 2 files use recharts - manageable migration scope when ready.
+
+##### Files Using Recharts
+
+| File | Components Used |
+|------|-----------------|
+| `src/components/analytics/ChartsSection.tsx` | BarChart, LineChart, PieChart, ResponsiveContainer |
+| `src/app/admin/users/page.tsx` | Chart components for user statistics |
+
+##### Migration Risks
+
+| Risk | Level | Description | Mitigation |
+|------|-------|-------------|------------|
+| API changes | 🟡 Medium | Chart component prop changes | Review v3 migration guide |
+| Visual regression | 🟡 Medium | Chart appearance may change | Visual testing before/after |
+| TypeScript types | 🟢 Low | Type definitions updated | TypeScript will catch issues |
+| Bundle size | 🟢 Low | v3 has better tree-shaking | Expect smaller bundles |
+
+##### Recommended Migration Order
+1. Complete React 19 upgrade (Q4 2026)
+2. Immediately upgrade recharts 2.15.4 → 3.x
+3. Visual regression testing on all charts
+4. Deploy together
+
 ---
 
 ## 🎯 Success Metrics
@@ -593,6 +679,44 @@ $ npm run build
 - **Q1 2026:** ✅ Safe updates, PostgreSQL 16, Next.js 16, Node.js 22, Tailwind 4 (all completed)
 - **Q4 2026:** React 19 (ecosystem maturity expected)
 
+### next-auth v5 Upgrade: Deferred Indefinitely
+
+**Decision Date:** January 17, 2026
+**Current Version:** v4.24.13
+**Status:** ❌ Not Upgrading
+
+#### Rationale
+
+1. **No EOL Announced:** next-auth v4 has no official end-of-life date. The maintainers continue to provide security patches and maintenance updates.
+
+2. **High Migration Cost:** Analysis identified 63 files affected across 3 tiers:
+   - **Tier 1 (Major Rewrite):** `src/lib/auth.ts` (344 lines), `src/app/api/auth/[...nextauth]/route.ts`, `src/proxy.ts`
+   - **Tier 2 (API Changes):** 37 API routes using `getServerSession`
+   - **Tier 3 (Client Components):** 23 files using `useSession`/`signIn`/`signOut`
+   - **Estimated Effort:** 20-28 hours
+
+3. **Breaking Changes in v5:**
+   - Provider rename: `AzureADProvider` → `MicrosoftEntraID`
+   - Export pattern: `authOptions` → `{ handlers, auth }`
+   - Session access: `getServerSession(authOptions)` → `auth()`
+   - Middleware integration pattern changes
+
+4. **Risk Assessment:** Authentication is critical path infrastructure. 63 files represent high regression risk for no immediate benefit.
+
+5. **No Security Vulnerabilities:** v4.24.13 has no known security issues requiring upgrade.
+
+#### Current Implementation (Preserved)
+- OAuth providers: Google, Microsoft Azure AD
+- JWT strategy with 2-hour session timeout
+- Custom callbacks for role-based access control (roleId, roleCode, roleType, entityId)
+- Database-backed user authorization via PostgreSQL
+- Audit logging for sign-in/sign-out events
+
+#### Future Considerations
+- Will re-evaluate if v4 EOL is announced
+- Will re-evaluate if security vulnerabilities are discovered
+- May consider upgrade if React 19 requires next-auth v5
+
 ---
 
 ## 📝 Notes
@@ -642,7 +766,7 @@ $ npm run build
 
 ---
 
-**Document Status:** 📋 In Progress (Next.js 16, Node.js 22, Tailwind 4 completed)
+**Document Status:** 📋 In Progress (Next.js 16, Node.js 22, Tailwind 4 completed; next-auth v5 deferred)
 **Next Review Date:** 2026-02-01
 **Owner:** Development Team
 **Last Updated:** 2026-01-17
