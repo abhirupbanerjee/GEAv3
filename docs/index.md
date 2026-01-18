@@ -220,7 +220,7 @@ gogeaportal/v3/
 | [developer-guides/UI_MODIFICATION_GUIDE.md](developer-guides/UI_MODIFICATION_GUIDE.md) | **Complete UI development guide** - Adding pages, modifying analytics, customizing leaderboards | 45 min |
 | [developer-guides/API_DEVELOPMENT_PATTERNS.md](developer-guides/API_DEVELOPMENT_PATTERNS.md) | **API endpoint development** - Creating endpoints, authentication, validation, responses | 30 min |
 | [developer-guides/DATABASE_QUERY_PATTERNS.md](developer-guides/DATABASE_QUERY_PATTERNS.md) | **Database operations** - Queries, transactions, performance, error handling | 25 min |
-| [developer-guides/TESTING_GUIDE.md](developer-guides/TESTING_GUIDE.md) | **Testing procedures** - API testing, auth testing, database verification | 20 min |
+| [developer-guides/TESTING_GUIDE.md](developer-guides/TESTING_GUIDE.md) | **Testing procedures** - Automated tests (Vitest), API testing, auth testing, database verification | 25 min |
 | [developer-guides/ERROR_HANDLING_PATTERNS.md](developer-guides/ERROR_HANDLING_PATTERNS.md) | **Error handling** - Error codes, responses, logging best practices | 20 min |
 | [AI_BOT_INTEGRATION.md](AI_BOT_INTEGRATION.md) | AI bot context integration, bot inventory, testing | 30 min |
 

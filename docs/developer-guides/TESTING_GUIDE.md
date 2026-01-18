@@ -2,7 +2,7 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.0
+**Version:** 2.0
 **Last Updated:** January 2026
 **Audience:** All Developers
 
@@ -12,12 +12,13 @@
 
 1. [Introduction](#1-introduction)
 2. [Testing Strategy Overview](#2-testing-strategy-overview)
-3. [Manual API Testing](#3-manual-api-testing)
-4. [Testing Authentication](#4-testing-authentication)
-5. [Database Testing](#5-database-testing)
-6. [UI Testing](#6-ui-testing)
-7. [Performance Testing](#7-performance-testing)
-8. [Pre-Deployment Checklist](#8-pre-deployment-checklist)
+3. [Automated Testing](#3-automated-testing) **NEW**
+4. [Manual API Testing](#4-manual-api-testing)
+5. [Testing Authentication](#5-testing-authentication)
+6. [Database Testing](#6-database-testing)
+7. [UI Testing](#7-ui-testing)
+8. [Performance Testing](#8-performance-testing)
+9. [Pre-Deployment Checklist](#9-pre-deployment-checklist)
 
 ---
 
@@ -25,7 +26,7 @@
 
 ### 1.1 About This Guide
 
-This guide provides **testing procedures and patterns** for the GEA Portal. While automated testing frameworks are planned for future implementation, this guide covers manual testing procedures and patterns to ensure code quality.
+This guide provides **testing procedures and patterns** for the GEA Portal. It covers both automated testing with Vitest and manual testing procedures to ensure code quality.
 
 ### 1.2 Testing Priorities
 
@@ -58,9 +59,152 @@ This guide provides **testing procedures and patterns** for the GEA Portal. Whil
 
 ---
 
-## 3. Manual API Testing
+## 3. Automated Testing
 
-### 3.1 Using curl
+The GEA Portal uses **Vitest** for automated testing with **React Testing Library** for component tests.
+
+### 3.1 Running Tests
+
+```bash
+cd frontend
+
+# Run tests in watch mode (development)
+npm test
+
+# Run tests once (CI/CD)
+npm run test:run
+
+# Run tests with coverage report
+npm run test:coverage
+```
+
+### 3.2 Test Structure
+
+```
+frontend/
+├── __tests__/
+│   ├── setup.ts                    # Global test setup and mocks
+│   ├── lib/
+│   │   ├── redis.test.ts           # Cache key building (9 tests)
+│   │   ├── entity-filter.test.ts   # Entity filtering logic (18 tests)
+│   │   └── backup.test.ts          # Backup utilities (27 tests)
+│   ├── api/
+│   │   └── admin/
+│   │       ├── users.test.ts           # User management API (12 tests)
+│   │       ├── service-requests.test.ts # Service requests API (12 tests)
+│   │       └── backups-download.test.ts # Backup download API (9 tests)
+│   └── components/
+│       ├── Sidebar.test.tsx        # Navigation sidebar (14 tests)
+│       └── QRCodeManager.test.tsx  # QR code management (20 tests)
+├── vitest.config.ts                # Vitest configuration
+└── package.json                    # Test scripts
+```
+
+### 3.3 What Automated Tests Cover
+
+| Category | Tests | Coverage Area |
+|----------|-------|---------------|
+| **Unit Tests** | 54 | Pure functions (cache keys, entity filtering, backup validation) |
+| **API Tests** | 33 | Authentication, authorization, validation, error handling |
+| **Component Tests** | 34 | UI rendering, user interactions, role-based visibility |
+
+### 3.4 Security-Critical Tests (Never Remove)
+
+These tests validate security controls:
+
+- **Authentication**: 403 for unauthenticated/unauthorized users
+- **Role-based access**: Admin vs staff permissions
+- **Entity filtering**: Staff users only see their entity's data
+- **Path traversal prevention**: Malicious filename rejection
+- **Input validation**: Required fields, duplicate prevention
+
+### 3.5 When to Add/Update Tests
+
+**Add new tests when:**
+- Adding a new API endpoint
+- Adding a new component
+- Adding a new utility function
+- Adding role-based features
+
+**Update existing tests when:**
+- Changing API response structure
+- Changing component text/labels (watch for emojis - use regex patterns)
+- Changing authentication or validation rules
+
+### 3.6 Writing New Tests
+
+#### API Route Test Template
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { NextRequest } from 'next/server'
+import { GET, POST } from '@/app/api/[your-endpoint]/route'
+
+vi.mock('next-auth', () => ({
+  getServerSession: vi.fn()
+}))
+
+vi.mock('@/lib/db', () => ({
+  pool: { query: vi.fn() }
+}))
+
+import { getServerSession } from 'next-auth'
+import { pool } from '@/lib/db'
+
+describe('/api/[your-endpoint]', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should return 403 for unauthenticated requests', async () => {
+    vi.mocked(getServerSession).mockResolvedValue(null)
+
+    const request = new NextRequest('http://localhost/api/your-endpoint')
+    const response = await GET(request)
+
+    expect(response.status).toBe(403)
+  })
+})
+```
+
+#### Component Test Template
+
+```typescript
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import YourComponent from '@/components/YourComponent'
+
+vi.mock('next-auth/react', () => ({
+  useSession: vi.fn()
+}))
+
+describe('YourComponent', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('should render correctly', () => {
+    render(<YourComponent />)
+    expect(screen.getByText('Expected Text')).toBeInTheDocument()
+  })
+})
+```
+
+### 3.7 Troubleshooting Automated Tests
+
+| Issue | Solution |
+|-------|----------|
+| "Cannot find module" | Check import path matches `@/` alias |
+| "Multiple elements found" | Use more specific selectors (`getByRole`, `getByTestId`) |
+| Async state warnings | Wrap assertions in `waitFor()` |
+| Mock not working | Ensure `vi.mock()` at top level, call `vi.clearAllMocks()` in `beforeEach` |
+
+---
+
+## 4. Manual API Testing
+
+### 4.1 Using curl
 
 **Basic GET request:**
 ```bash
@@ -98,7 +242,7 @@ curl -X POST http://localhost:3000/api/admin/users \
   }'
 ```
 
-### 3.2 Using Browser DevTools
+### 4.2 Using Browser DevTools
 
 1. Open browser DevTools (F12)
 2. Go to **Network** tab
@@ -110,7 +254,7 @@ curl -X POST http://localhost:3000/api/admin/users \
 
 **Pro tip:** Right-click request → "Copy as cURL" for command-line testing.
 
-### 3.3 API Test Cases
+### 4.3 API Test Cases
 
 #### Public Endpoints
 
@@ -133,7 +277,7 @@ curl -X POST http://localhost:3000/api/admin/users \
 | `POST /api/admin/users` | Missing email | 400, validation error |
 | `POST /api/admin/users` | Duplicate email | 409, conflict |
 
-### 3.4 Response Validation Checklist
+### 4.4 Response Validation Checklist
 
 For each API response, verify:
 - [ ] Correct HTTP status code
@@ -144,9 +288,9 @@ For each API response, verify:
 
 ---
 
-## 4. Testing Authentication
+## 5. Testing Authentication
 
-### 4.1 Session Testing
+### 5.1 Session Testing
 
 **Check if logged in:**
 ```bash
@@ -158,7 +302,7 @@ curl http://localhost:3000/api/admin/users \
   -H "Cookie: next-auth.session-token=YOUR_TOKEN"
 ```
 
-### 4.2 Role-Based Access Tests
+### 5.2 Role-Based Access Tests
 
 | Scenario | Action | Expected |
 |----------|--------|----------|
@@ -169,7 +313,7 @@ curl http://localhost:3000/api/admin/users \
 | **Admin user** | Access /admin/users | 200 (full access) |
 | **Admin user** | Access /admin/tickets | 200 (all entities) |
 
-### 4.3 Entity Filtering Tests
+### 5.3 Entity Filtering Tests
 
 For staff users, verify they only see their entity's data:
 
@@ -183,7 +327,7 @@ curl http://localhost:3000/api/admin/tickets/list \
 # Verify: All returned tickets have entity_id = MIN-001
 ```
 
-### 4.4 Testing User States
+### 5.4 Testing User States
 
 | User State | Test | Expected |
 |------------|------|----------|
@@ -194,9 +338,9 @@ curl http://localhost:3000/api/admin/tickets/list \
 
 ---
 
-## 5. Database Testing
+## 6. Database Testing
 
-### 5.1 Connecting to Database
+### 6.1 Connecting to Database
 
 ```bash
 # Local development
@@ -206,7 +350,7 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 docker exec feedback_db psql -U feedback_user -d feedback -c "SELECT COUNT(*) FROM tickets"
 ```
 
-### 5.2 Data Integrity Checks
+### 6.2 Data Integrity Checks
 
 ```sql
 -- Check foreign key relationships
@@ -231,7 +375,7 @@ HAVING COUNT(*) > 1;
 -- Should return 0 rows
 ```
 
-### 5.3 Testing Database Operations
+### 6.3 Testing Database Operations
 
 After API operations, verify database state:
 
@@ -254,7 +398,7 @@ ORDER BY created_at DESC
 LIMIT 5;
 ```
 
-### 5.4 Transaction Testing
+### 6.4 Transaction Testing
 
 Test that failed transactions rollback properly:
 
@@ -274,9 +418,9 @@ SELECT COUNT(*) FROM tickets;
 
 ---
 
-## 6. UI Testing
+## 7. UI Testing
 
-### 6.1 Page Load Testing
+### 7.1 Page Load Testing
 
 | Page | Check |
 |------|-------|
@@ -286,7 +430,7 @@ SELECT COUNT(*) FROM tickets;
 | `/admin/tickets` | Table renders, pagination works |
 | `/admin/users` | User list displays, add button visible |
 
-### 6.2 Form Validation Testing
+### 7.2 Form Validation Testing
 
 For each form, test:
 - [ ] Required fields show error when empty
@@ -295,7 +439,7 @@ For each form, test:
 - [ ] Success/error messages display correctly
 - [ ] Form resets after successful submission (if applicable)
 
-### 6.3 Responsive Design Testing
+### 7.3 Responsive Design Testing
 
 Test on different viewport sizes:
 - [ ] Mobile (375px width)
@@ -304,7 +448,7 @@ Test on different viewport sizes:
 
 Use browser DevTools → Device Toolbar (Ctrl+Shift+M) to simulate devices.
 
-### 6.4 Browser Console Checks
+### 7.4 Browser Console Checks
 
 After each action, check browser console for:
 - [ ] No JavaScript errors (red)
@@ -314,9 +458,9 @@ After each action, check browser console for:
 
 ---
 
-## 7. Performance Testing
+## 8. Performance Testing
 
-### 7.1 API Response Times
+### 8.1 API Response Times
 
 Measure response times for critical endpoints:
 
@@ -337,7 +481,7 @@ done
 - Complex analytics: <500ms
 - File uploads: <2000ms
 
-### 7.2 Database Query Performance
+### 8.2 Database Query Performance
 
 ```sql
 -- Enable timing
@@ -353,7 +497,7 @@ WHERE entity_id = 'MIN-001' AND status = 'open'
 ORDER BY created_at DESC;
 ```
 
-### 7.3 Load Testing (Basic)
+### 8.3 Load Testing (Basic)
 
 ```bash
 # Simple concurrent requests (requires Apache Bench)
@@ -365,16 +509,17 @@ ab -n 100 -c 10 http://localhost:3000/api/managedata/entities
 
 ---
 
-## 8. Pre-Deployment Checklist
+## 9. Pre-Deployment Checklist
 
-### 8.1 Code Quality
+### 9.1 Code Quality
 
 - [ ] TypeScript compiles without errors: `npx tsc --noEmit`
 - [ ] ESLint passes: `npm run lint`
+- [ ] **Automated tests pass: `npm run test:run`**
 - [ ] No console.log statements in production code
 - [ ] No hardcoded credentials or secrets
 
-### 8.2 Security
+### 9.2 Security
 
 - [ ] All endpoints use parameterized queries
 - [ ] Authentication required for admin endpoints
@@ -382,21 +527,21 @@ ab -n 100 -c 10 http://localhost:3000/api/managedata/entities
 - [ ] Input validation on all user inputs
 - [ ] Error messages don't expose internal details
 
-### 8.3 Functionality
+### 9.3 Functionality
 
 - [ ] Happy path works for all new features
 - [ ] Error cases return appropriate status codes
 - [ ] Validation errors provide helpful messages
 - [ ] Database state is correct after operations
 
-### 8.4 Performance
+### 9.4 Performance
 
 - [ ] API responses under 500ms
 - [ ] No N+1 query issues
 - [ ] Pagination implemented for list endpoints
 - [ ] Large file uploads have size limits
 
-### 8.5 Production Readiness
+### 9.5 Production Readiness
 
 - [ ] Environment variables configured
 - [ ] Database migrations applied
@@ -478,6 +623,6 @@ docker-compose ps  # Verify status
 
 ---
 
-**Last Updated:** January 2026 | **Version:** 1.0
+**Last Updated:** January 2026 | **Version:** 2.0
 
 For questions or to report issues with this guide, contact the development team.
