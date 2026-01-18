@@ -1,61 +1,309 @@
 /**
  * @pageContext
  * @title Sign In
- * @purpose Authenticate to access the GEA Portal admin area using Google or Microsoft accounts
+ * @purpose Authenticate to access the GEA Portal - supports both government staff (OAuth) and citizens (SMS OTP)
  * @audience public
  * @features
- *   - Google OAuth sign-in button
- *   - Microsoft OAuth sign-in button
- *   - Branded sign-in experience with GEA Portal branding
- *   - Automatic redirect to intended page after successful login
+ *   - Google OAuth sign-in for government staff
+ *   - Microsoft OAuth sign-in for government staff
+ *   - Phone number + OTP sign-in for citizens (when enabled)
+ *   - Registration flow for new citizens
+ *   - Password login for returning citizens
+ *   - "Remember me" device trust option
  * @steps
- *   - Click "Sign in with Google" or "Sign in with Microsoft"
- *   - Authenticate with your organization's account
- *   - System verifies your email against authorized users list
- *   - You'll be redirected to the admin dashboard upon success
+ *   - Government Staff: Click OAuth provider button and authenticate
+ *   - Citizens: Enter phone number, verify OTP, complete registration if new
  * @tips
- *   - Only authorized users with active accounts can sign in
- *   - Your email must be pre-registered by an administrator
- *   - Use your Government of Grenada email account
+ *   - Citizen login only appears when enabled by admin
+ *   - Use your Grenada phone number for citizen portal
  * @relatedPages
- *   - /auth/unauthorized: Shown if your email is not authorized
- *   - /admin/home: Destination after successful sign-in
+ *   - /auth/unauthorized: Shown if email is not authorized
+ *   - /admin/home: Destination for staff after sign-in
+ *   - /citizen: Destination for citizens after sign-in
  * @permissions
- *   - public: Anyone can access sign-in page, but only authorized users can authenticate
- * @troubleshooting
- *   - Issue: Can't sign in | Solution: Contact administrator to verify your email is authorized and active
- *   - Issue: Unauthorized error | Solution: Your email is not in the system - request access from admin
+ *   - public: Anyone can access sign-in page
  */
 
 'use client';
 
 import { signIn } from 'next-auth/react';
-import { useSearchParams } from 'next/navigation';
-import { useState, Suspense } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { useState, useEffect, Suspense } from 'react';
 import { FcGoogle } from 'react-icons/fc';
+import { FiPhone, FiLock, FiUser, FiMail, FiArrowLeft, FiCheck, FiEye, FiEyeOff } from 'react-icons/fi';
+import PhoneInput from '@/components/citizen/PhoneInput';
+import OtpInput from '@/components/citizen/OtpInput';
+
+type CitizenStep = 'phone' | 'otp' | 'register' | 'password';
+
+interface CitizenState {
+  phone: string;
+  citizenId: string | null;
+  isNewUser: boolean;
+  otpExpiresIn: number;
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  rememberDevice: boolean;
+}
 
 function SignInContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get('callbackUrl') || '/admin';
   const error = searchParams.get('error');
 
-  const [isLoading, setIsLoading] = useState<string | null>(null);
+  // OAuth loading state
+  const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
 
-  const handleSignIn = async (provider: 'google' | 'azure-ad') => {
-    setIsLoading(provider);
+  // Citizen login state
+  const [citizenEnabled, setCitizenEnabled] = useState<boolean | null>(null);
+  const [citizenStep, setCitizenStep] = useState<CitizenStep>('phone');
+  const [citizenState, setCitizenState] = useState<CitizenState>({
+    phone: '',
+    citizenId: null,
+    isNewUser: false,
+    otpExpiresIn: 300,
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+    rememberDevice: false,
+  });
+  const [citizenLoading, setCitizenLoading] = useState(false);
+  const [citizenError, setCitizenError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Check if citizen login is enabled
+  useEffect(() => {
+    const checkCitizenEnabled = async () => {
+      try {
+        const res = await fetch('/api/citizen/auth/check');
+        if (res.status === 403) {
+          setCitizenEnabled(false);
+        } else {
+          setCitizenEnabled(true);
+        }
+      } catch {
+        setCitizenEnabled(false);
+      }
+    };
+    checkCitizenEnabled();
+  }, []);
+
+  // OAuth sign in handler
+  const handleOAuthSignIn = async (provider: 'google' | 'azure-ad') => {
+    setIsOAuthLoading(provider);
     try {
-      await signIn(provider, {
-        callbackUrl,
-      });
+      await signIn(provider, { callbackUrl });
     } catch (error) {
       console.error('Sign in error:', error);
-      setIsLoading(null);
+      setIsOAuthLoading(null);
     }
   };
 
+  // Citizen: Send OTP
+  const handleSendOtp = async () => {
+    if (!citizenState.phone) {
+      setCitizenError('Please enter your phone number');
+      return;
+    }
+
+    setCitizenLoading(true);
+    setCitizenError(null);
+
+    try {
+      const res = await fetch('/api/citizen/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: citizenState.phone }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setCitizenError(data.error || 'Failed to send verification code');
+        return;
+      }
+
+      setCitizenState(prev => ({
+        ...prev,
+        phone: data.phone,
+        isNewUser: data.isNewUser,
+        otpExpiresIn: data.expiresIn || 300,
+      }));
+      setCitizenStep('otp');
+    } catch (error) {
+      console.error('Error sending OTP:', error);
+      setCitizenError('Failed to send verification code');
+    } finally {
+      setCitizenLoading(false);
+    }
+  };
+
+  // Citizen: Verify OTP
+  const handleVerifyOtp = async (code: string) => {
+    setCitizenLoading(true);
+    setCitizenError(null);
+
+    try {
+      const res = await fetch('/api/citizen/auth/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: citizenState.phone,
+          code,
+          rememberDevice: citizenState.rememberDevice,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setCitizenError(data.error || 'Invalid verification code');
+        return;
+      }
+
+      if (data.requiresRegistration) {
+        // New user - show registration form
+        setCitizenState(prev => ({
+          ...prev,
+          citizenId: data.citizenId,
+          isNewUser: true,
+        }));
+        setCitizenStep('register');
+      } else {
+        // Existing user - logged in, redirect
+        router.push('/citizen');
+      }
+    } catch (error) {
+      console.error('Error verifying OTP:', error);
+      setCitizenError('Failed to verify code');
+    } finally {
+      setCitizenLoading(false);
+    }
+  };
+
+  // Citizen: Complete Registration
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCitizenError(null);
+
+    // Validation
+    if (!citizenState.name.trim()) {
+      setCitizenError('Name is required');
+      return;
+    }
+    if (!citizenState.email.trim()) {
+      setCitizenError('Email is required');
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(citizenState.email)) {
+      setCitizenError('Invalid email format');
+      return;
+    }
+    if (citizenState.password.length < 8) {
+      setCitizenError('Password must be at least 8 characters');
+      return;
+    }
+    if (citizenState.password !== citizenState.confirmPassword) {
+      setCitizenError('Passwords do not match');
+      return;
+    }
+
+    setCitizenLoading(true);
+
+    try {
+      const res = await fetch('/api/citizen/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          citizenId: citizenState.citizenId,
+          name: citizenState.name.trim(),
+          email: citizenState.email.trim().toLowerCase(),
+          password: citizenState.password,
+          confirmPassword: citizenState.confirmPassword,
+          rememberDevice: citizenState.rememberDevice,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setCitizenError(data.error || 'Registration failed');
+        return;
+      }
+
+      // Registered and logged in - redirect
+      router.push('/citizen');
+    } catch (error) {
+      console.error('Error registering:', error);
+      setCitizenError('Registration failed');
+    } finally {
+      setCitizenLoading(false);
+    }
+  };
+
+  // Citizen: Password Login (for returning users)
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setCitizenError(null);
+
+    if (!citizenState.password) {
+      setCitizenError('Password is required');
+      return;
+    }
+
+    setCitizenLoading(true);
+
+    try {
+      const res = await fetch('/api/citizen/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          phone: citizenState.phone,
+          password: citizenState.password,
+          rememberDevice: citizenState.rememberDevice,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!data.success) {
+        setCitizenError(data.error || 'Login failed');
+        return;
+      }
+
+      router.push('/citizen');
+    } catch (error) {
+      console.error('Error logging in:', error);
+      setCitizenError('Login failed');
+    } finally {
+      setCitizenLoading(false);
+    }
+  };
+
+  // Reset citizen flow
+  const resetCitizenFlow = () => {
+    setCitizenStep('phone');
+    setCitizenState({
+      phone: '',
+      citizenId: null,
+      isNewUser: false,
+      otpExpiresIn: 300,
+      name: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      rememberDevice: false,
+    });
+    setCitizenError(null);
+  };
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 px-4">
-      <div className="max-w-md w-full space-y-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 px-4 py-8">
+      <div className="max-w-md w-full space-y-6">
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl flex items-center justify-center mb-4">
@@ -84,23 +332,23 @@ function SignInContent() {
           </p>
         </div>
 
-        {/* Sign-in card */}
-        <div className="bg-white rounded-2xl shadow-xl p-8 space-y-6 border border-gray-100">
-          <div className="text-center space-y-2">
-            <h3 className="text-xl font-semibold text-gray-800">
-              Sign in to continue
+        {/* Government Staff Sign-in Card */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+          <div className="text-center space-y-1 mb-4">
+            <h3 className="text-lg font-semibold text-gray-800">
+              Government Staff Login
             </h3>
-            <p className="text-sm text-gray-600">
-              Use your government account to access the portal
+            <p className="text-xs text-gray-600">
+              Use your government account to access the admin portal
             </p>
           </div>
 
           {/* Error message */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
               <div className="flex items-start">
                 <svg
-                  className="h-5 w-5 text-red-600 mt-0.5 mr-3"
+                  className="h-5 w-5 text-red-600 mt-0.5 mr-2 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -112,41 +360,34 @@ function SignInContent() {
                     d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                   />
                 </svg>
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-red-800">
-                    Authentication Error
-                  </h4>
-                  <p className="mt-1 text-sm text-red-700">
-                    {error === 'OAuthAccountNotLinked'
-                      ? 'This email is already associated with another provider.'
-                      : error === 'AccessDenied'
-                      ? 'Your account is not authorized to access this portal.'
-                      : 'An error occurred during sign in. Please try again.'}
-                  </p>
-                </div>
+                <p className="text-sm text-red-700">
+                  {error === 'OAuthAccountNotLinked'
+                    ? 'This email is already associated with another provider.'
+                    : error === 'AccessDenied'
+                    ? 'Your account is not authorized to access this portal.'
+                    : 'An error occurred during sign in. Please try again.'}
+                </p>
               </div>
             </div>
           )}
 
-          {/* Provider buttons */}
-          <div className="space-y-3">
-            {/* Google Sign In */}
+          {/* OAuth Provider buttons */}
+          <div className="space-y-2">
             <button
-              onClick={() => handleSignIn('google')}
-              disabled={isLoading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+              onClick={() => handleOAuthSignIn('google')}
+              disabled={isOAuthLoading !== null}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <FcGoogle className="h-5 w-5" />
               <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                {isLoading === 'google' ? 'Signing in...' : 'Continue with Google'}
+                {isOAuthLoading === 'google' ? 'Signing in...' : 'Continue with Google'}
               </span>
             </button>
 
-            {/* Microsoft Sign In */}
             <button
-              onClick={() => handleSignIn('azure-ad')}
-              disabled={isLoading !== null}
-              className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
+              onClick={() => handleOAuthSignIn('azure-ad')}
+              disabled={isOAuthLoading !== null}
+              className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed group"
             >
               <svg className="h-5 w-5" viewBox="0 0 21 21" fill="none">
                 <rect x="1" y="1" width="9" height="9" fill="#f25022"/>
@@ -155,45 +396,320 @@ function SignInContent() {
                 <rect x="11" y="11" width="9" height="9" fill="#ffb900"/>
               </svg>
               <span className="text-sm font-medium text-gray-700 group-hover:text-gray-900">
-                {isLoading === 'azure-ad' ? 'Signing in...' : 'Continue with Microsoft'}
+                {isOAuthLoading === 'azure-ad' ? 'Signing in...' : 'Continue with Microsoft'}
               </span>
             </button>
           </div>
 
-          {/* Info message */}
-          <div className="border-t border-gray-200 pt-6">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <div className="flex items-start">
-                <svg
-                  className="h-5 w-5 text-blue-600 mt-0.5 mr-3"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div className="flex-1">
-                  <p className="text-xs text-blue-800">
-                    <strong>Note:</strong> Only authorized government personnel
-                    can access this portal. If you need access, please contact
-                    your system administrator at{' '}
-                    <a
-                      href="mailto:admin@dta.gov.gd"
-                      className="underline hover:text-blue-900"
-                    >
-                      admin@dta.gov.gd
-                    </a>
-                  </p>
-                </div>
+          <p className="mt-3 text-xs text-center text-gray-500">
+            Only authorized government personnel can sign in
+          </p>
+        </div>
+
+        {/* Citizen Login Card (if enabled) */}
+        {citizenEnabled && (
+          <>
+            {/* Divider */}
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-200"></div>
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 bg-gradient-to-br from-blue-50 via-white to-green-50 text-gray-500">
+                  or
+                </span>
               </div>
             </div>
-          </div>
-        </div>
+
+            <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100">
+              <div className="text-center space-y-1 mb-4">
+                <h3 className="text-lg font-semibold text-gray-800">
+                  Citizen Portal Login
+                </h3>
+                <p className="text-xs text-gray-600">
+                  Sign in with your phone number to access citizen services
+                </p>
+              </div>
+
+              {/* Error message */}
+              {citizenError && citizenStep !== 'otp' && (
+                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-sm text-red-700">{citizenError}</p>
+                </div>
+              )}
+
+              {/* Step: Phone Number */}
+              {citizenStep === 'phone' && (
+                <div className="space-y-4">
+                  <PhoneInput
+                    value={citizenState.phone}
+                    onChange={(phone) => setCitizenState(prev => ({ ...prev, phone }))}
+                    onSubmit={handleSendOtp}
+                    disabled={citizenLoading}
+                    error={citizenError || undefined}
+                    isLoading={citizenLoading}
+                  />
+
+                  <button
+                    onClick={handleSendOtp}
+                    disabled={citizenLoading || !citizenState.phone}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                  >
+                    {citizenLoading ? (
+                      <>
+                        <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <FiPhone className="w-5 h-5" />
+                        Send OTP Code
+                      </>
+                    )}
+                  </button>
+
+                  <div className="text-center">
+                    <a href="/helpdesk" className="text-sm text-blue-600 hover:underline">
+                      Track existing ticket without login →
+                    </a>
+                  </div>
+                </div>
+              )}
+
+              {/* Step: OTP Verification */}
+              {citizenStep === 'otp' && (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setCitizenStep('phone')}
+                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    <FiArrowLeft className="w-4 h-4" />
+                    Change phone number
+                  </button>
+
+                  <OtpInput
+                    onComplete={handleVerifyOtp}
+                    onResend={handleSendOtp}
+                    expiresIn={citizenState.otpExpiresIn}
+                    disabled={citizenLoading}
+                    error={citizenError || undefined}
+                    isLoading={citizenLoading}
+                    phone={citizenState.phone}
+                  />
+
+                  {/* Remember device checkbox */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={citizenState.rememberDevice}
+                      onChange={(e) => setCitizenState(prev => ({ ...prev, rememberDevice: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-600">Remember this device for 30 days</span>
+                  </label>
+                </div>
+              )}
+
+              {/* Step: Registration Form */}
+              {citizenStep === 'register' && (
+                <form onSubmit={handleRegister} className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={resetCitizenFlow}
+                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    <FiArrowLeft className="w-4 h-4" />
+                    Start over
+                  </button>
+
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                    <div className="flex items-center gap-2">
+                      <FiCheck className="w-5 h-5 text-green-600" />
+                      <p className="text-sm text-green-800">
+                        Phone verified! Complete your registration below.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Full Name <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <FiUser className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        value={citizenState.name}
+                        onChange={(e) => setCitizenState(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="John Smith"
+                        className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <FiMail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="email"
+                        value={citizenState.email}
+                        onChange={(e) => setCitizenState(prev => ({ ...prev, email: e.target.value }))}
+                        placeholder="john@example.com"
+                        className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={citizenState.password}
+                        onChange={(e) => setCitizenState(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Min. 8 characters"
+                        className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                        minLength={8}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Confirm Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Confirm Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={citizenState.confirmPassword}
+                        onChange={(e) => setCitizenState(prev => ({ ...prev, confirmPassword: e.target.value }))}
+                        placeholder="Confirm password"
+                        className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  {/* Remember device */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={citizenState.rememberDevice}
+                      onChange={(e) => setCitizenState(prev => ({ ...prev, rememberDevice: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-600">Remember this device for 30 days</span>
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={citizenLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                  >
+                    {citizenLoading ? 'Creating account...' : 'Create Account'}
+                  </button>
+                </form>
+              )}
+
+              {/* Step: Password Login (for returning users who want to use password instead of OTP) */}
+              {citizenStep === 'password' && (
+                <form onSubmit={handlePasswordLogin} className="space-y-4">
+                  <button
+                    type="button"
+                    onClick={resetCitizenFlow}
+                    className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
+                  >
+                    <FiArrowLeft className="w-4 h-4" />
+                    Start over
+                  </button>
+
+                  <p className="text-sm text-gray-600">
+                    Logging in as <strong>{citizenState.phone}</strong>
+                  </p>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        value={citizenState.password}
+                        onChange={(e) => setCitizenState(prev => ({ ...prev, password: e.target.value }))}
+                        placeholder="Enter your password"
+                        className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        required
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                      >
+                        {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={citizenState.rememberDevice}
+                      onChange={(e) => setCitizenState(prev => ({ ...prev, rememberDevice: e.target.checked }))}
+                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                    />
+                    <span className="text-sm text-gray-600">Remember this device</span>
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={citizenLoading}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                  >
+                    {citizenLoading ? 'Signing in...' : 'Sign In'}
+                  </button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCitizenStep('phone');
+                        setCitizenError(null);
+                      }}
+                      className="text-sm text-blue-600 hover:underline"
+                    >
+                      Forgot password? Use OTP instead
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </>
+        )}
 
         {/* Footer */}
         <div className="text-center text-xs text-gray-500">

@@ -26,7 +26,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useSession } from 'next-auth/react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer, FiZap, FiDatabase, FiDownload, FiPlay, FiClock, FiHardDrive, FiAlertTriangle } from 'react-icons/fi'
+import { FiSettings, FiSave, FiRefreshCw, FiCheckCircle, FiAlertCircle, FiLock, FiUnlock, FiMail, FiUsers, FiLink, FiSliders, FiFileText, FiExternalLink, FiX, FiUpload, FiTrash2, FiEdit2, FiServer, FiZap, FiDatabase, FiDownload, FiPlay, FiClock, FiHardDrive, FiAlertTriangle, FiSmartphone } from 'react-icons/fi'
 
 // Types
 interface SystemSetting {
@@ -127,6 +127,12 @@ function SettingsPageContent() {
   // Branding mode state (url vs upload)
   const [brandingMode, setBrandingMode] = useState<Record<string, 'url' | 'upload'>>({})
   const [uploadingBranding, setUploadingBranding] = useState<string | null>(null)
+  // Citizen Login - collapsible country groups state
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    'Caribbean Islands': true,
+    'Other Regions': true
+  })
+  const [testingSms, setTestingSms] = useState(false)
   // Service provider state
   const [serviceProviders, setServiceProviders] = useState<ServiceProviderEntity[]>([])
   const [loadingProviders, setLoadingProviders] = useState(false)
@@ -581,6 +587,38 @@ function SettingsPageContent() {
     }
   }
 
+  // Test SMS configuration via Twilio Verify
+  const testSmsConfig = async () => {
+    // Prompt for phone number
+    const testPhone = window.prompt(
+      'Enter your phone number to receive a test OTP (E.164 format, e.g., +14731234567):',
+      '+1473'
+    )
+    if (!testPhone) return
+
+    try {
+      setTestingSms(true)
+      const response = await fetch('/api/admin/settings/test-sms', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: testPhone })
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        setMessage({ type: 'success', text: data.message || 'Test SMS sent successfully. Check your phone for the OTP code.' })
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to send test SMS' })
+      }
+    } catch (error) {
+      console.error('Error testing SMS:', error)
+      setMessage({ type: 'error', text: 'Failed to send test SMS' })
+    } finally {
+      setTestingSms(false)
+    }
+  }
+
   // Clear message after 5 seconds
   useEffect(() => {
     if (message) {
@@ -988,6 +1026,149 @@ function SettingsPageContent() {
         )
       }
 
+      case 'multiselect': {
+        // Parse current value as JSON array
+        let selectedValues: string[] = []
+        try {
+          selectedValues = value ? JSON.parse(value) : []
+        } catch {
+          selectedValues = []
+        }
+
+        // Parse options structure with groups
+        const optionsData = setting.options as {
+          groups?: Array<{
+            label: string
+            collapsed?: boolean
+            options: Array<{ value: string; label: string }>
+          }>
+        } | null
+
+        if (!optionsData?.groups) {
+          return <p className="text-sm text-gray-500 italic">No options configured</p>
+        }
+
+        const toggleValue = (val: string) => {
+          const newValues = selectedValues.includes(val)
+            ? selectedValues.filter(v => v !== val)
+            : [...selectedValues, val]
+          handleSettingChange(setting.setting_key, JSON.stringify(newValues))
+        }
+
+        const toggleGroup = (groupOptions: Array<{ value: string }>, selectAll: boolean) => {
+          const groupValues = groupOptions.map(o => o.value)
+          let newValues: string[]
+          if (selectAll) {
+            // Add all group values not already selected
+            newValues = [...new Set([...selectedValues, ...groupValues])]
+          } else {
+            // Remove all group values
+            newValues = selectedValues.filter(v => !groupValues.includes(v))
+          }
+          handleSettingChange(setting.setting_key, JSON.stringify(newValues))
+        }
+
+        const toggleCollapse = (groupLabel: string) => {
+          setCollapsedGroups(prev => ({
+            ...prev,
+            [groupLabel]: !prev[groupLabel]
+          }))
+        }
+
+        const getGroupSelectedCount = (groupOptions: Array<{ value: string }>) => {
+          return groupOptions.filter(o => selectedValues.includes(o.value)).length
+        }
+
+        return (
+          <div className="space-y-3">
+            {optionsData.groups.map((group) => {
+              const isCollapsed = collapsedGroups[group.label] ?? group.collapsed ?? false
+              const selectedCount = getGroupSelectedCount(group.options)
+              const totalCount = group.options.length
+
+              return (
+                <div key={group.label} className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Group Header */}
+                  <button
+                    type="button"
+                    onClick={() => toggleCollapse(group.label)}
+                    className="w-full flex items-center justify-between px-3 py-2 bg-gray-50 hover:bg-gray-100 transition-colors"
+                  >
+                    <span className="font-medium text-gray-700 flex items-center gap-2">
+                      <span className={`transform transition-transform ${isCollapsed ? '' : 'rotate-90'}`}>
+                        ▶
+                      </span>
+                      {group.label}
+                      {selectedCount > 0 && (
+                        <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
+                          {selectedCount} selected
+                        </span>
+                      )}
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      {selectedCount}/{totalCount}
+                    </span>
+                  </button>
+
+                  {/* Group Options (collapsible) */}
+                  {!isCollapsed && (
+                    <div className="p-3 border-t border-gray-200">
+                      {/* Select All / Clear All buttons */}
+                      {group.options.length > 1 && (
+                        <div className="flex gap-2 mb-2 pb-2 border-b border-gray-100">
+                          <button
+                            type="button"
+                            onClick={() => toggleGroup(group.options, true)}
+                            className="text-xs text-blue-600 hover:text-blue-700 hover:underline"
+                          >
+                            Select All
+                          </button>
+                          <span className="text-gray-300">|</span>
+                          <button
+                            type="button"
+                            onClick={() => toggleGroup(group.options, false)}
+                            className="text-xs text-gray-500 hover:text-gray-700 hover:underline"
+                          >
+                            Clear All
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Country checkboxes */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        {group.options.map((opt) => (
+                          <label
+                            key={opt.value}
+                            className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                              selectedValues.includes(opt.value)
+                                ? 'bg-blue-50 border border-blue-200'
+                                : 'bg-white border border-gray-100 hover:bg-gray-50'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selectedValues.includes(opt.value)}
+                              onChange={() => toggleValue(opt.value)}
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                            <span className="text-sm text-gray-700">{opt.label}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+
+            {/* Total selected summary */}
+            <p className="text-xs text-gray-500">
+              {selectedValues.length} {selectedValues.length === 1 ? 'country' : 'countries'} selected
+            </p>
+          </div>
+        )
+      }
+
       default:
         return (
           <input
@@ -1289,6 +1470,27 @@ function SettingsPageContent() {
                   </button>
                   <p className="text-sm text-gray-500 mt-2">
                     Sends a test email to {session?.user?.email || 'your email'} to verify SendGrid configuration
+                  </p>
+                </div>
+              )}
+
+              {/* Test SMS Button for Citizen Login subcategory */}
+              {subcategory === 'Citizen Login' && (
+                <div className="pt-4 border-t border-gray-200">
+                  <button
+                    onClick={testSmsConfig}
+                    disabled={testingSms}
+                    className="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                  >
+                    {testingSms ? (
+                      <FiRefreshCw className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <FiSmartphone className="w-4 h-4" />
+                    )}
+                    Send Test OTP
+                  </button>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Sends a test OTP via SMS to verify Twilio configuration. You will be prompted for a phone number.
                   </p>
                 </div>
               )}

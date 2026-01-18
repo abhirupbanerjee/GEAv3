@@ -596,6 +596,127 @@ export async function getAnalyticsCacheSettings(): Promise<{
   };
 }
 
+/**
+ * Get Twilio Verify settings
+ * Used for SMS OTP authentication
+ */
+export async function getTwilioSettings(): Promise<{
+  accountSid: string;
+  authToken: string;
+  verifyServiceSid: string;
+}> {
+  // For sensitive settings, we need to get the full value
+  try {
+    const result = await pool.query<SystemSetting>(
+      `SELECT setting_key, setting_value, is_sensitive
+       FROM system_settings
+       WHERE setting_key IN ('TWILIO_ACCOUNT_SID', 'TWILIO_AUTH_TOKEN', 'TWILIO_VERIFY_SERVICE_SID')
+       AND is_active = true`
+    );
+
+    const settings: Record<string, string> = {};
+    for (const row of result.rows) {
+      let value = row.setting_value || '';
+      if (row.is_sensitive && value) {
+        value = decryptValue(value);
+      }
+      settings[row.setting_key] = value;
+    }
+
+    return {
+      accountSid: settings['TWILIO_ACCOUNT_SID'] || process.env.TWILIO_ACCOUNT_SID || '',
+      authToken: settings['TWILIO_AUTH_TOKEN'] || process.env.TWILIO_AUTH_TOKEN || '',
+      verifyServiceSid: settings['TWILIO_VERIFY_SERVICE_SID'] || process.env.TWILIO_VERIFY_SERVICE_SID || '',
+    };
+  } catch (error) {
+    console.error('Error fetching Twilio settings:', error);
+    return {
+      accountSid: process.env.TWILIO_ACCOUNT_SID || '',
+      authToken: process.env.TWILIO_AUTH_TOKEN || '',
+      verifyServiceSid: process.env.TWILIO_VERIFY_SERVICE_SID || '',
+    };
+  }
+}
+
+/**
+ * Get citizen login configuration settings
+ * Used for citizen portal authentication
+ */
+export async function getCitizenLoginSettings(): Promise<{
+  enabled: boolean;
+  allowedCountries: string[];
+  customCountryCodes: string[];
+  otpExpiryMinutes: number;
+  maxOtpAttempts: number;
+  sessionHours: number;
+  deviceTrustDays: number;
+}> {
+  try {
+    const result = await pool.query<SystemSetting>(
+      `SELECT setting_key, setting_value, is_sensitive
+       FROM system_settings
+       WHERE setting_key IN (
+         'CITIZEN_LOGIN_ENABLED',
+         'CITIZEN_ALLOWED_COUNTRIES',
+         'CITIZEN_CUSTOM_COUNTRY_CODES',
+         'CITIZEN_OTP_EXPIRY_MINUTES',
+         'CITIZEN_MAX_OTP_ATTEMPTS',
+         'CITIZEN_SESSION_HOURS',
+         'CITIZEN_DEVICE_TRUST_DAYS'
+       )
+       AND is_active = true`
+    );
+
+    const settings: Record<string, string> = {};
+    for (const row of result.rows) {
+      let value = row.setting_value || '';
+      if (row.is_sensitive && value) {
+        value = decryptValue(value);
+      }
+      settings[row.setting_key] = value;
+    }
+
+    // Parse allowed countries (JSON array)
+    let allowedCountries: string[] = ['grenada'];
+    try {
+      const parsed = JSON.parse(settings['CITIZEN_ALLOWED_COUNTRIES'] || '["grenada"]');
+      if (Array.isArray(parsed)) {
+        allowedCountries = parsed;
+      }
+    } catch {
+      // Use default if parsing fails
+    }
+
+    // Parse custom country codes (comma-separated)
+    const customCodes = settings['CITIZEN_CUSTOM_COUNTRY_CODES'] || '';
+    const customCountryCodes = customCodes
+      .split(',')
+      .map(c => c.trim())
+      .filter(c => c.startsWith('+'));
+
+    return {
+      enabled: settings['CITIZEN_LOGIN_ENABLED'] === 'true',
+      allowedCountries,
+      customCountryCodes,
+      otpExpiryMinutes: Number(settings['CITIZEN_OTP_EXPIRY_MINUTES']) || 5,
+      maxOtpAttempts: Number(settings['CITIZEN_MAX_OTP_ATTEMPTS']) || 3,
+      sessionHours: Number(settings['CITIZEN_SESSION_HOURS']) || 24,
+      deviceTrustDays: Number(settings['CITIZEN_DEVICE_TRUST_DAYS']) || 30,
+    };
+  } catch (error) {
+    console.error('Error fetching citizen login settings:', error);
+    return {
+      enabled: false,
+      allowedCountries: ['grenada'],
+      customCountryCodes: [],
+      otpExpiryMinutes: 5,
+      maxOtpAttempts: 3,
+      sessionHours: 24,
+      deviceTrustDays: 30,
+    };
+  }
+}
+
 export default {
   getSetting,
   getSettings,
@@ -613,4 +734,6 @@ export default {
   getSendGridSettings,
   getFooterLinks,
   getAnalyticsCacheSettings,
+  getTwilioSettings,
+  getCitizenLoginSettings,
 };
