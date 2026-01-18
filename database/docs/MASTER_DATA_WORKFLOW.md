@@ -429,7 +429,8 @@ sleep 5
 - ✓ service_feedback
 - ✓ grievance_tickets, grievance_attachments
 - ✓ ea_service_requests, ea_service_request_attachments, ea_service_request_comments
-- ✓ tickets, ticket_activity, ticket_attachments, ticket_notes, sla_breaches
+- ✓ tickets, ticket_activity, ticket_attachments
+- ✓ sla_breaches, ticket_notes
 - ✓ qr_codes
 - ✓ submission_rate_limit, submission_attempts, captcha_challenges
 - ✓ service_attachments
@@ -810,6 +811,6 @@ All scripts are idempotent (safe to run multiple times):
 
 ---
 
-**Document Version:** 1.0
-**Last Updated:** November 25, 2025
+**Document Version:** 1.2
+**Last Updated:** January 2026
 **Maintained By:** GEA Portal Development Team

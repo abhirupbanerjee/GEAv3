@@ -4,7 +4,7 @@
 
 **Enterprise Architecture Portal for the Government of Grenada**
 
-A modern, full-stack web platform supporting digital transformation initiatives across Ministries, Departments, and Agencies (MDAs). Built with Next.js 14, PostgreSQL, and containerized with Docker for seamless deployment.
+A modern, full-stack web platform supporting digital transformation initiatives across Ministries, Departments, and Agencies (MDAs). Built with Next.js 16, PostgreSQL, and containerized with Docker for seamless deployment.
 
 ---
 
@@ -29,12 +29,12 @@ Complete digital portal system with:
 
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
-| **OS** | Ubuntu 22.04 LTS | **Ubuntu 24.04 LTS** |
-| **Docker** | 27.x+ | **29.x** (Latest supported) |
+| **OS** | Ubuntu 24.04 LTS | **Ubuntu 24.04 LTS** |
+| **Docker** | 29.x+ | **29.x** (Latest supported) |
 | **Docker Compose** | v2.20+ | **v5.0+** |
-| **RAM** | 4 GB | 8 GB |
-| **vCPUs** | 2 | 2-4 |
-| **Disk** | 30 GB | **50 GB** (single disk) |
+| **RAM** | 8 GB | 16 GB |
+| **vCPUs** | 2 | 4 |
+| **Disk** | 64 GB | **128 GB** (single disk) |
 | **Domain** | Required | With Cloudflare DNS |
 
 > **Production Reference:** GoG portal runs on Azure Standard_B2s (4GB RAM, 2 vCPUs, Ubuntu 24.04.3 LTS)
@@ -46,8 +46,8 @@ Complete digital portal system with:
 | **OS** | Ubuntu 24.04.3 LTS | Azure VM (kernel 6.14.0-azure) |
 | **Docker** | 29.1.5 | Latest supported (Docker 27.x is EOL) |
 | **Docker Compose** | v5.0.1 | Plugin version |
-| **Node.js** | 20.x (container) | Alpine-based image |
-| **PostgreSQL** | 15.14-alpine | Database container |
+| **Node.js** | 22 (container) | Alpine-based image |
+| **PostgreSQL** | 16-alpine | Database container |
 | **PgBouncer** | v1.23.1-p3 | Connection pooling (edoburu/pgbouncer) |
 | **Redis** | 7.4.4-alpine | Analytics caching |
 | **Traefik** | v3.6 | Reverse proxy + SSL (supports Docker 29 API) |
@@ -103,24 +103,121 @@ Disk:    50GB single consolidated disk
 Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 ```
 
-### Capture Current VM Config
-
-Run this on your existing VM to generate specs for replication:
-
-```bash
-./scripts/capture-vm-config.sh
-```
-
 ---
 
 ## 📋 Architecture
+
+### System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                              EXTERNAL SERVICES                                  │
+│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
+│  │    Google    │  │  Microsoft   │  │   SendGrid   │  │ Let's Encrypt│         │
+│  │    OAuth     │  │    OAuth     │  │    Email     │  │     SSL      │         │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
+└─────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┘
+          │                 │                 │                 │
+          ▼                 ▼                 ▼                 ▼
+┌─────────────────────────────────────────────────────────────────────────────────┐
+│                                   USERS                                         │
+│     ┌──────────┐          ┌──────────┐          ┌──────────┐                    │
+│     │ Citizens │          │  Staff   │          │  Admins  │                    │
+│     │ (Public) │          │ (Entity) │          │  (Full)  │                    │
+│     └────┬─────┘          └────┬─────┘          └────┬─────┘                    │
+└──────────┼─────────────────────┼─────────────────────┼──────────────────────────┘
+           │                     │                     │
+           └─────────────────────┼─────────────────────┘
+                                 │ HTTPS (443)
+                                 ▼
+┌───────────────────────────────────────────────────────────────────────────────-──┐
+│                          DOCKER NETWORK (geav3_network)                          │
+│                                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────-──┐  │
+│  │                         TRAEFIK (Reverse Proxy)                            │  │
+│  │                    • SSL Termination (Let's Encrypt)                       │  │
+│  │                    • HTTP → HTTPS Redirect                                 │  │
+│  │                    • Rate Limiting (/api/external/*)                       │  │
+│  │                    Ports: 80 (HTTP), 443 (HTTPS)                           │  │
+│  └─────────────────────────────────┬──────────────────────────────────────-───┘  │
+│                                    │ Port 3000                                   │
+│                                    ▼                                             │
+│  ┌───────────────────────────────────────────────────────────────────────────┐   │
+│  │                        FRONTEND (Next.js 16)                               │  │
+│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │  │
+│  │  │   Public Pages  │  │   Admin Portal  │  │   Staff Portal  │             │  │
+│  │  │  • Home/About   │  │  • Dashboard    │  │  • Entity View  │             │  │
+│  │  │  • Feedback     │  │  • Tickets      │  │  • Tickets      │             │  │
+│  │  │  • Helpdesk     │  │  • Analytics    │  │  • Feedback     │             │  │
+│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘             │  │
+│  │  ┌─────────────────────────────────────────────────────────────────────┐   │  │
+│  │  │                      API Routes (74+ endpoints)                     │   │  │
+│  │  │  • /api/auth/*       • /api/feedback/*    • /api/tickets/*          │   │  │
+│  │  │  • /api/admin/*      • /api/managedata/*  • /api/external/*         │   │  │
+│  │  └─────────────────────────────────────────────────────────────────────┘   │  │
+│  │  ┌─────────────────────────────────────────────────────────────────────┐   │  │
+│  │  │                      NextAuth v4 (Authentication)                   │   │  │
+│  │  │        • OAuth (Google/Microsoft) • JWT Sessions (2hr)              │   │  │
+│  │  └─────────────────────────────────────────────────────────────────────┘   │  │
+│  └──────────────────────────┬───────────────────────────┬────────────────────-┘  │
+│                             │                           │                        │
+│              ┌──────────────┴───────────────┐           │                        │
+│              │                              │           │                        │
+│              ▼                              ▼           ▼                        │
+│  ┌───────────────────────┐    ┌───────────────────────────────────────────────-┐ │
+│  │        REDIS          │    │                  PGBOUNCER                     │ │
+│  │   (Analytics Cache)   │    │             (Connection Pooling)               │ │
+│  │   • Dashboard Stats   │    │   • Pool Mode: Transaction                     │ │
+│  │   • Rate Limiting     │    │   • Max Connections: 200                       │ │
+│  │   Port: 6379          │    │   Port: 5432                                   │ │
+│  └───────────────────────┘    └─────────────────────┬─────────────────────────-┘ │
+│                                                     │                            │
+│                                                     ▼                            │
+│                               ┌─────────────────────────────────────────────────┐│
+│                               │              POSTGRESQL 16                      ││
+│                               │         (Primary Data Store)                    ││
+│                               │   • 30 Tables (master data, transactions)       ││
+│                               │   • 44+ Indexes                                 ││
+│                               │   • Auth, Audit, Feedback, Tickets              ││
+│                               │   Port: 5432                                    ││
+│                               └─────────────────────────────────────────────────┘│
+│                                                                                  │
+│  ┌────────────────────────────────────────────────────────────────────────────-┐ │
+│  │                            DOCKER VOLUMES                                   │ │
+│  │  • traefik_acme (SSL Certs)  • feedback_db_data (DB)  • redis_data (Cache)  │ │
+│  └─────────────────────────────────────────────────────────────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────────────────-┘
+```
+
+### Data Flow
+
+```
+┌──────────┐     HTTPS      ┌─────────┐     HTTP      ┌──────────┐
+│  User    │ ───────────►   │ Traefik │  ───────────► │ Frontend │
+│ Browser  │   (SSL/TLS)    │  Proxy  │   (Internal)  │ Next.js  │
+└──────────┘                └─────────┘               └────┬─────┘
+                                                          │
+                    ┌─────────────────────────────────────┼─────────────────┐
+                    │                                     │                 │
+                    ▼                                     ▼                 ▼
+             ┌────────────┐                        ┌───────────┐     ┌───────────┐
+             │   Redis    │◄── Cache Reads/Writes  │ PgBouncer │     │ SendGrid  │
+             │   Cache    │                        │   Pool    │     │   API     │
+             └────────────┘                        └─────┬─────┘     └───────────┘
+                                                        │
+                                                        ▼
+                                                  ┌───────────┐
+                                                  │ PostgreSQL│
+                                                  │    DB     │
+                                                  └───────────┘
+```
 
 ### System Components
 
 | Component | Technology | Purpose | Container |
 |-----------|-----------|---------|-----------|
-| **Frontend** | Next.js 14 (App Router) | Main portal & admin UI | `frontend` |
-| **Database** | PostgreSQL 15.14-alpine | Data storage & user management | `feedback_db` |
+| **Frontend** | Next.js 16 (App Router) | Main portal & admin UI | `frontend` |
+| **Database** | PostgreSQL 16-alpine | Data storage & user management | `feedback_db` |
 | **Connection Pool** | PgBouncer v1.23.1 | Database connection pooling | `pgbouncer` |
 | **Cache** | Redis 7.4.4-alpine | Analytics caching | `redis` |
 | **Reverse Proxy** | Traefik v3.6 | SSL termination & routing | `traefik` |
@@ -132,7 +229,7 @@ Run this on your existing VM to generate specs for replication:
 # Expected output from: docker compose ps
 NAMES         IMAGE                            STATUS                    PORTS
 frontend      geav3-frontend                   Up X minutes              3000/tcp
-feedback_db   postgres:15.14-alpine            Up X minutes (healthy)    5432/tcp
+feedback_db   postgres:16-alpine               Up X minutes (healthy)    5432/tcp
 pgbouncer     edoburu/pgbouncer:v1.23.1-p3     Up X minutes (healthy)    5432/tcp
 redis         redis:7.4.4-alpine               Up X minutes (healthy)    6379/tcp
 traefik       traefik:v3.6                     Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
@@ -141,7 +238,7 @@ traefik       traefik:v3.6                     Up X minutes              0.0.0.0
 ### Technology Stack
 
 **Frontend:**
-- Next.js 14 (TypeScript) with App Router
+- Next.js 16 (TypeScript) with App Router
 - React 18 with Server Components
 - Tailwind CSS for styling
 - Zod for schema validation
@@ -149,7 +246,7 @@ traefik       traefik:v3.6                     Up X minutes              0.0.0.0
 
 **Backend:**
 - Next.js API Routes (RESTful)
-- PostgreSQL 15 database
+- PostgreSQL 16 database
 - node-postgres (pg) driver
 - SendGrid for email notifications
 
@@ -195,10 +292,6 @@ gogeaportal/v3/
 │       ├── sql/                           # SQL templates
 │       └── master-data/                   # Production data files
 │
-├── 🔧 Scripts
-│   └── scripts/
-│       └── capture-vm-config.sh           # VM configuration capture utility
-│
 ├── ⚙️ Configuration Files
 │   ├── .env.example                       # Environment variables template
 │   ├── .env                               # Your config (create from template)
@@ -236,7 +329,7 @@ gogeaportal/v3/
         │
         └── src/
             ├── app/
-            │   ├── api/                   # API Routes (42+ endpoints)
+            │   ├── api/                   # API Routes (74+ endpoints)
             │   │   ├── auth/              # NextAuth endpoints
             │   │   ├── content/           # Page context API (for AI bot)
             │   │   ├── feedback/          # Service feedback APIs
@@ -343,9 +436,9 @@ SENDGRID_FROM_NAME=GEA Portal
 SERVICE_ADMIN_EMAIL=admin@your-domain.com
 
 # === Rate Limiting ===
-EA_SERVICE_RATE_LIMIT=3
-GRIEVANCE_RATE_LIMIT=3
-FEEDBACK_RATE_LIMIT=3
+EA_SERVICE_RATE_LIMIT=30
+GRIEVANCE_RATE_LIMIT=30
+FEEDBACK_RATE_LIMIT=60
 
 # === File Uploads ===
 MAX_FILE_SIZE=5242880
@@ -521,11 +614,11 @@ sudo ufw enable
 ## 📊 Features
 
 ### Core Infrastructure ✅
-- Next.js 14 App Router with TypeScript
+- Next.js 16 App Router with TypeScript
 - Tailwind CSS responsive design
 - Docker containerization with Traefik reverse proxy
 - Automated SSL certificates via Let's Encrypt
-- PostgreSQL 15 database (30 tables, 44+ indexes)
+- PostgreSQL 16 database (30 tables, 44+ indexes)
 - Public portal pages (Home, About)
 
 ### Service Feedback & Analytics ✅
@@ -547,7 +640,7 @@ sudo ufw enable
 - Admin ticket management dashboard
 
 ### Admin Settings ✅
-- **6 configuration tabs:** System, Authentication, Integrations, Business Rules, Content, Service Providers
+- **7 configuration tabs:** System, Authentication, Integrations, Business Rules, Performance, Content, Service Providers
 - Branding management (logo, favicon)
 - OAuth provider configuration
 - SendGrid email integration
@@ -629,77 +722,6 @@ The chatbot is embedded as a simple iframe. Configuration is managed via:
 
 **Complete Documentation:**
 - [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md) - Configuration, troubleshooting, and bot inventory management
-
----
-
-## 🔌 External API for Bot/Integration Access
-
-The portal provides a secure External API for AI bots and external systems to access dashboard data programmatically.
-
-### Quick Reference
-
-| User Query | Endpoint |
-|------------|----------|
-| Totals, summaries, statistics | `GET /api/external/dashboard` |
-| Specific grievances/complaints | `GET /api/external/grievances` |
-| Support tickets, issues | `GET /api/external/tickets` |
-| Citizen feedback, comments | `GET /api/external/feedback` |
-| Document requirements | `GET /api/external/services/requirements?service_id=SVC-XXX-NNN` |
-
-### Authentication
-
-```bash
-# All requests require API key header
-curl -H "X-API-Key: your-api-key" \
-  "https://gea.your-domain.com/api/external/dashboard"
-```
-
-### Setup
-
-```bash
-# 1. Generate API key
-openssl rand -hex 32
-
-# 2. Add to .env
-EXTERNAL_API_KEY=your-64-character-hex-key
-
-# 3. Restart containers
-docker compose up -d
-```
-
-### Example Queries
-
-```bash
-# Get overall dashboard statistics
-curl -H "X-API-Key: $API_KEY" \
-  "https://gea.your-domain.com/api/external/dashboard?include=feedback,tickets"
-
-# Query overdue tickets
-curl -H "X-API-Key: $API_KEY" \
-  "https://gea.your-domain.com/api/external/tickets?overdue=true"
-
-# Get negative feedback with comments
-curl -H "X-API-Key: $API_KEY" \
-  "https://gea.your-domain.com/api/external/feedback?max_rating=2&has_comment=true"
-
-# Get work permit document requirements
-curl -H "X-API-Key: $API_KEY" \
-  "https://gea.your-domain.com/api/external/services/requirements?service_id=SVC-LBR-001"
-```
-
-### OpenAPI Specifications
-
-API specifications available at:
-- `/openapi.yaml` - Combined OpenAPI spec
-- `/api/dashboard.yaml` - Dashboard endpoint
-- `/api/tickets.yaml` - Tickets endpoint
-- `/api/feedback.yaml` - Feedback endpoint
-- `/api/grievances.yaml` - Grievances endpoint
-- `/api/service-requirements.yaml` - Service requirements endpoint
-
-**Complete Documentation:**
-- [API Reference - External API Section](docs/API_REFERENCE.md#external-api-botintegration-access)
-- [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md#external-api-for-bot-data-access)
 
 ---
 
@@ -822,30 +844,6 @@ SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 
 ---
 
-## 🆘 Support
-
-### Documentation
-- **Complete Guide:** `docs/index.md`
-- **VM Setup Guide:** `docs/VM_SETUP_GUIDE.md`
-- **API Reference:** `docs/API_REFERENCE.md`
-- **Database Schema:** `docs/DATABASE_REFERENCE.md`
-- **Authentication Setup:** `docs/AUTHENTICATION.md`
-
-### Contact
-- **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-- **Issues:** https://github.com/abhirupbanerjee/GEAv3/issues
-- **Production Portal:** https://gea.abhirup.app
-- **Email:** mailabhirupbanerjee@gmail.com
-
-### External Resources
-- [Next.js Documentation](https://nextjs.org/docs)
-- [PostgreSQL Documentation](https://www.postgresql.org/docs/15/)
-- [Docker Documentation](https://docs.docker.com/)
-- [Traefik Documentation](https://doc.traefik.io/traefik/)
-- [NextAuth Documentation](https://next-auth.js.org/)
-
----
-
 ## ✅ Pre-Deployment Checklist
 
 Before going live:
@@ -869,11 +867,17 @@ Before going live:
 - [ ] Database initialized (`99-consolidated-setup.sh --fresh`)
 - [ ] Master data loaded (`99-consolidated-setup.sh --reload`)
 - [ ] Authentication tables created (`04-nextauth-users.sh`)
-- [ ] Admin user added (`scripts/05-add-initial-admin.sh`)
+- [ ] Admin user added (`database/scripts/05-add-initial-admin.sh`)
 - [ ] Data integrity verified (`99-consolidated-setup.sh --verify`)
 - [ ] Backup strategy configured
 
-**Testing:**
+**Automated Testing (CI/CD):**
+- [ ] Tests pass: `cd frontend && npm run test:run` (121 tests)
+- [ ] ESLint passes: `npm run lint` (0 errors)
+- [ ] TypeScript compiles: `npx tsc --noEmit` (0 errors)
+- [ ] GitHub Actions workflow passes on PR
+
+**Manual Testing:**
 - [ ] All containers running: `docker compose ps`
 - [ ] Frontend accessible via HTTPS
 - [ ] SSL certificate issued successfully
@@ -887,7 +891,7 @@ Before going live:
 ## 📊 Project Statistics
 
 ### Current Implementation
-- **Total API Endpoints:** 42+ (public + admin + auth + context + external)
+- **Total API Endpoints:** 74+ (public + admin + auth + context + external)
 - **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
 - **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
@@ -918,31 +922,6 @@ Before going live:
 
 ---
 
-## 🎓 Learning Resources
-
-### For Developers
-1. Review UI modification guide: `docs/developer-guides/UI_MODIFICATION_GUIDE.md`
-2. Review API documentation: `docs/API_REFERENCE.md`
-3. Study database schema: `docs/DATABASE_REFERENCE.md`
-4. Explore source code in `frontend/src/app/api/`
-5. Check validation schemas in `frontend/src/lib/schemas/`
-
-### For DevOps/SysAdmin
-1. Follow deployment guide in this README
-2. Review VM setup guide: `docs/VM_SETUP_GUIDE.md`
-3. Use troubleshooting section for common issues
-4. Set up monitoring with `docker stats`
-5. Configure automated backups
-
-### For Database Administrators
-1. Review complete DBA guide: `database/README.md`
-2. Review schema documentation: `docs/DATABASE_REFERENCE.md`
-3. Use consolidated setup script: `99-consolidated-setup.sh`
-4. Schedule regular backups: `pg_dump` via cron
-5. Monitor disk usage and index performance
-
----
-
 ## 📄 License
 
 © 2026 Government of Grenada. All rights reserved.
@@ -951,46 +930,6 @@ Before going live:
 
 **Last Updated:** January 2026 | **Version:** 3.2.0 | **Status:** ✅ Production Ready
 
-> **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
+**Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
 
-**Note:** This project has been co-developed with AI (Claude) for documentation, code implementation, generation of synthetic data, and test scenarios.
 
----
-
-## Quick Links
-
-- 📖 [Complete Documentation](docs/index.md)
-- 🖥️ [**VM Setup Guide**](docs/VM_SETUP_GUIDE.md) - New VM deployment
-- 🏗️ [**Solution Architecture**](docs/SOLUTION_ARCHITECTURE.md) - System overview
-- 🔌 [API Reference](docs/API_REFERENCE.md) - All API endpoints including External API
-- 🗄️ [Database Schema](docs/DATABASE_REFERENCE.md)
-- 🔐 [Authentication Guide](docs/AUTHENTICATION.md)
-- 🤖 [**AI Bot Integration**](docs/AI_BOT_INTEGRATION.md) - Chatbot configuration and management
-- 🔗 [**External API**](docs/API_REFERENCE.md#external-api-botintegration-access) - Bot/integration data access **NEW**
-
----
-
-## See Also
-
-### For Architects & Tech Leads
-- [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - Complete system architecture and design
-- [Complete Documentation Index](docs/index.md) - Overview of all features and roadmap
-
-### For Developers
-- [UI Modification Guide](docs/developer-guides/UI_MODIFICATION_GUIDE.md) - Complete guide for UI development and customization
-- [API Reference](docs/API_REFERENCE.md) - Complete API endpoint documentation
-- [External API Guide](docs/API_REFERENCE.md#external-api-botintegration-access) - Bot/integration data access endpoints
-- [AI Bot Integration](docs/AI_BOT_INTEGRATION.md) - Chatbot configuration and management
-- [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and SQL commands
-- [Authentication Guide](docs/AUTHENTICATION.md) - OAuth setup and user management
-
-### For System Administrators
-- [VM Setup Guide](docs/VM_SETUP_GUIDE.md) - New VM deployment and configuration
-- [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - Deployment and infrastructure architecture
-- [Database Administrator Guide](database/README.md) - Complete database management commands
-- [Database Reference](docs/DATABASE_REFERENCE.md) - Database schema and setup
-- [Authentication Guide](docs/AUTHENTICATION.md) - User management and troubleshooting commands
-
-### For Project Managers
-- [Solution Architecture](docs/SOLUTION_ARCHITECTURE.md) - System capabilities and roadmap
-- [Complete Documentation Index](docs/index.md) - Overview of all features

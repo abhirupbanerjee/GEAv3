@@ -206,14 +206,14 @@ export default function AnalyticsPage() {
       }
 
       // Fetch service requests stats
-      const serviceRequestsResponse = await fetch('/api/admin/service-requests/stats')
+      const serviceRequestsResponse = await fetch(`/api/admin/service-requests/stats${entityParam}`)
       if (serviceRequestsResponse.ok) {
         const serviceRequestsData = await serviceRequestsResponse.json()
         setServiceRequestStats(serviceRequestsData.data.stats)
       }
 
       // Fetch tickets stats
-      const ticketsResponse = await fetch('/api/admin/tickets/dashboard-stats')
+      const ticketsResponse = await fetch(`/api/admin/tickets/dashboard-stats${entityParam}`)
       if (ticketsResponse.ok) {
         const ticketsData = await ticketsResponse.json()
         setTicketStats(ticketsData.data)

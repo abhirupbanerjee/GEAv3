@@ -1,6 +1,6 @@
 # GEA Portal v3 - Solution Architecture
 
-**Document Version:** 1.2
+**Document Version:** 1.3
 **Last Updated:** January 2026
 **System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
 **Status:** ✅ Production Ready
@@ -42,19 +42,19 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 | Metric | Value |
 |--------|-------|
 | **Database Tables** | 30 tables (master data, transactional, auth, audit) |
-| **API Endpoints** | 42+ RESTful endpoints |
+| **API Endpoints** | 74+ RESTful endpoints |
 | **External API Endpoints** | 5 (dashboard, tickets, feedback, grievances, service-requirements) |
 | **OAuth Providers** | Google, Microsoft Azure AD |
 | **User Roles** | Admin, Staff, Public |
 | **Government Entities** | 50+ ministries/departments/agencies |
-| **Rate Limiting** | 5 submissions/hour per IP, 100/hour External API |
+| **Rate Limiting** | 30-60 submissions/hour per IP, 100/hour External API |
 | **Session Timeout** | 2 hours (JWT) |
 
 ### Technology Overview
 
-- **Frontend:** Next.js 14 (React, TypeScript, Tailwind CSS)
-- **Backend:** Next.js API Routes (Node.js)
-- **Database:** PostgreSQL 15.14-alpine
+- **Frontend:** Next.js 16 (React, TypeScript, Tailwind CSS)
+- **Backend:** Next.js API Routes (Node.js 22)
+- **Database:** PostgreSQL 16-alpine
 - **Connection Pool:** PgBouncer v1.23.1 (transaction mode)
 - **Cache:** Redis 7.4.4-alpine (analytics caching)
 - **Authentication:** NextAuth v4 with OAuth
@@ -109,7 +109,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
                          ▼
                  ┌──────────────┐
                  │  POSTGRESQL  │
-                 │  15.14-alpine│
+                 │   16-alpine  │
                  ├──────────────┤
                  │ • 30 Tables  │
                  │ • 44+ IDX    │
@@ -191,8 +191,8 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 │  └─────────────────────┬──────────────────────────────────┘    │
 │                        │                                         │
 │  ┌─────────────────────▼──────────────────────────────────┐    │
-│  │  FRONTEND CONTAINER (node:20-alpine)                   │    │
-│  │  • Next.js 14 App Router                               │    │
+│  │  FRONTEND CONTAINER (node:22-alpine)                   │    │
+│  │  • Next.js 16 App Router                               │    │
 │  │  • Port 3000 (internal)                                │    │
 │  │  • Environment: Production                             │    │
 │  │  • Health Check: /api/health                           │    │
@@ -206,8 +206,8 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 │  └──────────────────────┘      └──────────┬──────────┘          │
 │                                           │                      │
 │                           ┌───────────────▼───────────────┐     │
-│                           │  DATABASE (postgres:15.14)    │     │
-│                           │  • PostgreSQL 15.14-alpine    │     │
+│                           │  DATABASE (postgres:16-alpine)│     │
+│                           │  • PostgreSQL 16-alpine       │     │
 │                           │  • Port 5432 (internal)       │     │
 │                           │  • Volume: feedback_db_data   │     │
 │                           │  • Database: feedback         │     │
@@ -222,7 +222,7 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│                    NEXT.JS 14 FRONTEND                             │
+│                    NEXT.JS 16 FRONTEND                             │
 ├───────────────────────────────────────────────────────────────────┤
 │                                                                    │
 │  ┌─────────────────────────────────────────────────────────┐     │
@@ -318,7 +318,7 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
-| **Framework** | Next.js | 14.x | React framework with SSR/SSG |
+| **Framework** | Next.js | 16.x | React framework with SSR/SSG |
 | **UI Library** | React | 18.x | Component-based UI |
 | **Language** | TypeScript | 5.x | Type-safe JavaScript |
 | **Styling** | Tailwind CSS | 3.x | Utility-first CSS framework |
@@ -332,9 +332,9 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 
 | Category | Technology | Version | Purpose |
 |----------|-----------|---------|---------|
-| **Runtime** | Node.js | 20.x | JavaScript runtime |
-| **Framework** | Next.js API Routes | 14.x | RESTful API endpoints |
-| **Database** | PostgreSQL | 15.x | Relational database |
+| **Runtime** | Node.js | 22 | JavaScript runtime |
+| **Framework** | Next.js API Routes | 16.x | RESTful API endpoints |
+| **Database** | PostgreSQL | 16 | Relational database |
 | **DB Driver** | node-postgres (pg) | 8.x | PostgreSQL client |
 | **Authentication** | NextAuth.js | 4.x | OAuth authentication |
 | **Validation** | Zod | 3.x | Schema validation |
@@ -347,12 +347,12 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 | **Containerization** | Docker | 29.x | Application containers (Docker 27.x EOL) |
 | **Orchestration** | Docker Compose | v5.0+ | Multi-container management |
 | **Reverse Proxy** | Traefik | v3.6 | Load balancing & SSL |
-| **Database** | PostgreSQL | 15.14-alpine | Relational database |
+| **Database** | PostgreSQL | 16-alpine | Relational database |
 | **Connection Pool** | PgBouncer | v1.23.1-p3 | Database connection pooling |
 | **Cache** | Redis | 7.4.4-alpine | Analytics caching |
 | **SSL** | Let's Encrypt | - | Free SSL certificates |
 | **Version Control** | Git | 2.x | Source code management |
-| **CI/CD** | GitHub Actions | - | Automated deployments (future) |
+| **CI/CD** | GitHub Actions | - | Automated testing (tests, lint, type check on PR) |
 
 ### Security Technology
 
@@ -416,7 +416,7 @@ User → OAuth Provider → Callback → Email Check → Session Creation → Da
 - 5-star rating system
 - Multi-file attachments (5MB limit)
 - Auto-escalation to tickets (rating ≤ 2.5)
-- IP-based rate limiting (5/hour)
+- IP-based rate limiting (30-60/hour)
 - Email notifications to service admin
 - SHA256 IP hashing (privacy)
 
@@ -572,10 +572,10 @@ User → OAuth Provider → Callback → Email Check → Session Creation → Da
 
 ### Database Schema Overview
 
-**Total Tables:** 23
-**Total Indexes:** 52+
-**Total Foreign Keys:** 26+
-**Database Size:** ~500MB (with sample data)
+**Total Tables:** 30
+**Total Indexes:** 44+
+**Total Foreign Keys:** 18+
+**Database Size:** ~70MB (with sample data)
 
 ### Table Categories
 
@@ -785,9 +785,11 @@ const result = await pool.query(query, params)
 - Content Security Policy (CSP) headers
 - Rate limiting on authentication endpoints
 - Multi-factor authentication (MFA)
-- API key authentication for external integrations
 - Database encryption at rest
 - File upload scanning (antivirus)
+
+✅ **Recently Implemented:**
+- API key authentication for external integrations (External API)
 
 ---
 
@@ -873,7 +875,7 @@ services:
       - geav3_network
 
   feedback_db:
-    image: postgres:15.14-alpine
+    image: postgres:16-alpine
     environment:
       - POSTGRES_DB=feedback
       - POSTGRES_USER=feedback_user
@@ -1051,7 +1053,7 @@ docker exec traefik cat /letsencrypt/acme.json | jq '.letsencrypt.Certificates[0
 |--------|---------|------------|
 | **Concurrent Users** | ~100 | Database connections |
 | **Requests/Second** | ~50 | Node.js single thread |
-| **Database Size** | 500MB | Disk I/O |
+| **Database Size** | 70MB | Disk I/O |
 | **Session Storage** | 2 hours × 100 users | Database sessions table |
 
 ### Performance Optimizations
@@ -1287,31 +1289,7 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-## See Also
-
-### Related Documentation
-
-- **[Complete Documentation Index](index.md)** - Overview of all documentation
-- **[Database Reference](DATABASE_REFERENCE.md)** - Complete database schema (23 tables)
-- **[API Reference](API_REFERENCE.md)** - All 35+ API endpoints
-- **[Authentication Guide](AUTHENTICATION.md)** - OAuth setup and user management
-- **[AI Bots Management](ai-bots-management.md)** - AI assistant integrations
-
-### External Resources
-
-- **[Next.js Documentation](https://nextjs.org/docs)** - Frontend framework
-- **[NextAuth Documentation](https://next-auth.js.org/)** - Authentication library
-- **[PostgreSQL 15 Documentation](https://www.postgresql.org/docs/15/)** - Database
-- **[Traefik Documentation](https://doc.traefik.io/traefik/)** - Reverse proxy
-- **[Docker Documentation](https://docs.docker.com/)** - Containerization
-
-### GitHub Repository
-
-- **[GEAv3 Repository](https://github.com/abhirupbanerjee/GEAv3)** - Source code and issues
-
----
-
-**Document Version:** 1.2
+**Document Version:** 1.3
 **Last Updated:** January 2026
 **Maintained By:** GEA Portal Development Team
 **System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)

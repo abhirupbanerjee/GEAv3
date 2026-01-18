@@ -1,7 +1,7 @@
 # GEA Portal - Database Management Guide for DBAs
 
-> **Version:** 9.0
-> **Last Updated:** November 25, 2025
+> **Version:** 9.2
+> **Last Updated:** January 2026
 > **For:** Database Administrators, DevOps, System Administrators
 
 ---
@@ -142,7 +142,7 @@ docker-compose up -d feedback_db
 ```
 
 **What You Get:**
-- Clean database schema (31 tables)
+- Clean database schema (35 tables)
 - Your production master data (66 entities, 167 services, 177 attachments)
 - Synthetic test data (200 feedback, 50 grievances, 80 tickets)
 
@@ -570,12 +570,14 @@ LIMIT 10;
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 9.2 | 2026-01-17 | Updated table count to 35; Verified against production (sla_breaches, ticket_notes) |
+| 9.1 | 2026-01-17 | Added system tables (ai_bots, system_settings, etc.) |
 | 9.0 | 2025-11-25 | Added --reload, --clear-data, --load-master flags; Reorganized directory structure; Auto-detect default sample data |
 | 8.0 | 2025-11-24 | Added --restore with interactive menu; Mandatory backups for --fresh |
 | 7.0 | 2025-11-20 | Initial consolidated script |
 
 ---
 
-**Last Updated:** November 25, 2025
+**Last Updated:** January 2026
 **Maintained By:** GEA Portal Development Team
-**Script Version:** 99-consolidated-setup.sh v9.0
+**Script Version:** 99-consolidated-setup.sh v9.2

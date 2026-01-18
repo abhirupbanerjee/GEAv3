@@ -1,9 +1,9 @@
 # GEA Portal v3 - Complete Database Setup Guide
 
-**Document Version:** 10.1 **Last Updated:** January 2026
-**Database:** PostgreSQL 15.15
-**Schema Version:** Production-Aligned v10.0
-**Total Tables:** 30
+**Document Version:** 10.3 **Last Updated:** January 2026
+**Database:** PostgreSQL 16-alpine
+**Schema Version:** Production-Aligned v10.3
+**Total Tables:** 35
 **Status:** ✅ Production Ready
 
 ---
@@ -61,16 +61,17 @@ ADMIN_EMAIL="your-email@gov.gd" ADMIN_NAME="Your Name" ./database/scripts/05-add
 
 | Metric | Count |
 |--------|-------|
-| **Total Tables** | 30 |
-| **Reference Data** | 5 |
+| **Total Tables** | 35 |
+| **Reference Data** | 7 (entities, services, priorities, statuses, categories, attachments, ai_bots) |
 | **Auth & Users** | 8 |
 | **Feedback & Grievances** | 4 |
 | **EA Service Requests** | 3 |
-| **Tickets & Activity** | 7 |
+| **Tickets & Activity** | 6 (tickets, attachments, activity, qr_codes, sla_breaches, ticket_notes) |
+| **System & Settings** | 4 (system_settings, settings_audit_log, leadership_contacts, backup_audit_log) |
 | **Security** | 3 |
-| **Foreign Keys** | 30+ |
-| **Indexes** | 60+ |
-| **Extensions** | 1 (uuid-ossp) |
+| **Foreign Keys** | 18+ |
+| **Indexes** | 50+ |
+| **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
 
 ### Connection Details
 
@@ -208,9 +209,9 @@ ADMIN_NAME="Admin User" \
 
 ## 📚 Table Reference
 
-### Complete Table List (30 Tables)
+### Complete Table List (35 Tables)
 
-#### 1. Reference Data (5 tables)
+#### 1. Reference Data (7 tables)
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
@@ -219,6 +220,8 @@ ADMIN_NAME="Admin User" \
 | `service_attachments` | service_attachment_id | Document requirements for services |
 | `priority_levels` | priority_id | Priority definitions for tickets |
 | `grievance_status` | status_id | Status options for grievances |
+| `ticket_status` | status_id | Status options for tickets |
+| `ticket_categories` | category_id | Ticket categories |
 
 #### 2. Auth & Users (8 tables)
 
@@ -250,19 +253,28 @@ ADMIN_NAME="Admin User" \
 | `ea_service_request_attachments` | attachment_id | Required document uploads |
 | `ea_service_request_comments` | comment_id | Comments and notes on requests |
 
-#### 5. Tickets & Activity (7 tables)
+#### 5. Tickets & Activity (6 tables)
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
 | `tickets` | ticket_id | Support tickets |
-| `ticket_status` | status_id | Status options for tickets |
-| `ticket_categories` | category_id | Ticket categories |
 | `ticket_attachments` | attachment_id | Ticket file uploads |
-| `ticket_activity` | activity_id | Activity log (6 columns - actively used) |
-| `ticket_notes` | note_id | Internal staff notes |
-| `sla_breaches` | breach_id | SLA breach tracking |
+| `ticket_activity` | activity_id | Activity log |
+| `qr_codes` | qr_code_id | QR code tracking |
+| `sla_breaches` | breach_id | SLA breach tracking and alerts |
+| `ticket_notes` | note_id | Internal notes on tickets |
 
-#### 6. Security (3 tables)
+#### 6. System & Settings (4 tables)
+
+| Table | Primary Key | Description |
+|-------|-------------|-------------|
+| `ai_bots` | id | AI chatbot inventory and configuration |
+| `system_settings` | setting_id | Admin-configurable application settings |
+| `settings_audit_log` | audit_id | Audit trail for settings changes |
+| `leadership_contacts` | contact_id | Dynamic leadership contacts for About page |
+| `backup_audit_log` | audit_id | Audit trail for backup operations |
+
+#### 7. Security (3 tables)
 
 | Table | Primary Key | Description |
 |-------|-------------|-------------|
@@ -334,7 +346,7 @@ ADMIN_NAME="Admin User" \
 docker exec -i feedback_db psql -U feedback_user -d feedback -c "
 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';"
 
-# Expected: 30 tables
+# Expected: 35 tables
 ```
 
 ### Comprehensive Verification
@@ -498,7 +510,7 @@ docker-compose ps feedback_db
 docker exec feedback_db psql -U feedback_user -d feedback -c "
 SELECT count(*) FROM information_schema.tables WHERE table_schema = 'public';"
 
-# Expected: 30 tables
+# Expected: 35 tables
 
 # 2. Check admin user exists
 docker exec feedback_db psql -U feedback_user -d feedback -c "
@@ -537,7 +549,7 @@ WHERE r.role_code = 'admin_dta';"
 | `05-add-initial-admin.sh` | Admin user creation | After setup or standalone |
 | `06-load-dta-seed-data.sh` | DTA operational data | **Recommended for realistic data** |
 | `07-service-request-enhancements.sh` | Comments table | Called by master scripts |
-| `09-add-missing-production-tables.sh` | SLA & ticket_notes | Called by master scripts |
+| `09-add-missing-production-tables.sh` | Additional production tables | Called by master scripts |
 
 ### Key Features
 
@@ -623,8 +635,8 @@ docker exec -i feedback_db psql -U feedback_user -d feedback < manual_backup.sql
 
 **Document Status:** ✅ Production Ready
 **Last Verified:** January 2026
-**Schema Version:** 10.1 (Production-Aligned)
-**Total Tables:** 30
+**Schema Version:** 10.3 (Production-Aligned)
+**Total Tables:** 35
 
 ---
 

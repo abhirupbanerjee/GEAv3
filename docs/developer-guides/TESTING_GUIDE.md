@@ -214,7 +214,19 @@ Tests run automatically via GitHub Actions on:
 - All tests must pass before merging
 - Consider adding branch protection rules in GitHub settings
 
-### 3.8 Troubleshooting Automated Tests
+### 3.8 ESLint Configuration
+
+**Note:** Next.js 16 removed the `next lint` command. The project uses ESLint 9 with flat config.
+
+**Configuration file:** `frontend/eslint.config.mjs`
+
+**Running lint:**
+```bash
+cd frontend
+npm run lint  # Uses: eslint src
+```
+
+### 3.9 Troubleshooting Automated Tests
 
 | Issue | Solution |
 |-------|----------|
@@ -223,6 +235,7 @@ Tests run automatically via GitHub Actions on:
 | Async state warnings | Wrap assertions in `waitFor()` |
 | Mock not working | Ensure `vi.mock()` at top level, call `vi.clearAllMocks()` in `beforeEach` |
 | CI fails but local passes | Check Node.js version matches (v22) |
+| "next lint" not found | Next.js 16 removed this - use `npm run lint` instead |
 
 ---
 

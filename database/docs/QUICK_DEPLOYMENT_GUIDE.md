@@ -100,7 +100,7 @@ SELECT
 ```
  tables | entities | users
 --------+----------+-------
-     30 |       66 |     1
+     35 |       66 |     1
 ```
 
 ---
@@ -144,6 +144,6 @@ All integrated into `99-consolidated-setup.sh` - no extra steps needed!
 
 ---
 
-**Last Updated:** November 25, 2025
+**Last Updated:** January 2026
 **Status:** ✅ Ready for Production
 **Tested:** ✅ All fixes verified locally

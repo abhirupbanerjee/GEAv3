@@ -1,11 +1,11 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 10.4
+**Document Version:** 10.5
 **Last Updated:** January 17, 2026
-**Database:** PostgreSQL 16.11-alpine (upgraded from 15.14)
+**Database:** PostgreSQL 16-alpine
 **Connection Pool:** PgBouncer v1.23.1-p3
 **Cache:** Redis 7.4.4-alpine
-**Schema Version:** Production-Aligned v10.1 (31 tables)
+**Schema Version:** Production-Aligned v10.2 (32 tables)
 
 ---
 
@@ -29,16 +29,17 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 31 |
-| **Reference Data** | 5 |
+| **Tables** | 32 |
+| **Reference Data** | 7 (entities, services, priorities, statuses, categories, service_attachments, ai_bots) |
 | **Auth & Users** | 8 |
 | **Feedback & Grievances** | 4 |
 | **EA Service Requests** | 3 |
-| **Tickets & Activity** | 7 |
+| **Tickets & Activity** | 4 |
+| **System & Settings** | 4 (system_settings, settings_audit_log, leadership_contacts, backup_audit_log) |
 | **Security** | 3 |
-| **Foreign Keys** | 30+ |
-| **Indexes** | 60+ |
-| **Extensions** | 1 (uuid-ossp) |
+| **Foreign Keys** | 18+ |
+| **Indexes** | 50+ |
+| **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
 
 ### Connection Details
 
@@ -1242,124 +1243,7 @@ EOF
 
 ---
 
-### 17. sla_breaches
-
-**Purpose:** SLA breach tracking for tickets
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| breach_id | SERIAL | PRIMARY KEY | Auto-increment ID |
-| ticket_id | INTEGER | FK → tickets(ticket_id), NOT NULL | Parent ticket |
-| breach_type | VARCHAR(20) | | response, resolution |
-| target_time | TIMESTAMP | NOT NULL | SLA target deadline |
-| actual_time | TIMESTAMP | | When action was actually completed |
-| breach_duration_hours | NUMERIC(10,2) | | Hours overdue (target - actual) |
-| is_active | BOOLEAN | DEFAULT TRUE | Currently breaching (for open tickets) |
-| detected_at | TIMESTAMP | DEFAULT NOW() | When breach was detected |
-
-**Indexes:**
-- PRIMARY KEY on `breach_id`
-- INDEX on `ticket_id` (FK)
-- INDEX on `breach_type`
-- INDEX on `is_active`
-
-**Breach Types:**
-- `response` - Failed to respond within SLA response time
-- `resolution` - Failed to resolve within SLA resolution time
-
-**Commands:**
-```bash
-# View active SLA breaches
-docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
-SELECT
-    t.ticket_number,
-    s.service_name,
-    sb.breach_type,
-    sb.target_time,
-    sb.breach_duration_hours,
-    p.priority_name
-FROM sla_breaches sb
-JOIN tickets t ON sb.ticket_id = t.ticket_id
-JOIN service_master s ON t.service_id = s.unique_service_id
-LEFT JOIN priority_levels p ON t.priority_id = p.priority_id
-WHERE sb.is_active = TRUE
-ORDER BY sb.breach_duration_hours DESC;
-EOF
-
-# SLA breach statistics by priority
-docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
-SELECT
-    p.priority_name,
-    sb.breach_type,
-    COUNT(*) AS total_breaches,
-    AVG(sb.breach_duration_hours)::NUMERIC(10,2) AS avg_breach_hours,
-    MAX(sb.breach_duration_hours)::NUMERIC(10,2) AS max_breach_hours
-FROM sla_breaches sb
-JOIN tickets t ON sb.ticket_id = t.ticket_id
-LEFT JOIN priority_levels p ON t.priority_id = p.priority_id
-GROUP BY p.priority_name, sb.breach_type
-ORDER BY p.priority_name, sb.breach_type;
-EOF
-```
-
----
-
-### 18. ticket_notes
-
-**Purpose:** Internal notes for tickets (staff-only, private comments)
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| note_id | SERIAL | PRIMARY KEY | Auto-increment ID |
-| ticket_id | INTEGER | FK → tickets(ticket_id), NOT NULL, ON DELETE CASCADE | Parent ticket |
-| note_text | TEXT | NOT NULL | Note content |
-| is_public | BOOLEAN | DEFAULT FALSE | Visible to ticket submitter |
-| created_by | VARCHAR(255) | DEFAULT 'system' | Staff username |
-| created_at | TIMESTAMP | DEFAULT NOW() | Note timestamp |
-
-**Indexes:**
-- PRIMARY KEY on `note_id`
-- INDEX on `ticket_id` (FK)
-- INDEX on `created_at DESC`
-- INDEX on `created_by`
-
-**Key Features:**
-- `is_public = FALSE` - Internal staff notes (default)
-- `is_public = TRUE` - Visible to citizen checking ticket status
-- Used for collaboration between staff members
-- Audit trail of ticket discussions
-
-**Commands:**
-```bash
-# View notes for a ticket
-docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
-SELECT
-    t.ticket_number,
-    tn.note_text,
-    tn.is_public,
-    tn.created_by,
-    tn.created_at
-FROM ticket_notes tn
-JOIN tickets t ON tn.ticket_id = t.ticket_id
-WHERE t.ticket_number = '202511-000123'
-ORDER BY tn.created_at DESC;
-EOF
-
-# Add internal note
-docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
-INSERT INTO ticket_notes (ticket_id, note_text, is_public, created_by)
-VALUES (
-    (SELECT ticket_id FROM tickets WHERE ticket_number = '202511-000123'),
-    'Escalated to senior staff for review',
-    FALSE,
-    'admin@gov.gd'
-);
-EOF
-```
-
----
-
-### 19. submission_rate_limit
+### 17. submission_rate_limit
 
 **Purpose:** Rate limiting enforcement
 
@@ -1378,7 +1262,7 @@ EOF
 
 ---
 
-### 20. submission_attempts
+### 18. submission_attempts
 
 **Purpose:** Audit trail for all submissions
 
@@ -1399,7 +1283,7 @@ EOF
 
 ---
 
-### 21. captcha_challenges
+### 19. captcha_challenges
 
 **Purpose:** CAPTCHA verification tracking
 
@@ -1420,7 +1304,7 @@ EOF
 
 ## Authentication & User Management Tables
 
-### 22. users
+### 20. users
 
 **Purpose:** Central authentication and user management table
 
@@ -1470,7 +1354,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 23. user_roles
+### 21. user_roles
 
 **Purpose:** Role definitions for access control
 
@@ -1492,7 +1376,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 24. accounts
+### 22. accounts
 
 **Purpose:** OAuth provider data (NextAuth managed)
 
@@ -1518,7 +1402,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 25. sessions
+### 23. sessions
 
 **Purpose:** Active user sessions (NextAuth managed)
 
@@ -1538,7 +1422,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 26. verification_tokens
+### 24. verification_tokens
 
 **Purpose:** Email verification tokens (NextAuth)
 
@@ -1552,7 +1436,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 27. entity_user_assignments
+### 25. entity_user_assignments
 
 **Purpose:** Many-to-many user-entity mapping (future use)
 
@@ -1568,7 +1452,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 28. user_permissions
+### 26. user_permissions
 
 **Purpose:** Fine-grained permissions (future use)
 
@@ -1584,7 +1468,7 @@ UPDATE users SET is_active=TRUE WHERE email='user@gov.gd';"
 
 ---
 
-### 29. user_audit_log
+### 27. user_audit_log
 
 **Purpose:** User activity audit trail
 
@@ -1635,6 +1519,142 @@ EOF
 
 ---
 
+## System Configuration Tables
+
+### 29. ai_bots
+
+**Purpose:** AI chatbot inventory and configuration
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | VARCHAR(50) | PRIMARY KEY | Unique bot identifier |
+| name | VARCHAR(255) | NOT NULL | Bot display name |
+| url | TEXT | | Bot deployment URL |
+| description | TEXT | | Bot description |
+| status | VARCHAR(20) | NOT NULL, CHECK | active, planned, inactive |
+| deployment | VARCHAR(100) | | Deployment platform (e.g., Vercel) |
+| audience | VARCHAR(100) | | Target audience (Public, Government Staff) |
+| modality | VARCHAR(50) | | Interface type (text, text-audio) |
+| category | VARCHAR(100) | | Bot category |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| created_at | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| created_by | VARCHAR(255) | | Creator username |
+| updated_at | TIMESTAMP | DEFAULT NOW() | Last update |
+| updated_by | VARCHAR(255) | | Last updater |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- INDEX on `status`
+- INDEX on `is_active`
+- INDEX on `category`
+
+**Pre-loaded Data:**
+```sql
+-- 8 AI bots (4 active, 4 planned)
+gea-bot                    | GEA AI Assistant           | active
+change-management-bot      | Change Navigator           | active
+citizen-survey-bot         | Citizen Survey Bot         | active
+gea-cyber-bot              | GEA Cyber Bot              | active
+ea-compliance-bot          | EA Compliance Bot          | planned
+service-feedback-bot       | Service Feedback Bot       | planned
+policy-bot                 | Policy Bot                 | planned
+ea-maturity-assessment-bot | EA Maturity Assessment Bot | planned
+```
+
+---
+
+### 30. system_settings
+
+**Purpose:** Admin-configurable application settings
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| setting_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| setting_key | VARCHAR(100) | NOT NULL, UNIQUE | Setting identifier |
+| setting_value | TEXT | | Current value |
+| setting_type | VARCHAR(20) | NOT NULL, CHECK | string, number, boolean, secret, json, select, email, url, image |
+| category | VARCHAR(50) | NOT NULL | SYSTEM, AUTHENTICATION, INTEGRATIONS, BUSINESS_RULES, CONTENT, PERFORMANCE |
+| subcategory | VARCHAR(50) | | Sub-grouping |
+| display_name | VARCHAR(255) | NOT NULL | Human-readable name |
+| description | TEXT | | Setting description |
+| is_sensitive | BOOLEAN | DEFAULT FALSE | Contains sensitive data |
+| is_runtime | BOOLEAN | DEFAULT TRUE | Can be changed at runtime |
+| default_value | TEXT | | Default value |
+| validation_regex | VARCHAR(500) | | Validation pattern |
+| min_value | NUMERIC | | Minimum value (for numbers) |
+| max_value | NUMERIC | | Maximum value (for numbers) |
+| options | JSONB | | Available options for select types |
+| sort_order | INTEGER | DEFAULT 0 | Display order |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| last_modified_by | VARCHAR(255) | | Last modifier |
+| created_at | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| updated_at | TIMESTAMP | DEFAULT NOW() | Last update |
+
+**Indexes:**
+- PRIMARY KEY on `setting_id`
+- UNIQUE INDEX on `setting_key`
+- INDEX on `category`
+- INDEX on `is_runtime`
+- INDEX on `is_active`
+
+**Categories:**
+- SYSTEM - General, Branding, Contact settings
+- AUTHENTICATION - Google OAuth, Microsoft OAuth
+- INTEGRATIONS - Email (SendGrid), Chatbot, Captcha
+- BUSINESS_RULES - Service Requests, Rate Limits, Thresholds, File Upload
+- CONTENT - Footer Links
+- PERFORMANCE - Caching (Redis)
+
+---
+
+### 31. settings_audit_log
+
+**Purpose:** Audit trail for system settings changes
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| audit_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| setting_key | VARCHAR(100) | NOT NULL | Changed setting key |
+| old_value | TEXT | | Previous value |
+| new_value | TEXT | | New value |
+| changed_by | VARCHAR(255) | NOT NULL | User who made change |
+| change_reason | TEXT | | Reason for change |
+| ip_address | VARCHAR(45) | | Client IP |
+| changed_at | TIMESTAMP | DEFAULT NOW() | Change timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `audit_id`
+- INDEX on `setting_key`
+- INDEX on `changed_at DESC`
+- INDEX on `changed_by`
+
+---
+
+### 32. leadership_contacts
+
+**Purpose:** Dynamic leadership contacts for About page
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| contact_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| name | VARCHAR(100) | NOT NULL | Contact name |
+| title | VARCHAR(100) | NOT NULL | Job title |
+| email | VARCHAR(255) | | Contact email |
+| image_path | VARCHAR(500) | | Profile image path |
+| sort_order | INTEGER | DEFAULT 0 | Display order |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| created_at | TIMESTAMP | DEFAULT NOW() | Creation timestamp |
+| updated_at | TIMESTAMP | DEFAULT NOW() | Last update |
+| created_by | VARCHAR(255) | | Creator |
+| updated_by | VARCHAR(255) | | Last updater |
+
+**Indexes:**
+- PRIMARY KEY on `contact_id`
+- INDEX on `is_active`
+- INDEX on `sort_order`
+
+---
+
 ## Relationships & Foreign Keys
 
 ### Entity-Service Hierarchy
@@ -1678,8 +1698,6 @@ tickets (priority_id) → priority_levels (priority_id)
 tickets (status_id) → ticket_status (status_id)
 ticket_activity (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
 ticket_attachments (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
-ticket_notes (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
-sla_breaches (ticket_id) → tickets (ticket_id)
 ```
 
 ### Authentication Flow
@@ -2152,9 +2170,13 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 - Used for generating unique user identifiers in authentication system
 - Required for `users.id` UUID field with `DEFAULT gen_random_uuid()`
 
-**Note:** Previously used extensions (pgcrypto, pg_trgm) have been removed in favor of application-level implementations:
-- IP hashing now done in application layer (SHA256)
-- Text search using PostgreSQL's built-in full-text search capabilities
+**2. pgcrypto**
+- Provides cryptographic functions
+- Used for secure password hashing and encryption
+
+**3. pg_trgm**
+- Provides trigram-based text similarity functions
+- Used for fuzzy text search capabilities
 
 ### Character Encoding
 
@@ -2195,7 +2217,7 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup_20251120.sql
 
 ## New Tables (January 2026)
 
-### 30. backup_audit_log
+### 28. backup_audit_log
 
 **Purpose:** Audit trail for all database backup and restore operations
 
@@ -2251,7 +2273,7 @@ EOF
 
 ---
 
-**Document Version:** 10.4
+**Document Version:** 10.5
 **Last Updated:** January 17, 2026
-**Schema Version:** Production-Aligned v10.1 (31 tables)
+**Schema Version:** Production-Aligned v10.2 (32 tables)
 **Maintained By:** GEA Portal Development Team
