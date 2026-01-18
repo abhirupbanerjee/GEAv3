@@ -8,6 +8,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { useSearchParams, useRouter, usePathname } from 'next/navigation'
 import { useTickets } from '@/hooks/useTickets'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useChatContext } from '@/hooks/useChatContext'
@@ -18,8 +19,15 @@ import { TicketTable } from './TicketTable'
 import { TicketDetailModal } from './TicketDetailModal'
 
 export function TicketDashboard() {
-  // State
+  // URL params for tab handling (Feature 1.5)
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const pathname = usePathname()
+  const tabFromUrl = searchParams.get('tab') as 'received' | 'submitted' | null
+
+  // State - view defaults to 'received'
   const [filters, setFilters] = useState<TicketFilters>({
+    view: tabFromUrl || 'received',
     entity_id: null,
     service_id: null,
     status: null,
@@ -32,6 +40,18 @@ export function TicketDashboard() {
   })
   const [page, setPage] = useState(1)
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+
+  // Sync view state with URL param changes (Feature 1.5)
+  useEffect(() => {
+    const newView = tabFromUrl || 'received'
+    setFilters((prev) => {
+      if (prev.view !== newView) {
+        setPage(1)
+        return { ...prev, view: newView }
+      }
+      return prev
+    })
+  }, [tabFromUrl])
 
   // Chat context
   const { openModal, closeModal } = useChatContext()
@@ -110,16 +130,58 @@ export function TicketDashboard() {
     refreshStats()
   }
 
+  // Feature 1.5: Handle tab change and update URL
+  const handleTabChange = (newTab: 'received' | 'submitted') => {
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', newTab)
+    router.push(`${pathname}?${params.toString()}`)
+    // State update is handled by the useEffect that watches tabFromUrl
+  }
+
+  const currentView = filters.view || 'received'
+
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex items-center justify-between">
+      {/* Page Header with Tabs */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
           <p className="text-sm text-gray-600 mt-1">
             View and manage all support tickets and grievances
           </p>
         </div>
+      </div>
+
+      {/* Feature 1.5: Tab Navigation */}
+      <div className="border-b border-gray-200">
+        <nav className="-mb-px flex space-x-8" aria-label="Tabs">
+          <button
+            onClick={() => handleTabChange('received')}
+            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              currentView === 'received'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Received
+            <span className="ml-2 text-xs text-gray-400">
+              (Assigned to your entity)
+            </span>
+          </button>
+          <button
+            onClick={() => handleTabChange('submitted')}
+            className={`whitespace-nowrap py-3 px-1 border-b-2 font-medium text-sm transition-colors ${
+              currentView === 'submitted'
+                ? 'border-blue-500 text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Submitted
+            <span className="ml-2 text-xs text-gray-400">
+              (Created by you)
+            </span>
+          </button>
+        </nav>
       </div>
 
       {/* Dashboard Stats */}

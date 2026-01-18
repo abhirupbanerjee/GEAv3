@@ -56,6 +56,12 @@ export interface Timestamps {
 
 // ===== Ticket Types =====
 
+// Feature 1.5: Submitter info (no PII - just type and entity name)
+export interface Submitter {
+  type: 'anonymous' | 'citizen' | 'staff'
+  entity_name: string | null
+}
+
 export interface Ticket {
   ticket_id: number
   ticket_number: string
@@ -68,6 +74,7 @@ export interface Ticket {
   entity: Entity | null
   assigned_entity: Entity | null
   requester: Requester
+  submitter?: Submitter  // Feature 1.5: Who submitted the ticket
   created_at: string
   updated_at: string
   sla_resolution_target: string | null
@@ -133,6 +140,7 @@ export interface DashboardStats {
 // ===== Filter Types =====
 
 export interface TicketFilters {
+  view?: 'received' | 'submitted' | null  // Feature 1.5: Tickets view
   entity_id?: string | null
   service_id?: string | null
   status?: string | null

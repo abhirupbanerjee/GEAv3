@@ -12,6 +12,8 @@
 // ============================================
 
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
 import { sendEmail, sendBulkEmail } from '@/lib/sendgrid';
@@ -219,6 +221,24 @@ export async function POST(request: NextRequest) {
         );
       }
     // ============================================
+    // SUBMITTER TAGGING (Feature 1.5)
+    // Detect if staff is logged in and tag submission
+    // ============================================
+    let submitterType = 'anonymous';
+    let submitterId: string | null = null;
+    let submitterEntityId: string | null = null;
+
+    const session = await getServerSession(authOptions);
+    if (session?.user) {
+      submitterType = 'staff';
+      submitterId = (session.user as any).id || null;
+      submitterEntityId = (session.user as any).entityId || null;
+      console.log(`📋 Staff submission detected: user=${submitterId}, entity=${submitterEntityId}`);
+    } else {
+      console.log(`📋 Anonymous submission (no session)`);
+    }
+
+    // ============================================
     // VALIDATION: Service and entity (unchanged)
     // ============================================
     const serviceCheck = await pool.query(
@@ -260,8 +280,11 @@ export async function POST(request: NextRequest) {
         comment_text,
         grievance_flag,
         submitted_ip_hash,
-        submitted_user_agent
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+        submitted_user_agent,
+        submitter_type,
+        submitter_id,
+        submitter_entity_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING feedback_id, created_at`,
       [
         body.service_id,
@@ -277,7 +300,10 @@ export async function POST(request: NextRequest) {
         body.comment_text || null,
         body.grievance_flag || false,
         ipHash,
-        userAgentHash
+        userAgentHash,
+        submitterType,
+        submitterId,
+        submitterEntityId
       ]
     );
 
@@ -392,7 +418,11 @@ if (needsTicket) {
       q2_clarity: body.q2_clarity,
       q3_timeliness: body.q3_timeliness,
       q4_trust: body.q4_trust,
-      q5_overall_satisfaction: body.q5_overall_satisfaction
+      q5_overall_satisfaction: body.q5_overall_satisfaction,
+      // Feature 1.5: Pass submitter info to ticket
+      submitter_type: submitterType,
+      submitter_id: submitterId,
+      submitter_entity_id: submitterEntityId
     };
     
     console.log(`🔄 TICKET: Calling ${ticketApiUrl}`);

@@ -42,14 +42,41 @@
 
 'use client'
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import { TicketDashboard } from '@/components/admin/tickets/TicketDashboard'
+
+// Loading fallback for Suspense (required for useSearchParams)
+function TicketDashboardFallback() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Tickets</h1>
+          <p className="text-sm text-gray-600 mt-1">Loading...</p>
+        </div>
+      </div>
+      <div className="bg-white rounded-lg shadow p-6">
+        <div className="animate-pulse flex space-x-4">
+          <div className="flex-1 space-y-4 py-1">
+            <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+            <div className="space-y-2">
+              <div className="h-4 bg-gray-200 rounded"></div>
+              <div className="h-4 bg-gray-200 rounded w-5/6"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 export default function AdminTicketsPage() {
   return (
     <div className="min-h-screen bg-gray-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
-        <TicketDashboard />
+        <Suspense fallback={<TicketDashboardFallback />}>
+          <TicketDashboard />
+        </Suspense>
       </div>
     </div>
   )

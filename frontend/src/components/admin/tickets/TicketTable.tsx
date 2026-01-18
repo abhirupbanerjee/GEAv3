@@ -39,6 +39,21 @@ export function TicketTable({
     })
   }
 
+  // Feature 1.5: Display submitter type (no PII)
+  const getSubmitterDisplay = (submitter?: { type: string; entity_name: string | null }) => {
+    if (!submitter) return 'Unknown'
+    switch (submitter.type) {
+      case 'anonymous':
+        return 'Anonymous'
+      case 'citizen':
+        return 'Citizen'
+      case 'staff':
+        return submitter.entity_name ? `Staff - ${submitter.entity_name}` : 'Staff'
+      default:
+        return 'Unknown'
+    }
+  }
+
   const SortIcon = ({ column }: { column: TicketSort['by'] }) => {
     if (sort.by !== column) {
       return <span className="text-gray-400">⇅</span>
@@ -131,6 +146,9 @@ export function TicketTable({
               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Requester
               </th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Submitted By
+              </th>
               <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -171,6 +189,17 @@ export function TicketTable({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div>{ticket.requester.name || 'N/A'}</div>
                   <div className="text-xs text-gray-400">{ticket.requester.email}</div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    ticket.submitter?.type === 'staff'
+                      ? 'bg-purple-100 text-purple-800'
+                      : ticket.submitter?.type === 'citizen'
+                      ? 'bg-green-100 text-green-800'
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {getSubmitterDisplay(ticket.submitter)}
+                  </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(ticket.created_at)}

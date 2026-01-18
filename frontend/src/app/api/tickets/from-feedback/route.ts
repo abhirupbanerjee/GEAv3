@@ -184,7 +184,11 @@ export async function POST(request: NextRequest) {
       q2_clarity,
       q3_timeliness,
       q4_trust,
-      q5_overall_satisfaction
+      q5_overall_satisfaction,
+      // Feature 1.5: Submitter tagging
+      submitter_type = 'anonymous',
+      submitter_id = null,
+      submitter_entity_id = null
     } = body;
 
     // ============================================
@@ -286,8 +290,11 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         status_id,
         created_by,
         created_at,
-        updated_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+        updated_at,
+        submitter_type,
+        submitter_id,
+        submitter_entity_id
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
       RETURNING ticket_id, ticket_number, created_at`,
       [
         ticketNumber,
@@ -302,7 +309,10 @@ ${comment_text ? `\nCitizen Comments:\n${comment_text}` : ''}
         status_id,
         'from-feedback-system',
         now,
-        now
+        now,
+        submitter_type,
+        submitter_id,
+        submitter_entity_id
       ]
     );
     

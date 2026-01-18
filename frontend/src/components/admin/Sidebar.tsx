@@ -270,6 +270,10 @@ const navigationItems: NavigationItem[] = [
     href: '/admin/tickets',
     icon: <TicketsIcon />,
     requiredRole: null,
+    children: [
+      { label: 'Received', tabKey: 'received' },
+      { label: 'Submitted', tabKey: 'submitted' },
+    ],
   },
   {
     label: 'Settings',

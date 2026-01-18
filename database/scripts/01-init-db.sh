@@ -211,11 +211,17 @@ BEGIN
         CREATE INDEX IF NOT EXISTS idx_feedback_grievance ON service_feedback(grievance_flag);
     END IF;
     
-    IF EXISTS (SELECT column_name FROM information_schema.columns 
+    IF EXISTS (SELECT column_name FROM information_schema.columns
                WHERE table_name='service_feedback' AND column_name='created_at') THEN
         CREATE INDEX IF NOT EXISTS idx_feedback_created ON service_feedback(created_at DESC);
     END IF;
 END $$;
+
+-- Polymorphic submitter columns for service_feedback (Feature 1.5: Staff Submitter Tagging)
+ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS submitter_type VARCHAR(20) DEFAULT 'anonymous';
+ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS submitter_id UUID;
+ALTER TABLE service_feedback ADD COLUMN IF NOT EXISTS submitter_entity_id VARCHAR(50);
+CREATE INDEX IF NOT EXISTS idx_feedback_submitter ON service_feedback(submitter_type, submitter_id) WHERE submitter_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS qr_codes (
     qr_code_id VARCHAR(50) PRIMARY KEY,
@@ -271,6 +277,14 @@ CREATE TABLE IF NOT EXISTS tickets (
 -- Add missing columns (migration safety)
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS entity_id VARCHAR(50) DEFAULT 'AGY-002';
 ALTER TABLE tickets ADD COLUMN IF NOT EXISTS requester_category VARCHAR(50) DEFAULT 'citizen';
+
+-- Polymorphic submitter columns (Feature 1.5: Staff Submitter Tagging)
+-- submitter_type: 'anonymous' (public), 'citizen' (logged-in citizen), 'staff' (logged-in staff)
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS submitter_type VARCHAR(20) DEFAULT 'anonymous';
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS submitter_id UUID;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS submitter_entity_id VARCHAR(50);
+CREATE INDEX IF NOT EXISTS idx_tickets_submitter ON tickets(submitter_type, submitter_id) WHERE submitter_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_tickets_submitter_entity ON tickets(submitter_entity_id) WHERE submitter_entity_id IS NOT NULL;
 
 -- FIX: Use PL/pgSQL DO block for FK constraints (PostgreSQL 13 compatible)
 DO $$
@@ -413,6 +427,12 @@ CREATE INDEX IF NOT EXISTS idx_grievance_status ON grievance_tickets(status);
 CREATE INDEX IF NOT EXISTS idx_grievance_service ON grievance_tickets(service_id);
 CREATE INDEX IF NOT EXISTS idx_grievance_entity ON grievance_tickets(entity_id);
 CREATE INDEX IF NOT EXISTS idx_grievance_created ON grievance_tickets(created_at DESC);
+
+-- Polymorphic submitter columns for grievance_tickets (Feature 1.5: Staff Submitter Tagging)
+ALTER TABLE grievance_tickets ADD COLUMN IF NOT EXISTS submitter_type VARCHAR(20) DEFAULT 'anonymous';
+ALTER TABLE grievance_tickets ADD COLUMN IF NOT EXISTS submitter_id UUID;
+ALTER TABLE grievance_tickets ADD COLUMN IF NOT EXISTS submitter_entity_id VARCHAR(50);
+CREATE INDEX IF NOT EXISTS idx_grievance_submitter ON grievance_tickets(submitter_type, submitter_id) WHERE submitter_id IS NOT NULL;
 
 CREATE TABLE IF NOT EXISTS grievance_attachments (
     attachment_id SERIAL PRIMARY KEY,

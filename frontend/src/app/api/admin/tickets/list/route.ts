@@ -6,6 +6,7 @@
  * Returns paginated list of tickets with filtering and sorting capabilities
  *
  * Query Parameters:
+ *   - view: "received" (assigned to entity) or "submitted" (created by user) - Feature 1.5
  *   - entity_id: Filter by assigned entity (optional)
  *   - service_id: Filter by service (optional)
  *   - status: Filter by status code (optional, e.g., "1", "2", "3", "4")
@@ -41,6 +42,9 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url)
+
+    // Feature 1.5: View parameter for "received" vs "submitted" tickets
+    const view = searchParams.get('view') as 'received' | 'submitted' | null
 
     // Apply entity filter for staff users - override entity_id parameter
     const entityFilter = getEntityFilter(session)
@@ -95,7 +99,17 @@ export async function GET(request: NextRequest) {
     const queryParams: any[] = []
     let paramIndex = 1
 
-    if (entityId) {
+    // Feature 1.5: Handle view parameter for "received" vs "submitted"
+    if (view === 'submitted') {
+      // Show tickets submitted by the current user
+      const userId = (session.user as any).id
+      if (userId) {
+        whereClauses.push(`t.submitter_id = $${paramIndex}`)
+        queryParams.push(userId)
+        paramIndex++
+      }
+    } else if (entityId) {
+      // Default "received" view: filter by assigned entity
       whereClauses.push(`t.assigned_entity_id = $${paramIndex}`)
       queryParams.push(entityId)
       paramIndex++
@@ -160,6 +174,8 @@ export async function GET(request: NextRequest) {
         t.created_at,
         t.updated_at,
         t.sla_resolution_target,
+        t.submitter_type,
+        t.submitter_entity_id,
         ts.status_id,
         ts.status_name,
         ts.status_code,
@@ -174,6 +190,7 @@ export async function GET(request: NextRequest) {
         em.entity_name,
         aem.unique_entity_id as assigned_entity_id,
         aem.entity_name as assigned_entity_name,
+        sem.entity_name as submitter_entity_name,
         CASE
           WHEN t.sla_resolution_target < NOW() AND ts.is_terminal = false
           THEN true
@@ -185,6 +202,7 @@ export async function GET(request: NextRequest) {
       LEFT JOIN service_master sm ON t.service_id = sm.service_id
       LEFT JOIN entity_master em ON t.entity_id = em.unique_entity_id
       LEFT JOIN entity_master aem ON t.assigned_entity_id = aem.unique_entity_id
+      LEFT JOIN entity_master sem ON t.submitter_entity_id = sem.unique_entity_id
       ${whereClause}
       ORDER BY t.${sortBy} ${sortOrder.toUpperCase()}
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
@@ -227,6 +245,11 @@ export async function GET(request: NextRequest) {
         name: ticket.submitter_name,
         email: ticket.submitter_email
       },
+      // Feature 1.5: Submitter info (no PII - just type and entity name)
+      submitter: {
+        type: ticket.submitter_type || 'anonymous',
+        entity_name: ticket.submitter_entity_name || null
+      },
       created_at: ticket.created_at,
       updated_at: ticket.updated_at,
       sla_resolution_target: ticket.sla_resolution_target,
@@ -248,6 +271,7 @@ export async function GET(request: NextRequest) {
           has_prev: page > 1
         },
         filters: {
+          view,
           entity_id: entityId,
           service_id: serviceId,
           status,

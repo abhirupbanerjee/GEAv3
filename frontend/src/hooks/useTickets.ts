@@ -35,6 +35,8 @@ export function useTickets(params: UseTicketsParams = {}) {
   // Build query string
   const queryParams = new URLSearchParams()
 
+  // Feature 1.5: View parameter for "received" vs "submitted" tickets
+  if (filters.view) queryParams.set('view', filters.view)
   if (filters.entity_id) queryParams.set('entity_id', filters.entity_id)
   if (filters.service_id) queryParams.set('service_id', filters.service_id)
   if (filters.status) queryParams.set('status', filters.status)
