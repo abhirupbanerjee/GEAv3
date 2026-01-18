@@ -85,6 +85,62 @@ export async function GET(request: NextRequest) {
 }
 
 /**
+ * Validate staff user permissions for creating users
+ * Returns error response if validation fails, null if valid
+ */
+function validateStaffPermissions(
+  isAdmin: boolean,
+  roleType: string,
+  creatorEntityId: string | null
+): { error: string; status: number } | null {
+  if (isAdmin) return null;
+
+  if (roleType === 'admin') {
+    return { error: 'Staff users cannot create admin accounts', status: 403 };
+  }
+
+  if (!creatorEntityId) {
+    return { error: 'Staff user has no assigned entity', status: 400 };
+  }
+
+  return null;
+}
+
+/**
+ * Determine final entity ID for new user based on role and permissions
+ */
+function determineEntityId(
+  isAdmin: boolean,
+  roleType: string,
+  requestedEntityId: string | null,
+  creatorEntityId: string | null,
+  allowedAdminEntities: string[],
+  dtaEntityId: string
+): string | null {
+  // Staff users must create users for their own entity
+  if (!isAdmin) {
+    return creatorEntityId;
+  }
+
+  // Admin creating non-admin user
+  if (roleType !== 'admin') {
+    return requestedEntityId;
+  }
+
+  // Admin creating admin user
+  if (requestedEntityId && allowedAdminEntities.includes(requestedEntityId)) {
+    return requestedEntityId;
+  }
+
+  // Default to DTA if allowed
+  if (allowedAdminEntities.includes(dtaEntityId)) {
+    return dtaEntityId;
+  }
+
+  return null;
+}
+
+/**
  * POST /api/admin/users
  * Add a new user to the system
  * Admin: can add any user type
@@ -145,23 +201,13 @@ export async function POST(request: NextRequest) {
 
     const { role_type: roleType, role_code: roleCode } = roleCheck.rows[0];
 
-    // Staff users can only create staff users for their own entity
-    if (!isAdmin) {
-      // Staff cannot create admin users
-      if (roleType === 'admin') {
-        return NextResponse.json(
-          { error: 'Staff users cannot create admin accounts' },
-          { status: 403 }
-        );
-      }
-
-      // Staff can only create users for their own entity
-      if (!creatorEntityId) {
-        return NextResponse.json(
-          { error: 'Staff user has no assigned entity' },
-          { status: 400 }
-        );
-      }
+    // Validate staff user permissions
+    const permissionError = validateStaffPermissions(isAdmin, roleType, creatorEntityId);
+    if (permissionError) {
+      return NextResponse.json(
+        { error: permissionError.error },
+        { status: permissionError.status }
+      );
     }
 
     // Get allowed admin entities from settings
@@ -170,32 +216,24 @@ export async function POST(request: NextRequest) {
       ? JSON.parse(allowedEntitiesRaw)
       : (Array.isArray(allowedEntitiesRaw) ? allowedEntitiesRaw : ['AGY-005']);
 
-    let finalEntityId = entity_id;
-
-    // Staff users must create users for their own entity only
-    if (!isAdmin) {
-      finalEntityId = creatorEntityId;
+    // Validate admin entity selection
+    if (isAdmin && roleType === 'admin' && entity_id && !allowedAdminEntities.includes(entity_id)) {
+      return NextResponse.json(
+        { error: 'Selected entity is not allowed to have admin users' },
+        { status: 400 }
+      );
     }
 
-    // Handle admin role entity assignment (admin users only)
-    if (isAdmin && roleType === 'admin') {
-      if (entity_id) {
-        // Validate entity is in allowed list
-        if (!allowedAdminEntities.includes(entity_id)) {
-          return NextResponse.json(
-            { error: 'Selected entity is not allowed to have admin users' },
-            { status: 400 }
-          );
-        }
-        finalEntityId = entity_id;
-      } else {
-        // Default to DTA if in allowed list
-        const dtaEntityId = await getServiceRequestEntityId();
-        if (allowedAdminEntities.includes(dtaEntityId)) {
-          finalEntityId = dtaEntityId;
-        }
-      }
-    }
+    // Determine final entity ID
+    const dtaEntityId = await getServiceRequestEntityId();
+    const finalEntityId = determineEntityId(
+      isAdmin,
+      roleType,
+      entity_id,
+      creatorEntityId,
+      allowedAdminEntities,
+      dtaEntityId
+    );
 
     // Validate entity requirement for staff
     if (roleType === 'staff' && !finalEntityId) {

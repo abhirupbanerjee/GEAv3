@@ -81,6 +81,144 @@ interface NavigationItem {
   children?: SubItem[]
 }
 
+interface SidebarMenuItemProps {
+  item: NavigationItem
+  isActive: boolean
+  isExpanded: boolean
+  isCollapsed: boolean
+  pathname: string
+  searchParams: ReturnType<typeof useSearchParams>
+  onToggleExpand: (href: string) => void
+  onMobileClose: () => void
+}
+
+// Extracted component to reduce cognitive complexity
+function SidebarMenuItem({
+  item,
+  isActive,
+  isExpanded,
+  isCollapsed,
+  pathname,
+  searchParams,
+  onToggleExpand,
+  onMobileClose,
+}: SidebarMenuItemProps) {
+  const hasChildren = item.children && item.children.length > 0
+
+  const isSubItemActive = (parentHref: string, tabKey: string) => {
+    if (pathname !== parentHref) return false
+    return searchParams.get('tab') === tabKey
+  }
+
+  const baseClasses = `flex items-center rounded-lg transition-all ${
+    isCollapsed ? 'justify-center p-3' : 'space-x-3 px-4 py-3'
+  }`
+
+  const activeClasses = isCollapsed
+    ? 'bg-blue-100 text-blue-700'
+    : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
+
+  const inactiveClasses = 'text-gray-700 hover:bg-gray-100'
+
+  if (hasChildren) {
+    return (
+      <div className="relative group">
+        <div className="flex flex-col">
+          <button
+            onClick={() => {
+              if (isCollapsed) {
+                window.location.href = item.href
+              } else {
+                onToggleExpand(item.href)
+              }
+            }}
+            className={`flex items-center w-full rounded-lg transition-all ${
+              isCollapsed ? 'justify-center p-3' : 'justify-between px-4 py-3'
+            } ${
+              isActive || (pathname === item.href && !searchParams.get('tab'))
+                ? activeClasses
+                : inactiveClasses
+            }`}
+            aria-label={isCollapsed ? item.label : undefined}
+            title={isCollapsed ? item.label : undefined}
+          >
+            <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
+              <span className={isCollapsed ? '' : 'flex-shrink-0'}>
+                {item.icon}
+              </span>
+              {!isCollapsed && <span>{item.label}</span>}
+            </div>
+            {!isCollapsed && <ChevronDownIcon isOpen={isExpanded} />}
+          </button>
+
+          {!isCollapsed && isExpanded && (
+            <div className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1 relative z-10">
+              {item.children!.map((child) => {
+                const childHref = child.href || `${item.href}?tab=${child.tabKey}`
+                const isChildActive = child.href
+                  ? pathname === child.href
+                  : isSubItemActive(item.href, child.tabKey)
+                return (
+                  <Link
+                    key={child.tabKey}
+                    href={childHref}
+                    prefetch={false}
+                    onClick={onMobileClose}
+                    className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
+                      isChildActive
+                        ? 'bg-blue-50 text-blue-700 font-medium'
+                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                    }`}
+                  >
+                    <SubItemIcon />
+                    <span>{child.label}</span>
+                  </Link>
+                )
+              })}
+            </div>
+          )}
+        </div>
+
+        {isCollapsed && (
+          <div className="hidden lg:group-hover:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
+            <div className="bg-gray-800 text-white text-sm px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+              {item.label}
+              <span className="text-gray-400 text-xs ml-1">({item.children!.length})</span>
+              <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative group">
+      <Link
+        href={item.href}
+        onClick={onMobileClose}
+        className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
+        aria-label={isCollapsed ? item.label : undefined}
+        title={isCollapsed ? item.label : undefined}
+      >
+        <span className={isCollapsed ? '' : 'flex-shrink-0'}>
+          {item.icon}
+        </span>
+        {!isCollapsed && <span>{item.label}</span>}
+      </Link>
+
+      {isCollapsed && (
+        <div className="hidden lg:group-hover:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
+          <div className="bg-gray-800 text-white text-sm px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
+            {item.label}
+            <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 const navigationItems: NavigationItem[] = [
   // Admin-only home
   {
@@ -250,13 +388,6 @@ function SidebarContent() {
     return session?.user?.roleType === item.requiredRole
   })
 
-  // Check if current path and tab matches a sub-item
-  const isSubItemActive = (parentHref: string, tabKey: string) => {
-    if (pathname !== parentHref) return false
-    const currentTab = searchParams.get('tab')
-    return currentTab === tabKey
-  }
-
   // Check if parent is active (either direct match or any child is active)
   const isParentActive = (item: NavigationItem) => {
     if (pathname === item.href) {
@@ -322,118 +453,19 @@ function SidebarContent() {
 
         {/* Navigation */}
         <nav className="flex-1 p-2 space-y-1 overflow-y-auto">
-          {visibleMenuItems.map((item) => {
-            const isActive = isParentActive(item)
-            const isExpanded = expandedItems.includes(item.href)
-            const hasChildren = item.children && item.children.length > 0
-
-            return (
-              <div key={item.href} className="relative group">
-                {/* Main menu item */}
-                {hasChildren ? (
-                  // Parent item with children - clickable to expand/collapse
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => {
-                        if (isCollapsed) {
-                          // When collapsed, navigate to parent page
-                          window.location.href = item.href
-                        } else {
-                          toggleExpanded(item.href)
-                        }
-                      }}
-                      className={`flex items-center w-full rounded-lg transition-all ${
-                        isCollapsed
-                          ? 'justify-center p-3'
-                          : 'justify-between px-4 py-3'
-                      } ${
-                        isActive || (pathname === item.href && !searchParams.get('tab'))
-                          ? isCollapsed
-                            ? 'bg-blue-100 text-blue-700'
-                            : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
-                          : 'text-gray-700 hover:bg-gray-100'
-                      }`}
-                      aria-label={isCollapsed ? item.label : undefined}
-                      title={isCollapsed ? item.label : undefined}
-                    >
-                      <div className={`flex items-center ${isCollapsed ? '' : 'space-x-3'}`}>
-                        <span className={isCollapsed ? '' : 'flex-shrink-0'}>
-                          {item.icon}
-                        </span>
-                        {!isCollapsed && <span>{item.label}</span>}
-                      </div>
-                      {!isCollapsed && <ChevronDownIcon isOpen={isExpanded} />}
-                    </button>
-
-                    {/* Sub-items */}
-                    {!isCollapsed && isExpanded && (
-                      <div className="mt-1 ml-4 pl-4 border-l border-gray-200 space-y-1 relative z-10">
-                        {item.children!.map((child) => {
-                          const childHref = child.href || `${item.href}?tab=${child.tabKey}`
-                          const isChildActive = child.href
-                            ? pathname === child.href
-                            : isSubItemActive(item.href, child.tabKey)
-                          return (
-                            <Link
-                              key={child.tabKey}
-                              href={childHref}
-                              prefetch={false}
-                              onClick={() => setIsMobileOpen(false)}
-                              className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
-                                isChildActive
-                                  ? 'bg-blue-50 text-blue-700 font-medium'
-                                  : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                              }`}
-                            >
-                              <SubItemIcon />
-                              <span>{child.label}</span>
-                            </Link>
-                          )
-                        })}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  // Regular menu item without children
-                  <Link
-                    href={item.href}
-                    onClick={() => setIsMobileOpen(false)}
-                    className={`flex items-center rounded-lg transition-all ${
-                      isCollapsed
-                        ? 'justify-center p-3'
-                        : 'space-x-3 px-4 py-3'
-                    } ${
-                      isActive
-                        ? isCollapsed
-                          ? 'bg-blue-100 text-blue-700'
-                          : 'bg-blue-50 text-blue-700 font-medium border-l-3 border-blue-600'
-                        : 'text-gray-700 hover:bg-gray-100'
-                    }`}
-                    aria-label={isCollapsed ? item.label : undefined}
-                    title={isCollapsed ? item.label : undefined}
-                  >
-                    <span className={isCollapsed ? '' : 'flex-shrink-0'}>
-                      {item.icon}
-                    </span>
-                    {!isCollapsed && <span>{item.label}</span>}
-                  </Link>
-                )}
-
-                {/* Tooltip for collapsed state - Desktop only */}
-                {isCollapsed && (
-                  <div className="hidden lg:group-hover:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
-                    <div className="bg-gray-800 text-white text-sm px-3 py-2 rounded-md whitespace-nowrap shadow-lg">
-                      {item.label}
-                      {hasChildren && (
-                        <span className="text-gray-400 text-xs ml-1">({item.children!.length})</span>
-                      )}
-                      <div className="absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-gray-800"></div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )
-          })}
+          {visibleMenuItems.map((item) => (
+            <SidebarMenuItem
+              key={item.href}
+              item={item}
+              isActive={isParentActive(item)}
+              isExpanded={expandedItems.includes(item.href)}
+              isCollapsed={isCollapsed}
+              pathname={pathname}
+              searchParams={searchParams}
+              onToggleExpand={toggleExpanded}
+              onMobileClose={() => setIsMobileOpen(false)}
+            />
+          ))}
         </nav>
       </div>
     </>
