@@ -171,15 +171,6 @@ SELECT * FROM (VALUES
 ) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Chatbot' LIMIT 1);
 
--- Category: INTEGRATIONS - Captcha
-INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, is_sensitive, default_value, is_runtime, sort_order)
-SELECT * FROM (VALUES
-    ('HCAPTCHA_ENABLED', 'true', 'boolean', 'INTEGRATIONS', 'Captcha', 'Enable hCaptcha', 'Require captcha verification on forms', false, 'true', true, 20),
-    ('HCAPTCHA_SITEKEY', '', 'string', 'INTEGRATIONS', 'Captcha', 'hCaptcha Site Key', 'Public site key from hCaptcha dashboard', false, '', true, 21),
-    ('HCAPTCHA_SECRET', '', 'secret', 'INTEGRATIONS', 'Captcha', 'hCaptcha Secret', 'Secret key from hCaptcha dashboard', true, '', true, 22)
-) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, is_sensitive, default_value, is_runtime, sort_order)
-WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Captcha' LIMIT 1);
-
 -- Category: BUSINESS_RULES - Service Requests
 INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, options, is_runtime, sort_order)
 SELECT * FROM (VALUES

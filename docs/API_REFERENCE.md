@@ -616,7 +616,6 @@ Public endpoint for citizens to submit new tickets.
 | contact_name | string | Yes | Max 255 chars | Submitter name |
 | contact_email | string | Yes | Valid email | Contact email |
 | contact_phone | string | No | Max 50 chars | Contact phone |
-| captcha_token | string | Conditional | | Required after threshold failures |
 
 **Success Response (201 Created):**
 ```json
@@ -633,18 +632,6 @@ Public endpoint for citizens to submit new tickets.
     "tracking_url": "https://gea.your-domain.com/helpdesk/ticket/202511-000456"
   },
   "message": "Your ticket has been created successfully. Please save your ticket number: 202511-000456"
-}
-```
-
-**CAPTCHA Required (403 Forbidden):**
-```json
-{
-  "success": false,
-  "error": {
-    "code": "CAPTCHA_REQUIRED",
-    "message": "CAPTCHA verification required. Please complete the challenge.",
-    "captcha_site_key": "6Lf..."
-  }
 }
 ```
 
@@ -3013,7 +3000,7 @@ done
 | 201 | Created | Successful POST (resource created) |
 | 400 | Bad Request | Validation errors, malformed requests |
 | 401 | Unauthorized | Missing or invalid authentication |
-| 403 | Forbidden | CAPTCHA required, insufficient permissions |
+| 403 | Forbidden | Insufficient permissions |
 | 404 | Not Found | Resource not found |
 | 409 | Conflict | Duplicate resource (e.g., ID already exists) |
 | 413 | Payload Too Large | File size exceeds limit |
@@ -3027,7 +3014,6 @@ done
 |------|-------------|-------------|
 | VALIDATION_ERROR | 400 | Input validation failed |
 | INVALID_CREDENTIALS | 401 | Wrong password |
-| CAPTCHA_REQUIRED | 403 | CAPTCHA verification needed |
 | RATE_LIMIT_EXCEEDED | 429 | Too many requests |
 | TICKET_NOT_FOUND | 404 | Ticket doesn't exist |
 | SERVICE_NOT_FOUND | 404 | Service doesn't exist |

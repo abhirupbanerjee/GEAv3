@@ -280,7 +280,6 @@ ADMIN_NAME="Admin User" \
 |-------|-------------|-------------|
 | `submission_rate_limit` | ip_hash | Rate limiting tracking |
 | `submission_attempts` | attempt_id | Submission audit trail |
-| `captcha_challenges` | challenge_id | CAPTCHA tracking |
 
 ---
 

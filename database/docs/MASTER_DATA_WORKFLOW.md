@@ -432,7 +432,7 @@ sleep 5
 - ✓ tickets, ticket_activity, ticket_attachments
 - ✓ sla_breaches, ticket_notes
 - ✓ qr_codes
-- ✓ submission_rate_limit, submission_attempts, captcha_challenges
+- ✓ submission_rate_limit, submission_attempts
 - ✓ service_attachments
 - ✓ service_master
 - ✓ entity_master

@@ -105,12 +105,6 @@ export const SubmitTicketRequestSchema = z
       .optional()
       .nullable()
       .describe('QR code identifier if submitted via QR'),
-    
-    captcha_token: z
-      .string()
-      .min(1, 'CAPTCHA token required if threshold exceeded')
-      .optional()
-      .describe('Google reCAPTCHA token'),
   })
   .strict()
 

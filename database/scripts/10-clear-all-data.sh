@@ -119,7 +119,6 @@ TRUNCATE TABLE qr_codes CASCADE;
 -- Clear security/audit tables
 TRUNCATE TABLE submission_rate_limit CASCADE;
 TRUNCATE TABLE submission_attempts CASCADE;
-TRUNCATE TABLE captcha_challenges CASCADE;
 
 -- Re-enable triggers
 SET session_replication_role = 'origin';
@@ -175,7 +174,6 @@ ALTER SEQUENCE IF EXISTS service_attachments_service_attachment_id_seq RESTART W
 
 -- Reset security sequences
 ALTER SEQUENCE IF EXISTS submission_attempts_id_seq RESTART WITH 1;
-ALTER SEQUENCE IF EXISTS captcha_challenges_id_seq RESTART WITH 1;
 
 SELECT '✓ All sequences reset' AS status;
 EOF

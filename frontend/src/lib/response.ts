@@ -153,17 +153,6 @@ export const ErrorCodes = {
     message: 'You have exceeded the maximum number of requests. Please try again later.',
     statusCode: 429,
   },
-  CAPTCHA_REQUIRED: {
-    code: 'captcha_required',
-    message: 'CAPTCHA verification required',
-    statusCode: 429,
-  },
-  CAPTCHA_INVALID: {
-    code: 'captcha_invalid',
-    message: 'CAPTCHA verification failed. Please try again.',
-    statusCode: 400,
-  },
-
   // Server errors (500)
   INTERNAL_SERVER_ERROR: {
     code: 'internal_server_error',

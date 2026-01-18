@@ -532,16 +532,6 @@ CREATE TABLE IF NOT EXISTS submission_attempts (
 
 CREATE INDEX IF NOT EXISTS idx_attempts_ip ON submission_attempts(ip_hash);
 
-CREATE TABLE IF NOT EXISTS captcha_challenges (
-    challenge_id SERIAL PRIMARY KEY,
-    ip_hash VARCHAR(64) NOT NULL,
-    challenge_issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    challenge_completed_at TIMESTAMP,
-    success BOOLEAN
-);
-
-CREATE INDEX IF NOT EXISTS idx_captcha_ip ON captcha_challenges(ip_hash);
-
 EOF
 
 echo "✓ All tables created/verified with migration safety (PostgreSQL 13 compatible)"
@@ -859,7 +849,6 @@ echo ""
 echo "🔒 Security Ready:"
 echo "  ✓ Rate limiting"
 echo "  ✓ Submission audit"
-echo "  ✓ CAPTCHA tracking"
 echo "  ✓ File constraints"
 echo ""
 echo "📦 Backup Location: $BACKUP_FILE"

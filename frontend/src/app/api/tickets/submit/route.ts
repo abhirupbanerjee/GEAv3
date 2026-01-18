@@ -1,11 +1,10 @@
 /**
  * POST /api/tickets/submit
- * 
+ *
  * Public endpoint for citizens to submit new tickets
- * Includes rate limiting, CAPTCHA verification, and feedback integration
- * 
+ * Includes rate limiting and feedback integration
+ *
  * Rate Limit: 5 submissions per hour per IP
- * CAPTCHA: Required after 2 successful submissions
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -28,7 +27,6 @@ import {
 import {
   checkRateLimit,
   recordAttempt,
-  verifyCaptcha,
   getClientIP,
   hashIP,
 } from '@/lib/rate-limit'
@@ -121,17 +119,8 @@ export async function POST(request: NextRequest) {
     
     // Cast to proper type when validation succeeds
     const ticketData = (validation as any).data as TicketData
-    
-    // 4. VERIFY CAPTCHA IF PROVIDED
-    if (body.captcha_token) {
-      const captchaResult = await verifyCaptcha(body.captcha_token)
-      if (!captchaResult.success) {
-        logError('POST', '/api/tickets/submit', `CAPTCHA failed: ${captchaResult.error}`, requestId)
-        return respondError(ErrorCodes.CAPTCHA_INVALID, { requestId })
-      }
-    }
-    
-    // 5. VERIFY SERVICE AND ENTITY EXIST
+
+    // 4. VERIFY SERVICE AND ENTITY EXIST
     const serviceCheck = await executeQuery<ServiceCheckResult>(
       `SELECT s.service_id, s.entity_id, s.is_active
        FROM service_master s

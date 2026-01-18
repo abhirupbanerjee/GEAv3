@@ -4,7 +4,7 @@
  * Key Changes:
  * ✅ Reads EA_SERVICE_RATE_LIMIT and GRIEVANCE_RATE_LIMIT from config/env.ts
  * ✅ Removed hardcoded rate limit values
- * ✅ Removed CAPTCHA logic (not in Phase 2b scope)
+ * ✅ No CAPTCHA logic (out of scope)
  * ✅ Simplified to focus on core feedback/grievance rate limiting
  * ✅ Uses SHA256 hashing for privacy
  * ✅ Simple, efficient database queries
@@ -327,23 +327,6 @@ export async function recordAttempt(
   console.log(`Attempt recorded: ${limitType} - ${success ? 'success' : 'failed'}`);
 }
 
-/**
- * Verify CAPTCHA token (NOT IMPLEMENTED IN PHASE 2B)
- * Kept for backward compatibility with existing imports
- */
-export async function verifyCaptcha(token: string): Promise<{
-  success: boolean;
-  score?: number;
-  action?: string;
-  error?: string;
-}> {
-  console.warn('CAPTCHA not implemented in Phase 2b');
-  return {
-    success: true,
-    error: 'CAPTCHA not configured for Phase 2b'
-  };
-}
-
 export default {
   // Core functions
   hashIP,
@@ -353,6 +336,5 @@ export default {
   checkGrievanceRateLimit,
   getRateLimitStats,
   resetRateLimit,
-  verifyCaptcha,
   recordAttempt,
 }

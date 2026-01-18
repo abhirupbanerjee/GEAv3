@@ -1283,28 +1283,9 @@ EOF
 
 ---
 
-### 19. captcha_challenges
-
-**Purpose:** CAPTCHA verification tracking
-
-| Column | Type | Constraints | Description |
-|--------|------|-------------|-------------|
-| id | SERIAL | PRIMARY KEY | Auto-increment ID |
-| challenge_token | VARCHAR(255) | UNIQUE, NOT NULL | CAPTCHA token |
-| ip_hash | VARCHAR(64) | NOT NULL | SHA256 hashed IP |
-| verified | BOOLEAN | DEFAULT FALSE | Verification status |
-| created_at | TIMESTAMP | DEFAULT NOW() | Challenge time |
-| verified_at | TIMESTAMP | | Verification time |
-
-**CAPTCHA Trigger Logic:**
-- Triggered after 3 failed submissions
-- Or when rate limit is approaching (80% of limit)
-
----
-
 ## Authentication & User Management Tables
 
-### 20. users
+### 19. users
 
 **Purpose:** Central authentication and user management table
 
@@ -1600,7 +1581,7 @@ ea-maturity-assessment-bot | EA Maturity Assessment Bot | planned
 **Categories:**
 - SYSTEM - General, Branding, Contact settings
 - AUTHENTICATION - Google OAuth, Microsoft OAuth
-- INTEGRATIONS - Email (SendGrid), Chatbot, Captcha
+- INTEGRATIONS - Email (SendGrid), Chatbot
 - BUSINESS_RULES - Service Requests, Rate Limits, Thresholds, File Upload
 - CONTENT - Footer Links
 - PERFORMANCE - Caching (Redis)
@@ -2066,13 +2047,6 @@ EOF
 ```bash
 docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
 DELETE FROM submission_attempts WHERE created_at < NOW() - INTERVAL '90 days';
-EOF
-```
-
-**Delete expired CAPTCHA challenges:**
-```bash
-docker exec -it feedback_db psql -U feedback_user -d feedback << 'EOF'
-DELETE FROM captcha_challenges WHERE created_at < NOW() - INTERVAL '1 hour' AND verified = FALSE;
 EOF
 ```
 

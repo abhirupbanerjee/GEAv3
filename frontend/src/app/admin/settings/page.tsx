@@ -76,7 +76,7 @@ interface BackupFile {
 const CATEGORIES = [
   { key: 'SYSTEM', label: 'System', icon: FiSettings, description: 'General settings, branding, and contact info' },
   { key: 'AUTHENTICATION', label: 'Authentication', icon: FiLock, description: 'OAuth providers and login settings' },
-  { key: 'INTEGRATIONS', label: 'Integrations', icon: FiLink, description: 'Email, chatbot, and captcha configuration' },
+  { key: 'INTEGRATIONS', label: 'Integrations', icon: FiLink, description: 'Email and chatbot configuration' },
   { key: 'BUSINESS_RULES', label: 'Business Rules', icon: FiSliders, description: 'Rate limits, thresholds, and file upload' },
   { key: 'PERFORMANCE', label: 'Performance', icon: FiZap, description: 'Caching, connection pooling, and optimization settings' },
   { key: 'CONTENT', label: 'Content', icon: FiFileText, description: 'Footer links and leadership contacts' },
@@ -1109,14 +1109,9 @@ function SettingsPageContent() {
     )
   }
 
-  // Group settings by subcategory (filters out Captcha for INTEGRATIONS)
+  // Group settings by subcategory
   const groupBySubcategory = (settingsList: SystemSetting[], category: string) => {
-    // Filter out Captcha subcategory from INTEGRATIONS
-    const filteredSettings = category === 'INTEGRATIONS'
-      ? settingsList.filter(s => s.subcategory !== 'Captcha')
-      : settingsList
-
-    return filteredSettings.reduce((acc, setting) => {
+    return settingsList.reduce((acc, setting) => {
       const sub = setting.subcategory || 'General'
       if (!acc[sub]) acc[sub] = []
       acc[sub].push(setting)

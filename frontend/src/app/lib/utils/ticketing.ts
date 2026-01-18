@@ -150,20 +150,6 @@ export function checkRateLimit(
 }
 
 /**
- * Requires CAPTCHA if user has high submission attempt rate
- */
-export function requiresCaptcha(ipHash: string, threshold = 2): boolean {
-  const config = RATE_LIMITS.submit;
-  const key = `${config.keyPrefix}${ipHash}`;
-  const entry = rateLimitStore.get(key);
-
-  if (!entry) return false;
-
-  // CAPTCHA required after threshold attempts
-  return entry.count >= threshold;
-}
-
-/**
  * ============================================
  * RESPONSE FORMATTING
  * ============================================

@@ -90,12 +90,7 @@ You will need accounts and credentials for:
    - Sign up: https://app.sendgrid.com/
    - API key optional - application works without email notifications
 
-3. **hCaptcha Account** (for spam protection) *** Optional ***
-   - Free tier available
-   - Sign up: https://www.hcaptcha.com
-   - Site key and secret required
-
-4. **OAuth Providers** (at least one)
+3. **OAuth Providers** (at least one)
    - **Google OAuth:** https://console.cloud.google.com/
    - **Microsoft OAuth** (optional): https://portal.azure.com/
 
@@ -115,7 +110,6 @@ Before starting the installation, ensure you have:
 - [ ] SSH access to the VM (root or sudo user)
 - [ ] Domain name registered and DNS access configured
 - [ ] SendGrid API key obtained (optional - for email notifications)
-- [ ] hCaptcha site key and secret obtained
 - [ ] Google OAuth client ID and secret obtained (or Microsoft)
 - [ ] Firewall rules allow ports 22, 80, 443
 - [ ] VM time zone configured correctly
@@ -517,15 +511,7 @@ ADMIN_PASSWORD=<your-strong-admin-password>             # REQUIRED
 ADMIN_SESSION_SECRET=<paste-your-admin-session-secret> # REQUIRED
 ```
 
-##### H. CAPTCHA Configuration (REQUIRED)
-
-```bash
-# hCaptcha keys (get from https://www.hcaptcha.com)
-NEXT_PUBLIC_HCAPTCHA_SITEKEY=your-hcaptcha-sitekey    # REQUIRED
-HCAPTCHA_SECRET=your-hcaptcha-secret                   # REQUIRED
-```
-
-##### I. External API Access (OPTIONAL)
+##### H. External API Access (OPTIONAL)
 
 ```bash
 # External API key for bot/integration access (paste generated key from step 4.2)
@@ -1427,8 +1413,6 @@ docker compose restart frontend
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth secret | `<from Google>` |
 | `ADMIN_PASSWORD` | Yes | Admin login password | `<strong password>` |
 | `ADMIN_SESSION_SECRET` | Yes | Admin session encryption | `<generated>` |
-| `HCAPTCHA_SITEKEY` | Yes | hCaptcha site key | `<from hCaptcha>` |
-| `HCAPTCHA_SECRET` | Yes | hCaptcha secret | `<from hCaptcha>` |
 | `EXTERNAL_API_KEY` | No | External API access | `<generated or empty>` |
 
 > **Note:** SendGrid variables are optional. When not configured, email notifications are disabled but the application works normally.
@@ -1470,10 +1454,9 @@ docker compose restart frontend
 - `settings_audit_log` - Settings change history
 - `leadership_contacts` - Dynamic leadership contacts for About page
 
-**Security & Audit (3 tables):**
+**Security & Audit (2 tables):**
 - `submission_rate_limit` - Rate limiting
 - `submission_attempts` - Submission audit trail
-- `captcha_challenges` - CAPTCHA verification
 
 **QR Codes (1 table):**
 - `qr_codes` - QR code deployment tracking
@@ -1593,7 +1576,6 @@ Post-installation security review:
 - [ ] System updates configured (unattended-upgrades)
 - [ ] Admin users use strong OAuth accounts
 - [ ] SendGrid API key has minimal required permissions
-- [ ] hCaptcha enabled on all public forms
 - [ ] Rate limiting configured (default: 3-5 per hour)
 - [ ] External API key secured (if enabled)
 - [ ] Docker containers run as non-root users

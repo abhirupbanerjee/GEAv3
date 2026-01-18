@@ -151,8 +151,6 @@ return respondServerError(error, requestId)
 | Error Code | Message | When to Use |
 |------------|---------|-------------|
 | `rate_limit_exceeded` | Too many requests | Rate limit hit |
-| `captcha_required` | CAPTCHA verification required | Need captcha |
-| `captcha_invalid` | CAPTCHA verification failed | Wrong captcha |
 
 ### 3.7 Server Errors (500+)
 

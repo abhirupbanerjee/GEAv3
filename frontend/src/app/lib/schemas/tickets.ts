@@ -60,10 +60,6 @@ export const TicketSubmissionSchema = z.object({
     .positive()
     .optional()
     .nullable(),
-
-  // CAPTCHA verification token (required if rate limit exceeded)
-  captcha_token: z.string()
-    .optional(),
 });
 
 export type TicketSubmissionInput = z.infer<typeof TicketSubmissionSchema>;

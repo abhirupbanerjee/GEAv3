@@ -806,7 +806,6 @@ docker system prune -a
 - **Tailwind CSS:** https://tailwindcss.com/docs
 - **Zod Validation:** https://zod.dev/
 - **SendGrid:** https://docs.sendgrid.com/
-- **hCaptcha:** https://docs.hcaptcha.com/
 
 ### Security Best Practices
 - **OWASP Top 10:** https://owasp.org/www-project-top-ten/
@@ -832,8 +831,7 @@ docker system prune -a
 - [ ] DNS configured pointing to server
 - [ ] `.env` file created from `.env.example`
 - [ ] All passwords generated and configured
-- [ ] SendGrid API key obtained
-- [ ] hCaptcha keys obtained
+- [ ] SendGrid API key obtained (optional)
 - [ ] Ports 80/443 are available
 - [ ] Firewall rules configured
 
@@ -866,7 +864,7 @@ docker system prune -a
 - ✅ User management system with roles
 - ✅ Entity-based access control
 - ✅ Comprehensive API (35+ endpoints)
-- ✅ Rate limiting & CAPTCHA protection
+- ✅ Rate limiting protection
 - ✅ Email notifications via SendGrid
 - ✅ Audit logging system
 - ✅ AI bot inventory management
