@@ -15,6 +15,9 @@ const createSession = (roleType: string, entityId?: string): Session => ({
     name: 'Test User',
     roleType,
     entityId: entityId || null,
+    roleId: roleType === 'admin' ? 1 : 2,
+    roleCode: roleType === 'admin' ? 'ADM' : 'STF',
+    isActive: true,
   },
   expires: new Date(Date.now() + 86400000).toISOString(),
 })

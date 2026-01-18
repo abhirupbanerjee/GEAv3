@@ -6,12 +6,13 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
+import { ReadonlyURLSearchParams } from 'next/navigation'
 import Sidebar from '@/components/admin/Sidebar'
 
 // Mock next/navigation
 vi.mock('next/navigation', () => ({
   usePathname: vi.fn(() => '/admin/home'),
-  useSearchParams: vi.fn(() => new URLSearchParams())
+  useSearchParams: vi.fn(() => new URLSearchParams() as ReadonlyURLSearchParams)
 }))
 
 // Mock next-auth/react
@@ -47,7 +48,7 @@ describe('Sidebar', () => {
     vi.clearAllMocks()
     localStorageMock.getItem.mockReturnValue(null)
     mockUsePathname.mockReturnValue('/admin/home')
-    mockUseSearchParams.mockReturnValue(new URLSearchParams())
+    mockUseSearchParams.mockReturnValue(new URLSearchParams() as ReadonlyURLSearchParams)
   })
 
   describe('Role-based menu filtering', () => {

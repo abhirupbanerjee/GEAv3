@@ -51,8 +51,10 @@ describe('/api/admin/backups/[filename]/download', () => {
     const validFilename = 'backup-2024-01-15-120000.sql'
     const mockBackupInfo = {
       filename: validFilename,
+      created_at: new Date('2024-01-15T12:00:00Z'),
       size: 1024,
-      createdAt: new Date('2024-01-15T12:00:00Z')
+      size_formatted: '1 KB',
+      type: 'manual' as const
     }
 
     it('should return 403 for unauthenticated requests', async () => {
