@@ -55,7 +55,11 @@ export function TicketDashboard() {
   const { openModal, closeModal } = useChatContext()
 
   // Data fetching
-  const { stats, isLoading: statsLoading, mutate: refreshStats } = useDashboardStats(filters.entity_id || undefined)
+  // Feature 1.6: Pass view to stats hook so stats filter by received/submitted
+  const { stats, isLoading: statsLoading, mutate: refreshStats } = useDashboardStats(
+    filters.entity_id || undefined,
+    filters.view
+  )
   const {
     tickets,
     pagination,

@@ -17,10 +17,17 @@ const fetcher = async (url: string): Promise<ApiResponse<DashboardStats>> => {
   return res.json()
 }
 
-export function useDashboardStats(entityId?: string | null) {
+export function useDashboardStats(
+  entityId?: string | null,
+  view?: 'received' | 'submitted' | null
+) {
   const queryParams = new URLSearchParams()
   if (entityId) {
     queryParams.set('entity_id', entityId)
+  }
+  // Feature 1.6: Add view parameter for filtering stats by received/submitted
+  if (view) {
+    queryParams.set('view', view)
   }
 
   const url = `/api/admin/tickets/dashboard-stats${

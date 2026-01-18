@@ -10,7 +10,8 @@
  * - Optional entity filtering
  *
  * Query Parameters:
- *   - entity_id: Filter by assigned entity (optional)
+ *   - view: "received" (assigned to entity) or "submitted" (created by user) - Feature 1.6
+ *   - entity_id: Filter by assigned entity (optional, used for "received" view)
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -38,13 +39,32 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url)
 
+    // Feature 1.6: View parameter for "received" vs "submitted" tickets
+    const view = searchParams.get('view') as 'received' | 'submitted' | null
+
     // Apply entity filter for staff users - override entity_id parameter
     const entityFilter = getEntityFilter(session)
     const entityId = entityFilter || searchParams.get('entity_id')
 
-    // Build WHERE clause for entity filtering
-    const whereClause = entityId ? 'WHERE t.assigned_entity_id = $1' : ''
-    const queryParams = entityId ? [entityId] : []
+    // Feature 1.6: Build WHERE clause based on view
+    let whereClause = ''
+    let joinCondition = '' // For LEFT JOIN queries (status, priority)
+    const queryParams: (string | null)[] = []
+
+    if (view === 'submitted') {
+      // Show stats for tickets submitted by the current user
+      const userId = (session.user as any).id
+      if (userId) {
+        whereClause = 'WHERE t.submitter_id = $1'
+        joinCondition = 'AND t.submitter_id = $1'
+        queryParams.push(userId)
+      }
+    } else if (entityId) {
+      // Default "received" view: filter by assigned entity
+      whereClause = 'WHERE t.assigned_entity_id = $1'
+      joinCondition = 'AND t.assigned_entity_id = $1'
+      queryParams.push(entityId)
+    }
 
     // Query 1: Total tickets
     const totalQuery = `
@@ -63,7 +83,7 @@ export async function GET(request: NextRequest) {
         ts.color_code,
         COUNT(t.ticket_id) as count
       FROM ticket_status ts
-      LEFT JOIN tickets t ON ts.status_id = t.status_id ${entityId ? 'AND t.assigned_entity_id = $1' : ''}
+      LEFT JOIN tickets t ON ts.status_id = t.status_id ${joinCondition}
       WHERE ts.is_active = true
       GROUP BY ts.status_id, ts.status_name, ts.status_code, ts.color_code, ts.sort_order
       ORDER BY ts.sort_order
@@ -86,7 +106,7 @@ export async function GET(request: NextRequest) {
         pl.color_code,
         COUNT(t.ticket_id) as count
       FROM priority_levels pl
-      LEFT JOIN tickets t ON pl.priority_id = t.priority_id ${entityId ? 'AND t.assigned_entity_id = $1' : ''}
+      LEFT JOIN tickets t ON pl.priority_id = t.priority_id ${joinCondition}
       WHERE pl.is_active = true
       GROUP BY pl.priority_id, pl.priority_name, pl.priority_code, pl.color_code, pl.sort_order
       ORDER BY pl.sort_order
@@ -122,13 +142,20 @@ export async function GET(request: NextRequest) {
     const metrics = metricsResult.rows[0]
 
     // Calculate SLA compliance (tickets resolved within target / total resolved)
+    // Feature 1.6: Apply view filter to SLA query
+    let slaFilterClause = ''
+    if (view === 'submitted' && queryParams.length > 0) {
+      slaFilterClause = 'AND t.submitter_id = $1'
+    } else if (entityId) {
+      slaFilterClause = 'AND t.assigned_entity_id = $1'
+    }
     const slaQuery = `
       SELECT
         COUNT(CASE WHEN resolved_at <= sla_resolution_target THEN 1 END) as on_time,
         COUNT(*) as total_resolved
       FROM tickets t
       WHERE t.resolved_at IS NOT NULL
-      ${entityId ? 'AND t.assigned_entity_id = $1' : ''}
+      ${slaFilterClause}
     `
     const slaResult = await executeQuery(slaQuery, queryParams)
     const slaData = slaResult.rows[0]

@@ -9,18 +9,17 @@ import { Session } from 'next-auth';
 
 /**
  * Get entity filter for current user
- * Returns entityId for staff users, null for admin users
+ * Returns entityId for both admin and staff users (if assigned)
+ * Feature 1.6: Admin users now default to their agency (can override via UI)
  *
  * @param session - NextAuth session object
- * @returns Entity ID for staff, null for admin
+ * @returns Entity ID for the user's assigned agency, or null if none assigned
  */
 export function getEntityFilter(session: Session | null): string | null {
   if (!session?.user) return null;
 
-  // Admin users see all entities
-  if (session.user.roleType === 'admin') return null;
-
-  // Staff users only see their assigned entity
+  // Both admin and staff default to their assigned entity
+  // Admin can override via UI dropdown, staff cannot
   return session.user.entityId || null;
 }
 
