@@ -15,7 +15,6 @@ import {
   FiFileText,
   FiMessageSquare,
   FiAlertTriangle,
-  FiPlus,
   FiClock,
   FiCheckCircle,
   FiLoader,
@@ -179,22 +178,9 @@ export default function CitizenDashboard() {
       {/* Quick Actions */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Link
-            href="/helpdesk"
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors group"
-          >
-            <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center group-hover:bg-blue-200">
-              <FiPlus className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Submit Ticket</p>
-              <p className="text-xs text-gray-500">Report an issue</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/feedback"
+            href="/"
             className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group"
           >
             <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200">
@@ -202,7 +188,7 @@ export default function CitizenDashboard() {
             </div>
             <div>
               <p className="font-medium text-gray-900">Give Feedback</p>
-              <p className="text-xs text-gray-500">Rate services</p>
+              <p className="text-xs text-gray-500">Rate services & report issues</p>
             </div>
           </Link>
 
@@ -215,7 +201,7 @@ export default function CitizenDashboard() {
             </div>
             <div>
               <p className="font-medium text-gray-900">Track Ticket</p>
-              <p className="text-xs text-gray-500">Check status</p>
+              <p className="text-xs text-gray-500">Check ticket status</p>
             </div>
           </Link>
         </div>

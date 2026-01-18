@@ -219,6 +219,17 @@ echo "  ✓ Citizen portal tables created"
 echo ""
 
 # ============================================================================
+# STEP 12a: ADD CITIZEN LOGIN SETTINGS
+# ============================================================================
+echo "▶ Step 12a: Adding citizen login settings..."
+echo ""
+
+docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$SCRIPTS_DIR/22-add-citizen-login-settings.sql"
+
+echo "  ✓ Citizen login settings added"
+echo ""
+
+# ============================================================================
 # STEP 13: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"

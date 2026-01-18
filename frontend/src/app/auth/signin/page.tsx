@@ -35,6 +35,7 @@ import PhoneInput from '@/components/citizen/PhoneInput';
 import OtpInput from '@/components/citizen/OtpInput';
 
 type CitizenStep = 'phone' | 'otp' | 'register' | 'password';
+type LoginMethod = 'otp' | 'password';
 
 interface CitizenState {
   phone: string;
@@ -46,6 +47,7 @@ interface CitizenState {
   password: string;
   confirmPassword: string;
   rememberDevice: boolean;
+  loginMethod: LoginMethod;
 }
 
 function SignInContent() {
@@ -70,6 +72,7 @@ function SignInContent() {
     password: '',
     confirmPassword: '',
     rememberDevice: false,
+    loginMethod: 'otp',
   });
   const [citizenLoading, setCitizenLoading] = useState(false);
   const [citizenError, setCitizenError] = useState<string | null>(null);
@@ -297,6 +300,7 @@ function SignInContent() {
       password: '',
       confirmPassword: '',
       rememberDevice: false,
+      loginMethod: 'otp',
     });
     setCitizenError(null);
   };
@@ -444,32 +448,80 @@ function SignInContent() {
                   <PhoneInput
                     value={citizenState.phone}
                     onChange={(phone) => setCitizenState(prev => ({ ...prev, phone }))}
-                    onSubmit={handleSendOtp}
+                    onSubmit={citizenState.loginMethod === 'otp' ? handleSendOtp : () => setCitizenStep('password')}
                     disabled={citizenLoading}
                     error={citizenError || undefined}
                     isLoading={citizenLoading}
                   />
 
-                  <button
-                    onClick={handleSendOtp}
-                    disabled={citizenLoading || !citizenState.phone}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
-                  >
-                    {citizenLoading ? (
-                      <>
-                        <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                        </svg>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <FiPhone className="w-5 h-5" />
-                        Send OTP Code
-                      </>
-                    )}
-                  </button>
+                  {/* Login Method Toggle */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Login Method
+                    </label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="loginMethod"
+                          value="otp"
+                          checked={citizenState.loginMethod === 'otp'}
+                          onChange={() => setCitizenState(prev => ({ ...prev, loginMethod: 'otp' }))}
+                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">SMS OTP</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="loginMethod"
+                          value="password"
+                          checked={citizenState.loginMethod === 'password'}
+                          onChange={() => setCitizenState(prev => ({ ...prev, loginMethod: 'password' }))}
+                          className="w-4 h-4 text-blue-600 border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-700">Password</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {citizenState.loginMethod === 'otp' ? (
+                    <button
+                      onClick={handleSendOtp}
+                      disabled={citizenLoading || !citizenState.phone}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                    >
+                      {citizenLoading ? (
+                        <>
+                          <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                          </svg>
+                          Sending...
+                        </>
+                      ) : (
+                        <>
+                          <FiPhone className="w-5 h-5" />
+                          Send OTP Code
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => setCitizenStep('password')}
+                      disabled={!citizenState.phone}
+                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                    >
+                      <FiLock className="w-5 h-5" />
+                      Continue with Password
+                    </button>
+                  )}
+
+                  <p className="text-xs text-gray-500 text-center">
+                    {citizenState.loginMethod === 'otp'
+                      ? 'New user? OTP will register your account automatically.'
+                      : 'Password login is for returning users only.'}
+                  </p>
 
                   <div className="text-center">
                     <a href="/helpdesk" className="text-sm text-blue-600 hover:underline">

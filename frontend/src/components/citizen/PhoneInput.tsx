@@ -2,13 +2,13 @@
  * PhoneInput Component
  *
  * Phone number input with country code prefix selector.
- * Validates against allowed regions from admin settings.
+ * Fetches allowed countries from admin settings via API.
  */
 
 'use client';
 
-import { useState, useEffect } from 'react';
-import { FiPhone, FiChevronDown, FiAlertCircle } from 'react-icons/fi';
+import { useState, useEffect, useCallback } from 'react';
+import { FiPhone, FiChevronDown, FiAlertCircle, FiLoader } from 'react-icons/fi';
 
 interface PhoneInputProps {
   value: string;
@@ -19,19 +19,15 @@ interface PhoneInputProps {
   isLoading?: boolean;
 }
 
-// Common country codes for Caribbean region
-const COUNTRY_CODES = [
-  { code: '+1473', country: 'Grenada', flag: '🇬🇩' },
-  { code: '+1268', country: 'Antigua', flag: '🇦🇬' },
-  { code: '+1246', country: 'Barbados', flag: '🇧🇧' },
-  { code: '+1767', country: 'Dominica', flag: '🇩🇲' },
-  { code: '+1876', country: 'Jamaica', flag: '🇯🇲' },
-  { code: '+1869', country: 'St Kitts', flag: '🇰🇳' },
-  { code: '+1758', country: 'St Lucia', flag: '🇱🇨' },
-  { code: '+1784', country: 'St Vincent', flag: '🇻🇨' },
-  { code: '+1868', country: 'Trinidad', flag: '🇹🇹' },
-  { code: '+1', country: 'USA/Canada', flag: '🇺🇸' },
-  { code: '+44', country: 'UK', flag: '🇬🇧' },
+interface CountryCode {
+  code: string;
+  name: string;
+  flag: string;
+}
+
+// Fallback country codes (used if API fails)
+const FALLBACK_COUNTRY_CODES: CountryCode[] = [
+  { code: '+1473', name: 'Grenada', flag: '🇬🇩' },
 ];
 
 export function PhoneInput({
@@ -42,15 +38,42 @@ export function PhoneInput({
   error,
   isLoading = false,
 }: PhoneInputProps) {
-  const [selectedCode, setSelectedCode] = useState(COUNTRY_CODES[0]);
+  const [countryCodes, setCountryCodes] = useState<CountryCode[]>(FALLBACK_COUNTRY_CODES);
+  const [selectedCode, setSelectedCode] = useState<CountryCode>(FALLBACK_COUNTRY_CODES[0]);
   const [localNumber, setLocalNumber] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
+  const [isLoadingCountries, setIsLoadingCountries] = useState(true);
+
+  // Fetch allowed countries from API
+  useEffect(() => {
+    const fetchCountries = async () => {
+      try {
+        const response = await fetch('/api/citizen/auth/allowed-countries');
+        if (response.ok) {
+          const data = await response.json();
+          if (data.countries && data.countries.length > 0) {
+            setCountryCodes(data.countries);
+            // Set first country as default (Grenada if available)
+            setSelectedCode(data.countries[0]);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch allowed countries:', err);
+        // Keep fallback countries
+      } finally {
+        setIsLoadingCountries(false);
+      }
+    };
+
+    fetchCountries();
+  }, []);
 
   // Parse initial value to extract country code and local number
   useEffect(() => {
-    if (value && value.startsWith('+')) {
-      // Try to match against known country codes
-      for (const cc of COUNTRY_CODES) {
+    if (value && value.startsWith('+') && countryCodes.length > 0) {
+      // Try to match against known country codes (sorted by length desc for proper matching)
+      const sortedCodes = [...countryCodes].sort((a, b) => b.code.length - a.code.length);
+      for (const cc of sortedCodes) {
         if (value.startsWith(cc.code)) {
           setSelectedCode(cc);
           setLocalNumber(value.substring(cc.code.length));
@@ -58,13 +81,17 @@ export function PhoneInput({
         }
       }
     }
-  }, []);
+  }, [countryCodes]);
 
   // Update parent value when country code or local number changes
-  useEffect(() => {
+  const updateValue = useCallback(() => {
     const fullNumber = `${selectedCode.code}${localNumber.replace(/\D/g, '')}`;
     onChange(fullNumber);
   }, [selectedCode, localNumber, onChange]);
+
+  useEffect(() => {
+    updateValue();
+  }, [updateValue]);
 
   const handleLocalNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     // Only allow digits and format nicely
@@ -98,15 +125,24 @@ export function PhoneInput({
         <div className="relative">
           <button
             type="button"
-            onClick={() => !disabled && setShowDropdown(!showDropdown)}
-            disabled={disabled}
-            className={`flex items-center gap-1 px-3 py-2.5 border rounded-lg bg-white text-sm ${
-              disabled ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'
+            onClick={() => !disabled && !isLoadingCountries && setShowDropdown(!showDropdown)}
+            disabled={disabled || isLoadingCountries}
+            className={`flex items-center gap-1 px-3 py-2.5 border rounded-lg bg-white text-sm min-w-[120px] ${
+              disabled || isLoadingCountries ? 'bg-gray-100 cursor-not-allowed' : 'hover:bg-gray-50'
             } ${error ? 'border-red-300' : 'border-gray-300'}`}
           >
-            <span>{selectedCode.flag}</span>
-            <span className="text-gray-700">{selectedCode.code}</span>
-            <FiChevronDown className="w-4 h-4 text-gray-400" />
+            {isLoadingCountries ? (
+              <>
+                <FiLoader className="w-4 h-4 animate-spin text-gray-400" />
+                <span className="text-gray-400">Loading...</span>
+              </>
+            ) : (
+              <>
+                <span>{selectedCode.flag}</span>
+                <span className="text-gray-700">{selectedCode.code}</span>
+                <FiChevronDown className="w-4 h-4 text-gray-400" />
+              </>
+            )}
           </button>
 
           {/* Dropdown menu */}
@@ -116,22 +152,24 @@ export function PhoneInput({
                 className="fixed inset-0 z-10"
                 onClick={() => setShowDropdown(false)}
               />
-              <div className="absolute z-20 mt-1 w-48 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {COUNTRY_CODES.map((cc) => (
+              <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                {countryCodes.map((cc, index) => (
                   <button
-                    key={cc.code}
+                    key={`${cc.code}-${index}`}
                     type="button"
                     onClick={() => {
                       setSelectedCode(cc);
                       setShowDropdown(false);
                     }}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
-                      cc.code === selectedCode.code ? 'bg-blue-50 text-blue-700' : 'text-gray-700'
+                      cc.code === selectedCode.code && cc.name === selectedCode.name
+                        ? 'bg-blue-50 text-blue-700'
+                        : 'text-gray-700'
                     }`}
                   >
                     <span>{cc.flag}</span>
-                    <span>{cc.country}</span>
-                    <span className="text-gray-400">{cc.code}</span>
+                    <span className="flex-1 text-left truncate">{cc.name}</span>
+                    <span className="text-gray-400 text-xs">{cc.code}</span>
                   </button>
                 ))}
               </div>

@@ -4,8 +4,8 @@
  * Shows detailed view of a specific ticket including:
  * - Ticket information
  * - Status and priority
- * - Activity timeline with admin comments
- * - Any attachments
+ * - Activity timeline with admin and citizen comments
+ * - Comment form for adding new comments
  */
 
 'use client';
@@ -24,11 +24,12 @@ import {
   FiFileText,
   FiMapPin,
   FiCalendar,
+  FiSend,
 } from 'react-icons/fi';
 
 interface TicketActivity {
   id: string;
-  type: 'status_change' | 'admin_comment' | 'resolution';
+  type: 'status_change' | 'admin_comment' | 'resolution' | 'citizen_comment';
   message: string;
   timestamp: string;
   user?: string;
@@ -51,40 +52,14 @@ interface TicketDetail {
   activities: TicketActivity[];
 }
 
-const getStatusColor = (status: string): string => {
-  switch (status.toLowerCase()) {
-    case 'open':
-      return 'bg-yellow-100 text-yellow-800';
-    case 'in_progress':
-      return 'bg-blue-100 text-blue-800';
-    case 'resolved':
-      return 'bg-green-100 text-green-800';
-    case 'closed':
-      return 'bg-gray-100 text-gray-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
-const getPriorityColor = (priority: string): string => {
-  switch (priority.toLowerCase()) {
-    case 'high':
-      return 'bg-red-100 text-red-800';
-    case 'medium':
-      return 'bg-orange-100 text-orange-800';
-    case 'low':
-      return 'bg-green-100 text-green-800';
-    default:
-      return 'bg-gray-100 text-gray-800';
-  }
-};
-
 const getActivityIcon = (type: string) => {
   switch (type) {
     case 'status_change':
       return <FiCheckCircle className="w-4 h-4 text-blue-600" />;
     case 'admin_comment':
       return <FiMessageSquare className="w-4 h-4 text-purple-600" />;
+    case 'citizen_comment':
+      return <FiMessageSquare className="w-4 h-4 text-blue-600" />;
     case 'resolution':
       return <FiCheckCircle className="w-4 h-4 text-green-600" />;
     default:
@@ -100,6 +75,12 @@ const getActivityBadge = (type: string) => {
           Admin Response
         </span>
       );
+    case 'citizen_comment':
+      return (
+        <span className="text-xs px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full">
+          Your Comment
+        </span>
+      );
     case 'resolution':
       return (
         <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
@@ -111,12 +92,39 @@ const getActivityBadge = (type: string) => {
   }
 };
 
+const getActivityBgColor = (type: string) => {
+  switch (type) {
+    case 'admin_comment':
+      return 'bg-purple-100';
+    case 'citizen_comment':
+      return 'bg-blue-100';
+    case 'resolution':
+      return 'bg-green-100';
+    default:
+      return 'bg-gray-100';
+  }
+};
+
+const getMessageStyle = (type: string) => {
+  switch (type) {
+    case 'admin_comment':
+      return 'bg-purple-50 border border-purple-100 rounded-lg p-3 text-gray-800';
+    case 'citizen_comment':
+      return 'bg-blue-50 border border-blue-100 rounded-lg p-3 text-gray-800';
+    default:
+      return 'text-gray-700';
+  }
+};
+
 export default function CitizenTicketDetailPage() {
   const params = useParams();
   const router = useRouter();
   const [ticket, setTicket] = useState<TicketDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [comment, setComment] = useState('');
+  const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadTicket = async () => {
@@ -139,6 +147,40 @@ export default function CitizenTicketDetailPage() {
 
     loadTicket();
   }, [params.id]);
+
+  const handleSubmitComment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!comment.trim() || !ticket) return;
+
+    setSubmittingComment(true);
+    setCommentError(null);
+
+    try {
+      const response = await fetch(`/api/citizen/tickets/${params.id}/comments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ comment: comment.trim() }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.activity) {
+        // Add the new activity to the ticket
+        setTicket(prev => prev ? {
+          ...prev,
+          activities: [...prev.activities, data.activity],
+        } : null);
+        setComment('');
+      } else {
+        setCommentError(data.error || 'Failed to add comment');
+      }
+    } catch (err) {
+      console.error('Failed to submit comment:', err);
+      setCommentError('Failed to add comment');
+    } finally {
+      setSubmittingComment(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -168,6 +210,8 @@ export default function CitizenTicketDetailPage() {
       </div>
     );
   }
+
+  const isTicketClosed = ticket.status.toLowerCase() === 'closed';
 
   return (
     <div className="space-y-6">
@@ -252,61 +296,95 @@ export default function CitizenTicketDetailPage() {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <h2 className="text-lg font-semibold text-gray-900 mb-6">Activity</h2>
         <div className="space-y-6">
-          {ticket.activities.map((activity, index) => (
-            <div key={activity.id} className="relative flex gap-4">
-              {/* Timeline Line */}
-              {index < ticket.activities.length - 1 && (
-                <div className="absolute left-5 top-10 w-0.5 h-full -ml-px bg-gray-200" />
-              )}
+          {ticket.activities.length === 0 ? (
+            <p className="text-gray-500 text-sm">No activity yet.</p>
+          ) : (
+            ticket.activities.map((activity, index) => (
+              <div key={activity.id} className="relative flex gap-4">
+                {/* Timeline Line */}
+                {index < ticket.activities.length - 1 && (
+                  <div className="absolute left-5 top-10 w-0.5 h-full -ml-px bg-gray-200" />
+                )}
 
-              {/* Icon */}
-              <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                  activity.type === 'admin_comment'
-                    ? 'bg-purple-100'
-                    : activity.type === 'resolution'
-                    ? 'bg-green-100'
-                    : 'bg-blue-100'
-                }`}
-              >
-                {getActivityIcon(activity.type)}
-              </div>
-
-              {/* Content */}
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  {activity.user && (
-                    <span className="text-sm font-medium text-gray-900">
-                      {activity.user}
-                    </span>
-                  )}
-                  {getActivityBadge(activity.type)}
-                  <span className="text-xs text-gray-500">{activity.timestamp}</span>
-                </div>
-                <p
-                  className={`text-sm ${
-                    activity.type === 'admin_comment'
-                      ? 'bg-purple-50 border border-purple-100 rounded-lg p-3 text-gray-800'
-                      : 'text-gray-700'
-                  }`}
+                {/* Icon */}
+                <div
+                  className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${getActivityBgColor(activity.type)}`}
                 >
-                  {activity.message}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+                  {getActivityIcon(activity.type)}
+                </div>
 
-      {/* Help Text */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 flex items-start gap-3">
-        <FiAlertCircle className="w-5 h-5 text-gray-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm text-gray-700">
-            <strong>Need to add more information?</strong> If you have additional details about this issue,
-            please submit a new ticket referencing this ticket number ({ticket.ticketNumber}).
-          </p>
+                {/* Content */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    {activity.user && (
+                      <span className="text-sm font-medium text-gray-900">
+                        {activity.user}
+                      </span>
+                    )}
+                    {getActivityBadge(activity.type)}
+                    <span className="text-xs text-gray-500">{activity.timestamp}</span>
+                  </div>
+                  <p className={`text-sm ${getMessageStyle(activity.type)}`}>
+                    {activity.message}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
         </div>
+
+        {/* Comment Form */}
+        {!isTicketClosed && (
+          <form onSubmit={handleSubmitComment} className="mt-6 pt-6 border-t border-gray-100">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Add a Comment
+            </label>
+            {commentError && (
+              <div className="mb-2 text-sm text-red-600">{commentError}</div>
+            )}
+            <div className="flex gap-2">
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Type your comment here..."
+                rows={3}
+                maxLength={2000}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+                disabled={submittingComment}
+              />
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <span className="text-xs text-gray-500">
+                {comment.length}/2000 characters
+              </span>
+              <button
+                type="submit"
+                disabled={!comment.trim() || submittingComment}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+              >
+                {submittingComment ? (
+                  <>
+                    <FiLoader className="w-4 h-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <FiSend className="w-4 h-4" />
+                    Send Comment
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {isTicketClosed && (
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <p className="text-sm text-gray-500 text-center">
+              This ticket is closed. You cannot add new comments.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

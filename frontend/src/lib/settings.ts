@@ -688,11 +688,12 @@ export async function getCitizenLoginSettings(): Promise<{
     }
 
     // Parse custom country codes (comma-separated)
+    // Supports two formats: "Name:+XX" (e.g., "India:+91") or just "+XX"
     const customCodes = settings['CITIZEN_CUSTOM_COUNTRY_CODES'] || '';
     const customCountryCodes = customCodes
       .split(',')
       .map(c => c.trim())
-      .filter(c => c.startsWith('+'));
+      .filter(c => c.startsWith('+') || c.includes(':+'));
 
     return {
       enabled: settings['CITIZEN_LOGIN_ENABLED'] === 'true',

@@ -14,9 +14,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   FiFileText,
-  FiPlus,
   FiClock,
-  FiCheckCircle,
   FiLoader,
   FiChevronRight,
   FiFilter,
@@ -118,20 +116,11 @@ export default function CitizenTicketsPage() {
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Tickets</h1>
-          <p className="text-sm text-gray-600 mt-1">
-            Track and manage your submitted tickets
-          </p>
-        </div>
-        <Link
-          href="/helpdesk"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <FiPlus className="w-4 h-4" />
-          Submit New Ticket
-        </Link>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">My Tickets</h1>
+        <p className="text-sm text-gray-600 mt-1">
+          Track and manage your submitted tickets
+        </p>
       </div>
 
       {/* Status Filter */}
@@ -163,18 +152,19 @@ export default function CitizenTicketsPage() {
             <h3 className="text-lg font-medium text-gray-900 mb-2">
               {statusFilter === 'all' ? 'No tickets yet' : 'No tickets found'}
             </h3>
-            <p className="text-gray-500 mb-6">
+            <p className="text-gray-500 mb-4">
               {statusFilter === 'all'
-                ? 'Submit a ticket to track issues or requests'
-                : 'Try a different filter or submit a new ticket'}
+                ? 'Submit feedback to create a ticket for tracking issues or requests.'
+                : 'Try selecting a different filter.'}
             </p>
-            <Link
-              href="/helpdesk"
-              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <FiPlus className="w-4 h-4" />
-              Submit New Ticket
-            </Link>
+            {statusFilter === 'all' && (
+              <Link
+                href="/"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Give Feedback
+              </Link>
+            )}
           </div>
         ) : (
           <div className="divide-y divide-gray-100">
