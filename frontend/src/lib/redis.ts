@@ -132,7 +132,7 @@ export async function withCache<T>(
  */
 export function buildCacheKey(prefix: string, params: Record<string, unknown>): string {
   const sorted = Object.keys(params)
-    .sort()
+    .sort((a, b) => a.localeCompare(b))
     .map((k) => `${k}:${params[k] ?? ''}`)
     .join(':');
   return `${prefix}:${sorted}`;
