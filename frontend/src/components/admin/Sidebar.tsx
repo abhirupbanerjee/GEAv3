@@ -264,6 +264,10 @@ const navigationItems: NavigationItem[] = [
     href: '/admin/service-requests',
     icon: <ServiceRequestsIcon />,
     requiredRole: null,
+    children: [
+      { label: 'Received', tabKey: 'received' },
+      { label: 'Submitted', tabKey: 'submitted' },
+    ],
   },
   {
     label: 'Tickets',

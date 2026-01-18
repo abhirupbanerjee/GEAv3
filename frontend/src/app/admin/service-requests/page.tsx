@@ -40,7 +40,8 @@
 'use client';
 
 import { useSession } from 'next-auth/react';
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import RequestStats from '@/components/admin/service-requests/RequestStats';
 import RequestTable from '@/components/admin/service-requests/RequestTable';
@@ -81,8 +82,9 @@ interface Entity {
   is_active?: boolean;
 }
 
-export default function ServiceRequestsPage() {
+function ServiceRequestsContent() {
   const { data: session, status } = useSession();
+  const searchParams = useSearchParams();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -98,9 +100,9 @@ export default function ServiceRequestsPage() {
     total_count: 0,
   });
 
-  // View state for submitted/received tabs
-  const [currentView, setCurrentView] = useState<ViewType>('submitted');
-  const [isServiceProvider, setIsServiceProvider] = useState(false);
+  // Get view from URL params, default to 'received'
+  const tabParam = searchParams.get('tab');
+  const currentView: ViewType = (tabParam === 'received' || tabParam === 'submitted') ? tabParam : 'received';
 
   // Entity filter state (for admin users)
   const [entities, setEntities] = useState<Entity[]>([]);
@@ -188,10 +190,6 @@ export default function ServiceRequestsPage() {
         total_count: data.data.pagination.total_count,
       }));
 
-      // Update service provider status from API response
-      if (data.data.is_service_provider !== undefined) {
-        setIsServiceProvider(data.data.is_service_provider);
-      }
     } catch (error) {
       console.error('Error fetching requests:', error);
     } finally {
@@ -231,11 +229,6 @@ export default function ServiceRequestsPage() {
 
   const handlePageChange = (newPage: number) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
-  };
-
-  const handleViewChange = (view: ViewType) => {
-    setCurrentView(view);
-    setPagination((prev) => ({ ...prev, page: 1 })); // Reset to page 1
   };
 
   if (status === 'loading' || loading) {
@@ -289,50 +282,6 @@ export default function ServiceRequestsPage() {
           </Link>
         )}
       </div>
-
-      {/* View Tabs - Show for service provider staff or admin */}
-      {(isServiceProvider || isAdmin) && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
-          <div className="flex">
-            <button
-              onClick={() => handleViewChange('received')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors border-b-2 ${
-                currentView === 'received'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
-                </svg>
-                <span>Requests Received</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Requests from other entities to your services
-              </p>
-            </button>
-            <button
-              onClick={() => handleViewChange('submitted')}
-              className={`flex-1 px-6 py-4 text-center font-medium transition-colors border-b-2 ${
-                currentView === 'submitted'
-                  ? 'text-blue-600 border-blue-600 bg-blue-50'
-                  : 'text-gray-600 border-transparent hover:text-gray-900 hover:bg-gray-50'
-              }`}
-            >
-              <div className="flex items-center justify-center gap-2">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-                <span>Requests Submitted</span>
-              </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Requests your entity submitted to other providers
-              </p>
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Entity Filter (Admin and Staff) */}
       {(isAdmin || isStaff) && (
@@ -447,5 +396,21 @@ export default function ServiceRequestsPage() {
         loading={loading}
       />
     </div>
+  );
+}
+
+// Wrapper component with Suspense boundary for useSearchParams
+export default function ServiceRequestsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">Loading service requests...</p>
+        </div>
+      </div>
+    }>
+      <ServiceRequestsContent />
+    </Suspense>
   );
 }
