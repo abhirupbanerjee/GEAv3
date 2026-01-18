@@ -2,8 +2,11 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { footerLinks as staticFooterLinks } from '@/config/content'
 import { config } from '@/config/env'
+import { useSidebarState } from '@/hooks/useSidebarState'
 
 interface FooterLink {
   label: string
@@ -11,6 +14,15 @@ interface FooterLink {
 }
 
 export default function Footer() {
+  const pathname = usePathname()
+  const { data: session } = useSession()
+  const { isCollapsed } = useSidebarState()
+
+  // Determine if we should show sidebar margin (admin pages with authenticated user)
+  // /admin is the login page - no sidebar there
+  const isAdminRoute = pathname?.startsWith('/admin') && pathname !== '/admin'
+  const showSidebarMargin = isAdminRoute && !!session
+
   const [quickLinks, setQuickLinks] = useState<FooterLink[]>(staticFooterLinks.quickLinks)
   const [gogUrl, setGogUrl] = useState(config.GOG_URL)
 
@@ -39,7 +51,9 @@ export default function Footer() {
   }, [])
 
   return (
-    <footer className="bg-gray-900 text-white relative z-50">
+    <footer className={`bg-gray-900 text-white relative z-50 transition-all duration-200 ${
+      showSidebarMargin ? (isCollapsed ? 'md:ml-16' : 'md:ml-64') : ''
+    }`}>
       <div className="container-custom py-12">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Government Info */}

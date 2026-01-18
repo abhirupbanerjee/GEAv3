@@ -3,8 +3,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
+import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import UserProfileDropdown from './UserProfileDropdown'
+import { useSidebarState } from '@/hooks/useSidebarState'
 
 const navigationItems = [
   { label: 'About', href: '/about' },
@@ -32,7 +34,15 @@ interface BrandingSettings {
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const pathname = usePathname()
   const { data: session, status } = useSession()
+  const { isCollapsed } = useSidebarState()
+
+  // Determine if we should show sidebar margin (admin pages with authenticated user)
+  // /admin is the login page - no sidebar there
+  const isAdminRoute = pathname?.startsWith('/admin') && pathname !== '/admin'
+  const showSidebarMargin = isAdminRoute && !!session
+
   const [branding, setBranding] = useState<BrandingSettings>({
     siteName: 'EA Portal',
     siteLogo: '',
@@ -48,7 +58,9 @@ export default function Header() {
   }, [])
 
   return (
-    <header className="bg-white shadow-sm sticky top-0 z-50">
+    <header className={`bg-white shadow-sm sticky top-0 z-50 transition-all duration-200 ${
+      showSidebarMargin ? (isCollapsed ? 'md:ml-16' : 'md:ml-64') : ''
+    }`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
