@@ -36,9 +36,18 @@ interface BrandingSettings {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCitizenAuth, setIsCitizenAuth] = useState(false)
+  const [branding, setBranding] = useState<BrandingSettings>({
+    siteName: 'EA Portal',
+    siteLogo: '',
+    siteLogoAlt: 'EA Portal Logo',
+    siteFavicon: '',
+  })
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const { isCollapsed } = useSidebarState()
+
+  // Hide main header on citizen portal pages (they have their own layout)
+  const isCitizenRoute = pathname?.startsWith('/citizen')
 
   // Determine if we should show sidebar margin (admin pages with authenticated user)
   // /admin is the login page - no sidebar there
@@ -64,6 +73,18 @@ export default function Header() {
     }
   }, [session])
 
+  useEffect(() => {
+    fetch('/api/settings/branding')
+      .then((res) => res.json())
+      .then((data) => setBranding(data))
+      .catch((err) => console.error('Failed to load branding:', err))
+  }, [])
+
+  // Don't render on citizen routes - citizen portal has its own header
+  if (isCitizenRoute) {
+    return null
+  }
+
   // User is authenticated if they have either NextAuth session or citizen session
   const isAuthenticated = !!session || isCitizenAuth
 
@@ -73,20 +94,6 @@ export default function Header() {
     if (item.authRequired === true && !isAuthenticated) return false // Hide from anonymous
     return true
   })
-
-  const [branding, setBranding] = useState<BrandingSettings>({
-    siteName: 'EA Portal',
-    siteLogo: '',
-    siteLogoAlt: 'EA Portal Logo',
-    siteFavicon: '',
-  })
-
-  useEffect(() => {
-    fetch('/api/settings/branding')
-      .then((res) => res.json())
-      .then((data) => setBranding(data))
-      .catch((err) => console.error('Failed to load branding:', err))
-  }, [])
 
   return (
     <header className={`bg-white shadow-sm sticky top-0 z-50 transition-all duration-200 ${

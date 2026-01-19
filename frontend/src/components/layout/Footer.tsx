@@ -17,14 +17,16 @@ export default function Footer() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { isCollapsed } = useSidebarState()
+  const [quickLinks, setQuickLinks] = useState<FooterLink[]>(staticFooterLinks.quickLinks)
+  const [gogUrl, setGogUrl] = useState(config.GOG_URL)
+
+  // Hide footer on citizen portal pages (they have their own layout)
+  const isCitizenRoute = pathname?.startsWith('/citizen')
 
   // Determine if we should show sidebar margin (admin pages with authenticated user)
   // /admin is the login page - no sidebar there
   const isAdminRoute = pathname?.startsWith('/admin') && pathname !== '/admin'
   const showSidebarMargin = isAdminRoute && !!session
-
-  const [quickLinks, setQuickLinks] = useState<FooterLink[]>(staticFooterLinks.quickLinks)
-  const [gogUrl, setGogUrl] = useState(config.GOG_URL)
 
   // Fetch dynamic footer links from settings API
   useEffect(() => {
@@ -49,6 +51,11 @@ export default function Footer() {
     }
     fetchFooterLinks()
   }, [])
+
+  // Don't render on citizen routes - citizen portal has its own layout
+  if (isCitizenRoute) {
+    return null
+  }
 
   return (
     <footer className={`bg-gray-900 text-white relative z-50 transition-all duration-200 ${

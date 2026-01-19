@@ -2,7 +2,7 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.1
+**Version:** 2.0
 **Last Updated:** January 2026
 **Audience:** Citizens, Businesses, Tourists, and General Public
 
@@ -10,7 +10,9 @@
 
 ## Applicable Portal Pages
 
-This manual covers the following public pages (no login required):
+This manual covers the following pages:
+
+### Public Pages (No Login Required)
 
 | Page | URL | Purpose |
 |------|-----|---------|
@@ -22,6 +24,16 @@ This manual covers the following public pages (no login required):
 | **Check Ticket Status** | `/helpdesk` | Look up your grievance/ticket by number |
 | **Ticket Details** | `/helpdesk/ticket/[number]` | View specific ticket details and status |
 
+### Citizen Portal Pages (Login Required)
+
+| Page | URL | Purpose |
+|------|-----|---------|
+| **Citizen Home** | `/citizen` | Your personal dashboard |
+| **Analytics** | `/citizen/analytics` | View your feedback and ticket statistics |
+| **My Tickets** | `/citizen/tickets` | View and search all your tickets |
+| **Ticket Details** | `/citizen/tickets/[id]` | View ticket details and add comments |
+| **Submit Feedback** | `/citizen/feedback/submit` | Submit feedback linked to your account |
+
 **Note:** Staff and admin features (such as `/admin/*` pages) are not covered in this manual. See the Staff or Admin user manuals for those features.
 
 ---
@@ -30,12 +42,15 @@ This manual covers the following public pages (no login required):
 
 1. [Introduction](#1-introduction)
 2. [Accessing the Portal](#2-accessing-the-portal)
-3. [Submitting Service Feedback](#3-submitting-service-feedback)
-4. [Filing a Grievance or Complaint](#4-filing-a-grievance-or-complaint)
-5. [Checking Your Ticket Status](#5-checking-your-ticket-status)
-6. [Using QR Codes](#6-using-qr-codes)
-7. [Frequently Asked Questions](#7-frequently-asked-questions)
-8. [Contact Information](#8-contact-information)
+3. [Citizen Portal Registration & Login](#3-citizen-portal-registration--login)
+4. [Citizen Portal Dashboard](#4-citizen-portal-dashboard)
+5. [Submitting Service Feedback](#5-submitting-service-feedback)
+6. [Managing Your Tickets](#6-managing-your-tickets)
+7. [Viewing Your Analytics](#7-viewing-your-analytics)
+8. [Using the Public Helpdesk](#8-using-the-public-helpdesk)
+9. [Using QR Codes](#9-using-qr-codes)
+10. [Frequently Asked Questions](#10-frequently-asked-questions)
+11. [Contact Information](#11-contact-information)
 
 ---
 
@@ -49,6 +64,8 @@ The Government Enterprise Architecture (GEA) Portal is the official digital plat
 - **Submit complaints or grievances** about service quality
 - **Track the status** of your submitted complaints
 - **Provide feedback** to help improve government services
+- **View analytics** on your service interactions (with account)
+- **Manage all your tickets** in one place (with account)
 
 ### 1.2 Who Can Use This Portal?
 
@@ -64,7 +81,19 @@ The portal is available to everyone, including:
 
 - A device with internet access (computer, tablet, or smartphone)
 - A modern web browser (Chrome, Firefox, Safari, or Edge)
-- Your contact information (optional, but recommended for follow-up)
+- A mobile phone number (required for Citizen Portal registration)
+- Your contact information (optional for public feedback, but recommended)
+
+### 1.4 Anonymous vs. Registered Access
+
+| Feature | Anonymous (No Login) | Citizen Portal (Logged In) |
+|---------|---------------------|---------------------------|
+| Submit feedback | Yes | Yes |
+| Track ticket by number | Yes (Helpdesk) | Yes + All tickets in one place |
+| View feedback history | No | Yes |
+| View analytics | No | Yes |
+| Add comments to tickets | No | Yes |
+| Receive updates | Email only | In-portal + Email |
 
 ---
 
@@ -83,24 +112,124 @@ The homepage provides quick access to:
 - **About** - Learn about the Digital Transformation Agency
 - **Feedback** - Submit feedback about government services
 - **Helpdesk** - Check the status of your submitted tickets
+- **Login** - Access your Citizen Portal account
 - **AI Assistants** - Access AI-powered help tools (if available)
 
 ### 2.3 Navigation Menu
 
-The main menu at the top of every page allows you to:
+The main menu at the top of every page includes:
 
-- Return to the **Home** page
-- Access the **About** section for more information
-- Submit **Feedback** on services
-- Use the **Helpdesk** to track complaints
+| Menu Item | Description |
+|-----------|-------------|
+| **Home** | Return to the homepage |
+| **About** | Information about GEA and DTA |
+| **Services** | Browse available government services |
+| **Feedback** | Submit feedback (public, no login) |
+| **Helpdesk** | Track tickets by number (public) |
+| **Login** | Sign in to your Citizen Portal |
+| **Citizen Portal** | Shown after login - access your dashboard |
 
 ---
 
-## 3. Submitting Service Feedback
+## 3. Citizen Portal Registration & Login
 
-Service feedback helps the government understand how well services are being delivered and where improvements are needed.
+Creating a Citizen Portal account gives you access to enhanced features like ticket management, analytics, and feedback history.
 
-### 3.1 When to Submit Feedback
+### 3.1 Registering for an Account
+
+**Step 1: Click Sign In**
+- Click **"Login"** in the navigation menu
+- Select **"Sign in as Citizen"** or navigate to the citizen sign-in page
+
+**Step 2: Enter Your Phone Number**
+- Enter your mobile phone number
+- Select your country code if applicable
+- Click **"Send Verification Code"**
+
+**Step 3: Verify Your Phone**
+- You will receive an SMS with a 6-digit code
+- Enter the code in the verification field
+- Click **"Verify"**
+
+**Step 4: Complete Your Profile (First Time)**
+- Enter your **Full Name**
+- Enter your **Email Address** (optional but recommended)
+- Click **"Complete Registration"**
+
+**Step 5: Access Your Dashboard**
+- You are now logged in and can access the Citizen Portal
+- Your profile is created and linked to your phone number
+
+### 3.2 Logging In (Returning Users)
+
+**Step 1: Click Login**
+- Click **"Login"** in the navigation menu
+
+**Step 2: Enter Your Phone Number**
+- Enter the phone number you registered with
+- Click **"Send Verification Code"**
+
+**Step 3: Enter Verification Code**
+- Enter the 6-digit SMS code
+- Click **"Verify"**
+
+**Step 4: Access Your Dashboard**
+- You are redirected to your Citizen Portal dashboard
+
+### 3.3 Remember This Device (Optional)
+
+- Check **"Remember this device"** during login
+- Your session will last longer on trusted devices
+- You may be automatically logged in on future visits
+
+### 3.4 Logging Out
+
+- Click your name/avatar in the header
+- Select **"Sign Out"** from the dropdown menu
+- You will be redirected to the sign-in page
+
+---
+
+## 4. Citizen Portal Dashboard
+
+After logging in, you access your personal Citizen Portal dashboard.
+
+### 4.1 Dashboard Overview
+
+The dashboard provides quick access to:
+
+- **Home** - Welcome page with quick links
+- **Analytics** - Your feedback and ticket statistics
+- **Tickets** - View and manage all your tickets
+- **Give Feedback** - Submit new feedback linked to your account
+
+### 4.2 Navigation Sidebar
+
+The left sidebar provides navigation within the Citizen Portal:
+
+| Menu Item | Icon | Description |
+|-----------|------|-------------|
+| **Home** | House | Dashboard home page |
+| **Analytics** | Chart | Your statistics and charts |
+| **Tickets** | Document | View all your tickets |
+| **Give Feedback** | Message | Submit new feedback |
+
+**Tip:** Click the collapse button (or press Ctrl+B) to minimize the sidebar.
+
+### 4.3 User Profile Dropdown
+
+Click your name/avatar in the top-right to access:
+
+- Your profile information (name, phone, email)
+- Sign out option
+
+---
+
+## 5. Submitting Service Feedback
+
+Service feedback helps the government understand how well services are being delivered.
+
+### 5.1 When to Submit Feedback
 
 Submit feedback after you have:
 
@@ -109,179 +238,248 @@ Submit feedback after you have:
 - Received assistance from a government department
 - Completed any interaction with a Ministry, Department, or Agency (MDA)
 
-### 3.2 Step-by-Step: Submitting Feedback
+### 5.2 Submitting Feedback (Logged In - Recommended)
 
 **Step 1: Access the Feedback Form**
-- Click **"Feedback"** in the navigation menu, OR
-- Scan a QR code at a service location
+- From the Citizen Portal sidebar, click **"Give Feedback"**
+- Or navigate to `/citizen/feedback/submit`
 
 **Step 2: Select the Service**
-- Choose the **Ministry/Department/Agency** from the dropdown
-- Select the specific **Service** you received
+- Search for the service you used
+- Select the **Ministry/Department/Agency** and **Service** from the results
 
-**Step 3: Rate Your Experience**
-- Click on the stars to rate the service (1 to 5 stars)
-  - ⭐ = Very Poor
-  - ⭐⭐ = Poor
-  - ⭐⭐⭐ = Average
-  - ⭐⭐⭐⭐ = Good
-  - ⭐⭐⭐⭐⭐ = Excellent
-
-**Step 4: Select Your Category**
+**Step 3: Select Your Category**
 - Choose who you are:
   - Citizen
   - Business
   - Government Employee
-  - Tourist
+  - Visitor/Tourist
   - Student
   - Other
+
+**Step 4: Rate Your Experience**
+Answer the five rating questions (1 to 5 stars each):
+
+1. **Ease of Access** - How easy was it to access the service?
+2. **Clarity** - Was the information and process clear?
+3. **Timeliness** - Was the service provided in a reasonable time?
+4. **Trust** - Do you trust the service process?
+5. **Overall Satisfaction** - How satisfied are you overall?
+
+Rating scale:
+- 1 star = Very Dissatisfied
+- 2 stars = Dissatisfied
+- 3 stars = Neutral
+- 4 stars = Satisfied
+- 5 stars = Very Satisfied
 
 **Step 5: Add Comments (Optional)**
 - Describe your experience in the text box
 - Include specific details about what went well or what could be improved
-- Maximum 2,000 characters
 
-**Step 6: Add Contact Information (Optional)**
-- **Name** - Your full name
-- **Email** - For follow-up communication
-- **Phone** - Alternative contact method
-
-> **Note:** Contact information is optional but recommended if you want a response.
+**Step 6: Mark as Grievance (Optional)**
+- Check **"I want to file this as a formal grievance"** if you need follow-up
+- This creates a ticket for your complaint
 
 **Step 7: Submit**
 - Click the **"Submit Feedback"** button
 - Wait for the confirmation message
 
-### 3.3 What Happens After Submission?
+### 5.3 Submitting Feedback (Without Login)
 
-- You will see a **confirmation message** with your submission details
-- If your rating is **2.5 stars or lower**, a grievance ticket is automatically created
-- If a ticket is created, you will receive a **Ticket Number** (format: YYYYMM-XXXXXX)
-- Keep this ticket number to track your complaint
+You can also submit feedback without logging in:
 
-### 3.4 Submission Limits
+1. Click **"Feedback"** in the main navigation
+2. Follow the same steps as above
+3. Optionally provide your contact information for follow-up
+
+**Note:** Feedback submitted without login is not linked to your Citizen Portal account.
+
+### 5.4 What Happens After Submission?
+
+- You will see a **confirmation message** with your Feedback ID
+- If your average rating is **low** or you marked it as a grievance:
+  - A ticket is automatically created
+  - You receive a **Ticket Number** (format: YYYYMM-XXXXXX)
+  - The ticket appears in your **My Tickets** page (if logged in)
+- Keep your ticket number to track your complaint
+
+### 5.5 Submission Limits
 
 To prevent misuse, the system limits submissions:
 
-- **Maximum 5 feedback submissions per hour** from the same device
+- **Maximum 5 feedback submissions per hour** from the same device/account
 - If you exceed this limit, wait and try again later
 
 ---
 
-## 4. Filing a Grievance or Complaint
+## 6. Managing Your Tickets
 
-If you have a complaint about a government service that requires attention, you can file a formal grievance.
+The **My Tickets** page shows all tickets associated with your account.
 
-### 4.1 When to File a Grievance
+### 6.1 Accessing My Tickets
 
-File a grievance when:
+1. Log in to your Citizen Portal
+2. Click **"Tickets"** in the sidebar
+3. Your tickets list will display
 
-- You received poor or unsatisfactory service
-- Your request was denied without explanation
-- You experienced unreasonable delays
-- Staff behaviour was unprofessional
-- You need a formal response or resolution
+### 6.2 Searching for Tickets
 
-### 4.2 Step-by-Step: Filing a Grievance
+Use the search box at the top of the tickets page:
 
-**Step 1: Access the Grievance Form**
-- Navigate to the **Feedback** section
-- Select **"File a Complaint"** or similar option
+1. Enter your ticket number (e.g., 202501-123456)
+2. The list filters to show matching tickets
+3. Click the **X** button to clear the search
 
-**Step 2: Select the Entity**
-- Choose the **Ministry, Department, or Agency** your complaint is about
+### 6.3 Filtering by Status
 
-**Step 3: Select Complaint Category**
-- Choose the type of issue:
-  - Service Delay
-  - Poor Service Quality
-  - Staff Behaviour
-  - Information Not Provided
-  - Other
+Filter your tickets by clicking the status buttons:
 
-**Step 4: Describe Your Complaint**
-- Provide a detailed description of the issue
-- Include:
-  - Date of the incident
-  - Location (if applicable)
-  - Names of staff involved (if known)
-  - What resolution you are seeking
+| Filter | Shows |
+|--------|-------|
+| **All Tickets** | All your tickets |
+| **Open** | New tickets awaiting review |
+| **In Progress** | Tickets being worked on |
+| **Resolved** | Issues that have been addressed |
+| **Closed** | Completed tickets |
 
-**Step 5: Attach Supporting Documents (Optional)**
-- Click **"Add Attachment"** to upload files
-- Supported formats: PDF, JPG, PNG, DOC, DOCX
-- Maximum file size: 5MB per file
-- Maximum total upload: 25MB
+### 6.4 Viewing Ticket Details
 
-**Step 6: Provide Contact Information**
-- **Name** (required for grievances)
-- **Email** (required for follow-up)
-- **Phone** (optional)
+Click on any ticket to view its details:
 
-**Step 7: Submit**
-- Review your information
-- Click **"Submit Grievance"**
-- Note your **Ticket Number** from the confirmation screen
-
-### 4.3 After Submitting a Grievance
-
-- Your grievance is assigned to the relevant department
-- A **Service Level Agreement (SLA)** timeline begins
-- You can track progress using your ticket number
-- You may receive email updates if you provided an email address
-
----
-
-## 5. Checking Your Ticket Status
-
-After submitting a grievance or receiving a low-rating auto-generated ticket, you can check its status.
-
-### 5.1 Accessing the Helpdesk
-
-1. Click **"Helpdesk"** in the navigation menu
-2. You will see the ticket lookup page
-
-### 5.2 Looking Up Your Ticket
-
-**Step 1: Enter Your Ticket Number**
-- Type your ticket number in the search box
-- Format: YYYYMM-XXXXXX (e.g., 202511-000123)
-
-**Step 2: Click Search**
-- Press the **"Search"** or **"Lookup"** button
-
-**Step 3: View Ticket Details**
 - **Ticket Number** - Your unique reference
-- **Status** - Current state of your ticket
+- **Subject** - Brief description of the issue
+- **Status** - Current state (Open, In Progress, Resolved, Closed)
+- **Priority** - Urgency level (Low, Medium, High, Urgent)
 - **Created Date** - When you submitted
-- **Last Updated** - Most recent activity
-- **Entity** - Department handling your case
-- **Description** - Your original complaint
-- **Activity Timeline** - History of updates and responses
+- **Assigned Entity** - Department handling your case
+- **Description** - Full details of your complaint
 
-### 5.3 Understanding Ticket Status
+### 6.5 Activity Timeline
 
-| Status | Meaning |
-|--------|---------|
-| **Open** | Your ticket has been received and is awaiting review |
-| **In Progress** | Staff are actively working on your case |
-| **Pending** | Awaiting additional information or action |
-| **Resolved** | Your issue has been addressed |
-| **Closed** | The ticket is complete |
+The ticket detail page shows an activity timeline:
 
-### 5.4 What to Do If You Lost Your Ticket Number
+- **Ticket Created** - Initial submission
+- **Status Changes** - When the status was updated
+- **Comments** - Messages from you or staff
+- **Resolution** - Final response when resolved/closed
 
-- Check your email for the confirmation message
-- If you did not provide an email, contact the helpdesk directly
-- Provide your name, date of submission, and complaint details
+### 6.6 Adding Comments to a Ticket
+
+You can add comments to communicate with the handling department:
+
+1. Scroll to the **"Add Comment"** section at the bottom
+2. Type your message (maximum 2,000 characters)
+3. Click **"Send"**
+4. Your comment appears in the activity timeline
+
+**Note:** You cannot add comments to closed tickets.
+
+### 6.7 Understanding Ticket Status
+
+| Status | Meaning | What to Do |
+|--------|---------|------------|
+| **Open** | Received, awaiting review | Wait for staff to review |
+| **Assigned** | Assigned to a staff member | Wait for response |
+| **In Progress** | Staff are working on it | Check for updates |
+| **Pending Customer** | Awaiting your response | Review and respond |
+| **Resolved** | Issue has been addressed | Review resolution |
+| **Closed** | Ticket is complete | No action needed |
 
 ---
 
-## 6. Using QR Codes
+## 7. Viewing Your Analytics
 
-QR codes are placed at government service locations for quick feedback submission.
+The Analytics page shows statistics about your feedback and tickets.
 
-### 6.1 Where to Find QR Codes
+### 7.1 Accessing Analytics
+
+1. Log in to your Citizen Portal
+2. Click **"Analytics"** in the sidebar
+3. Your statistics dashboard will display
+
+### 7.2 Feedback Statistics
+
+The dashboard shows:
+
+- **Total Feedback** - Number of feedback submissions you've made
+- **Average Rating** - Your average overall satisfaction rating
+- **Rating Distribution** - Bar chart showing how many 1, 2, 3, 4, and 5-star ratings you've given
+
+### 7.3 Ticket Statistics
+
+- **Total Tickets** - Number of tickets associated with your account
+- **Status Distribution** - Bar chart showing tickets by status (Open, In Progress, Resolved, Closed)
+
+### 7.4 Recent Activity
+
+The Recent Activity section shows your latest interactions:
+
+- Recent tickets with status
+- Recent feedback submissions
+- Click any item to view details
+
+### 7.5 Refreshing Data
+
+- Click the **"Refresh"** button to update statistics
+- Data is cached for performance but can be refreshed on demand
+
+---
+
+## 8. Using the Public Helpdesk
+
+The public Helpdesk allows anyone to check ticket status without logging in.
+
+### 8.1 When to Use the Helpdesk
+
+Use the public Helpdesk when:
+
+- You submitted feedback without logging in
+- You have a ticket number but no account
+- You want to share ticket status with someone else
+
+### 8.2 Looking Up a Ticket
+
+**Step 1: Access the Helpdesk**
+- Click **"Helpdesk"** in the main navigation menu
+- Or navigate to `/helpdesk`
+
+**Step 2: Enter Your Ticket Number**
+- Type your ticket number in the search box
+- Format: YYYYMM-XXXXXX (e.g., 202511-123456)
+
+**Step 3: Click Search**
+- Press the **"View Ticket Status"** button
+- You will be redirected to the ticket details page
+
+**Step 4: View Ticket Information**
+- **Ticket Number** - Your unique reference
+- **Status** - Current state
+- **Created Date** - When submitted
+- **Description** - Your original complaint
+- **Activity Timeline** - Status updates
+- **Resolution Comment** - Staff response (when resolved)
+
+### 8.3 What You Can See (Public View)
+
+The public view shows:
+- Ticket status and basic information
+- Status change history
+- Resolution comments (for resolved/closed tickets)
+
+The public view does **not** show:
+- Internal staff notes
+- Detailed activity before resolution
+
+**Tip:** Log in to your Citizen Portal for full ticket details and the ability to add comments.
+
+---
+
+## 9. Using QR Codes
+
+QR codes at government service locations enable quick feedback submission.
+
+### 9.1 Where to Find QR Codes
 
 QR codes may be displayed at:
 
@@ -291,23 +489,24 @@ QR codes may be displayed at:
 - Exit points
 - Posters and signage
 
-### 6.2 How to Use QR Codes
+### 9.2 How to Use QR Codes
 
 **Step 1: Open Your Phone Camera**
-- Most modern smartphones can scan QR codes directly through the camera app
+- Most modern smartphones scan QR codes through the camera app
 
 **Step 2: Point at the QR Code**
 - Hold your phone steady
 - A link will appear on your screen
 
 **Step 3: Tap the Link**
-- This opens the feedback form in your browser
+- This opens the feedback form
 - The service and location may be pre-filled
 
-**Step 4: Complete the Feedback Form**
-- Follow the same steps as Section 3.2 above
+**Step 4: Complete the Feedback**
+- Rate the service and add comments
+- Submit your feedback
 
-### 6.3 Benefits of QR Code Feedback
+### 9.3 Benefits of QR Code Feedback
 
 - Faster submission with pre-filled information
 - Immediate feedback while the experience is fresh
@@ -315,44 +514,58 @@ QR codes may be displayed at:
 
 ---
 
-## 7. Frequently Asked Questions
+## 10. Frequently Asked Questions
 
-### General Questions
+### Account Questions
 
-**Q: Is my feedback anonymous?**  
-A: Yes, feedback can be submitted without providing personal information. However, if you want a response, you should provide contact details.
+**Q: Do I need an account to submit feedback?**
+A: No, you can submit feedback without an account. However, having an account lets you track all your feedback and tickets in one place.
 
-**Q: How long does it take to get a response?**  
-A: Response times depend on the nature of the complaint and the department involved. Standard grievances are typically addressed within 5-10 business days.
+**Q: How do I change my phone number?**
+A: Currently, phone numbers cannot be changed. Contact support for assistance.
 
-**Q: Can I submit feedback on multiple services?**  
-A: Yes, but each service requires a separate submission.
+**Q: Can I delete my account?**
+A: Contact the DTA support team to request account deletion.
 
-### Technical Questions
+### Feedback Questions
 
-**Q: Why can't I submit feedback?**  
-A: You may have reached the hourly submission limit (5 per hour). Wait and try again later.
+**Q: Is my feedback anonymous?**
+A: Feedback submitted without login is anonymous. Feedback submitted while logged in is linked to your account but your personal details are not shared with the service provider unless you provide them.
 
-**Q: What browsers are supported?**  
-A: Chrome, Firefox, Safari, and Edge (latest versions recommended).
+**Q: How long does it take to get a response?**
+A: Response times depend on the nature of the complaint. Standard grievances are typically addressed within 5-10 business days.
 
-**Q: Can I use the portal on my phone?**  
-A: Yes, the portal is mobile-friendly and works on smartphones and tablets.
+**Q: Can I edit feedback after submission?**
+A: No, feedback cannot be edited after submission. Submit new feedback if needed.
 
 ### Ticket Questions
 
-**Q: How do I know my ticket was received?**  
-A: You will see a confirmation screen with your ticket number after submission.
+**Q: How do I find my ticket number?**
+A: Ticket numbers are shown on the confirmation page after submission. If logged in, all tickets appear in your "My Tickets" page. Check your email if you provided one.
 
-**Q: Can I add more information to my ticket after submission?**  
-A: Currently, you cannot modify submitted tickets. Submit a new complaint if needed, referencing your original ticket number.
+**Q: Can I add more information to my ticket?**
+A: Yes, if you're logged in, you can add comments to open tickets from the ticket details page.
 
-**Q: Who sees my complaint?**  
-A: Your complaint is routed to the appropriate government department responsible for the service.
+**Q: Why is my ticket status "Pending Customer"?**
+A: This means staff are waiting for additional information from you. Check the ticket for messages and respond with the requested information.
+
+### Technical Questions
+
+**Q: Why can't I submit feedback?**
+A: You may have reached the hourly limit (5 per hour). Wait and try again later.
+
+**Q: What browsers are supported?**
+A: Chrome, Firefox, Safari, and Edge (latest versions recommended).
+
+**Q: Can I use the portal on my phone?**
+A: Yes, the portal is fully mobile-friendly.
+
+**Q: I didn't receive my verification SMS. What should I do?**
+A: Wait 30 seconds and request a new code. Ensure your phone number is correct. Check that your phone can receive SMS messages.
 
 ---
 
-## 8. Contact Information
+## 11. Contact Information
 
 ### Digital Transformation Agency (DTA)
 
@@ -377,15 +590,41 @@ If you have suggestions for improving this user manual, please submit feedback t
 
 ## Quick Reference Card
 
-| Task | Where to Go |
-|------|-------------|
-| Submit service feedback | Feedback → Select Service → Rate → Submit |
-| File a complaint | Feedback → File Complaint → Describe Issue → Submit |
-| Check ticket status | Helpdesk → Enter Ticket Number → Search |
-| Use QR code | Scan with phone camera → Tap link → Submit feedback |
+### Public Access (No Login)
+
+| Task | How To |
+|------|--------|
+| Submit feedback | Feedback menu > Select Service > Rate > Submit |
+| Check ticket status | Helpdesk > Enter Ticket Number > Search |
+| Use QR code | Scan with camera > Tap link > Submit feedback |
+
+### Citizen Portal (Logged In)
+
+| Task | How To |
+|------|--------|
+| Sign in | Login > Enter Phone > Verify SMS Code |
+| View dashboard | Citizen Portal > Home |
+| Submit feedback | Sidebar > Give Feedback > Complete form |
+| View all tickets | Sidebar > Tickets |
+| Search tickets | Tickets > Enter ticket number in search box |
+| Filter tickets | Tickets > Click status buttons |
+| Add comment | Ticket Details > Add Comment > Send |
+| View analytics | Sidebar > Analytics |
+| Sign out | Click name > Sign Out |
+
+### Ticket Status Colors
+
+| Status | Color | Meaning |
+|--------|-------|---------|
+| Open/New | Yellow | Awaiting review |
+| Assigned/In Progress | Blue | Being worked on |
+| Pending | Orange | Awaiting response |
+| Resolved | Green | Issue addressed |
+| Closed | Gray | Complete |
 
 ---
 
-**Document Version:** 1.0  
-**Published:** November 2025  
+**Document Version:** 2.0
+**Published:** January 2026
+**Updated Features:** Citizen Portal, ticket search, analytics dashboard
 **© Government of Grenada - Digital Transformation Agency**

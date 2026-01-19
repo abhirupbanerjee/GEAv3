@@ -41,7 +41,7 @@ const navigation = [
   { name: 'Home', href: '/citizen', icon: FiHome },
   { name: 'Analytics', href: '/citizen/analytics', icon: FiBarChart2 },
   { name: 'Tickets', href: '/citizen/tickets', icon: FiFileText },
-  { name: 'Give Feedback', href: '/citizen/feedback/submit', icon: FiMessageSquare },
+  { name: 'Feedback', href: '/citizen/feedback/submit', icon: FiMessageSquare },
 ];
 
 export default function CitizenLayout({
