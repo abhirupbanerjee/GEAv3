@@ -1132,6 +1132,518 @@ POST /api/admin/users
 
 ---
 
-**Last Updated:** 2026-01-17
-**Version:** 3.2
+---
+
+## Admin and Superuser Features
+
+### Overview
+
+DTA Administrators (`admin_dta` role) have exclusive access to system-wide configuration and management features through the `/admin/settings` page. These features allow admins to configure every aspect of the portal without requiring code changes or environment variable updates.
+
+---
+
+### System Settings Management
+
+**Access:** `/admin/settings` (Admin only)
+
+Admins can manage 100+ configurable settings organized into 9 major categories. All settings are stored in the database with encryption for sensitive values, audit logging, and runtime/restart indicators.
+
+**Key Features:**
+- Real-time validation and save functionality
+- Sensitive value masking with show/hide toggle
+- Audit trail for all changes (who, when, why, IP address)
+- Runtime indicators (settings marked "Requires restart" need application restart)
+- Category-based organization with subcategories
+
+**Code Reference:** `frontend/src/app/admin/settings/page.tsx`
+
+---
+
+### Settings Categories
+
+#### 1. System Settings (`SYSTEM`)
+
+**Subcategories:** General, Branding, Contact
+
+| Setting | Type | Description | Runtime |
+|---------|------|-------------|---------|
+| **Site Name** | string | Application name displayed in headers and browser tabs | ✅ Yes |
+| **Site Short Name** | string | Abbreviated site name for compact displays | ✅ Yes |
+| **Copyright Year** | string | Year displayed in footer copyright notice | ✅ Yes |
+| **Session Duration** | number | Admin session duration in hours (default: 2) | ❌ Restart |
+| **Site Favicon** | image | Favicon/site icon (ICO/PNG) with upload support | ✅ Yes |
+| **Site Logo** | image | Header logo with upload support | ✅ Yes |
+| **Logo Alt Text** | string | Alternative text for logo accessibility | ✅ Yes |
+| **Service Admin Email** | email | Email for service request notifications | ✅ Yes |
+| **About Contact Email** | email | Contact email on About page | ✅ Yes |
+
+**Features:**
+- Image upload for logo and favicon (replaces URL entry)
+- Branding preview in real-time
+- Email validation
+
+**Database:** `system_settings` table, category = 'SYSTEM'
+
+---
+
+#### 2. Authentication Settings (`AUTHENTICATION`)
+
+**Subcategories:** Google OAuth, Microsoft OAuth, Citizen Login
+
+##### Google OAuth
+
+| Setting | Type | Sensitive | Description |
+|---------|------|-----------|-------------|
+| **Enable Google OAuth** | boolean | No | Allow users to sign in with Google |
+| **Google Client ID** | string | No | OAuth 2.0 Client ID from Google Cloud Console |
+| **Google Client Secret** | secret | Yes | OAuth 2.0 Client Secret (encrypted) |
+
+##### Microsoft OAuth
+
+| Setting | Type | Sensitive | Description |
+|---------|------|-----------|-------------|
+| **Enable Microsoft OAuth** | boolean | No | Allow users to sign in with Microsoft |
+| **Microsoft Client ID** | string | No | Application (client) ID from Azure Portal |
+| **Microsoft Client Secret** | secret | Yes | Client secret (encrypted) |
+| **Microsoft Tenant ID** | string | No | Directory (tenant) ID from Azure Portal |
+
+##### Citizen Login (Twilio SMS OTP)
+
+**Purpose:** Configure citizen portal authentication via SMS OTP using Twilio Verify service.
+
+**Twilio Credentials:**
+
+| Setting | Type | Sensitive | Description |
+|---------|------|-----------|-------------|
+| **Enable Citizen Login** | boolean | No | Master toggle for citizen authentication |
+| **Twilio Account SID** | secret | Yes | Account SID from Twilio Console (starts with AC) |
+| **Twilio Auth Token** | secret | Yes | Auth Token from Twilio Console |
+| **Twilio Verify Service SID** | secret | Yes | Verify Service SID (starts with VA) |
+
+**Phone Region Settings:**
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| **Allowed Countries** | multiselect | Countries whose phone numbers can register (20+ countries) |
+| **Custom Country Codes** | string | Additional ISD codes not in preset list (e.g., +91,+49,+33) |
+
+**Supported Regions:**
+- **Primary:** Grenada (+1-473)
+- **Caribbean Islands (18 countries):** Antigua, Barbados, Dominica, Dominican Republic, Jamaica, St Kitts, St Lucia, St Vincent, Trinidad, Bahamas, Bermuda, Cayman, Turks & Caicos, USVI, BVI, Anguilla, Montserrat, Guyana, Suriname
+- **Other Regions:** USA, UK, Canada
+
+**Session & Security Settings:**
+
+| Setting | Type | Default | Range | Description |
+|---------|------|---------|-------|-------------|
+| **OTP Expiry (minutes)** | number | 5 | 1-15 | How long OTP codes remain valid |
+| **Max OTP Attempts** | number | 3 | 1-10 | Maximum verification attempts before lockout |
+| **Session Duration (hours)** | number | 24 | 1-168 | How long citizen sessions remain active |
+| **Device Trust (days)** | number | 30 | 7-90 | "Remember this device" cookie validity |
+
+**Testing:**
+- Test SMS button to verify Twilio configuration
+- Sends test OTP to admin's phone number
+- Validates credentials and Verify Service setup
+
+**Code Reference:**
+- Settings: `database/scripts/16-create-system-settings.sh:157-210`
+- API: `frontend/src/app/api/admin/settings/test-sms/route.ts`
+- Library: `frontend/src/lib/twilio.ts`
+
+---
+
+#### 3. Integrations Settings (`INTEGRATIONS`)
+
+**Subcategories:** Email (SendGrid), Chatbot
+
+##### SendGrid Email
+
+| Setting | Type | Sensitive | Description |
+|---------|------|-----------|-------------|
+| **SendGrid API Key** | secret | Yes | API key for SendGrid service (encrypted) |
+| **Sender Email** | email | No | Email address that sends notifications |
+| **Sender Name** | string | No | Display name for sent emails |
+
+**Features:**
+- Test Email button to verify configuration
+- Sends test email to admin's email address
+- Validates API key and from address
+
+**Code Reference:** `frontend/src/app/api/admin/settings/test-email/route.ts`
+
+##### Chatbot
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| **Chatbot URL** | url | URL for embedded AI chatbot widget |
+| **Enable Chatbot** | boolean | Show/hide chatbot on portal |
+
+**Link:** AI inventory management at `/admin/ai-inventory`
+
+---
+
+#### 4. Business Rules Settings (`BUSINESS_RULES`)
+
+**Subcategories:** Service Requests, Rate Limits, Thresholds, File Upload
+
+##### Service Requests
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| **Service Request Entity** | select | Default entity that receives service requests (AGY-005) |
+| **DTA Admin Role Code** | string | Role code for DTA administrators |
+
+##### Rate Limits
+
+| Setting | Default | Range | Description |
+|---------|---------|-------|-------------|
+| **Feedback Rate Limit** | 5 | 1-100 | Max feedback submissions per hour per IP |
+| **Grievance Rate Limit** | 2 | 1-50 | Max grievance submissions per hour per IP |
+| **EA Service Rate Limit** | 10 | 1-100 | Max EA service requests per hour per IP |
+| **Rate Limit Window** | 3600 | 60-86400 | Time window in seconds for rate limiting |
+
+##### Thresholds
+
+| Setting | Default | Range | Description |
+|---------|---------|-------|-------------|
+| **Low Rating Threshold** | 2.5 | 1-5 | Rating at or below triggers ticket creation |
+| **DTA Alert Threshold** | 2 | 1-5 | Rating at or below triggers admin alert |
+| **Urgent Priority Threshold** | 1.5 | 1-5 | Rating threshold for URGENT priority |
+| **High Priority Threshold** | 2.5 | 1-5 | Rating threshold for HIGH priority |
+| **Medium Priority Threshold** | 3.5 | 1-5 | Rating threshold for MEDIUM priority |
+
+##### File Upload
+
+| Setting | Default | Range | Description |
+|---------|---------|-------|-------------|
+| **Max File Size (bytes)** | 2,097,152 (2MB) | 100KB-10MB | Maximum size per file upload |
+| **Max Total Upload Size (bytes)** | 5,242,880 (5MB) | 1MB-50MB | Maximum total upload per submission |
+| **Allowed File Types** | pdf,jpg,jpeg,png,doc,docx,xlsx,xls | - | Comma-separated file extensions |
+
+---
+
+#### 5. Performance Settings (`PERFORMANCE`)
+
+**Subcategories:** Caching (Redis)
+
+| Setting | Type | Default | Range | Description |
+|---------|------|---------|-------|-------------|
+| **Enable Analytics Caching** | boolean | true | - | Enable Redis caching for analytics data |
+| **Analytics Cache TTL (seconds)** | number | 300 | 60-600 | Time-to-live for cached analytics |
+
+**Purpose:** Optimize analytics dashboard performance by caching expensive queries in Redis.
+
+**Code Reference:** `frontend/src/lib/settings.ts:583-597`
+
+---
+
+#### 6. Content Settings (`CONTENT`)
+
+**Subcategories:** Footer Links, Leadership Contacts
+
+##### Footer Links
+
+| Setting | Type | Description |
+|---------|------|-------------|
+| **Government Website URL** | url | Link to main government website |
+| **eServices URL** | url | Link to eServices portal |
+| **Constitution URL** | url | Link to constitution documents |
+
+##### Leadership Contacts
+
+**Purpose:** Dynamically manage leadership contacts displayed on the About page.
+
+**Features:**
+- Add/Edit/Delete contacts
+- Drag-and-drop reordering
+- Photo upload for each contact
+- Active/inactive toggle
+
+**Contact Fields:**
+- Name (required)
+- Title (required)
+- Email (optional)
+- Photo (optional, with upload)
+- Sort Order (drag-and-drop)
+- Active Status
+
+**API:** `/api/admin/contacts`
+
+**Database:** `leadership_contacts` table
+
+**Code Reference:** `frontend/src/app/api/admin/contacts/route.ts`
+
+---
+
+#### 7. Admin Management (`USER_MANAGEMENT`)
+
+**Purpose:** Configure which entities are allowed to have admin users.
+
+**Setting:** `ADMIN_ALLOWED_ENTITIES`
+
+**Type:** JSON array of entity IDs
+
+**Default:** `["AGY-005"]` (Digital Transformation Agency only)
+
+**Use Case:**
+- Restricts which entities can be assigned to users with `admin_dta` role
+- Prevents unauthorized entities from having admin-level access
+- Defaults to AGY-005 (DTA) to maintain centralized admin control
+
+**UI:** Multi-select checklist of all entities in the system
+
+**Code Reference:** `frontend/src/app/admin/settings/page.tsx:253-312`
+
+---
+
+#### 8. Service Providers (`SERVICE_PROVIDERS`)
+
+**Purpose:** Configure which entities can receive and manage service requests from the public portal.
+
+**Database Column:** `entity_master.is_service_provider`
+
+**Features:**
+- Toggle service provider status for any entity
+- Searchable list of all entities
+- Visual indicators for current service providers
+- Instant updates without restart
+
+**Use Case:**
+- Public citizens can submit service requests
+- Only entities marked as service providers appear in the service request form
+- Allows flexible configuration of which MDAs handle public requests
+
+**API:** `/api/admin/service-providers`
+
+**Code Reference:** `frontend/src/app/api/admin/service-providers/route.ts`
+
+---
+
+#### 9. Database Backups (`DATABASE`)
+
+**Purpose:** Manual and scheduled backup/restore of PostgreSQL database.
+
+**Features:**
+
+##### Backup Management
+- **Manual Backup:** Create on-demand database backup
+- **List Backups:** View all available backup files with metadata
+- **Download Backup:** Download backup file to local machine
+- **Delete Backup:** Remove old backup files
+- **Backup Info:** See total backups, directory path, total size
+
+**Backup Types:**
+- `manual` - Admin-initiated backup
+- `scheduled` - Automated scheduled backup
+- `pre_restore` - Safety backup created before restore
+- `unknown` - Legacy or external backups
+
+##### Restore Functionality
+- **Safety Backup:** Automatically creates backup before restore
+- **Confirmation Required:** Admin must type "RESTORE" to confirm
+- **Restore Report:** Shows number of tables restored and safety backup filename
+- **Warning Indicators:** Clear warnings about data loss
+
+**Backup Metadata:**
+| Field | Description |
+|-------|-------------|
+| Filename | Backup file name with timestamp |
+| Created At | Backup creation timestamp |
+| Size | Human-readable file size |
+| Type | Backup type (manual/scheduled/pre_restore) |
+
+**API Endpoints:**
+- `GET /api/admin/database/backups` - List all backups
+- `POST /api/admin/database/backups` - Create manual backup
+- `POST /api/admin/database/restore` - Restore from backup
+- `DELETE /api/admin/database/backups` - Delete backup file
+- `GET /api/admin/database/backups/download` - Download backup
+
+**Code Reference:**
+- UI: `frontend/src/app/admin/settings/page.tsx` (DATABASE tab)
+- API: `frontend/src/app/api/admin/database/*`
+
+**Security:**
+- Admin-only access
+- Confirmation required for destructive operations
+- Automatic safety backups before restore
+- Audit logging of all operations
+
+---
+
+### Settings Audit Log
+
+**Purpose:** Track all changes to system settings for compliance and security.
+
+**Table:** `settings_audit_log`
+
+**Logged Information:**
+- Setting key
+- Old value (masked if sensitive)
+- New value (masked if sensitive)
+- Changed by (admin email)
+- Change reason (optional note from admin)
+- IP address
+- Timestamp
+
+**Access:** Admins can view audit history for any setting or all settings
+
+**API:** `GET /api/admin/settings/audit?setting_key=SETTING_KEY`
+
+**Code Reference:** `frontend/src/lib/settings.ts:299-326`
+
+---
+
+### Settings Security
+
+**Encryption:**
+- Sensitive settings (marked `is_sensitive = true`) are encrypted at rest
+- Uses AES-256-GCM encryption with per-value initialization vectors
+- Encryption key stored securely in environment (`SETTINGS_ENCRYPTION_KEY`)
+- Values are decrypted only when needed and never logged in plain text
+
+**Sensitive Settings:**
+- OAuth client secrets (Google, Microsoft)
+- Twilio credentials (Account SID, Auth Token, Verify Service SID)
+- SendGrid API Key
+- Any other credentials marked as `secret` type
+
+**Masking:**
+- Sensitive values are masked in the UI by default
+- Shown as `••••••••` with toggle to reveal
+- Admin can temporarily view to verify configuration
+- Never transmitted in API responses unless explicitly requested
+
+**Code Reference:** `frontend/src/lib/settings-encryption.ts`
+
+---
+
+### Common Admin Operations
+
+#### Update System Branding
+
+1. Navigate to `/admin/settings?tab=SYSTEM`
+2. Select "Branding" subcategory
+3. Upload logo: Click "Upload" button, select image file
+4. Upload favicon: Click "Upload" button, select ICO/PNG file
+5. Update logo alt text if needed
+6. Click "Save Changes"
+7. Changes apply immediately (no restart required)
+
+---
+
+#### Configure Citizen Login (Twilio SMS)
+
+1. **Create Twilio Account:**
+   - Sign up at [twilio.com/verify](https://www.twilio.com/verify)
+   - Create a new Verify Service in Twilio Console
+   - Note: Account SID, Auth Token, Verify Service SID
+
+2. **Enable in Portal:**
+   - Navigate to `/admin/settings?tab=AUTHENTICATION`
+   - Select "Citizen Login" subcategory
+   - Toggle "Enable Citizen Login" to ON
+   - Enter Twilio credentials (encrypted automatically)
+
+3. **Configure Phone Regions:**
+   - Select allowed countries from multi-select list
+   - Add custom country codes if needed (e.g., `+91,+49`)
+   - Configure session and security settings
+
+4. **Test Configuration:**
+   - Click "Test SMS" button
+   - Enter your phone number
+   - Verify you receive OTP code
+   - If successful, configuration is correct
+
+5. **Save Changes:**
+   - Click "Save Changes"
+   - Settings apply immediately (runtime)
+
+**Code Reference:** [AUTHENTICATION.md](./AUTHENTICATION.md) - Complete Citizen Login documentation
+
+---
+
+#### Add Leadership Contact to About Page
+
+1. Navigate to `/admin/settings?tab=CONTENT`
+2. Scroll to "Leadership Contacts" section
+3. Click "Add Contact" button
+4. Fill in contact details:
+   - Name (required)
+   - Title (required)
+   - Email (optional)
+5. Upload photo (optional):
+   - Click "Upload Photo" button
+   - Select image file (JPG/PNG)
+6. Click "Save Contact"
+7. Drag contacts to reorder
+8. Toggle "Active" to show/hide on About page
+
+**API:** `POST /api/admin/contacts`
+
+---
+
+#### Configure Service Provider Entities
+
+1. Navigate to `/admin/settings?tab=SERVICE_PROVIDERS`
+2. View list of all entities
+3. Toggle "Service Provider" switch for desired entities
+4. Changes apply immediately
+5. Enabled entities appear in public service request form
+
+**Use Case:**
+- Ministry of Health becomes service provider → Citizens can submit health-related requests
+- Ministry of Education becomes service provider → Citizens can submit education requests
+- AGY-005 (DTA) acts as central coordinator for all requests
+
+---
+
+#### Create Manual Database Backup
+
+1. Navigate to `/admin/settings?tab=DATABASE`
+2. Click "Create Backup Now" button
+3. Wait for backup to complete (usually 5-30 seconds)
+4. Backup appears in list with timestamp and size
+5. Download or delete backup as needed
+
+**Automatic Backups:**
+- Scheduled backups run via cron (configure in system settings)
+- Pre-restore backups are automatic safety measure
+
+---
+
+#### Restore Database from Backup
+
+⚠️ **Warning:** This will overwrite current database data
+
+1. Navigate to `/admin/settings?tab=DATABASE`
+2. Click "Restore" button on desired backup
+3. **Safety Backup:** System automatically creates current backup
+4. **Confirmation:** Type "RESTORE" in confirmation box
+5. Click "Restore Database"
+6. Wait for restore to complete
+7. Review restore report (tables restored, safety backup filename)
+8. **If restore fails:** Use the safety backup to recover
+
+**Best Practice:**
+- Always download a backup before restoring
+- Test restores in non-production environment first
+- Keep multiple backup copies
+
+---
+
+## Related Documentation
+
+- [Authentication Guide](./AUTHENTICATION.md) - NextAuth setup and OAuth configuration, Citizen Login with Twilio SMS
+- [Admin User Manual](./user-manuals/GEA_Portal_Admin_User_Manual.md) - Admin user guide
+- [Database Schema](../database/scripts/04-nextauth-users.sh) - Complete database schema
+- [Entity Filter Utility](../frontend/src/lib/entity-filter.ts) - Entity filtering implementation
+- [System Settings Script](../database/scripts/16-create-system-settings.sh) - Settings database schema and seed data
+
+---
+
+**Last Updated:** 2026-01-19
+**Version:** 4.0
 **Maintainer:** Digital Transformation Agency

@@ -2,8 +2,8 @@
 
 **Complete guide for deploying GEA Portal on a fresh Virtual Machine**
 
-**Version:** 1.1
-**Last Updated:** December 19, 2025
+**Version:** 1.2
+**Last Updated:** January 19, 2026
 **Status:** Production Ready
 
 ---
@@ -28,10 +28,12 @@
 
 ## Overview
 
-This guide walks you through deploying the GEA Portal v3 on a fresh virtual machine. The portal runs as a containerized application using Docker Compose with three main services:
+This guide walks you through deploying the GEA Portal v3 on a fresh virtual machine. The portal runs as a containerized application using Docker Compose with multiple services:
 
-- **Frontend** - Next.js 14 application
-- **Database** - PostgreSQL 15
+- **Frontend** - Next.js 16 application
+- **Database** - PostgreSQL 16
+- **Connection Pool** - PgBouncer v1.23.1
+- **Cache** - Redis 7.4.4
 - **Reverse Proxy** - Traefik v3.6 with automatic SSL
 
 **Estimated Time:** 30-45 minutes for first deployment
@@ -42,13 +44,13 @@ This guide walks you through deploying the GEA Portal v3 on a fresh virtual mach
 
 ### Minimum Specifications
 
-| Resource | Minimum | Recommended |
-|----------|---------|-------------|
-| **OS** | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS |
-| **RAM** | 4 GB | 8 GB |
-| **vCPUs** | 2 | 2-4 |
-| **Disk** | 30 GB | 50 GB (single disk) |
-| **Network** | Public IP | Static public IP |
+| Resource | Minimum | Recommended | Production |
+|----------|---------|-------------|------------|
+| **OS** | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
+| **RAM** | 8 GB | 8 GB (current) | 16 GB (100+ users) |
+| **vCPUs** | 2 | 2 | 2 |
+| **Disk** | 64 GB | 64 GB Premium SSD | 64-128 GB Premium SSD |
+| **Network** | Public IP | Static public IP | Static public IP |
 
 ### Required Ports
 
@@ -62,11 +64,13 @@ This guide walks you through deploying the GEA Portal v3 on a fresh virtual mach
 
 The Government of Grenada portal runs on:
 - **Cloud Provider:** Microsoft Azure
-- **VM Size:** Standard_B2s
+- **VM Size:** Standard_D2s_v4 (D-series for consistent performance)
 - **OS:** Ubuntu 24.04.3 LTS (kernel 6.14.0-azure)
-- **RAM:** 4 GB
+- **RAM:** 8 GB (upgradable to 16GB for 100+ users)
 - **vCPUs:** 2
-- **Disk:** 30 GB OS disk
+- **Disk:** 64 GB Premium SSD (high IOPS for database)
+
+> **Note:** Upgraded from B-series (burstable) to D-series for consistent CPU performance and better build times
 
 ---
 
@@ -78,38 +82,49 @@ The Government of Grenada portal runs on:
 # Create resource group
 az group create --name GEA-Portal-RG --location eastus
 
-# Create VM
+# Create VM (D-series for consistent performance)
 az vm create \
   --resource-group GEA-Portal-RG \
   --name GoGEAPortalv3 \
   --image Ubuntu2404LTS \
-  --size Standard_B2s \
+  --size Standard_D2s_v4 \
+  --storage-sku Premium_LRS \
+  --os-disk-size-gb 64 \
   --admin-username azureuser \
   --generate-ssh-keys \
   --public-ip-sku Standard
+
+# Note: Use D2s_v4 (8GB) for production
+# Scale to D2s_v5 or D4s_v4 (16GB) for 100+ users
 ```
 
 ### AWS
 
 ```bash
-# Using AWS CLI
+# Using AWS CLI (t3.large recommended for production)
 aws ec2 run-instances \
   --image-id ami-0c55b159cbfafe1f0 \
-  --instance-type t3.small \
+  --instance-type t3.large \
+  --block-device-mappings "DeviceName=/dev/sda1,Ebs={VolumeSize=64,VolumeType=gp3}" \
   --key-name your-key-pair \
   --security-group-ids sg-xxxxxxxx \
   --subnet-id subnet-xxxxxxxx
+
+# t3.large: 2 vCPU, 8GB RAM (similar to D2s_v4)
+# Use t3.xlarge (4 vCPU, 16GB) for 100+ users
 ```
 
 ### DigitalOcean
 
 ```bash
-# Using doctl CLI
+# Using doctl CLI (8GB droplet recommended)
 doctl compute droplet create gea-portal \
-  --size s-2vcpu-4gb \
+  --size s-2vcpu-8gb \
   --image ubuntu-24-04-x64 \
   --region nyc1 \
   --ssh-keys your-key-id
+
+# Use s-2vcpu-16gb for 100+ users
 ```
 
 ---
@@ -656,18 +671,11 @@ docker exec -i feedback_db psql -U feedback_user feedback < backup.sql
 docker compose build --no-cache && docker compose up -d
 ```
 
----
 
-## See Also
-
-- [Main README](../README.md) - Project overview
-- [Database Guide](../database/README.md) - Complete DBA guide
-- [API Reference](API_REFERENCE.md) - All API endpoints
-- [Authentication Guide](AUTHENTICATION.md) - OAuth setup details
-- [Solution Architecture](SOLUTION_ARCHITECTURE.md) - System architecture
-
----
-
-**Document Version:** 1.1
-**Last Updated:** December 19, 2025
+**Document Version:** 1.2
+**Last Updated:** January 19, 2026
 **Maintained By:** GEA Portal Development Team
+
+**Change Log:**
+- v1.2 (Jan 19, 2026): Updated VM specs to D2s_v4 (8GB, Premium SSD), added PostgreSQL 16, PgBouncer, Redis
+- v1.1 (Dec 19, 2025): Initial production version

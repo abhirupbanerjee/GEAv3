@@ -64,8 +64,20 @@ frontend/src/app/api/
 │   │   └── [id]/
 │   │       ├── details/route.ts
 │   │       └── update/route.ts
-│   └── service-requests/
-│       └── route.ts
+│   ├── service-requests/
+│   │   └── route.ts
+│   ├── settings/            # System settings management
+│   │   ├── route.ts         # GET, PUT
+│   │   ├── test-sms/route.ts
+│   │   └── test-email/route.ts
+│   └── database/            # Database backup/restore
+│       └── backups/route.ts
+├── citizen/                 # Citizen authentication (Twilio SMS OTP)
+│   └── auth/
+│       ├── send-otp/route.ts      # Send OTP via Twilio Verify
+│       ├── verify-otp/route.ts    # Verify OTP and create session
+│       ├── login/route.ts         # Password-based login
+│       └── complete-registration/route.ts  # Complete citizen registration
 ├── external/                 # External API (bot/integration access)
 │   ├── tickets/route.ts
 │   └── entities/route.ts
@@ -82,8 +94,12 @@ frontend/src/app/api/
 
 ```
 frontend/src/lib/
-├── auth.ts                  # NextAuth configuration
-├── db.ts                    # Database connection pool
+├── auth.ts                  # NextAuth configuration (admin/staff)
+├── citizen-auth.ts          # Citizen authentication helpers
+├── twilio.ts                # Twilio Verify SMS OTP integration
+├── settings.ts              # System settings management
+├── settings-encryption.ts   # AES-256-GCM encryption for sensitive settings
+├── db.ts                    # Database connection pool (PgBouncer)
 ├── redis.ts                 # Redis caching utilities
 ├── response.ts              # Response helpers & error codes
 └── schemas/                 # Zod validation schemas (if used)
@@ -957,6 +973,10 @@ import {
 
 ---
 
-**Last Updated:** January 2026 | **Version:** 1.0
+**Last Updated:** January 19, 2026 | **Version:** 1.1
+
+**Change Log:**
+- v1.1 (Jan 19, 2026): Added citizen authentication endpoints, system settings APIs, database backup endpoints, enhanced supporting libraries list
+- v1.0 (Jan 2026): Initial version
 
 For questions or to report issues with this guide, contact the development team.

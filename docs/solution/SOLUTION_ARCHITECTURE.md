@@ -1,9 +1,10 @@
 # GEA Portal v3 - Solution Architecture
 
-**Document Version:** 1.3
-**Last Updated:** January 2026
+**Document Version:** 1.4
+**Last Updated:** January 19, 2026
 **System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
 **Status:** ✅ Production Ready
+**Infrastructure:** Azure Standard_D2s_v4 (8GB RAM, Premium SSD)
 
 ---
 
@@ -1051,10 +1052,23 @@ docker exec traefik cat /letsencrypt/acme.json | jq '.letsencrypt.Certificates[0
 
 | Metric | Current | Bottleneck |
 |--------|---------|------------|
-| **Concurrent Users** | ~100 | Database connections |
+| **Concurrent Users** | 30-50 | Database connections |
+| **Target Capacity** | 100+ users | Database + memory |
 | **Requests/Second** | ~50 | Node.js single thread |
 | **Database Size** | 70MB | Disk I/O |
 | **Session Storage** | 2 hours × 100 users | Database sessions table |
+
+### Infrastructure Specifications
+
+| Component | Current Spec | Upgrade Path |
+|-----------|--------------|--------------|
+| **VM** | Standard_D2s_v4 (Azure) | Standard_D2s_v5 / D4s_v4 |
+| **RAM** | 8GB | 16GB (for 100+ users) |
+| **vCPUs** | 2 | 2 |
+| **Storage** | 64GB Premium SSD | 64-128GB Premium SSD |
+| **Performance** | Consistent (D-series) | No CPU throttling |
+
+> **Note:** Upgraded from B-series burstable VMs to D-series for consistent performance and better Docker build times
 
 ### Performance Optimizations
 
@@ -1289,7 +1303,11 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-**Document Version:** 1.3
-**Last Updated:** January 2026
+**Document Version:** 1.4
+**Last Updated:** January 19, 2026
 **Maintained By:** GEA Portal Development Team
 **System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
+
+**Change Log:**
+- v1.4 (Jan 19, 2026): Added infrastructure specifications (D2s_v4), updated capacity metrics, noted B→D series upgrade
+- v1.3 (Jan 2026): Added Redis caching and PgBouncer connection pooling documentation

@@ -2,8 +2,8 @@
 
 **Complete Step-by-Step Guide for First-Time Installation**
 
-**Version:** 1.1
-**Last Updated:** January 14, 2026
+**Version:** 1.2
+**Last Updated:** January 19, 2026
 **Status:** Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3
 
@@ -61,13 +61,16 @@ This manual provides complete instructions for performing a **fresh installation
 
 ### 1. Virtual Machine Requirements
 
-| Component | Minimum | Recommended | Notes |
-|-----------|---------|-------------|-------|
-| **Operating System** | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS | Fresh installation |
-| **RAM** | 4 GB | 8 GB | 4GB sufficient for production |
-| **vCPUs** | 2 | 2-4 | More cores improve build time |
-| **Disk Space** | 128 GB | 512 GB | Single disk, SSD preferred |
-| **Network** | Public IP | Static Public IP | Required for SSL certificates |
+| Component | Minimum | Recommended | Production |
+|-----------|---------|-------------|-----------|
+| **Operating System** | Ubuntu 22.04 LTS | Ubuntu 24.04 LTS | Ubuntu 24.04 LTS |
+| **RAM** | 8 GB | 8 GB | 16 GB (100+ users) |
+| **vCPUs** | 2 | 2 | 2 |
+| **Disk Space** | 64 GB | 64 GB Premium SSD | 64-128 GB Premium SSD |
+| **Disk Type** | Standard SSD | Premium SSD | Premium SSD (high IOPS) |
+| **Network** | Public IP | Static Public IP | Static Public IP |
+
+> **Note:** 8GB RAM with Premium SSD is the current production standard. Use D-series (Azure) or equivalent for consistent CPU performance.
 
 ### 2. Network Requirements
 
@@ -1642,7 +1645,11 @@ After completing the fresh installation:
 
 ---
 
-**Document Version:** 1.1
-**Last Updated:** January 14, 2026
+**Document Version:** 1.2
+**Last Updated:** January 19, 2026
 **Status:** Production Ready
 **Maintained By:** GEA Portal Development Team
+
+**Change Log:**
+- v1.2 (Jan 19, 2026): Updated VM requirements to 8GB RAM minimum, added Premium SSD recommendations, noted D-series for consistent performance
+- v1.1 (Jan 14, 2026): Initial production manual

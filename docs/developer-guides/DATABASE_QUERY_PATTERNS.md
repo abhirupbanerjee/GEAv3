@@ -33,16 +33,19 @@ This guide provides **database query patterns** specific to the GEA Portal. Foll
 | Metric | Value |
 |--------|-------|
 | **Database** | PostgreSQL 16 |
-| **Total Tables** | 30 |
+| **Connection Pooling** | PgBouncer v1.23.1 (200 max clients, 20 pool size) |
+| **Total Tables** | 40+ |
 | **Indexes** | 60+ |
-| **Connection Pool** | 20 max connections |
+| **Direct Pool** | 20 max connections (via lib/db.ts) |
 
 ### 1.3 Key Tables by Category
 
 | Category | Tables |
 |----------|--------|
 | **Reference Data** | `entity_master`, `service_master`, `service_attachments` |
-| **Auth & Users** | `users`, `user_roles`, `accounts`, `sessions` |
+| **Admin/Staff Auth** | `users`, `user_roles`, `accounts`, `sessions` |
+| **Citizen Auth** | `citizens`, `citizen_sessions`, `citizen_trusted_devices`, `citizen_otp`, `citizen_account_blocks` |
+| **System Settings** | `system_settings`, `settings_audit_log`, `leadership_contacts` |
 | **Feedback** | `service_feedback`, `grievance_tickets` |
 | **Tickets** | `tickets`, `ticket_activity`, `ticket_notes` |
 | **EA Requests** | `ea_service_requests`, `ea_service_request_attachments` |
@@ -771,6 +774,10 @@ MIN(created_at), MAX(updated_at)
 
 ---
 
-**Last Updated:** January 2026 | **Version:** 1.0
+**Last Updated:** January 19, 2026 | **Version:** 1.1
+
+**Change Log:**
+- v1.1 (Jan 19, 2026): Added citizen authentication tables, system settings tables, PgBouncer connection pooling info, updated table counts
+- v1.0 (Jan 2026): Initial version
 
 For questions or to report issues with this guide, contact the development team.

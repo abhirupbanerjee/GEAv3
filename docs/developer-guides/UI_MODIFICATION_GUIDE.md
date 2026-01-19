@@ -22,15 +22,22 @@ This guide covers modification and extension of the following admin and public p
 | **Analytics Dashboard** | `/admin/analytics` | Metric cards, charts, leaderboards |
 | **Service Requests** | `/admin/service-requests` | Request table, status displays |
 | **AI Bot Inventory** | `/admin/ai-inventory` | Bot cards, status indicators |
+| **System Settings** | `/admin/settings` | 9 settings categories, configuration tabs, database backups |
 
 ### Public Pages
 | Page | URL | What You Can Modify |
 |------|-----|---------------------|
 | **Home** | `/` | Hero section, service grid, content |
-| **About** | `/about` | Page content, layout |
+| **About** | `/about` | Page content, leadership contacts |
 | **Services** | `/services` | Service directory, search, filters |
 | **Feedback** | `/feedback` | Rating forms, submission flow |
 | **Helpdesk** | `/helpdesk` | Ticket lookup, display |
+
+### Citizen Portal Pages (Twilio SMS OTP Auth)
+| Page | URL | What You Can Modify |
+|------|-----|---------------------|
+| **Citizen Login** | `/citizen/login` | OTP verification flow, login/registration forms |
+| **Citizen Dashboard** | `/citizen/dashboard` | Citizen-facing features and services |
 
 ---
 
@@ -1066,6 +1073,10 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 
 ---
 
-**Last Updated:** January 2026 | **Version:** 1.1
+**Last Updated:** January 19, 2026 | **Version:** 1.2
+
+**Change Log:**
+- v1.2 (Jan 19, 2026): Added System Settings page, Citizen Portal pages, updated About page features
+- v1.1 (Jan 2026): Initial version
 
 For questions or to report issues with this guide, contact the development team.

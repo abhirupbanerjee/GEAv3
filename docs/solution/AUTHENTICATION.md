@@ -1,15 +1,20 @@
 # Authentication & Authorization Guide
 
-**GEA Portal v3 - Complete OAuth Authentication System**
+**GEA Portal v3 - Dual Authentication System**
+- **Admin/Staff:** OAuth (Google & Microsoft)
+- **Citizens:** Twilio SMS OTP Verification
 
-**Last Updated:** January 2026
+**Last Updated:** January 19, 2026
 **Status:** ✅ Production Ready
-**Authentication:** NextAuth v4 with OAuth (Google & Microsoft)
+**Authentication:**
+- **Admin/Staff:** NextAuth v4 with OAuth (Google & Microsoft)
+- **Citizens:** Twilio SMS OTP + Password Authentication
 
 ---
 
 ## 📋 Table of Contents
 
+### Admin/Staff Authentication (OAuth)
 1. [Overview](#overview)
 2. [Quick Start](#quick-start)
 3. [Architecture](#architecture)
@@ -18,11 +23,22 @@
 6. [Configuration](#configuration)
 7. [User Management](#user-management)
 8. [API Integration](#api-integration)
-9. [Database Commands](#database-commands)
-10. [Docker Commands](#docker-commands)
-11. [Troubleshooting](#troubleshooting)
-12. [Security](#security)
-13. [Quick Reference](#quick-reference)
+
+### Citizen Authentication (Twilio SMS OTP)
+9. [Citizen Authentication Overview](#citizen-authentication-overview)
+10. [Twilio SMS OTP Setup](#twilio-sms-otp-setup)
+11. [Citizen Authentication Flow](#citizen-authentication-flow)
+12. [Citizen Database Schema](#citizen-database-schema)
+13. [Phone Number Validation](#phone-number-validation)
+14. [Citizen API Endpoints](#citizen-api-endpoints)
+15. [Citizen Configuration](#citizen-configuration)
+
+### Operations & Maintenance
+16. [Database Commands](#database-commands)
+17. [Docker Commands](#docker-commands)
+18. [Troubleshooting](#troubleshooting)
+19. [Security](#security)
+20. [Quick Reference](#quick-reference)
 
 ---
 
@@ -616,12 +632,541 @@ export default function MyComponent() {
 
 ---
 
-## Database Commands
+## Citizen Authentication Overview
 
-### User Management Commands
+The GEA Portal implements a **dual authentication system**:
+- **Admin/Staff** use OAuth (Google/Microsoft) for secure enterprise access
+- **Citizens** use SMS OTP verification for passwordless mobile-first authentication
+
+### Citizen Authentication Features
+
+✅ **SMS OTP Verification** - Twilio Verify for secure one-time passwords
+✅ **Phone-Based Authentication** - No email required, mobile-first approach
+✅ **Region Validation** - Configurable allowed countries (Grenada + Caribbean by default)
+✅ **Passwordless Login** - Optional: OTP-only OR OTP + password for returning users
+✅ **Device Trust** - "Remember this device" for 30-day trusted sessions
+✅ **Session Management** - Configurable session duration (default: 24 hours)
+✅ **Account Blocking** - Admin can block/unblock citizen accounts
+✅ **Audit Logging** - Login attempts, OTP requests, and account activity tracked
+
+### Citizen vs Admin/Staff Authentication
+
+| Feature | Admin/Staff (OAuth) | Citizens (Twilio OTP) |
+|---------|---------------------|----------------------|
+| **Auth Method** | Google/Microsoft OAuth | SMS OTP → Optional Password |
+| **Database** | `users` table | `citizens` table |
+| **Identifier** | Email address | Phone number (E.164) |
+| **Session Storage** | NextAuth sessions | `citizen_sessions` table |
+| **Access Level** | Full admin portal | Citizen-facing features only |
+| **Typical Use** | Government staff | General public |
+
+---
+
+## Twilio SMS OTP Setup
+
+### Prerequisites
+
+1. **Twilio Account** (free or paid)
+2. **Twilio Verify Service** configured
+3. **Phone number** for sending SMS (provided by Twilio)
+
+### Step 1: Create Twilio Account
+
+1. Go to [Twilio Console](https://console.twilio.com/)
+2. Sign up for an account
+3. Complete phone verification
+
+### Step 2: Create Verify Service
+
+1. Navigate to **Verify** → **Services** in Twilio Console
+2. Click **Create new Service**
+3. **Service Name:** "GEA Portal OTP"
+4. **Code Length:** 6 digits (default)
+5. **Code Expiry:** 10 minutes (recommended)
+6. Click **Create**
+
+### Step 3: Get Credentials
+
+From Twilio Console, copy these values:
 
 ```bash
-# List all users
+# Account SID (starts with AC...)
+Account SID: ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Auth Token (from Account Dashboard → API credentials)
+Auth Token: your_auth_token_here
+
+# Verify Service SID (from Verify → Services)
+Verify Service SID: VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Step 4: Configure Environment Variables
+
+Add to your `.env` file:
+
+```bash
+# === Twilio Verify SMS OTP ===
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_VERIFY_SERVICE_SID=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+```
+
+### Step 5: Enable Citizen Login in Admin Settings
+
+1. Navigate to **Admin Portal** → **Settings** → **Citizen Login**
+2. Toggle "Enable Citizen Login" to **ON**
+3. Configure settings:
+   - **Allowed Countries:** Select Grenada + other allowed regions
+   - **OTP Expiry Minutes:** 10 (default)
+   - **Session Duration Hours:** 24 (default)
+   - **Max Failed Attempts:** 5 (default)
+4. Click **Test SMS** to verify Twilio is working
+5. Click **Save Changes**
+
+### Pricing (As of 2026)
+
+- **Twilio Verify:** $0.05 per verification (including SMS)
+- **Free Trial:** $15 credit for testing
+- **Estimated Monthly Cost:**
+  - 1,000 OTP verifications = ~$50/month
+  - 5,000 OTP verifications = ~$250/month
+
+---
+
+## Citizen Authentication Flow
+
+### Registration Flow (New User)
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. Citizen visits /citizen/login                           │
+│     ↓                                                        │
+│  2. Enter phone number (+14731234567)                       │
+│     ↓                                                        │
+│  3. POST /api/citizen/auth/send-otp                         │
+│     → Validates phone against allowed regions               │
+│     → Sends 6-digit OTP via Twilio Verify                   │
+│     ↓                                                        │
+│  4. Enter OTP code received via SMS                         │
+│     ↓                                                        │
+│  5. POST /api/citizen/auth/verify-otp                       │
+│     → Verifies OTP with Twilio                              │
+│     → Creates citizen record in database                    │
+│     → Returns requiresRegistration: true                    │
+│     ↓                                                        │
+│  6. Complete registration form (name, email, password)      │
+│     ↓                                                        │
+│  7. POST /api/citizen/auth/complete-registration            │
+│     → Hashes password (bcrypt)                              │
+│     → Marks registration_complete = true                    │
+│     → Creates session                                        │
+│     ↓                                                        │
+│  8. Redirected to citizen dashboard                         │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Login Flow (Returning User)
+
+**Option 1: OTP-Only Login** (Passwordless)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. Enter phone number                                       │
+│     ↓                                                        │
+│  2. Click "Send Code"                                        │
+│     → POST /api/citizen/auth/send-otp                       │
+│     ↓                                                        │
+│  3. Enter OTP code from SMS                                  │
+│     ↓                                                        │
+│  4. POST /api/citizen/auth/verify-otp                       │
+│     → Finds existing citizen by phone                       │
+│     → Registration already complete → Creates session       │
+│     ↓                                                        │
+│  5. Logged in → Citizen dashboard                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Option 2: Password Login** (Faster for returning users)
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. Enter phone + password                                   │
+│     ↓                                                        │
+│  2. POST /api/citizen/auth/login                            │
+│     → Verifies bcrypt password                              │
+│     → Creates session                                        │
+│     ↓                                                        │
+│  3. Logged in → Citizen dashboard                           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Device Trust ("Remember This Device")
+
+When enabled:
+- Creates a long-lived device token (30 days)
+- Stored in `citizen_trusted_devices` table
+- Next login on trusted device: Skip OTP, fast password-only login
+- Revocable via account settings
+
+---
+
+## Citizen Database Schema
+
+### Tables Created (5 tables)
+
+#### 1. **citizens** - Phone-based user accounts
+```sql
+CREATE TABLE citizens (
+    citizen_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    phone VARCHAR(20) UNIQUE NOT NULL,           -- E.164 format (+14731234567)
+    phone_verified BOOLEAN DEFAULT false,
+    name VARCHAR(100),
+    email VARCHAR(255),
+    password_hash VARCHAR(255),                  -- bcrypt hash (optional)
+    registration_complete BOOLEAN DEFAULT false,
+    is_active BOOLEAN DEFAULT true,              -- Admin can block accounts
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP
+);
+```
+
+**Key Fields:**
+- `phone` - E.164 format (+country + number, e.g., +14731234567)
+- `phone_verified` - Set to `true` after OTP verification
+- `registration_complete` - `false` until name/email/password provided
+- `is_active` - Admin can set to `false` to block account
+
+#### 2. **citizen_otp** - SMS verification codes
+```sql
+CREATE TABLE citizen_otp (
+    otp_id SERIAL PRIMARY KEY,
+    citizen_id UUID REFERENCES citizens(citizen_id),
+    phone VARCHAR(20) NOT NULL,
+    otp_code VARCHAR(6) NOT NULL,
+    purpose VARCHAR(20) DEFAULT 'login',          -- login | register | reset_password
+    expires_at TIMESTAMP NOT NULL,
+    verified BOOLEAN DEFAULT false,
+    attempts INTEGER DEFAULT 0,                   -- Max 3 attempts
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+> **Note:** With Twilio Verify, OTPs are managed by Twilio (not stored in this table). This table is for custom OTP implementations or fallback.
+
+#### 3. **citizen_sessions** - Active sessions
+```sql
+CREATE TABLE citizen_sessions (
+    session_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    citizen_id UUID NOT NULL REFERENCES citizens(citizen_id),
+    token VARCHAR(255) UNIQUE NOT NULL,           -- Secure random token
+    user_agent TEXT,
+    ip_address VARCHAR(45),
+    expires_at TIMESTAMP NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_activity TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**Session Duration:** Configurable via admin settings (default: 24 hours)
+
+#### 4. **citizen_trusted_devices** - Device trust tokens
+```sql
+CREATE TABLE citizen_trusted_devices (
+    device_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    citizen_id UUID NOT NULL REFERENCES citizens(citizen_id),
+    device_token VARCHAR(255) UNIQUE NOT NULL,
+    device_name VARCHAR(100),                     -- e.g., "iPhone 14"
+    device_fingerprint VARCHAR(255),               -- Browser/device hash
+    last_used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    expires_at TIMESTAMP NOT NULL,                -- 30 days default
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+#### 5. **citizen_account_blocks** - Account blocking/suspensions
+```sql
+CREATE TABLE citizen_account_blocks (
+    block_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    citizen_id UUID NOT NULL REFERENCES citizens(citizen_id),
+    blocked_by UUID REFERENCES users(id),         -- Admin who blocked
+    reason TEXT,
+    blocked_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    unblocked_at TIMESTAMP,
+    unblocked_by UUID REFERENCES users(id)
+);
+```
+
+---
+
+## Phone Number Validation
+
+### E.164 Format
+
+All phone numbers must be in **E.164 international format**:
+- Starts with `+`
+- Country code + national number
+- No spaces, dashes, or parentheses
+
+**Examples:**
+- ✅ `+14731234567` (Grenada)
+- ✅ `+442071234567` (UK)
+- ✅ `+15551234567` (USA)
+- ❌ `473-123-4567` (not E.164)
+- ❌ `1-473-123-4567` (not E.164)
+- ❌ `(473) 123-4567` (not E.164)
+
+### Allowed Regions Configuration
+
+Configurable via Admin Settings → Citizen Login:
+
+**Default Allowed Regions:**
+- **Grenada** (+1-473) - Primary
+- **Caribbean Islands:** Antigua, Barbados, Dominica, Jamaica, St. Lucia, Trinidad, etc.
+- **Extended:** USA, UK, Canada (optional)
+
+**Custom Country Codes:**
+Admins can add custom country codes not in the predefined list:
+```
++852  (Hong Kong)
++971  (UAE)
++65   (Singapore)
+```
+
+### Validation Logic
+
+```typescript
+// Phone number validation flow
+1. Normalize: Remove non-digits, add '+' prefix
+2. E.164 Check: Must match pattern ^\+[1-9]\d{6,14}$
+3. Region Check: Must start with allowed country code
+4. Special Cases:
+   - +1 numbers: Distinguish Caribbean vs USA/Canada by area code
+   - Caribbean area codes: 268, 246, 473, 758, etc.
+   - Canadian area codes: 416, 604, 778, etc.
+```
+
+### Supported Regions Reference
+
+| Region | Country Code | Example |
+|--------|--------------|---------|
+| Grenada | +1-473 | +14731234567 |
+| Antigua & Barbuda | +1-268 | +12681234567 |
+| Barbados | +1-246 | +12461234567 |
+| Jamaica | +1-876, +1-658 | +18761234567 |
+| Trinidad & Tobago | +1-868 | +18681234567 |
+| St. Lucia | +1-758 | +17581234567 |
+| Guyana | +592 | +5921234567 |
+| United Kingdom | +44 | +442071234567 |
+| United States | +1 | +15551234567 |
+| Canada | +1 | +14161234567 |
+
+---
+
+## Citizen API Endpoints
+
+### 1. Send OTP
+
+**Endpoint:** `POST /api/citizen/auth/send-otp`
+
+**Request:**
+```json
+{
+  "phone": "+14731234567"
+}
+```
+
+**Response (New User):**
+```json
+{
+  "success": true,
+  "message": "Verification code sent successfully",
+  "isNewUser": true,
+  "phone": "+14731234567",
+  "expiresIn": 600
+}
+```
+
+**Response (Existing User):**
+```json
+{
+  "success": true,
+  "message": "Verification code sent successfully",
+  "isNewUser": false,
+  "phone": "+14731234567",
+  "expiresIn": 600
+}
+```
+
+**Errors:**
+- `400` - Invalid phone number or not from allowed region
+- `403` - Citizen login is disabled
+- `500` - Twilio service error
+
+---
+
+### 2. Verify OTP
+
+**Endpoint:** `POST /api/citizen/auth/verify-otp`
+
+**Request:**
+```json
+{
+  "phone": "+14731234567",
+  "code": "123456",
+  "rememberDevice": true
+}
+```
+
+**Response (New User - Registration Required):**
+```json
+{
+  "success": true,
+  "message": "Phone verified successfully",
+  "requiresRegistration": true,
+  "citizenId": "uuid-here",
+  "phone": "+14731234567"
+}
+```
+
+**Response (Existing User - Login Successful):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "requiresRegistration": false,
+  "citizen": {
+    "citizenId": "uuid-here",
+    "phone": "+14731234567",
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "session": {
+    "sessionId": "uuid-here",
+    "expiresAt": "2026-01-20T12:00:00Z"
+  }
+}
+```
+
+**Errors:**
+- `400` - Invalid OTP code
+- `401` - OTP expired or incorrect
+- `403` - Max attempts exceeded
+
+---
+
+### 3. Password Login
+
+**Endpoint:** `POST /api/citizen/auth/login`
+
+**Request:**
+```json
+{
+  "phone": "+14731234567",
+  "password": "SecurePassword123!",
+  "rememberDevice": false
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "citizen": {
+    "citizenId": "uuid-here",
+    "phone": "+14731234567",
+    "name": "John Doe",
+    "email": "john@example.com"
+  },
+  "session": {
+    "sessionId": "uuid-here",
+    "expiresAt": "2026-01-20T12:00:00Z"
+  }
+}
+```
+
+**Errors:**
+- `401` - Invalid credentials
+- `403` - Account blocked
+- `404` - Account not found
+
+---
+
+## Citizen Configuration
+
+### Admin Settings UI
+
+Navigate to `/admin/settings` → **Citizen Login** tab:
+
+#### Basic Settings
+- **Enable Citizen Login:** Toggle ON/OFF
+- **Require Registration:** Force name/email/password (vs OTP-only)
+- **Allow Password Login:** Enable password-based login for returning users
+
+#### OTP Settings
+- **OTP Expiry Minutes:** How long OTP codes are valid (default: 10)
+- **Max OTP Attempts:** Maximum verification attempts before requesting new code (default: 3)
+- **Resend Cooldown Seconds:** Minimum time between OTP requests (default: 60)
+
+#### Session Settings
+- **Session Duration Hours:** How long sessions last (default: 24)
+- **Device Trust Duration Days:** How long "remember device" tokens last (default: 30)
+- **Max Sessions Per User:** Maximum concurrent sessions (default: 5)
+
+#### Security Settings
+- **Allowed Countries:** Select regions from predefined list
+- **Custom Country Codes:** Add additional country codes (e.g., +852, +971)
+- **Max Failed Login Attempts:** Lockout threshold (default: 5)
+- **Account Lockout Minutes:** How long accounts are locked after max attempts (default: 30)
+
+#### Twilio Configuration
+- **Twilio Account SID:** AC... (from environment variables)
+- **Twilio Auth Token:** Configured (masked)
+- **Twilio Verify Service SID:** VA... (from environment variables)
+- **Test SMS:** Send test OTP to verify configuration
+
+### Environment Variables
+
+```bash
+# === Twilio Verify SMS OTP ===
+TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+TWILIO_AUTH_TOKEN=your_auth_token_here
+TWILIO_VERIFY_SERVICE_SID=VAxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# === Citizen Login Settings (optional - defaults used if not set) ===
+CITIZEN_LOGIN_ENABLED=true
+CITIZEN_OTP_EXPIRY_MINUTES=10
+CITIZEN_SESSION_HOURS=24
+CITIZEN_DEVICE_TRUST_DAYS=30
+CITIZEN_MAX_FAILED_ATTEMPTS=5
+```
+
+### Database Settings
+
+Settings are stored in `system_settings` table with category `citizen_login`:
+
+```sql
+-- View citizen login settings
+SELECT setting_key, setting_value, data_type, description
+FROM system_settings
+WHERE category = 'citizen_login'
+ORDER BY setting_key;
+```
+
+**Key Settings:**
+- `citizen_login_enabled` (boolean) - Master toggle
+- `citizen_allowed_countries` (json) - Array of allowed region codes
+- `citizen_custom_country_codes` (json) - Custom +codes
+- `citizen_otp_expiry_minutes` (number) - OTP validity duration
+- `citizen_session_hours` (number) - Session duration
+
+---
+
+## Database Commands
+
+### Admin/Staff User Management Commands
+
+```bash
+# List all admin/staff users
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "
 SELECT u.email, u.name, r.role_name, u.is_active, u.last_login
 FROM users u
@@ -701,22 +1246,94 @@ ORDER BY al.created_at DESC
 LIMIT 20;"
 ```
 
+### Citizen Management Commands
+
+```bash
+# List all citizens
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT citizen_id, phone, name, email, phone_verified, registration_complete, is_active, last_login
+FROM citizens
+ORDER BY created_at DESC
+LIMIT 20;"
+
+# Find citizen by phone
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT citizen_id, phone, name, email, is_active, registration_complete
+FROM citizens
+WHERE phone = '+14731234567';"
+
+# Count citizens by status
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT
+    COUNT(*) FILTER (WHERE registration_complete = true) as registered,
+    COUNT(*) FILTER (WHERE registration_complete = false) as pending_registration,
+    COUNT(*) FILTER (WHERE is_active = false) as blocked,
+    COUNT(*) as total
+FROM citizens;"
+
+# View recent citizen logins
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT c.phone, c.name, c.last_login
+FROM citizens c
+WHERE c.last_login IS NOT NULL
+ORDER BY c.last_login DESC
+LIMIT 10;"
+
+# View active citizen sessions
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT cs.session_id, c.phone, c.name, cs.ip_address, cs.expires_at, cs.created_at
+FROM citizen_sessions cs
+JOIN citizens c ON cs.citizen_id = c.citizen_id
+WHERE cs.expires_at > NOW()
+ORDER BY cs.created_at DESC;"
+
+# Block citizen account
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+UPDATE citizens
+SET is_active = false, updated_at = CURRENT_TIMESTAMP
+WHERE phone = '+14731234567';"
+
+# Unblock citizen account
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+UPDATE citizens
+SET is_active = true, updated_at = CURRENT_TIMESTAMP
+WHERE phone = '+14731234567';"
+
+# Delete citizen (with all related data)
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+DELETE FROM citizens WHERE phone = '+14731234567';"
+
+# View citizen trusted devices
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT ctd.device_id, c.phone, ctd.device_name, ctd.last_used_at, ctd.expires_at
+FROM citizen_trusted_devices ctd
+JOIN citizens c ON ctd.citizen_id = c.citizen_id
+WHERE ctd.expires_at > NOW()
+ORDER BY ctd.last_used_at DESC;"
+```
+
 ### Verification Commands
 
 ```bash
-# Check auth tables exist
+# Check auth tables exist (both admin and citizen)
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "
 SELECT table_name FROM information_schema.tables
 WHERE table_schema = 'public'
-AND table_name IN ('users', 'user_roles', 'accounts', 'sessions')
+AND table_name IN (
+  'users', 'user_roles', 'accounts', 'sessions',
+  'citizens', 'citizen_sessions', 'citizen_trusted_devices'
+)
 ORDER BY table_name;"
 
-# Count records in auth tables
+# Count records in all auth tables
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "
-SELECT 'users' AS table_name, COUNT(*) FROM users
-UNION ALL SELECT 'accounts', COUNT(*) FROM accounts
-UNION ALL SELECT 'sessions', COUNT(*) FROM sessions
-UNION ALL SELECT 'user_audit_log', COUNT(*) FROM user_audit_log;"
+SELECT 'Admin/Staff Users' AS table_name, COUNT(*) FROM users
+UNION ALL SELECT 'OAuth Accounts', COUNT(*) FROM accounts
+UNION ALL SELECT 'Admin Sessions', COUNT(*) FROM sessions
+UNION ALL SELECT 'Citizens', COUNT(*) FROM citizens
+UNION ALL SELECT 'Citizen Sessions', COUNT(*) FROM citizen_sessions
+UNION ALL SELECT 'Trusted Devices', COUNT(*) FROM citizen_trusted_devices
+UNION ALL SELECT 'User Audit Log', COUNT(*) FROM user_audit_log;"
 ```
 
 ---
@@ -886,9 +1503,110 @@ session: {
 
 ---
 
+### Issue: Twilio OTP not sending
+
+**Symptoms:**
+- "Failed to send verification code" error
+- SMS not received
+- Twilio errors in logs
+
+**Solution:**
+```bash
+# 1. Verify Twilio credentials in .env
+cat .env | grep TWILIO
+
+# 2. Test Twilio configuration via admin UI
+# Navigate to /admin/settings → Citizen Login → Test SMS
+
+# 3. Check Twilio console for error logs
+# https://console.twilio.com/us1/monitor/logs/errors
+
+# 4. Verify phone number format
+# Must be E.164: +country code + number
+# Example: +14731234567 (not 473-123-4567)
+
+# 5. Check Twilio Verify service status
+# https://console.twilio.com/us1/develop/verify/services
+
+# 6. Restart frontend container
+docker compose restart frontend
+```
+
+**Common Twilio Errors:**
+- `21211` - Invalid phone number format
+- `21614` - Not a valid mobile number (landline provided)
+- `60203` - Too many attempts (rate limited by Twilio)
+- `60212` - Too many requests from IP (rate limiting)
+
+---
+
+### Issue: "Phone number not from allowed region"
+
+**Symptoms:**
+- Valid phone number rejected
+- Caribbean numbers failing validation
+
+**Solution:**
+```bash
+# 1. Check allowed countries in admin settings
+# /admin/settings → Citizen Login → Allowed Countries
+
+# 2. Verify phone number format
+# Must be E.164 with + prefix
+
+# 3. Add custom country code if needed
+# /admin/settings → Citizen Login → Custom Country Codes
+# Example: +971 for UAE
+
+# 4. Check phone validation logic
+docker exec frontend cat /app/src/lib/twilio.ts | grep -A 20 "validatePhone"
+```
+
+---
+
+### Issue: Citizen account blocked/login failing
+
+**Symptoms:**
+- Login returns "account_blocked" error
+- Valid credentials rejected
+
+**Solution:**
+```bash
+# 1. Check if account is blocked
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT is_active, phone, name FROM citizens WHERE phone = '+14731234567';"
+
+# 2. Unblock account
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+UPDATE citizens SET is_active = true WHERE phone = '+14731234567';"
+
+# 3. Check for account blocks
+docker exec -it feedback_db psql -U feedback_user -d feedback -c "
+SELECT cb.*, c.phone, c.name
+FROM citizen_account_blocks cb
+JOIN citizens c ON cb.citizen_id = c.citizen_id
+WHERE cb.unblocked_at IS NULL;"
+```
+
+---
+
+### Issue: OTP expired or invalid
+
+**Symptoms:**
+- "Verification code has expired" error
+- Valid code rejected
+
+**Solution:**
+- Twilio Verify OTPs expire after 10 minutes (configurable in Twilio)
+- Users must enter code within expiry window
+- Request a new code if expired
+- Check OTP expiry setting in Admin Settings → Citizen Login
+
+---
+
 ## Security
 
-### Best Practices
+### Admin/Staff Authentication Security
 
 #### 1. OAuth Credentials
 - ✅ Never commit `.env` to version control
@@ -920,13 +1638,67 @@ session: {
 - ✅ Entity-based data filtering for staff
 - ✅ No sensitive data in JWT payload (only user ID and roles)
 
-### Security Checklist
+---
 
-Before going to production:
+### Citizen Authentication Security
 
+#### 1. Twilio SMS Security
+- ✅ Twilio Verify handles OTP generation and expiry
+- ✅ OTPs are 6 digits, expire after 10 minutes
+- ✅ Rate limiting: Max 3 verification attempts per code
+- ✅ Twilio credentials stored in environment variables (never in code)
+- ✅ SMS delivery confirmation tracked
+
+#### 2. Phone Number Security
+- ✅ E.164 format validation (international standard)
+- ✅ Region-based validation (configurable allowed countries)
+- ✅ Phone numbers are unique identifiers (one account per phone)
+- ✅ Phone verification required before account activation
+- ✅ Normalized and stored consistently
+
+#### 3. Password Security
+- ✅ bcrypt hashing with salt (cost factor: 10)
+- ✅ Minimum 8 characters, complexity not enforced (user choice)
+- ✅ Never stored in plain text
+- ✅ Password is optional (OTP-only login supported)
+- ✅ Failed login attempts tracked and limited
+
+#### 4. Session Security
+- ✅ Secure random tokens (256-bit)
+- ✅ httpOnly cookies (prevents XSS)
+- ✅ sameSite: 'strict' (prevents CSRF)
+- ✅ Configurable session duration (default: 24 hours)
+- ✅ IP address and user agent logging
+- ✅ Concurrent session limits (default: 5 per user)
+
+#### 5. Device Trust Security
+- ✅ Separate long-lived tokens for trusted devices
+- ✅ 30-day expiry (configurable)
+- ✅ Device fingerprinting to prevent token theft
+- ✅ User can revoke trust at any time
+- ✅ Automatic cleanup of expired device tokens
+
+#### 6. Account Protection
+- ✅ Admin can block/unblock accounts instantly
+- ✅ Block reason tracked for audit
+- ✅ Max failed login attempts (default: 5)
+- ✅ Account lockout after max attempts (default: 30 minutes)
+- ✅ All login attempts logged with IP and timestamp
+
+#### 7. Rate Limiting
+- ✅ OTP resend cooldown (default: 60 seconds)
+- ✅ Max OTP requests per hour (Twilio Verify enforced)
+- ✅ Failed login attempt tracking
+- ✅ IP-based rate limiting on auth endpoints
+
+---
+
+### Combined Security Checklist
+
+#### Admin/Staff Authentication
 - [ ] `NEXTAUTH_SECRET` is strong (32+ chars, random)
 - [ ] Google OAuth redirect URI matches production URL exactly
-- [ ] Microsoft OAuth redirect URI matches production URL exactly
+- [ ] Microsoft OAuth redirect URI matches production URL exactly (if enabled)
 - [ ] `.env` file is in `.gitignore`
 - [ ] OAuth secrets are stored securely (not in code)
 - [ ] Database password is strong (not default)
@@ -935,6 +1707,23 @@ Before going to production:
 - [ ] Test unauthorized access handling
 - [ ] Verify inactive users cannot sign in
 - [ ] Review user audit logs
+
+#### Citizen Authentication (if enabled)
+- [ ] Twilio credentials configured correctly in `.env`
+- [ ] Twilio Verify service created and active
+- [ ] Test SMS delivery to Grenada numbers (+1-473)
+- [ ] Configure allowed countries in Admin Settings
+- [ ] Test OTP flow: send → receive → verify
+- [ ] Test invalid OTP rejection
+- [ ] Test OTP expiry (10 minutes)
+- [ ] Verify rate limiting works (resend cooldown)
+- [ ] Test password login (if enabled)
+- [ ] Test account blocking/unblocking
+- [ ] Configure session duration appropriately
+- [ ] Test device trust functionality (if enabled)
+- [ ] Review citizen login audit logs
+- [ ] Verify phone number validation (E.164 format)
+- [ ] Test with different phone number regions
 
 ---
 
@@ -1063,6 +1852,11 @@ const result = await pool.query(query, params);
 
 ---
 
-**Document Version:** 2.1
-**Last Updated:** January 17, 2026
+**Document Version:** 3.0
+**Last Updated:** January 19, 2026
 **Maintained By:** GEA Portal Development Team
+
+**Change Log:**
+- v3.0 (Jan 19, 2026): **Major update** - Added comprehensive Twilio SMS OTP citizen authentication documentation. Includes: setup guide, authentication flows, database schema (5 tables), phone validation (E.164 + regional), API endpoints, configuration, security best practices, troubleshooting, and database commands
+- v2.1 (Jan 17, 2026): Updated admin/staff OAuth authentication
+- v2.0: Initial OAuth authentication documentation
