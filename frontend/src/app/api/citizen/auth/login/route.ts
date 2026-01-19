@@ -47,6 +47,20 @@ export async function POST(request: NextRequest) {
     const authResult = await verifyCitizenPassword(normalizedPhone, password);
 
     if (!authResult.success || !authResult.citizen) {
+      // Check if account is blocked - return special response with block reason
+      if (authResult.error === 'account_blocked') {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'account_blocked',
+            message: authResult.message,
+            blockReason: authResult.blockReason,
+            contact: 'support@gea.gov.gd',
+          },
+          { status: 403 }
+        );
+      }
+
       return NextResponse.json(
         { success: false, error: authResult.message },
         { status: 401 }

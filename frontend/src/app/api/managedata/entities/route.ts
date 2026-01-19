@@ -28,10 +28,9 @@ export async function GET(request: NextRequest) {
     let whereClause = ''
     const queryParams: any[] = []
 
-    // If admin requests all entities, bypass the filter
-    // Priority: requested entity_id param > Staff entity filter
-    // Staff can request specific entity (e.g., AGY-005 for service requests) but managedata page uses their own entity
-    const finalEntityId = (isAdmin && fetchAll) ? null : (requestedEntityId || entityFilter)
+    // Admin sees all entities by default (unless specific entity requested)
+    // Staff sees only their assigned entity (or specific entity if requested)
+    const finalEntityId = isAdmin ? requestedEntityId : (requestedEntityId || entityFilter)
 
     if (finalEntityId) {
       whereClause = 'WHERE e.unique_entity_id = $1'

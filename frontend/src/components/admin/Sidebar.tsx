@@ -277,6 +277,10 @@ const navigationItems: NavigationItem[] = [
     href: '/admin/users',
     icon: <UsersIcon />,
     requiredRole: null,  // Allow both admin and staff
+    children: [
+      { label: 'Admin & Staff', tabKey: 'staff', href: '/admin/users' },
+      { label: 'Citizens', tabKey: 'citizens', href: '/admin/users/citizens' },
+    ],
   },
   {
     label: 'Services',

@@ -316,13 +316,21 @@ export async function updateCitizenProfile(
 export async function verifyCitizenPassword(
   phone: string,
   password: string
-): Promise<{ success: boolean; citizen?: Citizen; message: string }> {
+): Promise<{
+  success: boolean;
+  citizen?: Citizen;
+  message: string;
+  error?: string;
+  blockReason?: string;
+}> {
   try {
+    // First, check if citizen exists (regardless of is_active)
     const result = await pool.query(
       `SELECT citizen_id, phone, phone_verified, name, email,
-              registration_complete, is_active, created_at, last_login, password_hash
+              registration_complete, is_active, created_at, last_login, password_hash,
+              block_reason
        FROM citizens
-       WHERE phone = $1 AND is_active = true`,
+       WHERE phone = $1`,
       [phone]
     );
 
@@ -331,6 +339,16 @@ export async function verifyCitizenPassword(
     }
 
     const row = result.rows[0];
+
+    // Check if account is blocked
+    if (!row.is_active) {
+      return {
+        success: false,
+        message: 'Your account has been blocked.',
+        error: 'account_blocked',
+        blockReason: row.block_reason || 'Please contact support for assistance.',
+      };
+    }
 
     if (!row.password_hash) {
       return { success: false, message: 'Account not fully registered. Please complete registration first.' };

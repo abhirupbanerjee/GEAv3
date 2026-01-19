@@ -230,6 +230,17 @@ echo "  ✓ Citizen login settings added"
 echo ""
 
 # ============================================================================
+# STEP 12b: ADD CITIZEN BLOCK TRACKING
+# ============================================================================
+echo "▶ Step 12b: Adding citizen block tracking columns..."
+echo ""
+
+docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$SCRIPTS_DIR/25-citizen-block-tracking.sql"
+
+echo "  ✓ Citizen block tracking added"
+echo ""
+
+# ============================================================================
 # STEP 13: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
