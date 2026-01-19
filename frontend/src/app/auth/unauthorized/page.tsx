@@ -35,7 +35,7 @@ function UnauthorizedContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 via-white to-orange-50 px-4 pt-24">
       <div className="max-w-md w-full space-y-8">
         {/* Header */}
         <div className="text-center">
@@ -205,7 +205,7 @@ function UnauthorizedContent() {
 export default function UnauthorizedPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center pt-24">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
       </div>
     }>

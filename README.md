@@ -12,14 +12,15 @@ A modern, full-stack web platform supporting digital transformation initiatives 
 
 Complete digital portal system with:
 - **Service Feedback System** - 5-point rating with auto-grievance creation
+- **Citizen Portal** - SMS OTP authentication, personal dashboard, feedback history, ticket/grievance management, analytics **NEW**
 - **Native Ticketing System** - Citizen grievances and EA service requests with SLA tracking
 - **Admin Portal** - Ticket management, analytics, and master data administration
 - **Staff Portal** - Entity-specific access for ministry/department officers
 - **AI Chatbot Assistant** - Embedded chatbot (Azure Cloud hosted, can be enabled/disabled)
 - **AI Bot Integration** - Centralized bot inventory and iframe-based chat interface
-- **OAuth Authentication** - Google & Microsoft sign-in with role-based access control
+- **OAuth Authentication** - Google & Microsoft sign-in for staff/admin + SMS OTP for citizens
 
-**Status:** ✅ Production-ready | **Version:** 3.2.0 (Multi-Entity Service Requests + Admin Settings)
+**Status:** ✅ Production-ready | **Version:** 3.2.0 (Citizen Portal + Multi-Entity Service Requests + Admin Settings)
 
 ---
 
@@ -91,7 +92,7 @@ docker compose up -d
 
 For setting up a fresh VM (Azure, AWS, or on-premise), see the comprehensive guide:
 
-**[GEAv3 VM Setup Guide](docs/VM_SETUP_GUIDE.md)**
+**[GEAv3 VM Setup Guide](docs/setup/VM_SETUP_GUIDE.md)**
 
 ### Quick VM Specs Reference
 
@@ -269,11 +270,33 @@ gogeaportal/v3/
 │   ├── .env.example                       # Environment template
 │   └── docs/
 │       ├── index.md                       # Complete documentation index
-│       ├── VM_SETUP_GUIDE.md              # New VM deployment guide
-│       ├── API_REFERENCE.md               # All API endpoints
-│       ├── DATABASE_REFERENCE.md          # Database schema & setup
-│       ├── AUTHENTICATION.md              # OAuth setup & configuration
-│       └── AI_BOT_INTEGRATION.md          # AI chatbot configuration guide
+│       ├── setup/                         # Setup & Installation Guides
+│       │   ├── VM_SETUP_GUIDE.md          # New VM deployment guide
+│       │   ├── FRESH_INSTALLATION_MANUAL.md  # Fresh installation guide
+│       │   └── TECH_STACK_UPGRADE_ROADMAP.md  # Technology upgrade roadmap
+│       ├── solution/                      # Solution Architecture & References
+│       │   ├── SOLUTION_ARCHITECTURE.md   # System architecture overview
+│       │   ├── API_REFERENCE.md           # All API endpoints
+│       │   ├── DATABASE_REFERENCE.md      # Database schema & setup
+│       │   ├── AUTHENTICATION.md          # OAuth setup & configuration
+│       │   ├── USER_MANAGEMENT.md         # User roles & permissions
+│       │   ├── EMAIL_NOTIFICATIONS.md     # Email system configuration
+│       │   ├── AI_BOT_INTEGRATION.md      # AI chatbot configuration
+│       │   └── DOCKER_VERSION_UPDATE_PLAN.md  # Docker upgrade plan
+│       ├── developer-guides/              # Developer Guidelines
+│       │   ├── UI_MODIFICATION_GUIDE.md   # UI development guide
+│       │   ├── API_DEVELOPMENT_PATTERNS.md  # API development patterns
+│       │   ├── DATABASE_QUERY_PATTERNS.md  # Database operations guide
+│       │   ├── TESTING_GUIDE.md           # Testing procedures
+│       │   └── ERROR_HANDLING_PATTERNS.md  # Error handling guide
+│       ├── user-manuals/                  # User Documentation
+│       │   ├── GEA_Portal_Master_User_Manual.md  # Master index
+│       │   ├── GEA_Portal_Anonymous_User_Manual.md  # Public users
+│       │   ├── GEA_Portal_Citizen_User_Manual.md  # Registered citizens
+│       │   ├── GEA_Portal_Staff_User_Manual.md  # MDA staff
+│       │   └── GEA_Portal_Admin_User_Manual.md  # Administrators
+│       └── infra/                         # Infrastructure Documentation
+│           └── infra_sizing_quick_reference.md  # Capacity planning
 │
 ├── 🗄️ Database
 │   └── database/
@@ -658,6 +681,66 @@ sudo ufw enable
 - Audit logging system
 - Email whitelist authorization
 
+### Citizen Portal ✅ **NEW**
+- **Citizen Registration & Authentication:**
+  - SMS OTP verification (Twilio Verify)
+  - Password-based login option
+  - Phone number verification required
+  - "Remember this device" feature (30-day trusted devices)
+  - Dual authentication methods (OTP or password)
+- **Personal Dashboard:**
+  - Welcome page with quick navigation cards
+  - Access to all personal features
+  - Responsive sidebar navigation
+  - Profile dropdown menu
+- **Profile Management:**
+  - View and edit full name
+  - Update email address (optional)
+  - View verified phone number (read-only)
+  - Account information (member since, last login)
+  - Password management via forgot password flow
+- **Feedback History:**
+  - View all submitted feedback with statistics
+  - Total feedback count, reviewed count, escalated count
+  - Feedback list with service names, ratings, dates
+  - Status indicators (Submitted, Reviewed, Escalated)
+  - Link to associated grievances
+  - Quick access to submit new feedback
+- **Ticket Management:**
+  - View all tickets in one dashboard
+  - Search tickets by number
+  - Filter by status (All, Open, In Progress, Resolved, Closed)
+  - View detailed ticket information
+  - Activity timeline with status changes
+  - Add comments to open tickets (max 2,000 characters)
+  - Comments disabled for closed tickets
+- **Grievance Management:**
+  - Dedicated grievances page
+  - Statistics (Total, Active, Resolved)
+  - Filter by status (All, Active, Resolved)
+  - Filter by assigned entity/department
+  - View grievance source (Direct vs. Escalated from Feedback)
+  - Complete grievance timeline with activity history
+  - Admin comments (purple badge) and citizen comments (blue badge)
+  - Resolution tracking
+- **Analytics Dashboard:**
+  - Total feedback submitted
+  - Average overall satisfaction rating
+  - Rating distribution (1-5 stars with bar charts)
+  - Total tickets count
+  - Ticket status distribution charts
+  - Recent activity feed (tickets, feedback, grievances)
+  - Refresh button to bypass cache
+- **Feedback Submission (Logged In):**
+  - Service search and selection
+  - 5-star rating system (5 questions)
+  - User type selection (Citizen, Business, Government, Visitor, Student, Other)
+  - Comments field (max 1,000 characters)
+  - Optional grievance flag
+  - QR code support with service pre-fill
+  - Automatic ticket creation for low ratings (≤ 2.0)
+  - All feedback linked to account
+
 ### AI Integration ✅
 - **AI Chatbot Assistant** - Embedded iframe chatbot for user assistance
 - **Chatbot Hosting:**
@@ -721,7 +804,7 @@ The chatbot is embedded as a simple iframe. Configuration is managed via:
 - `CHATBOT_URL` - URL of the chatbot application
 
 **Complete Documentation:**
-- [AI Bot Integration Guide](docs/AI_BOT_INTEGRATION.md) - Configuration, troubleshooting, and bot inventory management
+- [AI Bot Integration Guide](docs/solution/AI_BOT_INTEGRATION.md) - Configuration, troubleshooting, and bot inventory management
 
 ---
 

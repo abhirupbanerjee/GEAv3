@@ -11,15 +11,15 @@
 
 **New to this project?**
 1. Read this index (10 min) - Overview and setup
-2. Review [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) (20 min) - **Complete system overview**
-3. Review [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) (30 min) - Database architecture
-4. Review [API_REFERENCE.md](API_REFERENCE.md) (30 min) - API endpoints
-5. Review [AUTHENTICATION.md](AUTHENTICATION.md) (25 min) - OAuth setup & commands
+2. Review [solution/SOLUTION_ARCHITECTURE.md](solution/SOLUTION_ARCHITECTURE.md) (20 min) - **Complete system overview**
+3. Review [solution/DATABASE_REFERENCE.md](solution/DATABASE_REFERENCE.md) (30 min) - Database architecture
+4. Review [solution/API_REFERENCE.md](solution/API_REFERENCE.md) (30 min) - API endpoints
+5. Review [solution/AUTHENTICATION.md](solution/AUTHENTICATION.md) (25 min) - OAuth setup & commands
 6. Check [../.env.example](../.env.example) - Environment configuration
 
 **Quick reference?**
-→ [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) for system overview
-→ [AUTHENTICATION.md](AUTHENTICATION.md) has quick commands section at the end
+→ [solution/SOLUTION_ARCHITECTURE.md](solution/SOLUTION_ARCHITECTURE.md) for system overview
+→ [solution/AUTHENTICATION.md](solution/AUTHENTICATION.md) has quick commands section at the end
 → See sections below for deployment and troubleshooting
 
 ---
@@ -205,12 +205,17 @@ gogeaportal/v3/
 | Document | Purpose | Read Time |
 |----------|---------|-----------|
 | [index.md](index.md) | This file - Complete overview | 15 min |
-| [FRESH_INSTALLATION_MANUAL.md](FRESH_INSTALLATION_MANUAL.md) | **Step-by-step fresh installation guide** (master data only) | 60 min |
-| [VM_SETUP_GUIDE.md](VM_SETUP_GUIDE.md) | Complete VM setup from scratch | 45 min |
-| [SOLUTION_ARCHITECTURE.md](SOLUTION_ARCHITECTURE.md) | **System architecture & component overview** | 20 min |
-| [DATABASE_REFERENCE.md](DATABASE_REFERENCE.md) | Database architecture, setup, tables | 30 min |
-| [API_REFERENCE.md](API_REFERENCE.md) | All API endpoints with examples | 30 min |
-| [AUTHENTICATION.md](AUTHENTICATION.md) | OAuth setup, user management & quick commands | 25 min |
+| [setup/FRESH_INSTALLATION_MANUAL.md](setup/FRESH_INSTALLATION_MANUAL.md) | **Step-by-step fresh installation guide** (master data only) | 60 min |
+| [setup/VM_SETUP_GUIDE.md](setup/VM_SETUP_GUIDE.md) | Complete VM setup from scratch | 45 min |
+| [setup/TECH_STACK_UPGRADE_ROADMAP.md](setup/TECH_STACK_UPGRADE_ROADMAP.md) | Technology upgrade roadmap and migration plans | 30 min |
+| [solution/SOLUTION_ARCHITECTURE.md](solution/SOLUTION_ARCHITECTURE.md) | **System architecture & component overview** | 20 min |
+| [solution/DATABASE_REFERENCE.md](solution/DATABASE_REFERENCE.md) | Database architecture, setup, tables | 30 min |
+| [solution/API_REFERENCE.md](solution/API_REFERENCE.md) | All API endpoints with examples | 30 min |
+| [solution/AUTHENTICATION.md](solution/AUTHENTICATION.md) | OAuth setup, user management & quick commands | 25 min |
+| [solution/USER_MANAGEMENT.md](solution/USER_MANAGEMENT.md) | User roles, permissions, and access control | 20 min |
+| [solution/EMAIL_NOTIFICATIONS.md](solution/EMAIL_NOTIFICATIONS.md) | Email notification system configuration | 15 min |
+| [solution/AI_BOT_INTEGRATION.md](solution/AI_BOT_INTEGRATION.md) | AI bot context integration, bot inventory, testing | 30 min |
+| [solution/DOCKER_VERSION_UPDATE_PLAN.md](solution/DOCKER_VERSION_UPDATE_PLAN.md) | Docker upgrade and migration plan | 20 min |
 | [../.env.example](../.env.example) | Environment configuration template | 10 min |
 | [../README.md](../README.md) | Project overview | 10 min |
 
@@ -222,14 +227,20 @@ gogeaportal/v3/
 | [developer-guides/DATABASE_QUERY_PATTERNS.md](developer-guides/DATABASE_QUERY_PATTERNS.md) | **Database operations** - Queries, transactions, performance, error handling | 25 min |
 | [developer-guides/TESTING_GUIDE.md](developer-guides/TESTING_GUIDE.md) | **Testing procedures** - Automated tests (Vitest), API testing, auth testing, database verification | 25 min |
 | [developer-guides/ERROR_HANDLING_PATTERNS.md](developer-guides/ERROR_HANDLING_PATTERNS.md) | **Error handling** - Error codes, responses, logging best practices | 20 min |
-| [AI_BOT_INTEGRATION.md](AI_BOT_INTEGRATION.md) | AI bot context integration, bot inventory, testing | 30 min |
 
 ### User Manuals
 | Document | Audience | Read Time |
 |----------|----------|-----------|
-| [user-manuals/GEA_Portal_Admin_User_Manual.md](user-manuals/GEA_Portal_Admin_User_Manual.md) | DTA Administrators | 60 min |
+| [user-manuals/GEA_Portal_Master_User_Manual.md](user-manuals/GEA_Portal_Master_User_Manual.md) | **All Users** - Master index and navigation guide | 20 min |
+| [user-manuals/GEA_Portal_Anonymous_User_Manual.md](user-manuals/GEA_Portal_Anonymous_User_Manual.md) | Public Users (No Account) | 30 min |
+| [user-manuals/GEA_Portal_Citizen_User_Manual.md](user-manuals/GEA_Portal_Citizen_User_Manual.md) | Registered Citizens | 45 min |
 | [user-manuals/GEA_Portal_Staff_User_Manual.md](user-manuals/GEA_Portal_Staff_User_Manual.md) | MDA Staff Officers | 45 min |
-| [user-manuals/GEA_Portal_Citizen_User_Manual.md](user-manuals/GEA_Portal_Citizen_User_Manual.md) | Citizens and Public Users | 30 min |
+| [user-manuals/GEA_Portal_Admin_User_Manual.md](user-manuals/GEA_Portal_Admin_User_Manual.md) | DTA Administrators | 60 min |
+
+### Infrastructure Documentation
+| Document | Purpose | Read Time |
+|----------|---------|-----------|
+| [infra/infra_sizing_quick_reference.md](infra/infra_sizing_quick_reference.md) | Infrastructure sizing and capacity planning | 15 min |
 
 ### Reference Documentation
 | File | Purpose |
