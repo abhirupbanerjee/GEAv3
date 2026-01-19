@@ -122,7 +122,7 @@ export default function Header() {
                 {item.label}
               </Link>
             ))}
-            {/* Show User Home link if authenticated */}
+            {/* Show User Home link if authenticated via NextAuth */}
             {session && (
               <Link
                 href={session.user?.roleType === 'staff' ? '/admin/staff/home' : '/admin/home'}
@@ -134,9 +134,28 @@ export default function Header() {
                 <span>Dashboard</span>
               </Link>
             )}
-            {/* Show Profile Dropdown if authenticated, otherwise show Login button */}
+            {/* Show Citizen Portal link if citizen is authenticated */}
+            {!session && isCitizenAuth && (
+              <Link
+                href="/citizen"
+                className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                <span>My Account</span>
+              </Link>
+            )}
+            {/* Show Profile Dropdown if admin authenticated, My Account for citizen, or Login button */}
             {session ? (
               <UserProfileDropdown />
+            ) : isCitizenAuth ? (
+              <Link
+                href="/citizen"
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
+              >
+                Citizen Portal
+              </Link>
             ) : status !== 'loading' ? (
               <Link
                 href="/admin"
@@ -177,7 +196,7 @@ export default function Header() {
                   {item.label}
                 </Link>
               ))}
-              {/* Mobile: Show User Home link if authenticated */}
+              {/* Mobile: Show User Home link if admin authenticated */}
               {session && (
                 <Link
                   href={session.user?.roleType === 'staff' ? '/admin/staff/home' : '/admin/home'}
@@ -190,11 +209,32 @@ export default function Header() {
                   <span>Dashboard</span>
                 </Link>
               )}
-              {/* Mobile: Show Profile Dropdown or Login */}
+              {/* Mobile: Show Citizen Portal link if citizen authenticated */}
+              {!session && isCitizenAuth && (
+                <Link
+                  href="/citizen"
+                  className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium py-2"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  <span>My Account</span>
+                </Link>
+              )}
+              {/* Mobile: Show Profile Dropdown, Citizen Portal, or Login */}
               {session ? (
                 <div className="pt-2">
                   <UserProfileDropdown />
                 </div>
+              ) : isCitizenAuth ? (
+                <Link
+                  href="/citizen"
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-center"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Citizen Portal
+                </Link>
               ) : status !== 'loading' ? (
                 <Link
                   href="/admin"

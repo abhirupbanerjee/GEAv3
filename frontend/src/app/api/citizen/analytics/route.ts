@@ -64,28 +64,29 @@ export async function GET(request: NextRequest) {
     const cacheKey = `citizen:analytics:${citizen_id}`;
 
     const fetchAnalytics = async (): Promise<AnalyticsData> => {
-      // Fetch feedback stats
+      // Fetch feedback stats - use q5_overall_satisfaction as the main rating
     const feedbackResult = await pool.query(
       `SELECT
          COUNT(*)::int as total,
-         ROUND(AVG(rating), 1) as average_rating
+         ROUND(AVG(q5_overall_satisfaction), 1) as average_rating
        FROM service_feedback
        WHERE submitter_id = $1
-         OR (submitter_phone IS NOT NULL AND submitter_phone = $2)`,
-      [citizen_id, phone]
+         AND submitter_type = 'citizen'`,
+      [citizen_id]
     );
 
     const feedbackStats = feedbackResult.rows[0] || { total: 0, average_rating: null };
 
-    // Fetch rating breakdown
+    // Fetch rating breakdown - use q5_overall_satisfaction as the rating
     const ratingResult = await pool.query(
-      `SELECT rating, COUNT(*)::int as count
+      `SELECT q5_overall_satisfaction as rating, COUNT(*)::int as count
        FROM service_feedback
-       WHERE (submitter_id = $1 OR (submitter_phone IS NOT NULL AND submitter_phone = $2))
-         AND rating IS NOT NULL
-       GROUP BY rating
-       ORDER BY rating DESC`,
-      [citizen_id, phone]
+       WHERE submitter_id = $1
+         AND submitter_type = 'citizen'
+         AND q5_overall_satisfaction IS NOT NULL
+       GROUP BY q5_overall_satisfaction
+       ORDER BY q5_overall_satisfaction DESC`,
+      [citizen_id]
     );
 
     // Ensure all ratings 1-5 are represented
@@ -106,8 +107,8 @@ export async function GET(request: NextRequest) {
       `SELECT COUNT(*)::int as total
        FROM tickets
        WHERE submitter_id = $1
-         OR (submitter_phone IS NOT NULL AND submitter_phone = $2)`,
-      [citizen_id, phone]
+         AND submitter_type = 'citizen'`,
+      [citizen_id]
     );
 
     const ticketTotal = ticketResult.rows[0]?.total || 0;
@@ -115,15 +116,15 @@ export async function GET(request: NextRequest) {
     // Fetch status breakdown
     const statusResult = await pool.query(
       `SELECT
-         COALESCE(s.status_name, t.status) as status,
+         ts.status_name as status,
          COUNT(*)::int as count
        FROM tickets t
-       LEFT JOIN status_master s ON t.status = s.status_code OR t.status = s.status_name
+       LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
        WHERE t.submitter_id = $1
-         OR (t.submitter_phone IS NOT NULL AND t.submitter_phone = $2)
-       GROUP BY COALESCE(s.status_name, t.status)
+         AND t.submitter_type = 'citizen'
+       GROUP BY ts.status_name
        ORDER BY count DESC`,
-      [citizen_id, phone]
+      [citizen_id]
     );
 
     const statusBreakdown = statusResult.rows.map((row) => ({

@@ -18,7 +18,8 @@ import {
   FiLoader,
   FiChevronRight,
   FiFilter,
-  FiAlertCircle,
+  FiSearch,
+  FiX,
 } from 'react-icons/fi';
 
 interface Ticket {
@@ -76,6 +77,7 @@ export default function CitizenTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
     const loadTickets = async () => {
@@ -101,8 +103,15 @@ export default function CitizenTicketsPage() {
   }, []);
 
   const filteredTickets = tickets.filter((ticket) => {
-    if (statusFilter === 'all') return true;
-    return ticket.status.toLowerCase().replace(' ', '_') === statusFilter;
+    // Apply status filter
+    const matchesStatus = statusFilter === 'all' ||
+      ticket.status.toLowerCase().replace(' ', '_') === statusFilter;
+
+    // Apply search filter (by ticket number)
+    const matchesSearch = !searchQuery.trim() ||
+      ticket.ticketNumber.toLowerCase().includes(searchQuery.toLowerCase().trim());
+
+    return matchesStatus && matchesSearch;
   });
 
   if (loading) {
@@ -123,8 +132,29 @@ export default function CitizenTicketsPage() {
         </p>
       </div>
 
-      {/* Status Filter */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+      {/* Search and Filter */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 space-y-4">
+        {/* Search by ticket number */}
+        <div className="relative">
+          <FiSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by ticket number (e.g., 202501-123456)"
+            className="w-full pl-10 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+            >
+              <FiX className="w-4 h-4" />
+            </button>
+          )}
+        </div>
+
+        {/* Status Filter */}
         <div className="flex items-center gap-2 flex-wrap">
           <FiFilter className="w-4 h-4 text-gray-500" />
           <span className="text-sm text-gray-600 mr-2">Filter by status:</span>
@@ -209,20 +239,6 @@ export default function CitizenTicketsPage() {
         )}
       </div>
 
-      {/* Help Text */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 flex items-start gap-3">
-        <FiAlertCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-        <div>
-          <p className="text-sm text-blue-900 font-medium">Need to check a ticket without logging in?</p>
-          <p className="text-sm text-blue-700 mt-1">
-            You can also track any ticket by its number on the{' '}
-            <Link href="/helpdesk" className="underline hover:no-underline">
-              Helpdesk page
-            </Link>
-            .
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

@@ -27,18 +27,19 @@ export async function GET(request: NextRequest) {
       `SELECT
         t.ticket_id,
         t.ticket_number,
-        t.title,
+        t.subject,
         t.description,
-        t.status,
-        t.priority,
-        t.category,
-        t.location,
+        ts.status_name as status,
+        COALESCE(pl.priority_name, 'Medium') as priority,
+        t.requester_category as category,
         t.assigned_entity_id,
-        e.name as assigned_entity_name,
+        e.entity_name as assigned_entity_name,
         t.created_at,
         t.updated_at
       FROM tickets t
-      LEFT JOIN entities e ON t.assigned_entity_id = e.entity_id
+      LEFT JOIN entity_master e ON t.assigned_entity_id = e.unique_entity_id
+      LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
+      LEFT JOIN priority_levels pl ON t.priority_id = pl.priority_id
       WHERE t.submitter_id = $1
         AND t.submitter_type = 'citizen'
       ORDER BY t.created_at DESC
@@ -49,14 +50,13 @@ export async function GET(request: NextRequest) {
     const tickets = result.rows.map((row) => ({
       id: row.ticket_id,
       ticketNumber: row.ticket_number,
-      subject: row.title,
+      subject: row.subject,
       description: row.description,
-      status: formatStatus(row.status),
+      status: row.status || 'Open',
       statusColor: getStatusColor(row.status),
-      priority: row.priority ? formatPriority(row.priority) : 'Medium',
+      priority: row.priority || 'Medium',
       priorityColor: getPriorityColor(row.priority || 'medium'),
       category: row.category || 'General',
-      location: row.location || null,
       assignedEntity: row.assigned_entity_name || 'Unassigned',
       createdAt: formatDate(row.created_at),
       updatedAt: formatDate(row.updated_at),
@@ -77,36 +77,19 @@ export async function GET(request: NextRequest) {
 }
 
 // Helper functions
-function formatStatus(status: string): string {
-  const statusMap: Record<string, string> = {
-    open: 'Open',
-    in_progress: 'In Progress',
-    resolved: 'Resolved',
-    closed: 'Closed',
-    pending: 'Pending',
-  };
-  return statusMap[status?.toLowerCase()] || status || 'Unknown';
-}
-
 function getStatusColor(status: string): string {
   const colorMap: Record<string, string> = {
-    open: 'bg-yellow-100 text-yellow-800',
-    in_progress: 'bg-blue-100 text-blue-800',
-    resolved: 'bg-green-100 text-green-800',
-    closed: 'bg-gray-100 text-gray-800',
-    pending: 'bg-orange-100 text-orange-800',
+    'new': 'bg-yellow-100 text-yellow-800',
+    'open': 'bg-yellow-100 text-yellow-800',
+    'assigned': 'bg-blue-100 text-blue-800',
+    'in progress': 'bg-blue-100 text-blue-800',
+    'in_progress': 'bg-blue-100 text-blue-800',
+    'pending customer': 'bg-orange-100 text-orange-800',
+    'pending': 'bg-orange-100 text-orange-800',
+    'resolved': 'bg-green-100 text-green-800',
+    'closed': 'bg-gray-100 text-gray-800',
   };
   return colorMap[status?.toLowerCase()] || 'bg-gray-100 text-gray-800';
-}
-
-function formatPriority(priority: string): string {
-  const priorityMap: Record<string, string> = {
-    high: 'High',
-    medium: 'Medium',
-    low: 'Low',
-    urgent: 'Urgent',
-  };
-  return priorityMap[priority?.toLowerCase()] || priority || 'Medium';
 }
 
 function getPriorityColor(priority: string): string {
