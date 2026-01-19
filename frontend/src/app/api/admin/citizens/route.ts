@@ -102,13 +102,13 @@ export async function GET(request: NextRequest) {
         FROM service_feedback
         WHERE submitter_type = 'citizen'
         GROUP BY submitter_id
-      ) f ON c.citizen_id::text = f.submitter_id
+      ) f ON c.citizen_id = f.submitter_id
       LEFT JOIN (
         SELECT submitter_id, COUNT(*) as ticket_count
         FROM tickets
         WHERE submitter_type = 'citizen'
         GROUP BY submitter_id
-      ) t ON c.citizen_id::text = t.submitter_id
+      ) t ON c.citizen_id = t.submitter_id
       ${whereClause}
       ${orderByClause}
     `;
