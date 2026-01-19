@@ -25,11 +25,12 @@ export async function GET(request: NextRequest) {
     const ticketStats = await pool.query(
       `SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE status IN ('open', 'in_progress')) as open,
-        COUNT(*) FILTER (WHERE status IN ('resolved', 'closed')) as resolved
-      FROM tickets
-      WHERE submitter_id = $1
-        AND submitter_type = 'citizen'`,
+        COUNT(*) FILTER (WHERE ts.status_name IN ('New', 'Open', 'Assigned', 'In Progress')) as open,
+        COUNT(*) FILTER (WHERE ts.status_name IN ('Resolved', 'Closed')) as resolved
+      FROM tickets t
+      LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
+      WHERE t.submitter_id = $1
+        AND t.submitter_type = 'citizen'`,
       [citizen.citizen_id]
     );
 
@@ -58,15 +59,16 @@ export async function GET(request: NextRequest) {
     // Get recent activity (combined from tickets and feedback)
     const recentTickets = await pool.query(
       `SELECT
-        ticket_id as id,
+        t.ticket_id as id,
         'ticket' as type,
-        title,
-        status,
-        created_at
-      FROM tickets
-      WHERE submitter_id = $1
-        AND submitter_type = 'citizen'
-      ORDER BY created_at DESC
+        t.subject as title,
+        ts.status_name as status,
+        t.created_at
+      FROM tickets t
+      LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
+      WHERE t.submitter_id = $1
+        AND t.submitter_type = 'citizen'
+      ORDER BY t.created_at DESC
       LIMIT 3`,
       [citizen.citizen_id]
     );
@@ -75,16 +77,13 @@ export async function GET(request: NextRequest) {
       `SELECT
         f.feedback_id as id,
         'feedback' as type,
-        CONCAT(e.name, ' - ', s.name) as title,
+        COALESCE(f.comments, 'Service Feedback') as title,
         CASE
-          WHEN g.grievance_id IS NOT NULL THEN 'Escalated'
+          WHEN f.is_grievance = true THEN 'Grievance'
           ELSE 'Received'
         END as status,
         f.created_at
       FROM service_feedback f
-      LEFT JOIN entities e ON f.entity_id = e.entity_id
-      LEFT JOIN services s ON f.service_id = s.service_id
-      LEFT JOIN grievance_tickets g ON g.feedback_id = f.feedback_id
       WHERE f.submitter_id = $1
         AND f.submitter_type = 'citizen'
       ORDER BY f.created_at DESC
