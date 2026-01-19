@@ -29,10 +29,14 @@ This manual covers the following pages:
 | Page | URL | Purpose |
 |------|-----|---------|
 | **Citizen Home** | `/citizen` | Your personal dashboard |
+| **My Profile** | `/citizen/profile` | View and edit your profile information |
 | **Analytics** | `/citizen/analytics` | View your feedback and ticket statistics |
+| **Feedback History** | `/citizen/feedback` | View all your past feedback submissions |
+| **Submit Feedback** | `/citizen/feedback/submit` | Submit feedback linked to your account |
 | **My Tickets** | `/citizen/tickets` | View and search all your tickets |
 | **Ticket Details** | `/citizen/tickets/[id]` | View ticket details and add comments |
-| **Submit Feedback** | `/citizen/feedback/submit` | Submit feedback linked to your account |
+| **My Grievances** | `/citizen/grievances` | View all your grievances |
+| **Grievance Details** | `/citizen/grievances/[id]` | View grievance details and timeline |
 
 **Note:** Staff and admin features (such as `/admin/*` pages) are not covered in this manual. See the Staff or Admin user manuals for those features.
 
@@ -44,13 +48,16 @@ This manual covers the following pages:
 2. [Accessing the Portal](#2-accessing-the-portal)
 3. [Citizen Portal Registration & Login](#3-citizen-portal-registration--login)
 4. [Citizen Portal Dashboard](#4-citizen-portal-dashboard)
-5. [Submitting Service Feedback](#5-submitting-service-feedback)
-6. [Managing Your Tickets](#6-managing-your-tickets)
-7. [Viewing Your Analytics](#7-viewing-your-analytics)
-8. [Using the Public Helpdesk](#8-using-the-public-helpdesk)
-9. [Using QR Codes](#9-using-qr-codes)
-10. [Frequently Asked Questions](#10-frequently-asked-questions)
-11. [Contact Information](#11-contact-information)
+5. [Managing Your Profile](#5-managing-your-profile)
+6. [Submitting Service Feedback](#6-submitting-service-feedback)
+7. [Viewing Your Feedback History](#7-viewing-your-feedback-history)
+8. [Managing Your Tickets](#8-managing-your-tickets)
+9. [Managing Your Grievances](#9-managing-your-grievances)
+10. [Viewing Your Analytics](#10-viewing-your-analytics)
+11. [Using the Public Helpdesk](#11-using-the-public-helpdesk)
+12. [Using QR Codes](#12-using-qr-codes)
+13. [Frequently Asked Questions](#13-frequently-asked-questions)
+14. [Contact Information](#14-contact-information)
 
 ---
 
@@ -90,9 +97,11 @@ The portal is available to everyone, including:
 |---------|---------------------|---------------------------|
 | Submit feedback | Yes | Yes |
 | Track ticket by number | Yes (Helpdesk) | Yes + All tickets in one place |
-| View feedback history | No | Yes |
-| View analytics | No | Yes |
-| Add comments to tickets | No | Yes |
+| View feedback history | No | Yes (with stats and filters) |
+| View analytics | No | Yes (charts and trends) |
+| Manage grievances | No | Yes (dedicated grievance page) |
+| Edit profile | No | Yes (name and email) |
+| Add comments to tickets | No | Yes (on open tickets) |
 | Receive updates | Email only | In-portal + Email |
 
 ---
@@ -154,13 +163,21 @@ Creating a Citizen Portal account gives you access to enhanced features like tic
 **Step 4: Complete Your Profile (First Time)**
 - Enter your **Full Name**
 - Enter your **Email Address** (optional but recommended)
+- Enter a **Password** (minimum 8 characters, must include letters and numbers)
+- Confirm your password
+- Check **"Remember this device"** to stay logged in (optional)
 - Click **"Complete Registration"**
 
 **Step 5: Access Your Dashboard**
 - You are now logged in and can access the Citizen Portal
 - Your profile is created and linked to your phone number
+- You can now log in using either SMS OTP or your password
 
 ### 3.2 Logging In (Returning Users)
+
+You can log in using either **SMS OTP** or **Password**:
+
+#### Option A: Login with SMS OTP
 
 **Step 1: Click Login**
 - Click **"Login"** in the navigation menu
@@ -171,10 +188,29 @@ Creating a Citizen Portal account gives you access to enhanced features like tic
 
 **Step 3: Enter Verification Code**
 - Enter the 6-digit SMS code
+- The code expires after 5 minutes
 - Click **"Verify"**
 
 **Step 4: Access Your Dashboard**
 - You are redirected to your Citizen Portal dashboard
+
+#### Option B: Login with Password
+
+**Step 1: Click Login**
+- Click **"Login"** in the navigation menu
+
+**Step 2: Enter Your Credentials**
+- Enter the phone number you registered with
+- Enter your password
+- Check **"Remember this device"** to stay logged in (optional)
+
+**Step 3: Click Sign In**
+- Click **"Sign In"**
+- You are redirected to your Citizen Portal dashboard
+
+**Forgot Password?**
+- If you forget your password, use the SMS OTP option to log in
+- You can then reset your password in your profile settings
 
 ### 3.3 Remember This Device (Optional)
 
@@ -199,9 +235,11 @@ After logging in, you access your personal Citizen Portal dashboard.
 The dashboard provides quick access to:
 
 - **Home** - Welcome page with quick links
+- **My Profile** - View and edit your profile information
 - **Analytics** - Your feedback and ticket statistics
+- **Feedback** - View your feedback history and submit new feedback
 - **Tickets** - View and manage all your tickets
-- **Give Feedback** - Submit new feedback linked to your account
+- **Grievances** - View and track all your grievances
 
 ### 4.2 Navigation Sidebar
 
@@ -210,9 +248,11 @@ The left sidebar provides navigation within the Citizen Portal:
 | Menu Item | Icon | Description |
 |-----------|------|-------------|
 | **Home** | House | Dashboard home page |
+| **My Profile** | User | View and edit your profile |
 | **Analytics** | Chart | Your statistics and charts |
-| **Tickets** | Document | View all your tickets |
-| **Give Feedback** | Message | Submit new feedback |
+| **Feedback** | Star | View feedback history |
+| **Tickets** | Ticket | View all your tickets |
+| **Grievances** | Alert Circle | View all your grievances |
 
 **Tip:** Click the collapse button (or press Ctrl+B) to minimize the sidebar.
 
@@ -225,11 +265,61 @@ Click your name/avatar in the top-right to access:
 
 ---
 
-## 5. Submitting Service Feedback
+## 5. Managing Your Profile
+
+The Profile page allows you to view and update your personal information.
+
+### 5.1 Accessing Your Profile
+
+1. Log in to your Citizen Portal
+2. Click **"My Profile"** in the sidebar
+3. Or click your name in the top-right and select **"Profile"**
+
+### 5.2 Profile Information
+
+Your profile displays:
+
+- **Full Name** - Editable
+- **Email Address** - Editable (optional)
+- **Phone Number** - Read-only (verified with badge)
+- **Account Information**:
+  - Member since date
+  - Last login date and time
+
+### 5.3 Editing Your Profile
+
+**Step 1: Update Your Information**
+- Click in the **Name** field to edit your name
+- Click in the **Email** field to update your email address
+- Your phone number cannot be changed (it's your verified login credential)
+
+**Step 2: Save Changes**
+- Click the **"Save Changes"** button at the bottom
+- Wait for the confirmation message
+- Your profile is updated immediately
+
+### 5.4 Password Management
+
+To change your password:
+- Currently, password changes are handled through the forgot password flow
+- Log out and use the "Forgot Password" option on the login page
+- Or contact support for assistance
+
+### 5.5 Account Security
+
+Your account is secured by:
+- **Phone verification** - Required during registration
+- **Password** - Set during first-time registration
+- **Device trust** - Optional "Remember this device" feature
+- **Session management** - Auto-logout after inactivity
+
+---
+
+## 6. Submitting Service Feedback
 
 Service feedback helps the government understand how well services are being delivered.
 
-### 5.1 When to Submit Feedback
+### 6.1 When to Submit Feedback
 
 Submit feedback after you have:
 
@@ -238,7 +328,7 @@ Submit feedback after you have:
 - Received assistance from a government department
 - Completed any interaction with a Ministry, Department, or Agency (MDA)
 
-### 5.2 Submitting Feedback (Logged In - Recommended)
+### 6.2 Submitting Feedback (Logged In - Recommended)
 
 **Step 1: Access the Feedback Form**
 - From the Citizen Portal sidebar, click **"Give Feedback"**
@@ -285,7 +375,7 @@ Rating scale:
 - Click the **"Submit Feedback"** button
 - Wait for the confirmation message
 
-### 5.3 Submitting Feedback (Without Login)
+### 6.3 Submitting Feedback (Without Login)
 
 You can also submit feedback without logging in:
 
@@ -295,7 +385,7 @@ You can also submit feedback without logging in:
 
 **Note:** Feedback submitted without login is not linked to your Citizen Portal account.
 
-### 5.4 What Happens After Submission?
+### 6.4 What Happens After Submission?
 
 - You will see a **confirmation message** with your Feedback ID
 - If your average rating is **low** or you marked it as a grievance:
@@ -304,7 +394,7 @@ You can also submit feedback without logging in:
   - The ticket appears in your **My Tickets** page (if logged in)
 - Keep your ticket number to track your complaint
 
-### 5.5 Submission Limits
+### 6.5 Submission Limits
 
 To prevent misuse, the system limits submissions:
 
@@ -313,17 +403,61 @@ To prevent misuse, the system limits submissions:
 
 ---
 
-## 6. Managing Your Tickets
+## 7. Viewing Your Feedback History
+
+The Feedback History page shows all feedback you've submitted while logged in.
+
+### 7.1 Accessing Feedback History
+
+1. Log in to your Citizen Portal
+2. Click **"Feedback"** in the sidebar
+3. Your feedback list will display
+
+### 7.2 Feedback Statistics
+
+At the top of the page, you'll see:
+
+- **Total Feedback** - Number of feedback submissions you've made
+- **Reviewed** - Feedback that has been reviewed by staff
+- **Escalated** - Feedback that was escalated to a grievance/ticket
+
+### 7.3 Viewing Your Feedback List
+
+The feedback list displays:
+
+- **Service Name** - The service you rated
+- **Ministry/Department** - The entity providing the service
+- **Overall Rating** - Your satisfaction rating (1-5 stars)
+- **Date Submitted** - When you submitted the feedback
+- **Status** - Processing status (Submitted, Reviewed, Escalated)
+- **Escalated Badge** - Shows if a ticket was created from this feedback
+
+### 7.4 Linked Grievances
+
+If feedback resulted in a grievance or ticket:
+- Look for the **"Escalated"** badge
+- Click **"View Grievance"** to see the associated ticket
+- This links your feedback to the formal complaint process
+
+### 7.5 Quick Feedback Submission
+
+From the Feedback History page:
+- Click the **"Submit New Feedback"** button at the top
+- You'll be taken to the feedback submission form
+
+---
+
+## 8. Managing Your Tickets
 
 The **My Tickets** page shows all tickets associated with your account.
 
-### 6.1 Accessing My Tickets
+### 8.1 Accessing My Tickets
 
 1. Log in to your Citizen Portal
 2. Click **"Tickets"** in the sidebar
 3. Your tickets list will display
 
-### 6.2 Searching for Tickets
+### 8.2 Searching for Tickets
 
 Use the search box at the top of the tickets page:
 
@@ -331,7 +465,7 @@ Use the search box at the top of the tickets page:
 2. The list filters to show matching tickets
 3. Click the **X** button to clear the search
 
-### 6.3 Filtering by Status
+### 8.3 Filtering by Status
 
 Filter your tickets by clicking the status buttons:
 
@@ -343,7 +477,7 @@ Filter your tickets by clicking the status buttons:
 | **Resolved** | Issues that have been addressed |
 | **Closed** | Completed tickets |
 
-### 6.4 Viewing Ticket Details
+### 8.4 Viewing Ticket Details
 
 Click on any ticket to view its details:
 
@@ -355,7 +489,7 @@ Click on any ticket to view its details:
 - **Assigned Entity** - Department handling your case
 - **Description** - Full details of your complaint
 
-### 6.5 Activity Timeline
+### 8.5 Activity Timeline
 
 The ticket detail page shows an activity timeline:
 
@@ -364,7 +498,7 @@ The ticket detail page shows an activity timeline:
 - **Comments** - Messages from you or staff
 - **Resolution** - Final response when resolved/closed
 
-### 6.6 Adding Comments to a Ticket
+### 8.6 Adding Comments to a Ticket
 
 You can add comments to communicate with the handling department:
 
@@ -375,7 +509,7 @@ You can add comments to communicate with the handling department:
 
 **Note:** You cannot add comments to closed tickets.
 
-### 6.7 Understanding Ticket Status
+### 8.7 Understanding Ticket Status
 
 | Status | Meaning | What to Do |
 |--------|---------|------------|
@@ -388,17 +522,115 @@ You can add comments to communicate with the handling department:
 
 ---
 
-## 7. Viewing Your Analytics
+## 9. Managing Your Grievances
+
+The **My Grievances** page shows all grievances associated with your account. Grievances are formal complaints that can be created either directly or escalated from low-rated feedback.
+
+### 9.1 Understanding Grievances vs. Tickets
+
+In the GEA Portal:
+- **Grievances** - Formal complaints about service quality or issues
+- **Tickets** - System-wide term that includes grievances and other support requests
+- Most citizens will primarily interact with grievances
+
+**Note:** The terms are often used interchangeably, and both refer to tracked complaints.
+
+### 9.2 Accessing My Grievances
+
+1. Log in to your Citizen Portal
+2. Click **"Grievances"** in the sidebar
+3. Your grievances list will display
+
+### 9.3 Grievance Statistics
+
+At the top of the page, you'll see:
+
+- **Total Grievances** - Number of grievances you've submitted
+- **Active** - Grievances currently being worked on (Open, Assigned, In Progress)
+- **Resolved** - Grievances that have been addressed
+
+### 9.4 Viewing Grievances List
+
+The grievances list displays:
+
+- **Grievance Number** - Unique identifier (format: YYYYMM-XXXXXX)
+- **Subject** - Brief description of the issue
+- **Status** - Current state (Open, In Progress, Resolved, Closed)
+- **Priority** - Urgency level (Low, Medium, High, Urgent)
+- **Source** - How it was created:
+  - **Direct** - Submitted directly as a grievance
+  - **Escalated from Feedback** - Created from low-rated feedback
+- **Assigned Entity** - Department handling your grievance
+- **Created Date** - When submitted
+
+### 9.5 Filtering and Searching
+
+**Filter by Status:**
+- Click status buttons at the top (All, Active, Resolved)
+- Quickly find grievances in a specific state
+
+**Filter by Entity:**
+- Use the entity dropdown to filter by department
+- See all grievances assigned to a specific ministry or agency
+
+### 9.6 Viewing Grievance Details
+
+Click on any grievance to view full details:
+
+1. Navigate to `/citizen/grievances/[id]`
+2. View comprehensive information:
+   - Grievance number, subject, description
+   - Status, priority, category
+   - Location and assigned entity
+   - Activity timeline
+   - Resolution details (if resolved)
+
+### 9.7 Grievance Timeline
+
+The grievance detail page shows a timeline of all activity:
+
+- **Creation** - When the grievance was submitted
+- **Status Changes** - Updates to the grievance status
+- **Comments** - Messages from staff or you
+- **Admin Comments** - Internal notes (shown with purple badge)
+- **Citizen Comments** - Your messages (shown with blue badge)
+- **Resolution** - Final outcome when resolved/closed
+
+### 9.8 How Grievances Are Created
+
+Grievances can be created in two ways:
+
+**Method 1: Direct Submission**
+- Submit feedback and check **"I want to file this as a formal grievance"**
+- A grievance is created immediately
+
+**Method 2: Automatic Escalation**
+- Submit feedback with low ratings (average ≤ 2.0 stars)
+- System automatically creates a grievance
+- You'll receive a grievance number on the confirmation page
+
+### 9.9 Grievance Lifecycle
+
+1. **Open** - Grievance received, awaiting review
+2. **Assigned** - Assigned to a specific staff member
+3. **In Progress** - Staff are actively working on it
+4. **Pending Customer** - Waiting for your response
+5. **Resolved** - Issue has been addressed, awaiting closure
+6. **Closed** - Grievance is complete
+
+---
+
+## 10. Viewing Your Analytics
 
 The Analytics page shows statistics about your feedback and tickets.
 
-### 7.1 Accessing Analytics
+### 10.1 Accessing Analytics
 
 1. Log in to your Citizen Portal
 2. Click **"Analytics"** in the sidebar
 3. Your statistics dashboard will display
 
-### 7.2 Feedback Statistics
+### 10.2 Feedback Statistics
 
 The dashboard shows:
 
@@ -406,12 +638,12 @@ The dashboard shows:
 - **Average Rating** - Your average overall satisfaction rating
 - **Rating Distribution** - Bar chart showing how many 1, 2, 3, 4, and 5-star ratings you've given
 
-### 7.3 Ticket Statistics
+### 10.3 Ticket Statistics
 
 - **Total Tickets** - Number of tickets associated with your account
 - **Status Distribution** - Bar chart showing tickets by status (Open, In Progress, Resolved, Closed)
 
-### 7.4 Recent Activity
+### 10.4 Recent Activity
 
 The Recent Activity section shows your latest interactions:
 
@@ -419,18 +651,18 @@ The Recent Activity section shows your latest interactions:
 - Recent feedback submissions
 - Click any item to view details
 
-### 7.5 Refreshing Data
+### 10.5 Refreshing Data
 
 - Click the **"Refresh"** button to update statistics
 - Data is cached for performance but can be refreshed on demand
 
 ---
 
-## 8. Using the Public Helpdesk
+## 11. Using the Public Helpdesk
 
 The public Helpdesk allows anyone to check ticket status without logging in.
 
-### 8.1 When to Use the Helpdesk
+### 11.1 When to Use the Helpdesk
 
 Use the public Helpdesk when:
 
@@ -438,7 +670,7 @@ Use the public Helpdesk when:
 - You have a ticket number but no account
 - You want to share ticket status with someone else
 
-### 8.2 Looking Up a Ticket
+### 11.2 Looking Up a Ticket
 
 **Step 1: Access the Helpdesk**
 - Click **"Helpdesk"** in the main navigation menu
@@ -460,7 +692,7 @@ Use the public Helpdesk when:
 - **Activity Timeline** - Status updates
 - **Resolution Comment** - Staff response (when resolved)
 
-### 8.3 What You Can See (Public View)
+### 11.3 What You Can See (Public View)
 
 The public view shows:
 - Ticket status and basic information
@@ -475,11 +707,11 @@ The public view does **not** show:
 
 ---
 
-## 9. Using QR Codes
+## 12. Using QR Codes
 
 QR codes at government service locations enable quick feedback submission.
 
-### 9.1 Where to Find QR Codes
+### 12.1 Where to Find QR Codes
 
 QR codes may be displayed at:
 
@@ -489,7 +721,7 @@ QR codes may be displayed at:
 - Exit points
 - Posters and signage
 
-### 9.2 How to Use QR Codes
+### 12.2 How to Use QR Codes
 
 **Step 1: Open Your Phone Camera**
 - Most modern smartphones scan QR codes through the camera app
@@ -506,7 +738,7 @@ QR codes may be displayed at:
 - Rate the service and add comments
 - Submit your feedback
 
-### 9.3 Benefits of QR Code Feedback
+### 12.3 Benefits of QR Code Feedback
 
 - Faster submission with pre-filled information
 - Immediate feedback while the experience is fresh
@@ -514,7 +746,7 @@ QR codes may be displayed at:
 
 ---
 
-## 10. Frequently Asked Questions
+## 13. Frequently Asked Questions
 
 ### Account Questions
 
@@ -524,8 +756,14 @@ A: No, you can submit feedback without an account. However, having an account le
 **Q: How do I change my phone number?**
 A: Currently, phone numbers cannot be changed. Contact support for assistance.
 
+**Q: Can I change my password?**
+A: Yes, use the "Forgot Password" option on the login page to reset your password via SMS OTP verification.
+
 **Q: Can I delete my account?**
 A: Contact the DTA support team to request account deletion.
+
+**Q: What's the difference between feedback and a grievance?**
+A: Feedback is a rating and review of a service. A grievance is a formal complaint that requires follow-up and resolution. Low-rated feedback (≤ 2.0 average) is automatically escalated to a grievance.
 
 ### Feedback Questions
 
@@ -565,7 +803,7 @@ A: Wait 30 seconds and request a new code. Ensure your phone number is correct. 
 
 ---
 
-## 11. Contact Information
+## 14. Contact Information
 
 ### Digital Transformation Agency (DTA)
 
@@ -602,13 +840,18 @@ If you have suggestions for improving this user manual, please submit feedback t
 
 | Task | How To |
 |------|--------|
-| Sign in | Login > Enter Phone > Verify SMS Code |
+| Sign in (SMS OTP) | Login > Enter Phone > Verify SMS Code |
+| Sign in (Password) | Login > Enter Phone + Password > Sign In |
 | View dashboard | Citizen Portal > Home |
-| Submit feedback | Sidebar > Give Feedback > Complete form |
+| Edit profile | Sidebar > My Profile > Update > Save Changes |
+| Submit feedback | Sidebar > Feedback > Submit New Feedback |
+| View feedback history | Sidebar > Feedback |
 | View all tickets | Sidebar > Tickets |
 | Search tickets | Tickets > Enter ticket number in search box |
 | Filter tickets | Tickets > Click status buttons |
 | Add comment | Ticket Details > Add Comment > Send |
+| View grievances | Sidebar > Grievances |
+| Filter grievances | Grievances > Click status/entity filters |
 | View analytics | Sidebar > Analytics |
 | Sign out | Click name > Sign Out |
 
@@ -624,7 +867,8 @@ If you have suggestions for improving this user manual, please submit feedback t
 
 ---
 
-**Document Version:** 2.0
+**Document Version:** 2.1
 **Published:** January 2026
-**Updated Features:** Citizen Portal, ticket search, analytics dashboard
+**Last Revised:** January 2026
+**Updated Features:** Profile management, password authentication, feedback history, grievances management, enhanced analytics
 **© Government of Grenada - Digital Transformation Agency**

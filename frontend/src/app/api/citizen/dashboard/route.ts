@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) FILTER (WHERE ts.status_name IN ('Resolved', 'Closed')) as resolved
       FROM tickets t
       LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
-      WHERE t.submitter_id = $1
+      WHERE t.submitter_id = $1::uuid
         AND t.submitter_type = 'citizen'`,
       [citizen.citizen_id]
     );
@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE is_grievance = false OR is_grievance IS NULL) as pending
       FROM service_feedback
-      WHERE submitter_id = $1
+      WHERE submitter_id = $1::uuid
         AND submitter_type = 'citizen'`,
       [citizen.citizen_id]
     );
@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
         COUNT(*) as total,
         COUNT(*) FILTER (WHERE status IN ('open', 'under_investigation')) as open
       FROM grievance_tickets
-      WHERE submitter_id = $1
+      WHERE submitter_id = $1::uuid
         AND submitter_type = 'citizen'`,
       [citizen.citizen_id]
     );
@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
         t.created_at
       FROM tickets t
       LEFT JOIN ticket_status ts ON t.status_id = ts.status_id
-      WHERE t.submitter_id = $1
+      WHERE t.submitter_id = $1::uuid
         AND t.submitter_type = 'citizen'
       ORDER BY t.created_at DESC
       LIMIT 3`,
@@ -84,7 +84,7 @@ export async function GET(request: NextRequest) {
         END as status,
         f.created_at
       FROM service_feedback f
-      WHERE f.submitter_id = $1
+      WHERE f.submitter_id = $1::uuid
         AND f.submitter_type = 'citizen'
       ORDER BY f.created_at DESC
       LIMIT 3`,

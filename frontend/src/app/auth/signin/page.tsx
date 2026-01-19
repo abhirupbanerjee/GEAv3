@@ -261,8 +261,8 @@ function SignInContent() {
   } | null>(null);
 
   // Citizen: Password Login (for returning users)
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePasswordLogin = async (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault();
     setCitizenError(null);
     setBlockedInfo(null);
 

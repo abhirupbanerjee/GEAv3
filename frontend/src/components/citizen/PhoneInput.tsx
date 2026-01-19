@@ -13,7 +13,7 @@ import { FiPhone, FiChevronDown, FiAlertCircle, FiLoader } from 'react-icons/fi'
 interface PhoneInputProps {
   value: string;
   onChange: (value: string) => void;
-  onSubmit: () => void;
+  onSubmit?: () => void;
   disabled?: boolean;
   error?: string;
   isLoading?: boolean;
@@ -109,7 +109,7 @@ export function PhoneInput({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !disabled && !isLoading) {
+    if (e.key === 'Enter' && !disabled && !isLoading && onSubmit) {
       e.preventDefault();
       onSubmit();
     }

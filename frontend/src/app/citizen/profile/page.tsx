@@ -22,6 +22,9 @@ import {
   FiCheckCircle,
   FiAlertCircle,
   FiShield,
+  FiLock,
+  FiEye,
+  FiEyeOff,
 } from 'react-icons/fi';
 
 interface Profile {
@@ -44,6 +47,15 @@ export default function CitizenProfilePage() {
   // Form state
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+
+  // Password change state
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Track if form has changes
   const hasChanges =
@@ -97,6 +109,52 @@ export default function CitizenProfilePage() {
       setMessage({ type: 'error', text: 'Failed to update profile' });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    setPasswordMessage(null);
+
+    // Validate
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'All password fields are required' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ type: 'error', text: 'New passwords do not match' });
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordMessage({ type: 'error', text: 'New password must be at least 8 characters' });
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const response = await fetch('/api/citizen/profile/password', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentPassword, newPassword, confirmPassword }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setPasswordMessage({ type: 'success', text: 'Password changed successfully' });
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+      } else {
+        setPasswordMessage({ type: 'error', text: data.error || 'Failed to change password' });
+      }
+    } catch (error) {
+      console.error('Failed to change password:', error);
+      setPasswordMessage({ type: 'error', text: 'Failed to change password' });
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -287,6 +345,128 @@ export default function CitizenProfilePage() {
                 {formatDateTime(profile?.lastLogin || null)}
               </p>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Change Password Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+          <FiLock className="w-5 h-5" />
+          Change Password
+        </h3>
+
+        {/* Password Message */}
+        {passwordMessage && (
+          <div
+            className={`flex items-center gap-2 p-3 rounded-lg mb-4 ${
+              passwordMessage.type === 'success'
+                ? 'bg-green-50 text-green-800 border border-green-200'
+                : 'bg-red-50 text-red-800 border border-red-200'
+            }`}
+          >
+            {passwordMessage.type === 'success' ? (
+              <FiCheckCircle className="w-4 h-4" />
+            ) : (
+              <FiAlertCircle className="w-4 h-4" />
+            )}
+            <span className="text-sm">{passwordMessage.text}</span>
+          </div>
+        )}
+
+        <div className="space-y-4">
+          {/* Current Password */}
+          <div>
+            <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              Current Password
+            </label>
+            <div className="relative">
+              <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type={showCurrentPassword ? 'text' : 'password'}
+                id="currentPassword"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Enter current password"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showCurrentPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+              </button>
+            </div>
+          </div>
+
+          {/* New Password */}
+          <div>
+            <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              New Password
+            </label>
+            <div className="relative">
+              <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                id="newPassword"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+                className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              <button
+                type="button"
+                onClick={() => setShowNewPassword(!showNewPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                {showNewPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
+          </div>
+
+          {/* Confirm New Password */}
+          <div>
+            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              Confirm New Password
+            </label>
+            <div className="relative">
+              <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type={showNewPassword ? 'text' : 'password'}
+                id="confirmPassword"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+                className="w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          {/* Change Password Button */}
+          <div className="pt-2">
+            <button
+              onClick={handleChangePassword}
+              disabled={changingPassword || !currentPassword || !newPassword || !confirmPassword}
+              className={`flex items-center justify-center gap-2 w-full sm:w-auto px-6 py-2.5 rounded-lg font-medium transition-colors ${
+                !changingPassword && currentPassword && newPassword && confirmPassword
+                  ? 'bg-blue-600 text-white hover:bg-blue-700'
+                  : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+              }`}
+            >
+              {changingPassword ? (
+                <>
+                  <FiLoader className="w-4 h-4 animate-spin" />
+                  Changing...
+                </>
+              ) : (
+                <>
+                  <FiLock className="w-4 h-4" />
+                  Change Password
+                </>
+              )}
+            </button>
           </div>
         </div>
       </div>
