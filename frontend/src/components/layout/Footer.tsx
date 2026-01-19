@@ -19,6 +19,7 @@ export default function Footer() {
   const { isCollapsed } = useSidebarState()
   const [quickLinks, setQuickLinks] = useState<FooterLink[]>(staticFooterLinks.quickLinks)
   const [gogUrl, setGogUrl] = useState(config.GOG_URL)
+  const [isCitizenAuth, setIsCitizenAuth] = useState(false)
 
   // Hide footer on citizen portal pages (they have their own layout)
   const isCitizenRoute = pathname?.startsWith('/citizen')
@@ -27,6 +28,25 @@ export default function Footer() {
   // /admin is the login page - no sidebar there
   const isAdminRoute = pathname?.startsWith('/admin') && pathname !== '/admin'
   const showSidebarMargin = isAdminRoute && !!session
+
+  // Check if citizen is authenticated
+  useEffect(() => {
+    const checkCitizenAuth = async () => {
+      try {
+        const res = await fetch('/api/citizen/auth/check')
+        if (res.ok) {
+          const data = await res.json()
+          setIsCitizenAuth(data.authenticated === true)
+        }
+      } catch {
+        // Ignore errors - assume not authenticated
+      }
+    }
+    // Only check if not already authenticated via NextAuth
+    if (!session) {
+      checkCitizenAuth()
+    }
+  }, [session])
 
   // Fetch dynamic footer links from settings API
   useEffect(() => {
@@ -52,8 +72,9 @@ export default function Footer() {
     fetchFooterLinks()
   }, [])
 
-  // Don't render on citizen routes - citizen portal has its own layout
-  if (isCitizenRoute) {
+  // Don't render on citizen routes or when any user is logged in
+  const isAuthenticated = !!session || isCitizenAuth
+  if (isCitizenRoute || isAuthenticated) {
     return null
   }
 

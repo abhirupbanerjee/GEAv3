@@ -148,7 +148,13 @@ export async function PUT(
 
         // Log activity for status change
         if (currentTicket.status_id !== status_id) {
-          const activityDesc = `Status changed from ${currentTicket.status_id} to ${statusCheck.rows[0].status_name}`
+          // Look up the old status name
+          const oldStatusResult = await client.query(
+            'SELECT status_name FROM ticket_status WHERE status_id = $1',
+            [currentTicket.status_id]
+          )
+          const oldStatusName = oldStatusResult.rows[0]?.status_name || 'Unknown'
+          const activityDesc = `Status changed from ${oldStatusName} to ${statusCheck.rows[0].status_name}`
           await client.query(
             `INSERT INTO ticket_activity (ticket_id, activity_type, performed_by, description, created_at)
              VALUES ($1, $2, $3, $4, NOW())`,
