@@ -1,10 +1,10 @@
 /**
- * Citizen Portal Dashboard
+ * Citizen Portal Home Page
  *
- * Main dashboard showing:
- * - Summary cards (tickets, feedback, grievances)
- * - Recent activity
- * - Quick actions
+ * Simple welcome page with navigation cards to main sections:
+ * - Analytics
+ * - My Tickets
+ * - Give Feedback
  */
 
 'use client';
@@ -12,79 +12,41 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
+  FiBarChart2,
   FiFileText,
   FiMessageSquare,
-  FiAlertTriangle,
-  FiClock,
-  FiCheckCircle,
   FiLoader,
-  FiExternalLink,
+  FiArrowRight,
 } from 'react-icons/fi';
 
-interface DashboardStats {
-  tickets: {
-    total: number;
-    open: number;
-    resolved: number;
-  };
-  feedback: {
-    total: number;
-    pending: number;
-  };
-  grievances: {
-    total: number;
-    open: number;
-  };
+interface CitizenUser {
+  name: string | null;
+  phone: string;
 }
 
-interface RecentItem {
-  id: string;
-  type: 'ticket' | 'feedback' | 'grievance';
-  title: string;
-  status: string;
-  statusColor: string;
-  date: string;
-  href: string;
-}
-
-export default function CitizenDashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+export default function CitizenHome() {
+  const [user, setUser] = useState<CitizenUser | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadDashboard = async () => {
+    const loadUser = async () => {
       try {
-        const response = await fetch('/api/citizen/dashboard');
+        const response = await fetch('/api/citizen/auth/check');
         const data = await response.json();
-
-        if (data.success) {
-          setStats(data.stats);
-          setRecentItems(data.recentItems || []);
-        } else {
-          // Set default empty state
-          setStats({
-            tickets: { total: 0, open: 0, resolved: 0 },
-            feedback: { total: 0, pending: 0 },
-            grievances: { total: 0, open: 0 },
+        if (data.authenticated && data.citizen) {
+          setUser({
+            name: data.citizen.name,
+            phone: data.citizen.phone,
           });
-          setRecentItems([]);
         }
       } catch (error) {
-        console.error('Failed to load dashboard:', error);
-        // Set default empty state on error
-        setStats({
-          tickets: { total: 0, open: 0, resolved: 0 },
-          feedback: { total: 0, pending: 0 },
-          grievances: { total: 0, open: 0 },
-        });
-        setRecentItems([]);
+        console.error('Failed to load user:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    loadDashboard();
+    loadUser();
   }, []);
 
   if (loading) {
@@ -95,156 +57,85 @@ export default function CitizenDashboard() {
     );
   }
 
+  const displayName = user?.name || 'Citizen';
+
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-sm text-gray-600 mt-1">
-          Welcome to the GEA Citizen Portal. Track your tickets, feedback, and grievances.
+    <div className="space-y-8">
+      {/* Welcome Section */}
+      <div className="text-center py-8">
+        <h1 className="text-3xl font-bold text-gray-900">
+          Welcome back, {displayName}!
+        </h1>
+        <p className="text-gray-600 mt-2 max-w-md mx-auto">
+          Access your citizen services, track tickets, and provide feedback on government services.
         </p>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {/* Tickets */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">My Tickets</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {stats?.tickets.total || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-              <FiFileText className="w-6 h-6 text-blue-600" />
-            </div>
+      {/* Navigation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Analytics Card */}
+        <Link
+          href="/citizen/analytics"
+          className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all"
+        >
+          <div className="w-14 h-14 bg-blue-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-blue-200 transition-colors">
+            <FiBarChart2 className="w-7 h-7 text-blue-600" />
           </div>
-          <div className="flex items-center gap-4 mt-3 text-xs">
-            <span className="flex items-center gap-1 text-yellow-600">
-              <FiClock className="w-3 h-3" />
-              {stats?.tickets.open || 0} Open
-            </span>
-            <span className="flex items-center gap-1 text-green-600">
-              <FiCheckCircle className="w-3 h-3" />
-              {stats?.tickets.resolved || 0} Resolved
-            </span>
-          </div>
-        </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Analytics</h2>
+          <p className="text-gray-600 text-sm mb-4">
+            View your feedback statistics, ratings, and ticket status breakdown.
+          </p>
+          <span className="inline-flex items-center gap-1 text-blue-600 text-sm font-medium group-hover:gap-2 transition-all">
+            View Analytics
+            <FiArrowRight className="w-4 h-4" />
+          </span>
+        </Link>
 
-        {/* Feedback */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">My Feedback</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {stats?.feedback.total || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <FiMessageSquare className="w-6 h-6 text-green-600" />
-            </div>
+        {/* Tickets Card */}
+        <Link
+          href="/citizen/tickets"
+          className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-green-300 transition-all"
+        >
+          <div className="w-14 h-14 bg-green-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-green-200 transition-colors">
+            <FiFileText className="w-7 h-7 text-green-600" />
           </div>
-          <div className="flex items-center gap-4 mt-3 text-xs">
-            <span className="flex items-center gap-1 text-yellow-600">
-              <FiClock className="w-3 h-3" />
-              {stats?.feedback.pending || 0} Pending
-            </span>
-          </div>
-        </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">My Tickets</h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Track and manage your submitted tickets and view their current status.
+          </p>
+          <span className="inline-flex items-center gap-1 text-green-600 text-sm font-medium group-hover:gap-2 transition-all">
+            View Tickets
+            <FiArrowRight className="w-4 h-4" />
+          </span>
+        </Link>
 
-        {/* Grievances */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Grievances</p>
-              <p className="text-2xl font-bold text-gray-900 mt-1">
-                {stats?.grievances.total || 0}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <FiAlertTriangle className="w-6 h-6 text-red-600" />
-            </div>
+        {/* Give Feedback Card */}
+        <Link
+          href="/citizen/feedback/submit"
+          className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-purple-300 transition-all"
+        >
+          <div className="w-14 h-14 bg-purple-100 rounded-xl flex items-center justify-center mb-4 group-hover:bg-purple-200 transition-colors">
+            <FiMessageSquare className="w-7 h-7 text-purple-600" />
           </div>
-          <div className="flex items-center gap-4 mt-3 text-xs">
-            <span className="flex items-center gap-1 text-red-600">
-              <FiClock className="w-3 h-3" />
-              {stats?.grievances.open || 0} Open
-            </span>
-          </div>
-        </div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">Give Feedback</h2>
+          <p className="text-gray-600 text-sm mb-4">
+            Rate government services, report issues, and help improve public services.
+          </p>
+          <span className="inline-flex items-center gap-1 text-purple-600 text-sm font-medium group-hover:gap-2 transition-all">
+            Submit Feedback
+            <FiArrowRight className="w-4 h-4" />
+          </span>
+        </Link>
       </div>
 
-      {/* Quick Actions */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <Link
-            href="/"
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors group"
-          >
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center group-hover:bg-green-200">
-              <FiMessageSquare className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Give Feedback</p>
-              <p className="text-xs text-gray-500">Rate services & report issues</p>
-            </div>
-          </Link>
-
-          <Link
-            href="/helpdesk"
-            className="flex items-center gap-3 p-4 border border-gray-200 rounded-lg hover:border-purple-300 hover:bg-purple-50 transition-colors group"
-          >
-            <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center group-hover:bg-purple-200">
-              <FiExternalLink className="w-5 h-5 text-purple-600" />
-            </div>
-            <div>
-              <p className="font-medium text-gray-900">Track Ticket</p>
-              <p className="text-xs text-gray-500">Check ticket status</p>
-            </div>
-          </Link>
-        </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        {recentItems.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <FiClock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>No recent activity</p>
-            <p className="text-sm mt-1">Your tickets and feedback will appear here</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {recentItems.map((item) => (
-              <Link
-                key={`${item.type}-${item.id}`}
-                href={item.href}
-                className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    item.type === 'ticket' ? 'bg-blue-100' :
-                    item.type === 'feedback' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {item.type === 'ticket' && <FiFileText className="w-4 h-4 text-blue-600" />}
-                    {item.type === 'feedback' && <FiMessageSquare className="w-4 h-4 text-green-600" />}
-                    {item.type === 'grievance' && <FiAlertTriangle className="w-4 h-4 text-red-600" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.date}</p>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${item.statusColor}`}>
-                  {item.status}
-                </span>
-              </Link>
-            ))}
-          </div>
-        )}
+      {/* Help Text */}
+      <div className="text-center text-sm text-gray-500">
+        <p>
+          Need to check a ticket without logging in?{' '}
+          <a href="/helpdesk" className="text-blue-600 hover:underline">
+            Use the public helpdesk
+          </a>
+        </p>
       </div>
     </div>
   );

@@ -159,7 +159,7 @@ export default function CitizenTicketsPage() {
             </p>
             {statusFilter === 'all' && (
               <Link
-                href="/"
+                href="/citizen/feedback/submit"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Give Feedback

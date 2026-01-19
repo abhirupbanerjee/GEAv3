@@ -78,7 +78,7 @@ function SignInContent() {
   const [citizenError, setCitizenError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 
-  // Check if citizen login is enabled
+  // Check if citizen login is enabled and if already authenticated (trusted device)
   useEffect(() => {
     const checkCitizenEnabled = async () => {
       try {
@@ -86,14 +86,19 @@ function SignInContent() {
         if (res.status === 403) {
           setCitizenEnabled(false);
         } else {
+          const data = await res.json();
           setCitizenEnabled(true);
+          // If already authenticated via trusted device, redirect to citizen portal
+          if (data.authenticated) {
+            router.push('/citizen');
+          }
         }
       } catch {
         setCitizenEnabled(false);
       }
     };
     checkCitizenEnabled();
-  }, []);
+  }, [router]);
 
   // OAuth sign in handler
   const handleOAuthSignIn = async (provider: 'google' | 'azure-ad') => {
@@ -448,7 +453,7 @@ function SignInContent() {
                   <PhoneInput
                     value={citizenState.phone}
                     onChange={(phone) => setCitizenState(prev => ({ ...prev, phone }))}
-                    onSubmit={citizenState.loginMethod === 'otp' ? handleSendOtp : () => setCitizenStep('password')}
+                    onSubmit={citizenState.loginMethod === 'otp' ? handleSendOtp : undefined}
                     disabled={citizenLoading}
                     error={citizenError || undefined}
                     isLoading={citizenLoading}
@@ -507,14 +512,74 @@ function SignInContent() {
                       )}
                     </button>
                   ) : (
-                    <button
-                      onClick={() => setCitizenStep('password')}
-                      disabled={!citizenState.phone}
-                      className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
-                    >
-                      <FiLock className="w-5 h-5" />
-                      Continue with Password
-                    </button>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Password
+                        </label>
+                        <div className="relative">
+                          <FiLock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                          <input
+                            type={showPassword ? 'text' : 'password'}
+                            value={citizenState.password}
+                            onChange={(e) => setCitizenState(prev => ({ ...prev, password: e.target.value }))}
+                            placeholder="Enter your password"
+                            className="w-full pl-10 pr-10 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                          >
+                            {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={citizenState.rememberDevice}
+                          onChange={(e) => setCitizenState(prev => ({ ...prev, rememberDevice: e.target.checked }))}
+                          className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                        />
+                        <span className="text-sm text-gray-600">Remember this device</span>
+                      </label>
+
+                      <button
+                        onClick={handlePasswordLogin}
+                        disabled={citizenLoading || !citizenState.phone || !citizenState.password}
+                        className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
+                      >
+                        {citizenLoading ? (
+                          <>
+                            <svg className="w-5 h-5 animate-spin" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                            Signing in...
+                          </>
+                        ) : (
+                          <>
+                            <FiLock className="w-5 h-5" />
+                            Sign In
+                          </>
+                        )}
+                      </button>
+
+                      <div className="text-center">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCitizenState(prev => ({ ...prev, loginMethod: 'otp', password: '' }));
+                            setCitizenError(null);
+                          }}
+                          className="text-sm text-blue-600 hover:underline"
+                        >
+                          Forgot password? Use OTP instead
+                        </button>
+                      </div>
+                    </div>
                   )}
 
                   <p className="text-xs text-gray-500 text-center">

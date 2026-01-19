@@ -13,6 +13,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { cookies } from 'next/headers';
 import { authOptions } from '@/lib/auth';
 import { pool } from '@/lib/db';
 import crypto from 'crypto';
@@ -221,13 +222,14 @@ export async function POST(request: NextRequest) {
         );
       }
     // ============================================
-    // SUBMITTER TAGGING (Feature 1.5)
-    // Detect if staff is logged in and tag submission
+    // SUBMITTER TAGGING (Feature 1.5 + 2.1)
+    // Detect if staff OR citizen is logged in and tag submission
     // ============================================
     let submitterType = 'anonymous';
     let submitterId: string | null = null;
     let submitterEntityId: string | null = null;
 
+    // Check for staff session (NextAuth)
     const session = await getServerSession(authOptions);
     if (session?.user) {
       submitterType = 'staff';
@@ -235,7 +237,30 @@ export async function POST(request: NextRequest) {
       submitterEntityId = (session.user as any).entityId || null;
       console.log(`📋 Staff submission detected: user=${submitterId}, entity=${submitterEntityId}`);
     } else {
-      console.log(`📋 Anonymous submission (no session)`);
+      // Check for citizen session (custom cookie auth)
+      const cookieStore = await cookies();
+      const citizenToken = cookieStore.get('citizen_session')?.value;
+
+      if (citizenToken) {
+        try {
+          const citizenResult = await pool.query(
+            `SELECT cs.citizen_id FROM citizen_sessions cs
+             WHERE cs.token = $1 AND cs.expires_at > NOW()`,
+            [citizenToken]
+          );
+          if (citizenResult.rows.length > 0) {
+            submitterType = 'citizen';
+            submitterId = citizenResult.rows[0].citizen_id;
+            console.log(`📋 Citizen submission detected: citizen_id=${submitterId}`);
+          }
+        } catch (err) {
+          console.error('Failed to check citizen session:', err);
+        }
+      }
+
+      if (submitterType === 'anonymous') {
+        console.log(`📋 Anonymous submission (no session)`);
+      }
     }
 
     // ============================================

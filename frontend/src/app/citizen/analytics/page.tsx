@@ -11,12 +11,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import {
   FiRefreshCw,
   FiMessageSquare,
   FiFileText,
   FiStar,
   FiLoader,
+  FiClock,
+  FiAlertTriangle,
 } from 'react-icons/fi';
 
 interface AnalyticsData {
@@ -30,6 +33,16 @@ interface AnalyticsData {
     statusBreakdown: { status: string; count: number }[];
   };
   cached?: boolean;
+}
+
+interface RecentItem {
+  id: string;
+  type: 'ticket' | 'feedback' | 'grievance';
+  title: string;
+  status: string;
+  statusColor: string;
+  date: string;
+  href: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -49,6 +62,7 @@ const RATING_COLORS: Record<number, string> = {
 
 export default function CitizenAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
+  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -70,8 +84,21 @@ export default function CitizenAnalyticsPage() {
     }
   };
 
+  const fetchRecentActivity = async () => {
+    try {
+      const response = await fetch('/api/citizen/dashboard');
+      const result = await response.json();
+      if (result.success && result.recentItems) {
+        setRecentItems(result.recentItems);
+      }
+    } catch (error) {
+      console.error('Failed to fetch recent activity:', error);
+    }
+  };
+
   useEffect(() => {
     fetchAnalytics();
+    fetchRecentActivity();
   }, []);
 
   const handleRefresh = () => {
@@ -232,6 +259,46 @@ export default function CitizenAnalyticsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
+        {recentItems.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <FiClock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
+            <p>No recent activity</p>
+            <p className="text-sm mt-1">Your tickets and feedback will appear here</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {recentItems.map((item) => (
+              <Link
+                key={`${item.type}-${item.id}`}
+                href={item.href}
+                className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                    item.type === 'ticket' ? 'bg-blue-100' :
+                    item.type === 'feedback' ? 'bg-green-100' : 'bg-red-100'
+                  }`}>
+                    {item.type === 'ticket' && <FiFileText className="w-4 h-4 text-blue-600" />}
+                    {item.type === 'feedback' && <FiMessageSquare className="w-4 h-4 text-green-600" />}
+                    {item.type === 'grievance' && <FiAlertTriangle className="w-4 h-4 text-red-600" />}
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900 text-sm">{item.title}</p>
+                    <p className="text-xs text-gray-500">{item.date}</p>
+                  </div>
+                </div>
+                <span className={`text-xs px-2 py-1 rounded-full ${item.statusColor}`}>
+                  {item.status}
+                </span>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Cache indicator */}

@@ -8,11 +8,12 @@ import { useSession } from 'next-auth/react'
 import UserProfileDropdown from './UserProfileDropdown'
 import { useSidebarState } from '@/hooks/useSidebarState'
 
+// authRequired: null = always show, false = only anonymous, true = only authenticated
 const navigationItems = [
-  { label: 'About', href: '/about' },
-  { label: 'Services', href: '/services' },
-  { label: 'Feedback', href: '/feedback' },
-  { label: 'Helpdesk', href: '/helpdesk' },
+  { label: 'About', href: '/about', authRequired: null },
+  { label: 'Services', href: '/services', authRequired: null },
+  { label: 'Feedback', href: '/feedback', authRequired: false },
+  { label: 'Helpdesk', href: '/helpdesk', authRequired: false },
 ]
 
 // Default Grenada flag SVG as fallback
@@ -34,6 +35,7 @@ interface BrandingSettings {
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isCitizenAuth, setIsCitizenAuth] = useState(false)
   const pathname = usePathname()
   const { data: session, status } = useSession()
   const { isCollapsed } = useSidebarState()
@@ -42,6 +44,35 @@ export default function Header() {
   // /admin is the login page - no sidebar there
   const isAdminRoute = pathname?.startsWith('/admin') && pathname !== '/admin'
   const showSidebarMargin = isAdminRoute && !!session
+
+  // Check if citizen is authenticated (separate from NextAuth session)
+  useEffect(() => {
+    const checkCitizenAuth = async () => {
+      try {
+        const res = await fetch('/api/citizen/auth/check')
+        if (res.ok) {
+          const data = await res.json()
+          setIsCitizenAuth(data.authenticated === true)
+        }
+      } catch {
+        setIsCitizenAuth(false)
+      }
+    }
+    // Only check if not already authenticated via NextAuth
+    if (!session) {
+      checkCitizenAuth()
+    }
+  }, [session])
+
+  // User is authenticated if they have either NextAuth session or citizen session
+  const isAuthenticated = !!session || isCitizenAuth
+
+  // Filter navigation items based on auth state
+  const visibleNavItems = navigationItems.filter((item) => {
+    if (item.authRequired === false && isAuthenticated) return false // Hide from logged-in
+    if (item.authRequired === true && !isAuthenticated) return false // Hide from anonymous
+    return true
+  })
 
   const [branding, setBranding] = useState<BrandingSettings>({
     siteName: 'EA Portal',
@@ -82,7 +113,7 @@ export default function Header() {
 
           {/* Desktop Navigation */}
           <nav className="hidden md:flex items-center space-x-6">
-            {navigationItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -136,7 +167,7 @@ export default function Header() {
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-3">
-              {navigationItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
