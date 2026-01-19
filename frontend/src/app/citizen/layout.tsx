@@ -39,6 +39,7 @@ interface CitizenUser {
 
 const navigation = [
   { name: 'Home', href: '/citizen', icon: FiHome },
+  { name: 'My Profile', href: '/citizen/profile', icon: FiUser },
   { name: 'Analytics', href: '/citizen/analytics', icon: FiBarChart2 },
   { name: 'Tickets', href: '/citizen/tickets', icon: FiFileText },
   { name: 'Feedback', href: '/citizen/feedback/submit', icon: FiMessageSquare },

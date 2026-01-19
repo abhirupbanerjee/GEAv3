@@ -101,24 +101,25 @@ export async function GET(request: NextRequest) {
         statusColor: getStatusColor(row.status),
         date: formatRelativeDate(row.created_at),
         href: `/citizen/tickets/${row.id}`,
+        createdAt: new Date(row.created_at),
       })),
       ...recentFeedback.rows.map((row) => ({
         id: row.id,
         type: 'feedback' as const,
         title: row.title || 'Feedback',
         status: row.status,
-        statusColor: row.status === 'Escalated' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800',
+        statusColor: row.status === 'Grievance' ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800',
         date: formatRelativeDate(row.created_at),
         href: '/citizen/feedback',
+        createdAt: new Date(row.created_at),
       })),
     ];
 
-    // Sort by date and take top 5
-    allRecent.sort((a, b) => {
-      // This is a simplified sort - in production you'd compare actual dates
-      return 0;
-    });
-    const recentItems = allRecent.slice(0, 5);
+    // Sort by date (most recent first) and take top 5
+    allRecent.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+
+    // Remove createdAt before returning (not needed by frontend)
+    const recentItems = allRecent.slice(0, 5).map(({ createdAt, ...item }) => item);
 
     const ticketRow = ticketStats.rows[0] || { total: 0, open: 0, resolved: 0 };
     const feedbackRow = feedbackStats.rows[0] || { total: 0, pending: 0 };

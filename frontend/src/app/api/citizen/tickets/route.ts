@@ -22,7 +22,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Query tickets for this citizen
+    // Get filter parameters
+    const { searchParams } = new URL(request.url);
+    const entityId = searchParams.get('entityId');
+
+    // Build dynamic query with optional entity filter
+    const params: string[] = [citizen.citizen_id];
+    let entityFilter = '';
+    if (entityId) {
+      params.push(entityId);
+      entityFilter = `AND t.assigned_entity_id = $${params.length}`;
+    }
+
+    // Query tickets for this citizen with optional filters
     const result = await pool.query(
       `SELECT
         t.ticket_id,
@@ -42,8 +54,21 @@ export async function GET(request: NextRequest) {
       LEFT JOIN priority_levels pl ON t.priority_id = pl.priority_id
       WHERE t.submitter_id = $1
         AND t.submitter_type = 'citizen'
+        ${entityFilter}
       ORDER BY t.created_at DESC
       LIMIT 100`,
+      params
+    );
+
+    // Query distinct entities for filter dropdown
+    const entitiesResult = await pool.query(
+      `SELECT DISTINCT e.unique_entity_id as id, e.entity_name as name
+       FROM tickets t
+       JOIN entity_master e ON t.assigned_entity_id = e.unique_entity_id
+       WHERE t.submitter_id = $1
+         AND t.submitter_type = 'citizen'
+         AND t.assigned_entity_id IS NOT NULL
+       ORDER BY e.entity_name`,
       [citizen.citizen_id]
     );
 
@@ -58,14 +83,21 @@ export async function GET(request: NextRequest) {
       priorityColor: getPriorityColor(row.priority || 'medium'),
       category: row.category || 'General',
       assignedEntity: row.assigned_entity_name || 'Unassigned',
+      assignedEntityId: row.assigned_entity_id || null,
       createdAt: formatDate(row.created_at),
       updatedAt: formatDate(row.updated_at),
+    }));
+
+    const entities = entitiesResult.rows.map((row) => ({
+      id: row.id,
+      name: row.name,
     }));
 
     return NextResponse.json({
       success: true,
       tickets,
       total: tickets.length,
+      entities,
     });
   } catch (error) {
     console.error('Error fetching citizen tickets:', error);

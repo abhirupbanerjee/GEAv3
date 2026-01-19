@@ -33,6 +33,12 @@ interface Ticket {
   createdAt: string;
   updatedAt: string;
   assignedEntity: string;
+  assignedEntityId: string | null;
+}
+
+interface Entity {
+  id: string;
+  name: string;
 }
 
 type StatusFilter = 'all' | 'open' | 'in_progress' | 'resolved' | 'closed';
@@ -75,32 +81,46 @@ const getPriorityColor = (priority: string): string => {
 
 export default function CitizenTicketsPage() {
   const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [entities, setEntities] = useState<Entity[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [entityFilter, setEntityFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    const loadTickets = async () => {
-      try {
-        const response = await fetch('/api/citizen/tickets');
-        const data = await response.json();
+  const loadTickets = async (entityId?: string) => {
+    try {
+      const url = entityId && entityId !== 'all'
+        ? `/api/citizen/tickets?entityId=${entityId}`
+        : '/api/citizen/tickets';
+      const response = await fetch(url);
+      const data = await response.json();
 
-        if (data.success && data.tickets) {
-          setTickets(data.tickets);
-        } else {
-          // No tickets or error - show empty state
-          setTickets([]);
+      if (data.success) {
+        setTickets(data.tickets || []);
+        // Only set entities on initial load (when no filter is applied)
+        if (!entityId || entityId === 'all') {
+          setEntities(data.entities || []);
         }
-      } catch (error) {
-        console.error('Failed to load tickets:', error);
+      } else {
         setTickets([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('Failed to load tickets:', error);
+      setTickets([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadTickets();
   }, []);
+
+  const handleEntityFilterChange = (newEntityId: string) => {
+    setEntityFilter(newEntityId);
+    setLoading(true);
+    loadTickets(newEntityId);
+  };
 
   const filteredTickets = tickets.filter((ticket) => {
     // Apply status filter
@@ -172,6 +192,37 @@ export default function CitizenTicketsPage() {
             </button>
           ))}
         </div>
+
+        {/* Entity Filter */}
+        {entities.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <FiFilter className="w-4 h-4 text-gray-500" />
+            <span className="text-sm text-gray-600 mr-2">Filter by entity:</span>
+            <button
+              onClick={() => handleEntityFilterChange('all')}
+              className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                entityFilter === 'all'
+                  ? 'bg-green-100 text-green-700 font-medium'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              All Entities
+            </button>
+            {entities.map((entity) => (
+              <button
+                key={entity.id}
+                onClick={() => handleEntityFilterChange(entity.id)}
+                className={`px-3 py-1.5 text-sm rounded-full transition-colors ${
+                  entityFilter === entity.id
+                    ? 'bg-green-100 text-green-700 font-medium'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                {entity.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Tickets List */}
@@ -180,14 +231,14 @@ export default function CitizenTicketsPage() {
           <div className="text-center py-12">
             <FiFileText className="w-12 h-12 mx-auto mb-4 text-gray-400" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              {statusFilter === 'all' ? 'No tickets yet' : 'No tickets found'}
+              {statusFilter === 'all' && entityFilter === 'all' ? 'No tickets yet' : 'No tickets found'}
             </h3>
             <p className="text-gray-500 mb-4">
-              {statusFilter === 'all'
+              {statusFilter === 'all' && entityFilter === 'all'
                 ? 'Submit feedback to create a ticket for tracking issues or requests.'
                 : 'Try selecting a different filter.'}
             </p>
-            {statusFilter === 'all' && (
+            {statusFilter === 'all' && entityFilter === 'all' && (
               <Link
                 href="/citizen/feedback/submit"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"

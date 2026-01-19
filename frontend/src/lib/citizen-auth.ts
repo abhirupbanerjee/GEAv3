@@ -248,6 +248,69 @@ export async function completeCitizenRegistration(
 }
 
 /**
+ * Update citizen profile (name, email)
+ */
+export async function updateCitizenProfile(
+  citizenId: string,
+  data: { name?: string; email?: string }
+): Promise<{ success: boolean; message: string; citizen?: Citizen }> {
+  try {
+    // Build dynamic update query
+    const updates: string[] = [];
+    const values: (string | null)[] = [];
+    let paramIndex = 1;
+
+    if (data.name !== undefined) {
+      updates.push(`name = $${paramIndex}`);
+      values.push(data.name || null);
+      paramIndex++;
+    }
+
+    if (data.email !== undefined) {
+      updates.push(`email = $${paramIndex}`);
+      values.push(data.email || null);
+      paramIndex++;
+    }
+
+    if (updates.length === 0) {
+      return { success: false, message: 'No fields to update' };
+    }
+
+    updates.push('updated_at = CURRENT_TIMESTAMP');
+    values.push(citizenId);
+
+    const result = await pool.query(
+      `UPDATE citizens
+       SET ${updates.join(', ')}
+       WHERE citizen_id = $${paramIndex} AND is_active = true
+       RETURNING citizen_id, phone, phone_verified, name, email,
+                 registration_complete, is_active, created_at, last_login`,
+      values
+    );
+
+    if (result.rowCount === 0) {
+      return { success: false, message: 'Citizen not found' };
+    }
+
+    const citizen: Citizen = result.rows[0];
+
+    return { success: true, message: 'Profile updated successfully', citizen };
+  } catch (error: unknown) {
+    console.error('Error updating citizen profile:', error);
+
+    // Check for duplicate email
+    if (error && typeof error === 'object' && 'code' in error) {
+      const pgError = error as { code: string };
+      if (pgError.code === '23505') {
+        return { success: false, message: 'Email is already in use by another account' };
+      }
+    }
+
+    return { success: false, message: 'Failed to update profile' };
+  }
+}
+
+/**
  * Verify citizen password
  */
 export async function verifyCitizenPassword(
@@ -725,6 +788,7 @@ export default {
   findCitizenById,
   createCitizen,
   completeCitizenRegistration,
+  updateCitizenProfile,
   verifyCitizenPassword,
   // Session management
   createSession,
