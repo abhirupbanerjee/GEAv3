@@ -1,11 +1,11 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 10.5
-**Last Updated:** January 17, 2026
+**Document Version:** 11.0
+**Last Updated:** January 19, 2026
 **Database:** PostgreSQL 16-alpine
-**Connection Pool:** PgBouncer v1.23.1-p3
+**Connection Pool:** PgBouncer v1.23.1
 **Cache:** Redis 7.4.4-alpine
-**Schema Version:** Production-Aligned v10.2 (32 tables)
+**Schema Version:** Production-Aligned v11.0 (40+ tables)
 
 ---
 
@@ -29,16 +29,18 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 32 |
+| **Tables** | 40+ |
 | **Reference Data** | 7 (entities, services, priorities, statuses, categories, service_attachments, ai_bots) |
-| **Auth & Users** | 8 |
+| **Admin/Staff Auth & Users** | 8 (NextAuth OAuth) |
+| **Citizen Authentication** | 5 (citizens, citizen_sessions, citizen_trusted_devices, citizen_otp, citizen_account_blocks) |
 | **Feedback & Grievances** | 4 |
 | **EA Service Requests** | 3 |
 | **Tickets & Activity** | 4 |
 | **System & Settings** | 4 (system_settings, settings_audit_log, leadership_contacts, backup_audit_log) |
-| **Security** | 3 |
-| **Foreign Keys** | 18+ |
-| **Indexes** | 50+ |
+| **Database Backups** | 2 (database_backups, backup_restore_history) |
+| **Security** | 3 (rate_limit, attempts, IP tracking) |
+| **Foreign Keys** | 25+ |
+| **Indexes** | 60+ |
 | **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
 
 ### Connection Details
@@ -323,7 +325,7 @@ docker exec -i feedback_db psql -U feedback_user feedback_restore < schema_20251
                               │
                               ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│            AUTHENTICATION & USER MANAGEMENT LAYER               │
+│         ADMIN/STAFF AUTHENTICATION (NextAuth OAuth)             │
 ├─────────────────────────────────────────────────────────────────┤
 │  users (central auth) ──▶ user_roles                            │
 │    │                      │                                      │
@@ -334,6 +336,29 @@ docker exec -i feedback_db psql -U feedback_user feedback_restore < schema_20251
 │    └──▶ user_audit_log                                          │
 │                                                                 │
 │  verification_tokens (email verification)                        │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│        CITIZEN AUTHENTICATION (Twilio SMS OTP)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  citizens (phone-based auth)                                    │
+│    │                                                            │
+│    ├──▶ citizen_sessions (24-hour sessions)                    │
+│    ├──▶ citizen_trusted_devices (30-day cookies)               │
+│    ├──▶ citizen_otp (verification history)                     │
+│    └──▶ citizen_account_blocks (security blocks)               │
+└─────────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────────┐
+│              SYSTEM SETTINGS & DATABASE BACKUPS                 │
+├─────────────────────────────────────────────────────────────────┤
+│  system_settings (100+ settings, AES-256-GCM encrypted)         │
+│  settings_audit_log (change tracking)                           │
+│  leadership_contacts (footer content)                           │
+│  database_backups (manual + automated)                          │
+│  backup_restore_history (restore tracking)                      │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -352,6 +377,26 @@ Citizen → grievance_tickets (manual) → grievance_attachments (optional) → 
 **Flow 3: EA Service Request (Admin Portal)**
 ```
 Admin → ea_service_requests → ea_service_request_attachments (based on service_attachments)
+```
+
+**Flow 4: Citizen Portal Authentication (New User)**
+```
+Citizen → Twilio SMS OTP → citizen_otp (verification) → citizens (registration) → citizen_sessions
+```
+
+**Flow 5: Citizen Portal Authentication (Returning User)**
+```
+Citizen → Password/OTP → citizens (lookup) → citizen_sessions → citizen_trusted_devices (optional)
+```
+
+**Flow 6: System Settings Update**
+```
+Admin → system_settings (AES-256-GCM encryption for sensitive values) → settings_audit_log
+```
+
+**Flow 7: Database Backup**
+```
+Admin/Schedule → database_backups (create) → pg_dump → compressed file → retention management
 ```
 
 ---
@@ -1636,6 +1681,239 @@ ea-maturity-assessment-bot | EA Maturity Assessment Bot | planned
 
 ---
 
+### 33. citizens
+
+**Purpose:** Citizen accounts for Citizen Portal (phone-based authentication)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| citizen_id | UUID | PRIMARY KEY | Unique citizen identifier |
+| phone_number | VARCHAR(20) | NOT NULL, UNIQUE | E.164 formatted phone (e.g., +14735551234) |
+| phone_country_code | VARCHAR(5) | NOT NULL | Country code (e.g., +1473) |
+| phone_verified | BOOLEAN | DEFAULT FALSE | Phone verification status |
+| password_hash | VARCHAR(255) | | Optional password (bcrypt) for returning users |
+| first_name | VARCHAR(50) | NOT NULL | First name |
+| last_name | VARCHAR(50) | NOT NULL | Last name |
+| email | VARCHAR(255) | | Optional email address |
+| preferred_language | VARCHAR(5) | DEFAULT 'en' | Language preference (en, fr) |
+| is_verified | BOOLEAN | DEFAULT FALSE | Account verification status |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| failed_login_attempts | INTEGER | DEFAULT 0 | Failed login counter |
+| last_login | TIMESTAMP | | Last successful login |
+| created_at | TIMESTAMP | DEFAULT NOW() | Registration timestamp |
+| updated_at | TIMESTAMP | DEFAULT NOW() | Last update |
+
+**Indexes:**
+- PRIMARY KEY on `citizen_id`
+- UNIQUE INDEX on `phone_number`
+- INDEX on `phone_verified`
+- INDEX on `is_active`
+- INDEX on `email`
+
+**Sample Commands:**
+```bash
+# List all citizens
+docker exec -it feedback_db psql -U feedback_user -d feedback \
+  -c "SELECT citizen_id, phone_number, first_name, last_name, is_verified, created_at FROM citizens ORDER BY created_at DESC LIMIT 10;"
+
+# Count verified citizens
+docker exec -it feedback_db psql -U feedback_user -d feedback \
+  -c "SELECT COUNT(*) as verified_citizens FROM citizens WHERE is_verified = TRUE;"
+```
+
+---
+
+### 34. citizen_sessions
+
+**Purpose:** Active citizen sessions (24-hour duration)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| session_id | UUID | PRIMARY KEY | Unique session identifier |
+| citizen_id | UUID | NOT NULL, FK → citizens | Citizen reference |
+| session_token | VARCHAR(500) | NOT NULL, UNIQUE | Session token (hashed) |
+| device_info | JSONB | | Device information (user agent, IP) |
+| ip_address | VARCHAR(50) | | Client IP address |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| created_at | TIMESTAMP | DEFAULT NOW() | Session creation |
+| expires_at | TIMESTAMP | NOT NULL | Session expiration (24 hours) |
+| last_activity | TIMESTAMP | DEFAULT NOW() | Last activity timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `session_id`
+- UNIQUE INDEX on `session_token`
+- INDEX on `citizen_id`
+- INDEX on `expires_at`
+- INDEX on `is_active`
+
+**Foreign Keys:**
+- `citizen_id` REFERENCES `citizens(citizen_id)` ON DELETE CASCADE
+
+---
+
+### 35. citizen_trusted_devices
+
+**Purpose:** Trusted devices for skip-OTP login (30-day cookie)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| device_id | UUID | PRIMARY KEY | Unique device identifier |
+| citizen_id | UUID | NOT NULL, FK → citizens | Citizen reference |
+| device_token | VARCHAR(500) | NOT NULL, UNIQUE | Device token (hashed) |
+| device_name | VARCHAR(100) | | Device name (e.g., "iPhone 12") |
+| device_fingerprint | VARCHAR(500) | | Browser fingerprint |
+| ip_address | VARCHAR(50) | | Device IP address |
+| user_agent | TEXT | | Browser user agent |
+| is_active | BOOLEAN | DEFAULT TRUE | Active status |
+| created_at | TIMESTAMP | DEFAULT NOW() | Trust establishment |
+| expires_at | TIMESTAMP | NOT NULL | Trust expiration (30 days) |
+| last_used | TIMESTAMP | DEFAULT NOW() | Last use timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `device_id`
+- UNIQUE INDEX on `device_token`
+- INDEX on `citizen_id`
+- INDEX on `expires_at`
+- INDEX on `is_active`
+
+**Foreign Keys:**
+- `citizen_id` REFERENCES `citizens(citizen_id)` ON DELETE CASCADE
+
+---
+
+### 36. citizen_otp
+
+**Purpose:** OTP verification history for auditing
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| otp_id | UUID | PRIMARY KEY | Unique OTP record identifier |
+| citizen_id | UUID | FK → citizens | Citizen reference (nullable for new users) |
+| phone_number | VARCHAR(20) | NOT NULL | Phone number (E.164 format) |
+| otp_code_hash | VARCHAR(255) | NOT NULL | Hashed OTP code |
+| verification_sid | VARCHAR(100) | | Twilio Verify SID |
+| channel | VARCHAR(10) | DEFAULT 'sms' | Delivery channel (sms, call) |
+| status | VARCHAR(20) | NOT NULL | pending, verified, expired, failed |
+| ip_address | VARCHAR(50) | | Request IP address |
+| attempts | INTEGER | DEFAULT 0 | Verification attempts |
+| verified_at | TIMESTAMP | | Verification timestamp |
+| expires_at | TIMESTAMP | NOT NULL | OTP expiration (10 minutes) |
+| created_at | TIMESTAMP | DEFAULT NOW() | OTP generation timestamp |
+
+**Indexes:**
+- PRIMARY KEY on `otp_id`
+- INDEX on `citizen_id`
+- INDEX on `phone_number`
+- INDEX on `status`
+- INDEX on `created_at`
+
+**Foreign Keys:**
+- `citizen_id` REFERENCES `citizens(citizen_id)` ON DELETE CASCADE (nullable)
+
+---
+
+### 37. citizen_account_blocks
+
+**Purpose:** Security blocks after failed OTP/login attempts
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| block_id | UUID | PRIMARY KEY | Unique block identifier |
+| citizen_id | UUID | FK → citizens | Citizen reference (nullable) |
+| phone_number | VARCHAR(20) | NOT NULL | Blocked phone number |
+| reason | VARCHAR(100) | NOT NULL | Block reason (e.g., "max_otp_attempts") |
+| failed_attempts | INTEGER | NOT NULL | Number of failed attempts |
+| ip_address | VARCHAR(50) | | Request IP address |
+| is_active | BOOLEAN | DEFAULT TRUE | Block active status |
+| blocked_at | TIMESTAMP | DEFAULT NOW() | Block creation |
+| expires_at | TIMESTAMP | NOT NULL | Block expiration (e.g., 1 hour) |
+| unblocked_at | TIMESTAMP | | Manual unblock timestamp |
+| unblocked_by | VARCHAR(255) | | Admin who unblocked |
+
+**Indexes:**
+- PRIMARY KEY on `block_id`
+- INDEX on `citizen_id`
+- INDEX on `phone_number`
+- INDEX on `is_active`
+- INDEX on `expires_at`
+
+**Foreign Keys:**
+- `citizen_id` REFERENCES `citizens(citizen_id)` ON DELETE CASCADE (nullable)
+
+---
+
+### 38. database_backups
+
+**Purpose:** Database backup tracking (manual and automated)
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| backup_id | UUID | PRIMARY KEY | Unique backup identifier |
+| backup_name | VARCHAR(255) | NOT NULL | Backup name |
+| backup_type | VARCHAR(20) | NOT NULL | manual, automated |
+| file_name | VARCHAR(500) | NOT NULL | Backup file name |
+| file_path | TEXT | NOT NULL | Full file path |
+| file_size_bytes | BIGINT | | File size in bytes |
+| compression | BOOLEAN | DEFAULT TRUE | Compressed (gzip) |
+| status | VARCHAR(20) | NOT NULL | in_progress, completed, failed |
+| description | TEXT | | Backup description |
+| database_name | VARCHAR(100) | DEFAULT 'feedback' | Database name |
+| created_by | VARCHAR(255) | | Creator (admin email) |
+| created_at | TIMESTAMP | DEFAULT NOW() | Backup start timestamp |
+| completed_at | TIMESTAMP | | Backup completion timestamp |
+| retention_until | TIMESTAMP | | Retention expiration date |
+| metadata | JSONB | | Backup metadata (tables_count, rows_count, pg_version) |
+| error_message | TEXT | | Error message if failed |
+
+**Indexes:**
+- PRIMARY KEY on `backup_id`
+- INDEX on `backup_type`
+- INDEX on `status`
+- INDEX on `created_at`
+- INDEX on `retention_until`
+
+**Sample Commands:**
+```bash
+# List all backups
+docker exec -it feedback_db psql -U feedback_user -d feedback \
+  -c "SELECT backup_id, backup_name, backup_type, file_size_bytes / 1024 / 1024 as size_mb, status, created_at FROM database_backups ORDER BY created_at DESC LIMIT 10;"
+
+# Delete expired backups
+docker exec -it feedback_db psql -U feedback_user -d feedback \
+  -c "DELETE FROM database_backups WHERE retention_until < NOW() AND backup_type = 'automated';"
+```
+
+---
+
+### 39. backup_restore_history
+
+**Purpose:** Database restore operation tracking
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| restore_id | UUID | PRIMARY KEY | Unique restore identifier |
+| backup_id | UUID | NOT NULL, FK → database_backups | Source backup reference |
+| status | VARCHAR(20) | NOT NULL | in_progress, completed, failed |
+| initiated_by | VARCHAR(255) | NOT NULL | Admin who initiated restore |
+| initiated_at | TIMESTAMP | DEFAULT NOW() | Restore start timestamp |
+| completed_at | TIMESTAMP | | Restore completion timestamp |
+| duration_seconds | INTEGER | | Restore duration |
+| confirmation_phrase | VARCHAR(50) | | Confirmation phrase used |
+| ip_address | VARCHAR(50) | | Request IP address |
+| error_message | TEXT | | Error message if failed |
+| metadata | JSONB | | Restore metadata |
+
+**Indexes:**
+- PRIMARY KEY on `restore_id`
+- INDEX on `backup_id`
+- INDEX on `status`
+- INDEX on `initiated_at`
+
+**Foreign Keys:**
+- `backup_id` REFERENCES `database_backups(backup_id)` ON DELETE CASCADE
+
+---
+
 ## Relationships & Foreign Keys
 
 ### Entity-Service Hierarchy
@@ -1681,7 +1959,7 @@ ticket_activity (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
 ticket_attachments (ticket_id) → tickets (ticket_id) [ON DELETE CASCADE]
 ```
 
-### Authentication Flow
+### Admin/Staff Authentication Flow (NextAuth OAuth)
 ```
 users (role_id) → user_roles (role_id)
 users (entity_id) → entity_master (unique_entity_id)
@@ -1691,6 +1969,21 @@ entity_user_assignments (user_id) → users (id)
 entity_user_assignments (entity_id) → entity_master (unique_entity_id)
 user_permissions (user_id) → users (id)
 user_audit_log (user_id) → users (id)
+```
+
+### Citizen Authentication Flow (Twilio SMS OTP)
+```
+citizens (phone_number) - Primary authentication identifier
+citizen_sessions (citizen_id) → citizens (citizen_id) [ON DELETE CASCADE]
+citizen_trusted_devices (citizen_id) → citizens (citizen_id) [ON DELETE CASCADE]
+citizen_otp (citizen_id) → citizens (citizen_id) [ON DELETE CASCADE, nullable]
+citizen_account_blocks (citizen_id) → citizens (citizen_id) [ON DELETE CASCADE, nullable]
+```
+
+### Database Backup & Restore Flow
+```
+database_backups (backup_id) - Backup records
+backup_restore_history (backup_id) → database_backups (backup_id) [ON DELETE CASCADE]
 ```
 
 ### Foreign Key Commands
@@ -2247,7 +2540,35 @@ EOF
 
 ---
 
-**Document Version:** 10.5
-**Last Updated:** January 17, 2026
-**Schema Version:** Production-Aligned v10.2 (32 tables)
+**Document Version:** 11.0
+**Last Updated:** January 19, 2026
+**Schema Version:** Production-Aligned v11.0 (40+ tables)
+
+---
+
+## Changelog
+
+### v11.0 (January 19, 2026)
+- **Added 5 Citizen Authentication Tables:**
+  - `citizens` - Phone-based citizen accounts
+  - `citizen_sessions` - 24-hour session management
+  - `citizen_trusted_devices` - 30-day trusted device tracking
+  - `citizen_otp` - OTP verification history
+  - `citizen_account_blocks` - Security blocking mechanism
+- **Added 2 Database Backup Tables:**
+  - `database_backups` - Backup tracking (manual + automated)
+  - `backup_restore_history` - Restore operation tracking
+- Updated architecture diagram with new layers
+- Added data flow patterns for citizen auth and database backups
+- Updated statistics: 40+ tables (from 32)
+- Updated PgBouncer version to v1.23.1
+- Added citizen authentication and backup relationships
+
+### v10.5 (January 17, 2026)
+- Added system settings tables (system_settings, settings_audit_log, leadership_contacts)
+- Added backup_audit_log table
+- Documentation improvements
+
+### v10.2 and earlier
+- See git history for previous changes
 **Maintained By:** GEA Portal Development Team

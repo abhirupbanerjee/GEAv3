@@ -329,7 +329,7 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 px-4 py-8 pt-24">
+    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 px-4 py-8">
       <div className="max-w-md w-full space-y-6">
         {/* Header */}
         <div className="text-center">
@@ -913,7 +913,7 @@ function SignInContent() {
 export default function SignInPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center pt-24">
+      <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     }>

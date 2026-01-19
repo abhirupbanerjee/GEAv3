@@ -4,7 +4,8 @@
 
 The GEA Portal uses SendGrid for all transactional email notifications. This document provides a comprehensive overview of all email notification features, triggers, templates, and configuration.
 
-**Last Updated:** 2026-01-14
+**Document Version:** 2.0
+**Last Updated:** January 19, 2026
 
 ---
 
@@ -17,25 +18,64 @@ The GEA Portal uses SendGrid for all transactional email notifications. This doc
 5. [Implementation Details](#implementation-details)
 6. [Testing & Monitoring](#testing--monitoring)
 7. [Troubleshooting](#troubleshooting)
+8. [System Settings Integration](#system-settings-integration)
 
 ---
 
 ## Configuration
 
-### Environment Variables
+### Configuration Methods
 
-**Optional Variables (Email features disabled if not set):**
-```bash
-SENDGRID_API_KEY=SG.your_api_key_here          # SendGrid API authentication
-SENDGRID_FROM_EMAIL=noreply@gov.gd             # Sender email address
-SENDGRID_FROM_NAME=GEA Portal                   # Display name in emails
-SERVICE_ADMIN_EMAIL=admin@gov.gd                # Admin notification recipient
+**GEA Portal v3 supports two configuration methods:**
+
+1. **System Settings UI (Recommended)** - Admin Portal → Settings → Integrations
+   - Configurable at runtime without redeployment
+   - AES-256-GCM encryption for API keys
+   - Test email functionality built-in
+   - Audit logging for all changes
+
+2. **Environment Variables (Legacy/Fallback)** - Used if system settings not configured
+   ```bash
+   SENDGRID_API_KEY=SG.your_api_key_here          # SendGrid API authentication
+   SENDGRID_FROM_EMAIL=noreply@gov.gd             # Sender email address
+   SENDGRID_FROM_NAME=GEA Portal                   # Display name in emails
+   SERVICE_ADMIN_EMAIL=admin@gov.gd                # Admin notification recipient
+   ```
+
+### System Settings (Database Configuration)
+
+**Location:** `system_settings` table in PostgreSQL
+
+**SendGrid Settings:**
+| Setting Key | Description | Encrypted | Example |
+|-------------|-------------|-----------|---------|
+| `sendgrid_api_key` | SendGrid API key | Yes (AES-256-GCM) | SG.xxxxx |
+| `sendgrid_from_email` | Sender email address | No | noreply@gov.gd |
+| `sendgrid_from_name` | Display name in emails | No | GEA Portal |
+| `sendgrid_enabled` | Enable/disable email features | No | true/false |
+
+**Admin API Endpoints:**
+- `GET /api/admin/settings` - Retrieve all settings
+- `PUT /api/admin/settings` - Update settings
+- `POST /api/admin/settings/test-email` - Test email delivery
+
+**Test Email Functionality:**
+```typescript
+// Send test email via Admin Portal
+POST /api/admin/settings/test-email
+{
+  "to_email": "test@example.com",
+  "subject": "Test Email",
+  "body": "This is a test email from GEA Portal settings."
+}
 ```
 
 > **Note:** SendGrid configuration is **optional**. The application will build and run without these variables. When not configured:
 > - All email notifications are silently skipped
 > - A warning is logged: "SendGrid not configured - email features disabled"
 > - All other features (feedback, tickets, service requests) work normally
+>
+> **Priority:** System settings take precedence over environment variables. If both are configured, system settings will be used.
 
 **Configuration Files:**
 - **Setup:** [frontend/src/lib/sendgrid.ts](../frontend/src/lib/sendgrid.ts)
@@ -621,6 +661,164 @@ docker exec feedback_frontend env | grep APP_URL
 
 ---
 
+## System Settings Integration
+
+### Overview
+
+Starting with v3.3, SendGrid email configuration is managed through the System Settings UI, providing runtime configuration without redeployment.
+
+### Configuration via Admin Portal
+
+**Access:** Admin Portal → Settings → Integrations → SendGrid
+
+**Settings Available:**
+1. **SendGrid API Key** (Encrypted)
+   - Stored encrypted with AES-256-GCM
+   - Unique IV per value
+   - Never displayed in plaintext after save
+
+2. **From Email Address**
+   - Sender email for all notifications
+   - Must be verified in SendGrid account
+
+3. **From Name**
+   - Display name shown to recipients
+   - Default: "GEA Portal"
+
+4. **Enable/Disable Toggle**
+   - Globally enable or disable email notifications
+   - Useful for testing or maintenance
+
+### Test Email Feature
+
+**Purpose:** Verify SendGrid configuration without sending production emails
+
+**How to Test:**
+1. Navigate to Admin Portal → Settings → Integrations
+2. Enter test recipient email address
+3. Click "Send Test Email"
+4. System sends sample email using current settings
+5. Success/failure message displayed immediately
+
+**Sample Test Email:**
+- **Subject:** "Test Email from GEA Portal"
+- **Body:** Configuration verification message with timestamp
+- **Uses:** Current SendGrid settings (API key, from email, from name)
+
+**Test API Endpoint:**
+```bash
+POST /api/admin/settings/test-email
+Authorization: Required (Admin session)
+
+{
+  "to_email": "test@example.com",
+  "subject": "Test Email",
+  "body": "This is a test email from GEA Portal settings."
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "Test email sent successfully",
+  "data": {
+    "to_email": "test@example.com",
+    "message_id": "abc123",
+    "status": "sent",
+    "timestamp": "2026-01-19T10:00:00Z"
+  }
+}
+```
+
+### Audit Logging
+
+All SendGrid configuration changes are logged in `settings_audit_log` table:
+- **What Changed:** Setting key (e.g., "sendgrid_api_key")
+- **Who Changed It:** Admin user email
+- **When:** Timestamp with timezone
+- **Where:** IP address of change
+- **Old/New Values:** Masked for encrypted values (e.g., "SG.old***" → "SG.new***")
+
+**View Audit Log:**
+```bash
+GET /api/admin/settings/audit-log?setting_key=sendgrid_api_key
+```
+
+### Security Features
+
+1. **Encryption at Rest:**
+   - API keys encrypted with AES-256-GCM
+   - Encryption key stored separately in environment variable
+   - Unique IV for each encrypted value
+
+2. **Access Control:**
+   - Only admin users can view/modify settings
+   - All changes logged with user identity and IP
+
+3. **No Plaintext Exposure:**
+   - Encrypted values never returned in API responses
+   - UI displays masked values (e.g., "SG.***xyz")
+
+4. **Validation:**
+   - Email format validation for from_email
+   - API key format validation (starts with "SG.")
+   - Real-time validation before save
+
+### Migration from Environment Variables
+
+**Steps to Migrate:**
+1. Access Admin Portal → Settings → Integrations
+2. Enter current values from environment variables:
+   - `SENDGRID_API_KEY` → `sendgrid_api_key`
+   - `SENDGRID_FROM_EMAIL` → `sendgrid_from_email`
+   - `SENDGRID_FROM_NAME` → `sendgrid_from_name`
+3. Click "Save" to store in database
+4. Test email delivery using "Send Test Email"
+5. Once verified, remove environment variables (optional)
+
+**Fallback Behavior:**
+- If system settings not configured, environment variables are used
+- If both configured, system settings take priority
+- Allows gradual migration without downtime
+
+### Database Schema
+
+**Table:** `system_settings`
+
+```sql
+SELECT setting_key, setting_value, is_encrypted, updated_at, updated_by
+FROM system_settings
+WHERE category = 'integrations' AND setting_key LIKE 'sendgrid%'
+ORDER BY setting_key;
+```
+
+**Sample Data:**
+```
+sendgrid_api_key      | [ENCRYPTED]         | true  | 2026-01-19 10:00:00 | admin@gov.gd
+sendgrid_from_email   | noreply@gov.gd      | false | 2026-01-19 10:00:00 | admin@gov.gd
+sendgrid_from_name    | GEA Portal          | false | 2026-01-19 10:00:00 | admin@gov.gd
+sendgrid_enabled      | true                | false | 2026-01-19 10:00:00 | admin@gov.gd
+```
+
+### Troubleshooting Settings
+
+**Issue:** Test email fails with "Invalid API Key"
+- **Check:** Verify API key starts with "SG."
+- **Solution:** Re-enter API key from SendGrid dashboard
+
+**Issue:** Email not sent after saving settings
+- **Check:** Verify `sendgrid_enabled` is set to "true"
+- **Check:** Verify from_email is verified in SendGrid account
+- **Solution:** Enable SendGrid in settings, verify sender email
+
+**Issue:** Settings not saving
+- **Check:** Ensure admin session is active
+- **Check:** Check browser console for validation errors
+- **Solution:** Re-login, verify all required fields are filled
+
+---
+
 ## Related Documentation
 
 - [Database Reference](./DATABASE_REFERENCE.md) - Database schemas and relationships
@@ -644,6 +842,25 @@ docker exec feedback_frontend env | grep APP_URL
 
 ---
 
-**Document Version:** 1.0.0
-**Last Updated:** 2026-01-14
+**Document Version:** 2.0
+**Last Updated:** January 19, 2026
+
+---
+
+## Changelog
+
+### v2.0 (January 19, 2026)
+- Added System Settings Integration section
+- Documented runtime configuration via Admin Portal
+- Added Test Email feature documentation
+- Documented AES-256-GCM encryption for API keys
+- Added audit logging documentation
+- Updated configuration methods (System Settings vs Environment Variables)
+- Added migration guide from environment variables
+- Enhanced security features documentation
+
+### v1.0 (January 14, 2026)
+- Initial documentation
+- Environment variable configuration
+- Email notification types and templates
 **Maintained By:** GEA Portal Development Team

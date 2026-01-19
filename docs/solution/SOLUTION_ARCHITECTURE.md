@@ -1,8 +1,8 @@
 # GEA Portal v3 - Solution Architecture
 
-**Document Version:** 1.4
+**Document Version:** 1.5
 **Last Updated:** January 19, 2026
-**System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
+**System Version:** Phase 3.3.0 (Citizen Auth + System Settings + Enhanced Features)
 **Status:** ✅ Production Ready
 **Infrastructure:** Azure Standard_D2s_v4 (8GB RAM, Premium SSD)
 
@@ -42,14 +42,16 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 
 | Metric | Value |
 |--------|-------|
-| **Database Tables** | 30 tables (master data, transactional, auth, audit) |
-| **API Endpoints** | 74+ RESTful endpoints |
+| **Database Tables** | 40+ tables (master data, transactional, auth, settings, audit) |
+| **API Endpoints** | 85+ RESTful endpoints |
 | **External API Endpoints** | 5 (dashboard, tickets, feedback, grievances, service-requirements) |
 | **OAuth Providers** | Google, Microsoft Azure AD |
-| **User Roles** | Admin, Staff, Public |
+| **Citizen Authentication** | Twilio SMS OTP (passwordless phone-based) |
+| **User Roles** | Admin, Staff, Citizen, Public |
 | **Government Entities** | 50+ ministries/departments/agencies |
+| **System Settings** | 100+ configurable settings in 9 categories |
 | **Rate Limiting** | 30-60 submissions/hour per IP, 100/hour External API |
-| **Session Timeout** | 2 hours (JWT) |
+| **Session Timeout** | 2 hours (JWT admin/staff), 24 hours (citizen) |
 
 ### Technology Overview
 
@@ -58,9 +60,11 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 - **Database:** PostgreSQL 16-alpine
 - **Connection Pool:** PgBouncer v1.23.1 (transaction mode)
 - **Cache:** Redis 7.4.4-alpine (analytics caching)
-- **Authentication:** NextAuth v4 with OAuth
+- **Authentication:** NextAuth v4 with OAuth (admin/staff) + Twilio Verify SMS OTP (citizens)
+- **Settings Encryption:** AES-256-GCM for sensitive values
 - **Reverse Proxy:** Traefik v3.6 with automatic SSL
 - **Email:** SendGrid API
+- **SMS:** Twilio Verify API (citizen OTP)
 - **Deployment:** Docker Compose
 
 ---
@@ -148,6 +152,22 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
                                                     Ticket Management
 ```
 
+#### 5. **Citizen Portal Authentication** (NEW)
+```
+Citizen → Enter Phone Number → Twilio Verify SMS OTP → Verify Code
+                                         ↓
+                              Session Creation (24h) → Citizen Dashboard
+                                         ↓
+                              (Optional) Set Password for faster future login
+```
+
+#### 6. **System Settings Management** (NEW)
+```
+Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (if sensitive)
+                                                     ↓
+                                          Audit Log → Database → Apply Changes
+```
+
 ---
 
 ## Architecture Diagrams
@@ -171,11 +191,11 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
         │  • Analytics & Reporting                     │
         └──────────┬───────────────────┬───────────────┘
                    │                   │
-         ┌─────────▼────────┐    ┌────▼──────────┐
-         │  OAUTH PROVIDERS │    │   SENDGRID    │
-         │  • Google        │    │  Email API    │
-         │  • Microsoft     │    │               │
-         └──────────────────┘    └───────────────┘
+         ┌─────────▼────────┐    ┌────▼──────────────┐
+         │  OAUTH PROVIDERS │    │  EXTERNAL APIS    │
+         │  • Google        │    │  • SendGrid Email │
+         │  • Microsoft     │    │  • Twilio SMS OTP │
+         └──────────────────┘    └───────────────────┘
 ```
 
 ### Container Diagram (C4 Level 2)
@@ -359,9 +379,11 @@ Staff Login → OAuth → Entity Assignment Check → Entity-Filtered Data View
 
 | Category | Technology | Purpose |
 |----------|-----------|---------|
-| **OAuth Providers** | Google, Microsoft | Identity providers |
-| **Session Management** | JWT (NextAuth) | Stateless sessions |
-| **Password Hashing** | bcrypt | Password encryption (future) |
+| **OAuth Providers** | Google, Microsoft | Admin/staff identity providers |
+| **Citizen Authentication** | Twilio Verify SMS OTP | Passwordless phone-based auth |
+| **Session Management** | JWT (NextAuth), Custom (Citizen) | Stateless sessions |
+| **Password Hashing** | bcrypt | Citizen password encryption (optional) |
+| **Settings Encryption** | AES-256-GCM | Encrypts sensitive settings values |
 | **IP Hashing** | SHA256 | Privacy protection |
 | **HTTPS** | TLS 1.3 | Transport security |
 
@@ -569,14 +591,164 @@ User → OAuth Provider → Callback → Email Check → Session Creation → Da
 
 ---
 
+### 7. Citizen Portal & Authentication Component
+
+**Purpose:** Passwordless phone-based authentication for citizens accessing government services
+
+**Key Features:**
+- SMS OTP verification via Twilio Verify API
+- Phone number validation (E.164 format with regional filtering)
+- Optional password for returning users (faster login)
+- Trusted device management (30-day cookies)
+- Account security (max OTP attempts, account blocking)
+- 24-hour session duration
+- Configurable allowed countries (Grenada + Caribbean + custom)
+
+**Technology:**
+- Twilio Verify API (SMS OTP delivery)
+- bcrypt (optional password hashing)
+- Custom session management (separate from NextAuth)
+- AES-256-GCM encryption (credentials in settings)
+
+**Database Tables:**
+- `citizens` - Citizen accounts (phone, optional password, profile)
+- `citizen_sessions` - Active citizen sessions
+- `citizen_trusted_devices` - Remembered devices
+- `citizen_otp` - OTP verification history
+- `citizen_account_blocks` - Security blocks after failed attempts
+
+**API Endpoints:**
+- `POST /api/citizen/auth/send-otp` - Send SMS OTP code
+- `POST /api/citizen/auth/verify-otp` - Verify OTP and create session
+- `POST /api/citizen/auth/login` - Password-based login (if set)
+- `POST /api/citizen/auth/complete-registration` - Complete profile setup
+- `GET /api/citizen/auth/session` - Get current session
+- `POST /api/citizen/auth/logout` - End session
+
+**Settings Configuration:**
+- **Enable Citizen Login**: Master toggle
+- **Twilio Account SID/Auth Token**: Encrypted credentials
+- **Twilio Verify Service SID**: Service configuration
+- **Allowed Countries**: Multi-select region filtering
+- **OTP Expiry**: 1-15 minutes (default 5)
+- **Max OTP Attempts**: 1-10 (default 3)
+- **Session Duration**: 1-168 hours (default 24)
+- **Device Trust Duration**: 7-90 days (default 30)
+
+**Security Features:**
+- Rate limiting on OTP sending
+- Account blocking after failed attempts
+- Phone number deduplication
+- Encrypted credentials storage
+- Audit logging of all auth events
+
+**Flow:**
+```
+Citizen → Enter Phone (+1-473-xxx-xxxx)
+    ↓
+Twilio Verify API → Send SMS OTP
+    ↓
+Citizen enters 6-digit code → Verify OTP
+    ↓
+Create session + Trusted device cookie → Citizen Dashboard
+    ↓
+(Optional) Set password for faster future login
+```
+
+---
+
+### 8. System Settings Management Component
+
+**Purpose:** Centralized configuration management with encryption and audit logging
+
+**Key Features:**
+- 100+ configurable settings across 9 categories
+- AES-256-GCM encryption for sensitive values (API keys, tokens, secrets)
+- Real-time validation before saving
+- Audit trail (who, what, when, from which IP)
+- Test functionality for integrations (Twilio SMS, SendGrid Email)
+- Some settings require application restart
+- UI-based management (no code changes needed)
+
+**Technology:**
+- AES-256-GCM (Node.js crypto module)
+- Per-value encryption with unique IVs
+- Base64 encoding for storage
+- Encryption key from environment variable
+
+**Database Tables:**
+- `system_settings` - All configuration values (key-value pairs with encryption flag)
+- `settings_audit_log` - Complete audit trail of changes
+- `leadership_contacts` - Dynamic leadership team (About page)
+
+**Settings Categories:**
+
+1. **System** (General, Branding, Contact)
+   - Site name, logo/favicon upload, contact emails, session duration
+
+2. **Authentication** (Google OAuth, Microsoft OAuth, Citizen Login)
+   - OAuth credentials, Twilio SMS OTP configuration
+
+3. **Integrations** (SendGrid Email, Chatbot)
+   - Email API keys, chatbot integration URL
+
+4. **Business Rules** (Rate Limits, Priority Thresholds, File Upload)
+   - Feedback/grievance rate limits, priority thresholds, file size limits
+
+5. **Performance** (Redis Caching)
+   - Analytics caching toggle, cache TTL (60-600 seconds)
+
+6. **Content** (Footer Links, Leadership Contacts)
+   - Government website URLs, dynamic leadership team with photos
+
+7. **User Management** (Admin Allowed Entities)
+   - Which entities can have admin users
+
+8. **Service Providers** (Provider Entities)
+   - Which entities can receive service requests from others
+
+9. **Database** (Backups, Restore, Schedule)
+   - Manual/automated backup configuration, retention policies
+
+**API Endpoints:**
+- `GET /api/admin/settings` - Get all settings (with masked sensitive values)
+- `PUT /api/admin/settings` - Update settings (encrypts sensitive values)
+- `POST /api/admin/settings/test-sms` - Test Twilio SMS configuration
+- `POST /api/admin/settings/test-email` - Test SendGrid email configuration
+- `GET /api/admin/database/backups` - List database backups
+- `POST /api/admin/database/backups` - Create manual backup
+- `POST /api/admin/database/backups/:id/restore` - Restore from backup
+
+**Encryption Process:**
+```
+Sensitive Setting Value → AES-256-GCM Encrypt
+    ↓
+Generate unique IV → Encrypt → Base64 encode
+    ↓
+Store: {value: "encrypted_base64", encrypted: true, iv: "base64_iv"}
+    ↓
+On retrieval: Decrypt with IV → Return plaintext (admin only)
+    ↓
+In UI: Show as masked "••••••••" until admin requests reveal
+```
+
+**Example Settings:**
+- `TWILIO_ACCOUNT_SID` (encrypted)
+- `SENDGRID_API_KEY` (encrypted)
+- `SITE_NAME` (plaintext)
+- `ANALYTICS_CACHE_ENABLED` (boolean)
+- `FEEDBACK_RATE_LIMIT` (integer, 1-100)
+
+---
+
 ## Data Architecture
 
 ### Database Schema Overview
 
-**Total Tables:** 30
-**Total Indexes:** 44+
-**Total Foreign Keys:** 18+
-**Database Size:** ~70MB (with sample data)
+**Total Tables:** 40+ (30 original + 5 citizen auth + 3 system settings + 2 additional)
+**Total Indexes:** 60+
+**Total Foreign Keys:** 25+
+**Database Size:** ~80MB (with sample data)
 
 ### Table Categories
 
@@ -602,7 +774,7 @@ User → OAuth Provider → Callback → Email Check → Session Creation → Da
 - `submission_attempts` - Attempt tracking
 - `user_audit_log` - User activity
 
-#### Authentication Tables (8)
+#### Admin/Staff Authentication Tables (8)
 - `users` - User accounts
 - `user_roles` - Role definitions
 - `accounts` - OAuth data
@@ -611,6 +783,18 @@ User → OAuth Provider → Callback → Email Check → Session Creation → Da
 - `entity_user_assignments` - User-entity mapping
 - `user_permissions` - Fine-grained permissions
 - `user_audit_log` - Activity tracking
+
+#### Citizen Authentication Tables (5) - NEW
+- `citizens` - Citizen accounts (phone, optional password, profile)
+- `citizen_sessions` - Active citizen sessions
+- `citizen_trusted_devices` - Remembered device cookies
+- `citizen_otp` - OTP verification history
+- `citizen_account_blocks` - Security blocks after failed auth attempts
+
+#### System Settings Tables (3) - NEW
+- `system_settings` - Configuration key-value store (100+ settings)
+- `settings_audit_log` - Settings change audit trail
+- `leadership_contacts` - Dynamic leadership team (About page)
 
 ### Data Flow Patterns
 
@@ -1303,11 +1487,12 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-**Document Version:** 1.4
+**Document Version:** 1.5
 **Last Updated:** January 19, 2026
 **Maintained By:** GEA Portal Development Team
-**System Version:** Phase 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
+**System Version:** Phase 3.3.0 (Citizen Auth + System Settings + Enhanced Features)
 
 **Change Log:**
+- v1.5 (Jan 19, 2026): Added Citizen Portal & Authentication Component (Twilio SMS OTP), System Settings Management Component (9 categories, AES-256-GCM encryption), updated database tables (30→40+), added new API endpoints, updated metrics (85+ endpoints, 100+ settings)
 - v1.4 (Jan 19, 2026): Added infrastructure specifications (D2s_v4), updated capacity metrics, noted B→D series upgrade
 - v1.3 (Jan 2026): Added Redis caching and PgBouncer connection pooling documentation

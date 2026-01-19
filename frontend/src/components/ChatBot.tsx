@@ -26,30 +26,85 @@ export default function ChatBot() {
   const [isResizing, setIsResizing] = useState(false)
   const [chatbotSettings, setChatbotSettings] = useState<ChatBotSettings>({ enabled: false, url: '' })
   const [settingsLoaded, setSettingsLoaded] = useState(false)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [fetchError, setFetchError] = useState<string | null>(null)
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const resizeStartPos = useRef({ x: 0, y: 0, width: 0, height: 0 })
   const pathname = usePathname()
   const { context } = useChatContext()
 
-  // Fetch chatbot settings from API
-  useEffect(() => {
-    fetch('/api/settings/chatbot')
-      .then((res) => res.json())
+  // Fetch chatbot settings from API with cache busting
+  const fetchChatbotSettings = useCallback((isInitialLoad = false) => {
+    if (!isInitialLoad) {
+      setIsRefreshing(true)
+      console.log('[ChatBot] Refreshing chatbot settings...')
+    }
+
+    // Add timestamp to prevent caching
+    fetch(`/api/settings/chatbot?t=${Date.now()}`)
+      .then((res) => {
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}: ${res.statusText}`)
+        }
+        return res.json()
+      })
       .then((data) => {
-        setChatbotSettings({
+        const newSettings = {
           enabled: data.enabled,
           url: data.url || config.CHATBOT_URL,
-        })
+        }
+
+        // Log if URL changed
+        if (chatbotSettings.url && chatbotSettings.url !== newSettings.url) {
+          console.log('[ChatBot] Settings updated:', {
+            oldUrl: chatbotSettings.url,
+            newUrl: newSettings.url,
+          })
+        }
+
+        setChatbotSettings(newSettings)
         setSettingsLoaded(true)
+        setFetchError(null)
+        setIsRefreshing(false)
       })
       .catch((err) => {
-        console.error('Failed to load chatbot settings:', err)
-        // Fallback to env config on error
-        setChatbotSettings({ enabled: true, url: config.CHATBOT_URL })
-        setSettingsLoaded(true)
+        console.error('[ChatBot] Failed to load chatbot settings:', err)
+        setFetchError(err.message)
+
+        // Fallback to env config on error (only if not already loaded)
+        if (!settingsLoaded) {
+          setChatbotSettings({ enabled: true, url: config.CHATBOT_URL })
+          setSettingsLoaded(true)
+        }
+        setIsRefreshing(false)
       })
-  }, [])
+  }, [chatbotSettings.url, settingsLoaded])
+
+  // Initial fetch on mount
+  useEffect(() => {
+    fetchChatbotSettings(true) // Initial load
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Poll for settings updates every 60 seconds
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      fetchChatbotSettings(false) // Background refresh
+    }, 60000) // 60 seconds
+
+    return () => clearInterval(pollInterval)
+  }, [fetchChatbotSettings])
+
+  // Refetch settings when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('[ChatBot] Window focused, checking for setting updates...')
+      fetchChatbotSettings(false)
+    }
+
+    window.addEventListener('focus', handleFocus)
+    return () => window.removeEventListener('focus', handleFocus)
+  }, [fetchChatbotSettings])
 
   // Persist chatbot state and size in localStorage
   useEffect(() => {

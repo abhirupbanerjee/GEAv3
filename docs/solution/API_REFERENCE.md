@@ -1,10 +1,10 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 3.4
-**Last Updated:** January 17, 2026
+**Document Version:** 3.5
+**Last Updated:** January 19, 2026
 **API Base URL:** `https://gea.your-domain.com` (Production)
-**Framework:** Next.js 14 App Router
-**Authentication:** NextAuth v4 with OAuth (Google, Microsoft)
+**Framework:** Next.js 16 App Router
+**Authentication:** NextAuth v4 with OAuth (Google, Microsoft) + Twilio SMS OTP (Citizens)
 
 ---
 
@@ -14,12 +14,17 @@
 2. [Authentication & Authorization](#authentication--authorization)
 3. [Rate Limiting](#rate-limiting)
 4. [Public API Endpoints](#public-api-endpoints)
-5. [Admin API Endpoints](#admin-api-endpoints)
-6. [Master Data Management APIs](#master-data-management-apis)
-7. [External API (Bot/Integration Access)](#external-api-botintegration-access)
-8. [Error Handling](#error-handling)
-9. [Response Formats](#response-formats)
-10. [Testing Guide](#testing-guide)
+5. [Citizen Authentication API](#citizen-authentication-api)
+6. [Admin API Endpoints](#admin-api-endpoints)
+   - [User Management](#1-user-management)
+   - [Ticket Management](#2-ticket-management)
+   - [System Settings Management](#3-system-settings-management)
+   - [Database Backup & Restore](#4-database-backup--restore)
+7. [Master Data Management APIs](#master-data-management-apis)
+8. [External API (Bot/Integration Access)](#external-api-botintegration-access)
+9. [Error Handling](#error-handling)
+10. [Response Formats](#response-formats)
+11. [Testing Guide](#testing-guide)
 
 ---
 
@@ -27,30 +32,43 @@
 
 ### API Architecture
 
-The GEA Portal v3 uses **Next.js 14 App Router API Routes** for all backend functionality. All endpoints follow RESTful conventions and return JSON responses.
+The GEA Portal v3 uses **Next.js 16 App Router API Routes** for all backend functionality. All endpoints follow RESTful conventions and return JSON responses.
 
 ```
 /frontend/src/app/api/
-├── auth/              # NextAuth OAuth endpoints
+├── auth/              # NextAuth OAuth endpoints (admin/staff)
+├── citizen/           # Citizen authentication (Twilio SMS OTP)
+│   └── auth/          # Citizen login, OTP verification, registration
 ├── feedback/          # Public service feedback endpoints
 ├── tickets/           # Public & internal ticket endpoints
 ├── helpdesk/          # Public ticket lookup
-├── admin/             # Admin management APIs (users, roles, etc.)
-└── managedata/        # Master data CRUD (admin)
+├── admin/             # Admin management APIs
+│   ├── users/         # User management
+│   ├── tickets/       # Ticket management
+│   ├── settings/      # System settings management (9 categories)
+│   └── database/      # Database backup/restore
+├── managedata/        # Master data CRUD (admin)
+└── external/          # External API (bot/integration access)
 ```
 
 ### Technology Stack
 
 | Component | Technology |
 |-----------|-----------|
-| Framework | Next.js 14 (App Router) |
-| Database | PostgreSQL 15 |
-| Database Driver | node-postgres (pg) |
-| Validation | Zod schemas |
-| Authentication | NextAuth v4 with OAuth (Google, Microsoft) |
-| Authorization | Role-based (Admin, Staff, Public) + Entity filtering |
+| Framework | Next.js 16 (App Router) |
+| Runtime | Node.js 22 |
+| Database | PostgreSQL 16-alpine |
+| Connection Pooling | PgBouncer v1.23.1 (200 max clients, 20 pool size) |
+| Cache | Redis 7.4.4-alpine (analytics caching) |
+| Database Driver | node-postgres (pg) v8.x |
+| Validation | Zod schemas v3.x |
+| Admin/Staff Auth | NextAuth v4 with OAuth (Google, Microsoft) |
+| Citizen Auth | Twilio Verify SMS OTP (passwordless) |
+| Authorization | Role-based (Admin, Staff, Citizen, Public) + Entity filtering |
+| Settings Encryption | AES-256-GCM (sensitive values) |
 | File Storage | PostgreSQL BYTEA |
-| Email | SendGrid API |
+| Email | SendGrid API v7.x |
+| SMS | Twilio Verify API |
 
 ### Base URL
 
@@ -67,19 +85,32 @@ Currently v1 (no version prefix in URL). Future versions will use `/api/v2/` pre
 
 ### Overview
 
-The GEA Portal uses **NextAuth v4** for authentication with OAuth providers. All authentication is handled via OAuth - no passwords are stored.
+The GEA Portal uses **dual authentication systems** to support different user types:
 
-**Supported Providers:**
+**1. Admin & Staff Authentication (NextAuth v4 with OAuth)**
 - Google OAuth 2.0
 - Microsoft Azure AD (optional)
-
-**Key Features:**
-- OAuth-only authentication (no password storage)
-- Role-based access control (Admin, Staff, Public)
-- Entity-based data filtering for staff users
 - Email whitelist authorization
 - JWT session tokens (2-hour expiration)
+- Role-based access control (Admin, Staff)
+- Entity-based data filtering for staff users
+
+**2. Citizen Authentication (Twilio SMS OTP)**
+- Passwordless phone-based authentication
+- SMS OTP verification via Twilio Verify API
+- E.164 phone format validation
+- Regional filtering (Grenada + 18 Caribbean countries)
+- Optional password for returning users
+- Trusted device management (30-day cookies)
+- 24-hour session duration
+- Account security with max OTP attempts
+
+**Key Features:**
+- Dual authentication paths (OAuth for internal, SMS OTP for citizens)
+- Role-based access control (Admin, Staff, Citizen, Public)
+- Entity-based data filtering for staff users
 - Comprehensive audit logging
+- Separate session management for each authentication type
 
 ### Public Endpoints
 
@@ -121,7 +152,9 @@ The GEA Portal uses **NextAuth v4** for authentication with OAuth providers. All
 
 ### Session Structure
 
-When authenticated, the session object contains:
+#### Admin/Staff Session (NextAuth OAuth)
+
+When authenticated via OAuth, the NextAuth session object contains:
 
 ```typescript
 session = {
@@ -142,7 +175,35 @@ session = {
 
 **Session Refresh:** The UI calls `updateSession()` when navigating to the admin area. This triggers the JWT callback with `trigger === 'update'`, which refreshes user role data from the database to ensure menu visibility matches current permissions.
 
+#### Citizen Session (Custom SMS OTP)
+
+When authenticated via SMS OTP, the citizen session is stored separately from NextAuth:
+
+```typescript
+citizenSession = {
+  citizen_id: "uuid",                  // Citizen UUID
+  phone_number: "+1473...",            // E.164 formatted phone
+  first_name: "John",                  // First name
+  last_name: "Doe",                    // Last name
+  email: "john@example.com",           // Optional email
+  preferred_language: "en",            // Language preference
+  is_verified: true,                   // Phone verification status
+  session_id: "uuid",                  // Session UUID
+  expires_at: "2026-01-20T12:00:00Z",  // Session expiration (24 hours)
+  trusted_device: true,                // Whether device is trusted
+  device_id: "device_uuid"             // Trusted device ID (if applicable)
+}
+```
+
+**Citizen Session Storage:**
+- Stored in `citizen_sessions` table
+- Session cookie: `citizen_session_id` (HTTP-only, secure)
+- Trusted device cookie: `trusted_device_id` (30-day expiration)
+- Auto-logout after 24 hours of inactivity
+
 ### Using Authentication in API Routes
+
+#### Admin/Staff Authentication (NextAuth)
 
 ```typescript
 import { getServerSession } from 'next-auth';
@@ -162,6 +223,28 @@ export async function GET(request: NextRequest) {
 
   // Use session data
   return NextResponse.json({ user: session.user });
+}
+```
+
+#### Citizen Authentication (Custom Session)
+
+```typescript
+import { getCitizenSession } from '@/lib/citizen-auth';
+
+export async function GET(request: NextRequest) {
+  const citizenSession = await getCitizenSession(request);
+
+  if (!citizenSession) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  // Check if phone is verified
+  if (!citizenSession.is_verified) {
+    return NextResponse.json({ error: 'Phone verification required' }, { status: 403 });
+  }
+
+  // Use citizen session data
+  return NextResponse.json({ citizen: citizenSession });
 }
 ```
 
@@ -1054,6 +1137,402 @@ curl https://gea.your-domain.com/api/helpdesk/ticket/202511-000456
 
 ---
 
+## Citizen Authentication API
+
+The Citizen Portal uses **Twilio Verify SMS OTP** for passwordless phone-based authentication. Citizens can log in using only their phone number, receive an OTP via SMS, and access government services.
+
+### Key Features
+
+- **Passwordless Authentication:** No password required (optional for returning users)
+- **SMS OTP Delivery:** Twilio Verify API ensures reliable delivery
+- **E.164 Phone Validation:** International format with regional filtering
+- **Trusted Devices:** Remember device for 30 days (skip OTP)
+- **Account Security:** Max OTP attempts, account blocking after failures
+- **24-Hour Sessions:** Long-lived sessions for citizen convenience
+- **Regional Filtering:** Grenada + 18 Caribbean countries + custom regions
+
+### 1. Send OTP (Login Initiation)
+
+#### POST /api/citizen/auth/send-otp
+
+Initiates login by sending SMS OTP to the citizen's phone number.
+
+**Rate Limit:** 5 requests/hour per phone number
+
+**Request Body:**
+```json
+{
+  "phone_number": "+14735551234",
+  "channel": "sms"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone_number | string | Yes | E.164 formatted phone number (e.g., +14735551234) |
+| channel | string | No | Delivery channel: "sms" or "call" (default: sms) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "OTP sent successfully to +1473***1234",
+  "data": {
+    "phone_masked": "+1473***1234",
+    "channel": "sms",
+    "expires_in": 600,
+    "verification_sid": "VE..."
+  }
+}
+```
+
+**Validation Errors (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid phone number format",
+    "details": "Phone must be in E.164 format (e.g., +14735551234)"
+  }
+}
+```
+
+**Regional Block (403 Forbidden):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "REGION_NOT_ALLOWED",
+    "message": "Phone number region is not allowed",
+    "details": "Only Grenada and Caribbean countries are supported"
+  }
+}
+```
+
+**Rate Limit Exceeded (429):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many OTP requests. Please try again in 45 minutes."
+  }
+}
+```
+
+---
+
+### 2. Verify OTP
+
+#### POST /api/citizen/auth/verify-otp
+
+Verifies the OTP code sent via SMS.
+
+**Request Body:**
+```json
+{
+  "phone_number": "+14735551234",
+  "otp_code": "123456"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone_number | string | Yes | E.164 formatted phone number |
+| otp_code | string | Yes | 6-digit OTP code |
+
+**Success Response - Existing User (200 OK):**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "data": {
+    "verified": true,
+    "is_new_user": false,
+    "citizen": {
+      "citizen_id": "uuid",
+      "phone_number": "+14735551234",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "is_verified": true
+    },
+    "session": {
+      "session_id": "uuid",
+      "expires_at": "2026-01-20T12:00:00Z"
+    }
+  }
+}
+```
+
+**Success Response - New User (200 OK):**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully. Please complete registration.",
+  "data": {
+    "verified": true,
+    "is_new_user": true,
+    "requires_registration": true,
+    "phone_number": "+14735551234"
+  }
+}
+```
+
+**Invalid OTP (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_OTP",
+    "message": "Invalid OTP code",
+    "attempts_remaining": 2
+  }
+}
+```
+
+**Account Blocked (403 Forbidden):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "ACCOUNT_BLOCKED",
+    "message": "Account temporarily blocked due to too many failed attempts",
+    "blocked_until": "2026-01-19T18:00:00Z"
+  }
+}
+```
+
+---
+
+### 3. Complete Registration (New Citizens)
+
+#### POST /api/citizen/auth/complete-registration
+
+Completes registration for new citizens after OTP verification.
+
+**Request Body:**
+```json
+{
+  "phone_number": "+14735551234",
+  "first_name": "John",
+  "last_name": "Doe",
+  "email": "john@example.com",
+  "preferred_language": "en",
+  "password": "SecurePass123!"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone_number | string | Yes | E.164 formatted phone number (must match verified OTP) |
+| first_name | string | Yes | First name (2-50 chars) |
+| last_name | string | Yes | Last name (2-50 chars) |
+| email | string | No | Email address |
+| preferred_language | string | No | Language code: "en" or "fr" (default: en) |
+| password | string | No | Optional password for future logins (min 8 chars) |
+
+**Success Response (201 Created):**
+```json
+{
+  "success": true,
+  "message": "Registration completed successfully",
+  "data": {
+    "citizen": {
+      "citizen_id": "uuid",
+      "phone_number": "+14735551234",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "preferred_language": "en",
+      "is_verified": true,
+      "created_at": "2026-01-19T10:00:00Z"
+    },
+    "session": {
+      "session_id": "uuid",
+      "expires_at": "2026-01-20T10:00:00Z"
+    }
+  }
+}
+```
+
+**Validation Errors (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid input data",
+    "details": [
+      {
+        "field": "first_name",
+        "message": "First name must be 2-50 characters"
+      },
+      {
+        "field": "email",
+        "message": "Invalid email format"
+      }
+    ]
+  }
+}
+```
+
+---
+
+### 4. Login with Password (Returning Citizens)
+
+#### POST /api/citizen/auth/login
+
+Allows returning citizens to login with phone number and password (skips OTP).
+
+**Request Body:**
+```json
+{
+  "phone_number": "+14735551234",
+  "password": "SecurePass123!",
+  "trust_device": true
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| phone_number | string | Yes | E.164 formatted phone number |
+| password | string | Yes | User password |
+| trust_device | boolean | No | Remember device for 30 days (default: false) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Login successful",
+  "data": {
+    "citizen": {
+      "citizen_id": "uuid",
+      "phone_number": "+14735551234",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com"
+    },
+    "session": {
+      "session_id": "uuid",
+      "expires_at": "2026-01-20T10:00:00Z",
+      "trusted_device": true
+    }
+  }
+}
+```
+
+**Invalid Credentials (401 Unauthorized):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "INVALID_CREDENTIALS",
+    "message": "Invalid phone number or password"
+  }
+}
+```
+
+---
+
+### 5. Logout
+
+#### POST /api/citizen/auth/logout
+
+Logs out the current citizen session.
+
+**Authentication:** Required (citizen session)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+```
+
+---
+
+### 6. Get Current Citizen
+
+#### GET /api/citizen/auth/me
+
+Returns the current logged-in citizen's profile.
+
+**Authentication:** Required (citizen session)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "citizen": {
+      "citizen_id": "uuid",
+      "phone_number": "+14735551234",
+      "first_name": "John",
+      "last_name": "Doe",
+      "email": "john@example.com",
+      "preferred_language": "en",
+      "is_verified": true,
+      "created_at": "2026-01-15T10:00:00Z",
+      "last_login": "2026-01-19T09:00:00Z"
+    },
+    "session": {
+      "session_id": "uuid",
+      "expires_at": "2026-01-20T09:00:00Z",
+      "trusted_device": true
+    }
+  }
+}
+```
+
+**Unauthorized (401):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "UNAUTHORIZED",
+    "message": "No active citizen session"
+  }
+}
+```
+
+---
+
+### Citizen Authentication Flow
+
+**Flow 1: New Citizen (First-Time)**
+1. User enters phone number → `POST /api/citizen/auth/send-otp`
+2. User receives SMS with 6-digit OTP
+3. User enters OTP → `POST /api/citizen/auth/verify-otp` (returns `is_new_user: true`)
+4. User fills registration form → `POST /api/citizen/auth/complete-registration`
+5. Session created, user logged in
+
+**Flow 2: Returning Citizen (OTP Method)**
+1. User enters phone number → `POST /api/citizen/auth/send-otp`
+2. User receives SMS with 6-digit OTP
+3. User enters OTP → `POST /api/citizen/auth/verify-otp` (returns `is_new_user: false`)
+4. Session created, user logged in
+
+**Flow 3: Returning Citizen (Password Method)**
+1. User enters phone number and password → `POST /api/citizen/auth/login`
+2. Session created, user logged in
+
+**Flow 4: Trusted Device**
+1. If device is trusted (30-day cookie), OTP step may be skipped for returning users
+2. Direct login with phone number only
+
+---
+
 ## Admin API Endpoints
 
 ### 1. User Management
@@ -1875,6 +2354,558 @@ Get service request statistics.
       "Medium": 15,
       "Low": 7
     }
+  }
+}
+```
+
+---
+
+### 3. System Settings Management
+
+Admin-only API for managing 100+ system-wide configuration settings across 9 categories with AES-256-GCM encryption for sensitive values.
+
+#### GET /api/admin/settings
+
+Retrieve all system settings (with sensitive values encrypted).
+
+**Authentication:** Required (admin session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| category | string | No | Filter by category (system, authentication, integrations, etc.) |
+| decrypt | boolean | No | Decrypt sensitive values (admin only, default: false) |
+
+**Example Request:**
+```
+GET /api/admin/settings?category=integrations&decrypt=true
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "settings": [
+      {
+        "id": 1,
+        "category": "integrations",
+        "setting_key": "sendgrid_api_key",
+        "setting_value": "SG.xxxxx",
+        "data_type": "string",
+        "is_encrypted": true,
+        "description": "SendGrid API key for email delivery",
+        "updated_at": "2026-01-19T10:00:00Z",
+        "updated_by": "admin@your-domain.com"
+      },
+      {
+        "id": 2,
+        "category": "integrations",
+        "setting_key": "sendgrid_from_email",
+        "setting_value": "noreply@gov.gd",
+        "data_type": "string",
+        "is_encrypted": false,
+        "description": "Default sender email address",
+        "updated_at": "2026-01-19T10:00:00Z",
+        "updated_by": "admin@your-domain.com"
+      }
+    ],
+    "categories": [
+      "system",
+      "authentication",
+      "integrations",
+      "business_rules",
+      "performance",
+      "content",
+      "user_management",
+      "service_providers",
+      "database"
+    ],
+    "total": 100
+  }
+}
+```
+
+---
+
+#### PUT /api/admin/settings
+
+Update one or more system settings (with automatic encryption for sensitive values).
+
+**Authentication:** Required (admin session)
+
+**Request Body:**
+```json
+{
+  "settings": [
+    {
+      "setting_key": "sendgrid_api_key",
+      "setting_value": "SG.new_api_key_here"
+    },
+    {
+      "setting_key": "system_title",
+      "setting_value": "GEA Portal - Grenada"
+    }
+  ]
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| settings | array | Yes | Array of settings to update |
+| settings[].setting_key | string | Yes | Setting key (e.g., "sendgrid_api_key") |
+| settings[].setting_value | string | Yes | New value (auto-encrypted if marked as sensitive) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "2 settings updated successfully",
+  "data": {
+    "updated_count": 2,
+    "updated_keys": [
+      "sendgrid_api_key",
+      "system_title"
+    ],
+    "audit_log_ids": [123, 124]
+  }
+}
+```
+
+**Validation Errors (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid setting values",
+    "details": [
+      {
+        "setting_key": "max_file_upload_size",
+        "error": "Value must be a number between 1 and 10485760"
+      }
+    ]
+  }
+}
+```
+
+---
+
+#### POST /api/admin/settings/test-sms
+
+Test SMS delivery using Twilio settings.
+
+**Authentication:** Required (admin session)
+
+**Request Body:**
+```json
+{
+  "phone_number": "+14735551234",
+  "message": "Test message from GEA Portal"
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Test SMS sent successfully",
+  "data": {
+    "phone_number": "+14735551234",
+    "message_sid": "SM...",
+    "status": "sent",
+    "timestamp": "2026-01-19T10:00:00Z"
+  }
+}
+```
+
+**Twilio Error (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "TWILIO_ERROR",
+    "message": "Failed to send SMS",
+    "details": "Invalid Twilio credentials or insufficient balance"
+  }
+}
+```
+
+---
+
+#### POST /api/admin/settings/test-email
+
+Test email delivery using SendGrid settings.
+
+**Authentication:** Required (admin session)
+
+**Request Body:**
+```json
+{
+  "to_email": "test@example.com",
+  "subject": "Test Email",
+  "body": "This is a test email from GEA Portal settings."
+}
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Test email sent successfully",
+  "data": {
+    "to_email": "test@example.com",
+    "message_id": "abc123",
+    "status": "sent",
+    "timestamp": "2026-01-19T10:00:00Z"
+  }
+}
+```
+
+**SendGrid Error (500 Internal Server Error):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "SENDGRID_ERROR",
+    "message": "Failed to send email",
+    "details": "Invalid SendGrid API key"
+  }
+}
+```
+
+---
+
+#### GET /api/admin/settings/audit-log
+
+Retrieve audit log for settings changes.
+
+**Authentication:** Required (admin session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| setting_key | string | No | Filter by setting key |
+| user_email | string | No | Filter by user who made changes |
+| start_date | string | No | Start date (YYYY-MM-DD) |
+| end_date | string | No | End date (YYYY-MM-DD) |
+| page | integer | No | Page number (default: 1) |
+| limit | integer | No | Records per page (default: 50, max: 200) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "audit_logs": [
+      {
+        "log_id": 123,
+        "setting_key": "sendgrid_api_key",
+        "old_value": "SG.old***",
+        "new_value": "SG.new***",
+        "changed_by": "admin@your-domain.com",
+        "changed_at": "2026-01-19T10:00:00Z",
+        "ip_address": "192.168.1.100",
+        "user_agent": "Mozilla/5.0..."
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 50,
+      "total_count": 150,
+      "total_pages": 3
+    }
+  }
+}
+```
+
+---
+
+### 4. Database Backup & Restore
+
+Admin-only API for PostgreSQL database backup and restore operations.
+
+#### GET /api/admin/database/backups
+
+List all database backups.
+
+**Authentication:** Required (admin session)
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| type | string | No | Filter by type: "manual" or "automated" |
+| page | integer | No | Page number (default: 1) |
+| limit | integer | No | Records per page (default: 20, max: 100) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "backups": [
+      {
+        "backup_id": "uuid",
+        "backup_name": "manual_backup_2026-01-19_10-00",
+        "backup_type": "manual",
+        "file_name": "backup_2026-01-19_10-00.sql.gz",
+        "file_size_mb": 45.2,
+        "status": "completed",
+        "created_by": "admin@your-domain.com",
+        "created_at": "2026-01-19T10:00:00Z",
+        "completed_at": "2026-01-19T10:05:00Z",
+        "retention_until": "2026-04-19T10:00:00Z"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total_count": 45,
+      "total_pages": 3
+    },
+    "storage": {
+      "total_backups": 45,
+      "total_size_gb": 12.8,
+      "last_automated_backup": "2026-01-19T00:00:00Z"
+    }
+  }
+}
+```
+
+---
+
+#### POST /api/admin/database/backups
+
+Create a new manual database backup.
+
+**Authentication:** Required (admin session)
+
+**Request Body:**
+```json
+{
+  "backup_name": "pre_migration_backup",
+  "description": "Backup before data migration",
+  "compression": true
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| backup_name | string | No | Custom backup name (auto-generated if not provided) |
+| description | string | No | Backup description |
+| compression | boolean | No | Compress backup file (default: true) |
+
+**Success Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "Backup started successfully",
+  "data": {
+    "backup_id": "uuid",
+    "backup_name": "pre_migration_backup",
+    "status": "in_progress",
+    "estimated_completion": "2026-01-19T10:10:00Z"
+  }
+}
+```
+
+---
+
+#### GET /api/admin/database/backups/[id]
+
+Get details of a specific backup.
+
+**Authentication:** Required (admin session)
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | Backup UUID |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "backup_id": "uuid",
+    "backup_name": "manual_backup_2026-01-19_10-00",
+    "backup_type": "manual",
+    "file_name": "backup_2026-01-19_10-00.sql.gz",
+    "file_size_mb": 45.2,
+    "status": "completed",
+    "description": "Pre-migration backup",
+    "compression": true,
+    "database_name": "feedback",
+    "created_by": "admin@your-domain.com",
+    "created_at": "2026-01-19T10:00:00Z",
+    "completed_at": "2026-01-19T10:05:00Z",
+    "retention_until": "2026-04-19T10:00:00Z",
+    "metadata": {
+      "tables_count": 40,
+      "rows_count": 125000,
+      "pg_version": "16.1"
+    }
+  }
+}
+```
+
+---
+
+#### POST /api/admin/database/backups/[id]/restore
+
+Restore database from a backup.
+
+**Authentication:** Required (admin session)
+
+**CRITICAL WARNING:** This operation will overwrite the current database. Use with extreme caution.
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | Backup UUID |
+
+**Request Body:**
+```json
+{
+  "confirm": true,
+  "confirmation_phrase": "RESTORE DATABASE"
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| confirm | boolean | Yes | Must be true |
+| confirmation_phrase | string | Yes | Must be exactly "RESTORE DATABASE" |
+
+**Success Response (202 Accepted):**
+```json
+{
+  "success": true,
+  "message": "Database restore initiated",
+  "data": {
+    "restore_id": "uuid",
+    "backup_id": "uuid",
+    "status": "in_progress",
+    "estimated_completion": "2026-01-19T10:20:00Z",
+    "warning": "All current data will be replaced with backup data"
+  }
+}
+```
+
+**Validation Error (400 Bad Request):**
+```json
+{
+  "success": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid confirmation",
+    "details": "You must provide confirmation_phrase: 'RESTORE DATABASE'"
+  }
+}
+```
+
+---
+
+#### DELETE /api/admin/database/backups/[id]
+
+Delete a manual backup file.
+
+**Authentication:** Required (admin session)
+
+**Note:** Automated backups cannot be deleted manually.
+
+**Path Parameters:**
+
+| Parameter | Description |
+|-----------|-------------|
+| id | Backup UUID |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Backup deleted successfully",
+  "data": {
+    "backup_id": "uuid",
+    "freed_space_mb": 45.2
+  }
+}
+```
+
+---
+
+#### GET /api/admin/database/backups/schedule
+
+Get automated backup schedule configuration.
+
+**Authentication:** Required (admin session)
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "data": {
+    "enabled": true,
+    "frequency": "daily",
+    "time": "00:00",
+    "timezone": "America/Grenada",
+    "retention_days": 90,
+    "compression": true,
+    "last_run": "2026-01-19T00:00:00Z",
+    "next_run": "2026-01-20T00:00:00Z"
+  }
+}
+```
+
+---
+
+#### PUT /api/admin/database/backups/schedule
+
+Update automated backup schedule.
+
+**Authentication:** Required (admin session)
+
+**Request Body:**
+```json
+{
+  "enabled": true,
+  "frequency": "daily",
+  "time": "02:00",
+  "retention_days": 90
+}
+```
+
+**Parameters:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| enabled | boolean | Yes | Enable/disable automated backups |
+| frequency | string | Yes | "daily", "weekly", or "monthly" |
+| time | string | Yes | Time in HH:mm format (24-hour) |
+| retention_days | integer | Yes | Days to keep backups (7-365) |
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "message": "Backup schedule updated successfully",
+  "data": {
+    "enabled": true,
+    "frequency": "daily",
+    "time": "02:00",
+    "retention_days": 90,
+    "next_run": "2026-01-20T02:00:00Z"
   }
 }
 ```
@@ -3213,10 +4244,30 @@ SENDGRID_API_KEY=<key>
 SENDGRID_FROM_EMAIL=noreply@gov.gd
 SENDGRID_FROM_NAME=GEA Portal
 
-# Admin
+# Twilio (SMS OTP for citizen authentication)
+TWILIO_ACCOUNT_SID=<account_sid>
+TWILIO_AUTH_TOKEN=<auth_token>
+TWILIO_VERIFY_SERVICE_SID=<verify_service_sid>
+TWILIO_PHONE_NUMBER=<phone_number>
+
+# Encryption (for sensitive settings values)
+ENCRYPTION_KEY=<32-byte-hex-key>  # AES-256-GCM encryption key
+
+# Admin & NextAuth
 ADMIN_PASSWORD=<bcrypt_hashed_password>
 ADMIN_SESSION_SECRET=<secret>
 SERVICE_ADMIN_EMAIL=admin@your-domain.com
+NEXTAUTH_SECRET=<nextauth_secret>
+NEXTAUTH_URL=https://gea.your-domain.com
+
+# Google OAuth
+GOOGLE_CLIENT_ID=<client_id>
+GOOGLE_CLIENT_SECRET=<client_secret>
+
+# Microsoft Azure AD OAuth (Optional)
+AZURE_AD_CLIENT_ID=<client_id>
+AZURE_AD_CLIENT_SECRET=<client_secret>
+AZURE_AD_TENANT_ID=<tenant_id>
 
 # Rate Limiting
 EA_SERVICE_RATE_LIMIT=3
@@ -3230,6 +4281,11 @@ ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx
 # API URLs
 API_BASE_URL=https://gea.your-domain.com
 NEXT_PUBLIC_API_BASE_URL=https://gea.your-domain.com
+
+# Redis (Optional - for analytics caching)
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_PASSWORD=<password>
 ```
 
 ### API Rate Limit Configuration
@@ -3247,26 +4303,59 @@ const RATE_LIMITS = {
 };
 ```
 
-### Recent API Enhancements (v2.1 - November 22, 2025)
+### Recent API Enhancements (v3.5 - January 19, 2026)
 
 **Newly Implemented:**
 
-1. **Admin Ticket Management** ✅
-   - `GET /api/admin/tickets/dashboard-stats` - Dashboard metrics with status/priority breakdown
-   - `GET /api/admin/tickets/list` - Paginated ticket list with filtering and sorting
-   - `GET /api/admin/tickets/[id]/details` - Complete ticket details with activity history
-   - `PATCH /api/admin/tickets/[id]/update` - Update status/priority and add internal notes
+1. **Citizen Portal Authentication** ✅
+   - `POST /api/citizen/auth/send-otp` - Send SMS OTP via Twilio Verify
+   - `POST /api/citizen/auth/verify-otp` - Verify OTP code
+   - `POST /api/citizen/auth/complete-registration` - Complete new citizen registration
+   - `POST /api/citizen/auth/login` - Password login for returning citizens
+   - `POST /api/citizen/auth/logout` - Logout citizen session
+   - `GET /api/citizen/auth/me` - Get current citizen profile
+   - **Features:**
+     - Passwordless phone-based authentication
+     - E.164 phone validation with regional filtering (Grenada + 18 Caribbean countries)
+     - Trusted device management (30-day cookies)
+     - Account security with max OTP attempts and blocking
+     - 24-hour session duration
 
-2. **Public Ticket Activity Timeline** ✅
-   - `GET /api/helpdesk/ticket/[ticketNumber]` - Enhanced with activity timeline
-   - **Smart Privacy Controls:**
-     - Open/In-Progress tickets: Internal notes hidden
-     - Resolved/Closed tickets: Last internal note shown as "Resolution Comment"
+2. **System Settings Management** ✅
+   - `GET /api/admin/settings` - Retrieve all system settings
+   - `PUT /api/admin/settings` - Update system settings
+   - `POST /api/admin/settings/test-sms` - Test Twilio SMS delivery
+   - `POST /api/admin/settings/test-email` - Test SendGrid email delivery
+   - `GET /api/admin/settings/audit-log` - View settings change audit log
+   - **Features:**
+     - 100+ configurable settings across 9 categories
+     - AES-256-GCM encryption for sensitive values (API keys, tokens, secrets)
+     - Real-time validation before saving
+     - Comprehensive audit logging (who, what, when, IP address)
+     - Test functionality for integrations
 
-3. **Database Schema Updates** ✅
-   - `ticket_activity` table for activity logging
-   - `ticket_attachments` table for file storage
-   - Activity types: created, status_change, priority_change, internal_note
+3. **Database Backup & Restore** ✅
+   - `GET /api/admin/database/backups` - List all backups
+   - `POST /api/admin/database/backups` - Create manual backup
+   - `GET /api/admin/database/backups/[id]` - Get backup details
+   - `POST /api/admin/database/backups/[id]/restore` - Restore from backup
+   - `DELETE /api/admin/database/backups/[id]` - Delete manual backup
+   - `GET /api/admin/database/backups/schedule` - Get automated backup schedule
+   - `PUT /api/admin/database/backups/schedule` - Update backup schedule
+   - **Features:**
+     - Manual and automated backups (daily/weekly/monthly)
+     - Compression support (gzip)
+     - Configurable retention periods (7-365 days)
+     - Restore with confirmation safeguards
+     - Backup metadata tracking (size, tables, rows)
+
+4. **Technology Stack Updates** ✅
+   - Upgraded to Next.js 16 (from 14)
+   - PostgreSQL 16-alpine (from 15)
+   - Added PgBouncer v1.23.1 for connection pooling
+   - Added Redis 7.4.4-alpine for analytics caching
+   - Twilio Verify API for SMS OTP
+   - Dual authentication systems (NextAuth + Custom Citizen Auth)
 
 ### Future API Enhancements
 
@@ -3316,6 +4405,28 @@ const RATE_LIMITS = {
 
 ---
 
-**Document Version:** 3.4
-**Last Updated:** January 17, 2026
+**Document Version:** 3.5
+**Last Updated:** January 19, 2026
 **Maintained By:** GEA Portal Development Team
+
+---
+
+## Changelog
+
+### v3.5 (January 19, 2026)
+- Added Citizen Portal Authentication API section (6 endpoints)
+- Added System Settings Management API section (5 endpoints)
+- Added Database Backup & Restore API section (7 endpoints)
+- Updated Authentication & Authorization overview for dual auth systems
+- Added citizen session structure documentation
+- Updated technology stack (Next.js 16, PostgreSQL 16, PgBouncer, Redis)
+- Added environment variables for Twilio, encryption, and OAuth
+- Updated Recent API Enhancements section
+
+### v3.4 (January 17, 2026)
+- Added Admin Ticket Management endpoints
+- Added Public Ticket Activity Timeline
+- Updated database schema documentation
+
+### v3.3 and earlier
+- See git history for previous changes

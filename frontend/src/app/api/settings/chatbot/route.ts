@@ -27,16 +27,34 @@ export async function GET() {
     const enabled = settings['CHATBOT_ENABLED'] === 'true' || settings['CHATBOT_ENABLED'] === '1'
     const url = settings['CHATBOT_URL'] || process.env.NEXT_PUBLIC_CHATBOT_URL || ''
 
-    return NextResponse.json({
-      enabled,
-      url,
-    })
+    return NextResponse.json(
+      {
+        enabled,
+        url,
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   } catch (error) {
     console.error('Error fetching chatbot settings:', error)
     // Return defaults on error - default to enabled with env URL
-    return NextResponse.json({
-      enabled: true,
-      url: process.env.NEXT_PUBLIC_CHATBOT_URL || '',
-    })
+    return NextResponse.json(
+      {
+        enabled: true,
+        url: process.env.NEXT_PUBLIC_CHATBOT_URL || '',
+      },
+      {
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          'Pragma': 'no-cache',
+          'Expires': '0',
+        },
+      }
+    )
   }
 }

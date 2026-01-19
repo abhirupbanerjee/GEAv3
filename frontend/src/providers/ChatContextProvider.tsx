@@ -70,6 +70,22 @@ interface ChatContextProviderProps {
 export function ChatContextProvider({ children }: ChatContextProviderProps) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
+  const [chatbotUrl, setChatbotUrl] = useState<string>(config.CHATBOT_URL);
+
+  // Fetch chatbot URL from database on mount
+  useEffect(() => {
+    fetch(`/api/settings/chatbot?t=${Date.now()}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.url) {
+          setChatbotUrl(data.url);
+        }
+      })
+      .catch((err) => {
+        console.error('[ChatContext] Failed to load chatbot URL:', err);
+        // Keep using fallback from config
+      });
+  }, []);
 
   // Convert NextAuth session to UserSessionContext
   const getUserContext = useCallback((): UserSessionContext | null => {
@@ -132,8 +148,8 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
         context: newContext,
       };
 
-      // Get the AI Bot origin from config
-      const botOrigin = new URL(config.CHATBOT_URL).origin;
+      // Get the AI Bot origin from database settings (with fallback to config)
+      const botOrigin = new URL(chatbotUrl).origin;
 
       iframe.contentWindow.postMessage(message, botOrigin);
 
@@ -152,7 +168,7 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
     } catch (error) {
       console.error('[ChatContext] Failed to send:', error);
     }
-  }, []);
+  }, [chatbotUrl]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Handle Session Changes
