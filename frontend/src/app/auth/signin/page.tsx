@@ -357,6 +357,16 @@ function SignInContent() {
           <p className="mt-1 text-xs text-gray-500">
             Enterprise Architecture Services
           </p>
+          {/* Back to Home - uses <a> tag to bypass Next.js Link prefetch issues */}
+          <a
+            href="/"
+            className="inline-flex items-center mt-3 text-sm text-blue-600 hover:text-blue-700 hover:underline"
+          >
+            <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back to Home
+          </a>
         </div>
 
         {/* Government Staff Sign-in Card */}

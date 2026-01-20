@@ -102,7 +102,7 @@ export default function Header() {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link href="/" className="flex items-center space-x-2">
+          <Link href="/" prefetch={false} className="flex items-center space-x-2">
             {branding.siteLogo ? (
               <Image
                 src={branding.siteLogo}
@@ -124,6 +124,7 @@ export default function Header() {
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className="text-gray-700 hover:text-blue-600 transition-colors"
               >
                 {item.label}
@@ -133,6 +134,7 @@ export default function Header() {
             {session && (
               <Link
                 href={session.user?.roleType === 'staff' ? '/admin/staff/home' : '/admin/home'}
+                prefetch={false}
                 className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -145,6 +147,7 @@ export default function Header() {
             {!session && isCitizenAuth && (
               <Link
                 href="/citizen"
+                prefetch={false}
                 className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,6 +162,7 @@ export default function Header() {
             ) : isCitizenAuth ? (
               <Link
                 href="/citizen"
+                prefetch={false}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
               >
                 Citizen Portal
@@ -166,6 +170,7 @@ export default function Header() {
             ) : status !== 'loading' ? (
               <Link
                 href="/admin"
+                prefetch={false}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Login
@@ -197,6 +202,7 @@ export default function Header() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  prefetch={false}
                   className="text-gray-700 hover:text-blue-600 py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -207,6 +213,7 @@ export default function Header() {
               {session && (
                 <Link
                   href={session.user?.roleType === 'staff' ? '/admin/staff/home' : '/admin/home'}
+                  prefetch={false}
                   className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -220,6 +227,7 @@ export default function Header() {
               {!session && isCitizenAuth && (
                 <Link
                   href="/citizen"
+                  prefetch={false}
                   className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -237,6 +245,7 @@ export default function Header() {
               ) : isCitizenAuth ? (
                 <Link
                   href="/citizen"
+                  prefetch={false}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -245,6 +254,7 @@ export default function Header() {
               ) : status !== 'loading' ? (
                 <Link
                   href="/admin"
+                  prefetch={false}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
