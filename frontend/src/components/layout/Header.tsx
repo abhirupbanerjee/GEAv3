@@ -1,6 +1,7 @@
 'use client'
 
-import Link from 'next/link'
+// Link import removed - using <a> tags to bypass Next.js Link bug on signin page
+// See: https://github.com/vercel/next.js/discussions/57565
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
@@ -101,8 +102,8 @@ export default function Header() {
     }`}>
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link href="/" prefetch={false} className="flex items-center space-x-2">
+          {/* Logo - using <a> tag to bypass Next.js Link bug */}
+          <a href="/" className="flex items-center space-x-2">
             {branding.siteLogo ? (
               <Image
                 src={branding.siteLogo}
@@ -116,65 +117,60 @@ export default function Header() {
               <DefaultLogo />
             )}
             <div className="text-lg font-bold text-gray-900">{branding.siteName}</div>
-          </Link>
+          </a>
 
-          {/* Desktop Navigation */}
+          {/* Desktop Navigation - using <a> tags to bypass Next.js Link bug */}
           <nav className="hidden md:flex items-center space-x-6">
             {visibleNavItems.map((item) => (
-              <Link
+              <a
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 className="text-gray-700 hover:text-blue-600 transition-colors"
               >
                 {item.label}
-              </Link>
+              </a>
             ))}
             {/* Show User Home link if authenticated via NextAuth */}
             {session && (
-              <Link
+              <a
                 href={session.user?.roleType === 'staff' ? '/admin/staff/home' : '/admin/home'}
-                prefetch={false}
                 className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                 </svg>
                 <span>Dashboard</span>
-              </Link>
+              </a>
             )}
             {/* Show Citizen Portal link if citizen is authenticated */}
             {!session && isCitizenAuth && (
-              <Link
+              <a
                 href="/citizen"
-                prefetch={false}
                 className="flex items-center space-x-1 text-blue-600 hover:text-blue-700 font-medium transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
                 <span>My Account</span>
-              </Link>
+              </a>
             )}
             {/* Show Profile Dropdown if admin authenticated, My Account for citizen, or Login button */}
             {session ? (
               <UserProfileDropdown />
             ) : isCitizenAuth ? (
-              <Link
+              <a
                 href="/citizen"
-                prefetch={false}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium"
               >
                 Citizen Portal
-              </Link>
+              </a>
             ) : status !== 'loading' ? (
-              <Link
+              <a
                 href="/admin"
-                prefetch={false}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Login
-              </Link>
+              </a>
             ) : null}
           </nav>
 
@@ -194,26 +190,24 @@ export default function Header() {
           </button>
         </div>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation - using <a> tags to bypass Next.js Link bug */}
         {isMenuOpen && (
           <div className="md:hidden py-4 border-t">
             <nav className="flex flex-col space-y-3">
               {visibleNavItems.map((item) => (
-                <Link
+                <a
                   key={item.href}
                   href={item.href}
-                  prefetch={false}
                   className="text-gray-700 hover:text-blue-600 py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   {item.label}
-                </Link>
+                </a>
               ))}
               {/* Mobile: Show User Home link if admin authenticated */}
               {session && (
-                <Link
+                <a
                   href={session.user?.roleType === 'staff' ? '/admin/staff/home' : '/admin/home'}
-                  prefetch={false}
                   className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -221,13 +215,12 @@ export default function Header() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
                   </svg>
                   <span>Dashboard</span>
-                </Link>
+                </a>
               )}
               {/* Mobile: Show Citizen Portal link if citizen authenticated */}
               {!session && isCitizenAuth && (
-                <Link
+                <a
                   href="/citizen"
-                  prefetch={false}
                   className="flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium py-2"
                   onClick={() => setIsMenuOpen(false)}
                 >
@@ -235,7 +228,7 @@ export default function Header() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <span>My Account</span>
-                </Link>
+                </a>
               )}
               {/* Mobile: Show Profile Dropdown, Citizen Portal, or Login */}
               {session ? (
@@ -243,23 +236,21 @@ export default function Header() {
                   <UserProfileDropdown />
                 </div>
               ) : isCitizenAuth ? (
-                <Link
+                <a
                   href="/citizen"
-                  prefetch={false}
                   className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-medium text-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Citizen Portal
-                </Link>
+                </a>
               ) : status !== 'loading' ? (
-                <Link
+                <a
                   href="/admin"
-                  prefetch={false}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
                   onClick={() => setIsMenuOpen(false)}
                 >
                   Login
-                </Link>
+                </a>
               ) : null}
             </nav>
           </div>
