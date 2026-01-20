@@ -42,9 +42,10 @@ export async function GET(request: NextRequest) {
     // Feature 1.6: View parameter for "received" vs "submitted" tickets
     const view = searchParams.get('view') as 'received' | 'submitted' | null
 
-    // Apply entity filter for staff users - override entity_id parameter
-    const entityFilter = getEntityFilter(session)
-    const entityId = entityFilter || searchParams.get('entity_id')
+    // Apply entity filter: staff=mandatory, admin=optional
+    const isStaff = session.user.roleType === 'staff'
+    const entityFilter = isStaff ? getEntityFilter(session) : null
+    const entityId = searchParams.get('entity_id') || entityFilter
 
     // Feature 1.6: Build WHERE clause based on view
     let whereClause = ''

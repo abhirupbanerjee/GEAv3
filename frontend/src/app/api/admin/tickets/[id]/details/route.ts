@@ -67,6 +67,8 @@ export async function GET(
         t.submitter_name,
         t.submitter_email,
         t.submitter_phone,
+        t.submitter_id,
+        t.submitter_type,
         t.created_at,
         t.updated_at,
         t.resolved_at,
@@ -122,18 +124,28 @@ export async function GET(
 
     // Validate entity access for staff users
     const entityFilter = getEntityFilter(session)
-    if (entityFilter && ticket.assigned_entity_id !== entityFilter) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: {
-            code: 'FORBIDDEN',
-            message: 'You do not have access to this ticket'
+    const userId = (session.user as any).id // User's UUID from session
+
+    // Staff users (non-admin) must either:
+    // 1. Have the ticket assigned to their entity (received tickets), OR
+    // 2. Have submitted the ticket themselves (submitted tickets)
+    if (entityFilter) {
+      const isAssignedToUserEntity = ticket.assigned_entity_id === entityFilter
+      const isSubmittedByUser = ticket.submitter_id === userId
+
+      if (!isAssignedToUserEntity && !isSubmittedByUser) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: {
+              code: 'FORBIDDEN',
+              message: 'You do not have access to this ticket'
+            },
+            timestamp: new Date().toISOString()
           },
-          timestamp: new Date().toISOString()
-        },
-        { status: 403 }
-      )
+          { status: 403 }
+        )
+      }
     }
 
     // Query 2: Get attachments
@@ -209,6 +221,8 @@ export async function GET(
             phone: ticket.submitter_phone,
             category: ticket.requester_category
           },
+          submitter_id: ticket.submitter_id,
+          submitter_type: ticket.submitter_type,
           sla: {
             response_target: ticket.sla_response_target,
             resolution_target: ticket.sla_resolution_target,

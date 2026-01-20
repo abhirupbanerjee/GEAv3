@@ -2,7 +2,7 @@
  * GEA Portal - Admin Single Citizen API
  *
  * Endpoints for managing individual citizens.
- * Only accessible by admin users.
+ * Accessible by admin and staff users.
  *
  * GET /api/admin/citizens/[id] - Get citizen details (PII masked)
  * PATCH /api/admin/citizens/[id] - Update citizen (block/unblock)
@@ -23,12 +23,12 @@ export async function GET(
 ) {
   const { id: citizenId } = await params;
   try {
-    // Check authentication - admin only
+    // Check authentication - admin or staff
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.roleType !== 'admin') {
+    if (!session || !['admin', 'staff'].includes(session.user.roleType)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Admin or staff access required' },
         { status: 403 }
       );
     }
@@ -101,12 +101,12 @@ export async function PATCH(
 ) {
   const { id: citizenId } = await params;
   try {
-    // Check authentication - admin only
+    // Check authentication - admin or staff
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.roleType !== 'admin') {
+    if (!session || !['admin', 'staff'].includes(session.user.roleType)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Admin or staff access required' },
         { status: 403 }
       );
     }

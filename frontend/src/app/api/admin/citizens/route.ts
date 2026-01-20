@@ -2,7 +2,7 @@
  * GEA Portal - Admin Citizens API
  *
  * Endpoints for managing citizens in the system.
- * Only accessible by admin users.
+ * Accessible by admin and staff users.
  * PII is masked - only phone number is shown, name/email shown as boolean flags.
  *
  * GET /api/admin/citizens - List all citizens with stats
@@ -25,12 +25,12 @@ import { pool } from '@/lib/db';
  */
 export async function GET(request: NextRequest) {
   try {
-    // Check authentication - admin only
+    // Check authentication - admin or staff
     const session = await getServerSession(authOptions);
 
-    if (!session || session.user.roleType !== 'admin') {
+    if (!session || !['admin', 'staff'].includes(session.user.roleType)) {
       return NextResponse.json(
-        { error: 'Unauthorized - Admin access required' },
+        { error: 'Unauthorized - Admin or staff access required' },
         { status: 403 }
       );
     }

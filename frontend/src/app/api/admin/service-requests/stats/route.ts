@@ -61,8 +61,8 @@ export async function GET(request: NextRequest) {
         paramIndex++;
       }
     } else if (session.user.roleType === 'admin') {
-      // Admin can filter by entity_id param, default to admin's own entity
-      const finalEntityId = entityIdParam || session.user.entityId;
+      // Admin can filter by entity_id param (no default - allow viewing all entities)
+      const finalEntityId = entityIdParam;
       if (finalEntityId) {
         const entityIds = finalEntityId.split(',').filter(Boolean);
         if (entityIds.length > 0) {

@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
 
     // Validate phone number format (basic E.164 validation)
     const phoneRegex = /^\+[1-9]\d{6,14}$/;
-    if (!phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''))) {
+    if (!phoneRegex.test(phone.replace(/[\s\-()]/g, ''))) {
       return NextResponse.json(
         { error: 'Invalid phone number format. Use E.164 format (e.g., +14731234567)' },
         { status: 400 }
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
     const verification = await client.verify.v2
       .services(twilioSettings.verifyServiceSid)
       .verifications.create({
-        to: phone.replace(/[\s\-\(\)]/g, ''),
+        to: phone.replace(/[\s\-()]/g, ''),
         channel: 'sms',
       });
 

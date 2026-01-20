@@ -184,6 +184,16 @@ export default function AnalyticsPage() {
     }
   }, [isAdmin])
 
+  // Initialize with admin's entity when session and entities load (matches backend default)
+  useEffect(() => {
+    if (isAdmin && session?.user?.entityId && entities.length > 0) {
+      // Only set if not already initialized
+      if (selectedEntityIds.length === 0) {
+        setSelectedEntityIds([session.user.entityId])
+      }
+    }
+  }, [isAdmin, session?.user?.entityId, entities.length, selectedEntityIds.length])
+
   // Fetch all analytics data
   const fetchAnalytics = async () => {
     try {

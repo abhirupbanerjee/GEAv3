@@ -32,9 +32,10 @@ export async function GET(request: NextRequest) {
     const endDate = searchParams.get('end_date');
     const channel = searchParams.get('channel');
 
-    // Apply entity filter for staff users - override entity_id parameter
-    const entityFilter = getEntityFilter(session);
-    const entityIdParam = entityFilter || searchParams.get('entity_id');
+    // Apply entity filter: staff=mandatory, admin=optional
+    const isStaff = session.user.roleType === 'staff';
+    const entityFilter = isStaff ? getEntityFilter(session) : null;
+    const entityIdParam = searchParams.get('entity_id') || entityFilter;
 
     // Build WHERE conditions
     const conditions: string[] = [];

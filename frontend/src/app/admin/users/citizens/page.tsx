@@ -67,14 +67,16 @@ export default function CitizensPage() {
   const [blockReason, setBlockReason] = useState('');
   const [blockLoading, setBlockLoading] = useState(false);
 
-  // Check if user is admin
+  // Check if user is admin or staff
   const isAdmin = session?.user?.roleType === 'admin';
+  const isStaff = session?.user?.roleType === 'staff';
+  const canAccessCitizens = isAdmin || isStaff;
 
   useEffect(() => {
-    if (status === 'authenticated' && isAdmin) {
+    if (status === 'authenticated' && canAccessCitizens) {
       fetchCitizens();
     }
-  }, [status, isAdmin, statusFilter, sortField]);
+  }, [status, canAccessCitizens, statusFilter, sortField]);
 
   const fetchCitizens = async () => {
     try {
@@ -188,12 +190,12 @@ export default function CitizensPage() {
     );
   }
 
-  if (!isAdmin) {
+  if (!canAccessCitizens) {
     return (
       <div className="p-6">
         <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
           <FiAlertCircle className="inline-block mr-2" />
-          Access denied. Admin privileges required.
+          Access denied. Admin or staff privileges required.
         </div>
       </div>
     );
