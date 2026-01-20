@@ -7,7 +7,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { FiPhone, FiChevronDown, FiAlertCircle, FiLoader } from 'react-icons/fi';
 
 interface PhoneInputProps {
@@ -43,6 +43,7 @@ export function PhoneInput({
   const [localNumber, setLocalNumber] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoadingCountries, setIsLoadingCountries] = useState(true);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch allowed countries from API
   useEffect(() => {
@@ -83,6 +84,27 @@ export function PhoneInput({
     }
   }, [countryCodes]);
 
+  // Handle click outside to close dropdown (React 18 compatible)
+  useEffect(() => {
+    if (!showDropdown) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+
+    // Use setTimeout to avoid closing immediately after opening
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showDropdown]);
+
   // Update parent value when country code or local number changes
   const updateValue = useCallback(() => {
     const fullNumber = `${selectedCode.code}${localNumber.replace(/\D/g, '')}`;
@@ -122,7 +144,7 @@ export function PhoneInput({
       </label>
       <div className="flex gap-2">
         {/* Country code dropdown */}
-        <div className="relative">
+        <div className="relative" ref={dropdownRef}>
           <button
             type="button"
             onClick={() => !disabled && !isLoadingCountries && setShowDropdown(!showDropdown)}
@@ -145,35 +167,29 @@ export function PhoneInput({
             )}
           </button>
 
-          {/* Dropdown menu */}
+          {/* Dropdown menu - NO MORE BLOCKING OVERLAY */}
           {showDropdown && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                onClick={() => setShowDropdown(false)}
-              />
-              <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-                {countryCodes.map((cc, index) => (
-                  <button
-                    key={`${cc.code}-${index}`}
-                    type="button"
-                    onClick={() => {
-                      setSelectedCode(cc);
-                      setShowDropdown(false);
-                    }}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
-                      cc.code === selectedCode.code && cc.name === selectedCode.name
-                        ? 'bg-blue-50 text-blue-700'
-                        : 'text-gray-700'
-                    }`}
-                  >
-                    <span>{cc.flag}</span>
-                    <span className="flex-1 text-left truncate">{cc.name}</span>
-                    <span className="text-gray-400 text-xs">{cc.code}</span>
-                  </button>
-                ))}
-              </div>
-            </>
+            <div className="absolute z-20 mt-1 w-56 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+              {countryCodes.map((cc, index) => (
+                <button
+                  key={`${cc.code}-${index}`}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCode(cc);
+                    setShowDropdown(false);
+                  }}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm hover:bg-gray-50 ${
+                    cc.code === selectedCode.code && cc.name === selectedCode.name
+                      ? 'bg-blue-50 text-blue-700'
+                      : 'text-gray-700'
+                  }`}
+                >
+                  <span>{cc.flag}</span>
+                  <span className="flex-1 text-left truncate">{cc.name}</span>
+                  <span className="text-gray-400 text-xs">{cc.code}</span>
+                </button>
+              ))}
+            </div>
           )}
         </div>
 

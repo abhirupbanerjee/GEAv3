@@ -144,9 +144,6 @@ export function TicketTable({
                 </div>
               </th>
               <th scope="col" className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Requester
-              </th>
-              <th scope="col" className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Submitted By
               </th>
               <th
@@ -185,10 +182,6 @@ export function TicketTable({
                 </td>
                 <td className="hidden sm:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
                   <PriorityBadge priority={ticket.priority} size="sm" />
-                </td>
-                <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  <div>{ticket.requester.name || 'N/A'}</div>
-                  <div className="text-xs text-gray-400">{ticket.requester.email}</div>
                 </td>
                 <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
