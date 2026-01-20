@@ -46,7 +46,7 @@ export default function RootLayout({
         <SessionProvider>
           <ChatContextProvider>
             <Header />
-            <main className="min-h-screen">
+            <main className="min-h-screen isolate">
               {children}
             </main>
             <Footer />
