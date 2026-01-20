@@ -26,7 +26,10 @@ export async function proxy(request: NextRequest) {
 
   if (!token) {
     const signInUrl = new URL('/auth/signin', request.url);
-    signInUrl.searchParams.set('callbackUrl', request.url);
+    // Use only the pathname + search params to avoid localhost in callbackUrl
+    const requestUrl = new URL(request.url);
+    const callbackUrl = requestUrl.pathname + requestUrl.search;
+    signInUrl.searchParams.set('callbackUrl', callbackUrl);
     return NextResponse.redirect(signInUrl);
   }
 

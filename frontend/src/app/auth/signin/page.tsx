@@ -329,8 +329,8 @@ function SignInContent() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 px-4 py-8">
-      <div className="max-w-md w-full space-y-6">
+    <div className="pointer-events-none min-h-[calc(100vh-4rem)] flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-green-50 px-4 py-8">
+      <div className="pointer-events-auto max-w-md w-full space-y-6">
         {/* Header */}
         <div className="text-center">
           <div className="mx-auto h-16 w-16 bg-gradient-to-br from-blue-600 to-green-600 rounded-xl flex items-center justify-center mb-4">
