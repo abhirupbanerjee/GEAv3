@@ -109,7 +109,7 @@ export function TicketTable({
             <tr>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => onSort('ticket_number')}
               >
                 <div className="flex items-center gap-1">
@@ -118,7 +118,7 @@ export function TicketTable({
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => onSort('subject')}
               >
                 <div className="flex items-center gap-1">
@@ -127,7 +127,7 @@ export function TicketTable({
               </th>
               <th
                 scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => onSort('status_id')}
               >
                 <div className="flex items-center gap-1">
@@ -136,29 +136,29 @@ export function TicketTable({
               </th>
               <th
                 scope="col"
-                className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="hidden sm:table-cell px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => onSort('priority_id')}
               >
                 <div className="flex items-center gap-1">
                   Priority <SortIcon column="priority_id" />
                 </div>
               </th>
-              <th scope="col" className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Requester
               </th>
-              <th scope="col" className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="hidden xl:table-cell px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Submitted By
               </th>
               <th
                 scope="col"
-                className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
+                className="hidden sm:table-cell px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
                 onClick={() => onSort('created_at')}
               >
                 <div className="flex items-center gap-1">
                   Created <SortIcon column="created_at" />
                 </div>
               </th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th scope="col" className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Actions
               </th>
             </tr>
@@ -166,13 +166,13 @@ export function TicketTable({
           <tbody className="bg-white divide-y divide-gray-200">
             {tickets.map((ticket) => (
               <tr key={ticket.ticket_id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {ticket.ticket_number}
                   {ticket.is_overdue && (
                     <span className="ml-2 text-xs text-red-600">⚠ Overdue</span>
                   )}
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-900">
+                <td className="px-4 lg:px-6 py-4 text-sm text-gray-900">
                   <div className="max-w-xs truncate" title={ticket.subject}>
                     {ticket.subject}
                   </div>
@@ -180,17 +180,17 @@ export function TicketTable({
                     <div className="text-xs text-gray-500">{ticket.service.name}</div>
                   )}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap">
                   <StatusBadge status={ticket.status} size="sm" />
                 </td>
-                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
+                <td className="hidden sm:table-cell px-4 lg:px-6 py-4 whitespace-nowrap">
                   <PriorityBadge priority={ticket.priority} size="sm" />
                 </td>
-                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <div>{ticket.requester.name || 'N/A'}</div>
                   <div className="text-xs text-gray-400">{ticket.requester.email}</div>
                 </td>
-                <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="hidden xl:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     ticket.submitter?.type === 'staff'
                       ? 'bg-purple-100 text-purple-800'
@@ -201,10 +201,10 @@ export function TicketTable({
                     {getSubmitterDisplay(ticket.submitter)}
                   </span>
                 </td>
-                <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="hidden sm:table-cell px-4 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                   {formatDate(ticket.created_at)}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                <td className="px-4 lg:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
                     onClick={() => onEdit(ticket.ticket_id)}
                     className="text-blue-600 hover:text-blue-900"
