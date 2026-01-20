@@ -44,6 +44,7 @@ import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
 import { FiUserPlus, FiEdit2, FiCheckCircle, FiXCircle, FiTrash2, FiSearch } from 'react-icons/fi';
 import { useChatContext } from '@/hooks/useChatContext';
+import { config } from '@/config/env';
 
 interface User {
   id: string;
@@ -492,6 +493,19 @@ function AddUserModal({
       .catch(err => console.error('Failed to fetch admin allowed entities:', err));
   }, []);
 
+  // Default entity configuration from .env
+  const [defaultEntityId, setDefaultEntityId] = useState<string>(config.SERVICE_REQUEST_ENTITY_ID);
+  const [defaultEntityName, setDefaultEntityName] = useState<string>(config.SERVICE_REQUEST_ENTITY_NAME);
+
+  // Optional: Verify against entities list for accuracy (hybrid approach)
+  useEffect(() => {
+    const entity = entities.find(e => e.entity_id === defaultEntityId);
+    if (entity && entity.entity_name !== defaultEntityName) {
+      // Database has different name, use that instead
+      setDefaultEntityName(entity.entity_name);
+    }
+  }, [entities, defaultEntityId, defaultEntityName]);
+
   const selectedRole = availableRoles.find((r) => r.role_id.toString() === formData.role_id);
   const isAdminRole = selectedRole?.role_type === 'admin';
   const requiresEntity = selectedRole?.role_type === 'staff';
@@ -499,6 +513,9 @@ function AddUserModal({
 
   // Filter entities for admin dropdown (only allowed entities)
   const adminEntities = entities.filter(e => allowedAdminEntities.includes(e.entity_id));
+
+  // Check if default entity is in the allowed admin entities
+  const defaultInAllowedEntities = adminEntities.some(e => e.entity_id === defaultEntityId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -644,15 +661,23 @@ function AddUserModal({
                 onChange={(e) => setFormData({ ...formData, entity_id: e.target.value })}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
-                <option value="">Default (DTA)</option>
-                {adminEntities.map((entity) => (
-                  <option key={entity.entity_id} value={entity.entity_id}>
-                    {entity.entity_name}
-                  </option>
-                ))}
+                <option value="">
+                  {defaultInAllowedEntities
+                    ? `Select an entity (defaults to ${defaultEntityName})`
+                    : `Default (${defaultEntityName})`}
+                </option>
+                {adminEntities
+                  .filter(entity => !defaultInAllowedEntities || entity.entity_id !== defaultEntityId)
+                  .map((entity) => (
+                    <option key={entity.entity_id} value={entity.entity_id}>
+                      {entity.entity_name}
+                    </option>
+                  ))}
               </select>
               <p className="text-xs text-gray-500 mt-1">
-                Admin users have full system access regardless of entity
+                {defaultInAllowedEntities
+                  ? `Admin users have full system access. Leave blank to assign to ${defaultEntityName}.`
+                  : 'Admin users have full system access regardless of entity'}
               </p>
             </div>
           )}

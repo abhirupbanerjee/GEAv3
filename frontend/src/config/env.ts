@@ -30,6 +30,7 @@ export const config = {
 
   // Service Request Configuration
   SERVICE_REQUEST_ENTITY_ID: process.env.NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID || 'AGY-005',
+  SERVICE_REQUEST_ENTITY_NAME: process.env.NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME || 'Digital Transformation Agency',
 
   // External URLs
   GOG_URL: process.env.NEXT_PUBLIC_GOG_URL || 'https://www.gov.gd',
