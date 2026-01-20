@@ -45,8 +45,10 @@ export default function RootLayout({
       <body>
         <SessionProvider>
           <ChatContextProvider>
-            <Header />
-            <main className="min-h-screen isolate">
+            <div className="relative z-[100] pointer-events-auto">
+              <Header />
+            </div>
+            <main className="min-h-screen relative z-0">
               {children}
             </main>
             <Footer />
