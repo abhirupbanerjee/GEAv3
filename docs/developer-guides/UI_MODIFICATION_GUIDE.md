@@ -1043,6 +1043,72 @@ if (session.user?.roleType !== 'admin') {
 # Verify Tailwind config if adding custom colors
 ```
 
+### Issue: Header Navigation Links Not Clickable on Signin Page
+
+**Symptoms:**
+- Header links (About, Services, Logo, etc.) are hoverable but clicking does nothing
+- Browser shows correct URL in status bar on hover
+- No JavaScript console errors
+- Works on other pages but not `/auth/signin` or similar auth pages
+
+**Root Cause:**
+This is a **known Next.js `<Link>` component bug** that affects navigation on certain pages, particularly authentication pages. The Link component's prefetching mechanism can fail silently in production, causing clicks to have no effect.
+
+**References:**
+- GitHub Discussion: https://github.com/vercel/next.js/discussions/57565
+- GitHub Issue: https://github.com/vercel/next.js/issues/72383
+
+**Fix Applied:**
+The Header component (`frontend/src/components/layout/Header.tsx`) was modified to use native HTML `<a>` tags instead of Next.js `<Link>` components:
+
+```typescript
+// BEFORE (broken on signin page):
+import Link from 'next/link'
+
+<Link href="/about" className="...">About</Link>
+
+// AFTER (working):
+// Link import removed - using <a> tags to bypass Next.js Link bug
+<a href="/about" className="...">About</a>
+```
+
+**Trade-offs:**
+| Aspect | `<Link>` Component | Native `<a>` Tag |
+|--------|-------------------|------------------|
+| Client-side navigation | Yes (faster) | No (full reload) |
+| Prefetching | Yes | No |
+| Works on auth pages | **No** (buggy) | **Yes** |
+| SEO | Same | Same |
+
+**When to Use `<a>` Tags:**
+- Header/navigation links that must work across all pages including auth
+- Any links that mysteriously stop working on specific pages
+- Critical navigation paths where reliability > performance
+
+**When to Keep `<Link>`:**
+- In-page navigation within authenticated areas
+- Links in content areas where prefetching improves UX
+- Performance-critical navigation flows
+
+**Files Modified:**
+- `frontend/src/components/layout/Header.tsx` - All Link components replaced with `<a>` tags
+- `frontend/src/app/layout.tsx` - Added z-index isolation for header (`z-[100]`)
+
+**Additional Layout Fixes:**
+To ensure proper z-index stacking, layout.tsx was updated:
+
+```tsx
+// Wrap Header with explicit stacking context
+<div className="relative z-[100] pointer-events-auto">
+  <Header />
+</div>
+<main className="min-h-screen relative z-0">
+  {children}
+</main>
+```
+
+---
+
 ### Getting Help
 
 1. Check browser console (F12)
@@ -1073,9 +1139,10 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 
 ---
 
-**Last Updated:** January 19, 2026 | **Version:** 1.2
+**Last Updated:** January 20, 2026 | **Version:** 1.3
 
 **Change Log:**
+- v1.3 (Jan 20, 2026): Added troubleshooting section for Next.js Link navigation bug on signin page
 - v1.2 (Jan 19, 2026): Added System Settings page, Citizen Portal pages, updated About page features
 - v1.1 (Jan 2026): Initial version
 
