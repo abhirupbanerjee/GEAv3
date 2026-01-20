@@ -128,6 +128,7 @@ services:
 
         # Service Request Configuration
         - NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID=${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID:-AGY-005}
+        - NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME=${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME:-"Digital Transformation Agency"}
 
         # NEW - Phase 2b: API Base URLs
         - API_BASE_URL=${API_BASE_URL}

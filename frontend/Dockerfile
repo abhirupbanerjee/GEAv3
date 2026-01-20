@@ -40,6 +40,7 @@ ARG EA_SERVICE_RATE_LIMIT
 ARG GRIEVANCE_RATE_LIMIT
 ARG API_BASE_URL
 ARG NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID=AGY-005
+ARG NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME="Digital Transformation Agency"
 
 # Set as environment variables during build
 ENV NEXT_PUBLIC_FRONTEND_URL=$NEXT_PUBLIC_FRONTEND_URL
@@ -84,6 +85,7 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  EA_SERVICE_RATE_LIMIT: ${EA_SERVICE_RATE_LIMIT}," >> src/config/env.ts && \
     echo "  GRIEVANCE_RATE_LIMIT: ${GRIEVANCE_RATE_LIMIT}," >> src/config/env.ts && \
     echo "  SERVICE_REQUEST_ENTITY_ID: '${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID}'," >> src/config/env.ts && \
+    echo "  SERVICE_REQUEST_ENTITY_NAME: '${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME}'," >> src/config/env.ts && \
     echo "  API_BASE_URL: '${API_BASE_URL}'," >> src/config/env.ts && \
     echo "  appUrl: '${NEXT_PUBLIC_FRONTEND_URL}'," >> src/config/env.ts && \
     echo "};" >> src/config/env.ts && \
