@@ -22,8 +22,7 @@ set -e  # Exit on error
 # Database connection details
 DB_NAME="${DB_NAME:-feedback}"
 DB_USER="${DB_USER:-feedback_user}"
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
+DOCKER_CONTAINER="${DOCKER_CONTAINER:-feedback_db}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -39,7 +38,14 @@ echo -e "${YELLOW}WARNING: This will permanently remove captcha settings from th
 echo ""
 echo "Database: $DB_NAME"
 echo "User: $DB_USER"
+echo "Docker Container: $DOCKER_CONTAINER"
 echo ""
+
+# Check if Docker container is running
+if ! docker ps | grep -q "$DOCKER_CONTAINER"; then
+    echo -e "${RED}Error: Docker container '$DOCKER_CONTAINER' is not running${NC}"
+    exit 1
+fi
 
 # Confirm before proceeding
 read -p "Are you sure you want to proceed? (yes/no): " CONFIRM
@@ -61,15 +67,15 @@ echo "Backup directory: $BACKUP_DIR"
 
 # Backup captcha settings
 echo "Backing up captcha settings..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "\COPY (SELECT * FROM system_settings WHERE setting_key LIKE '%CAPTCHA%' OR setting_key LIKE '%hCAPTCHA%') TO '$BACKUP_DIR/captcha_settings.csv' WITH CSV HEADER" 2>/dev/null || echo "No captcha settings found or already removed"
+docker exec "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "\COPY (SELECT * FROM system_settings WHERE setting_key ILIKE '%captcha%' OR setting_key ILIKE '%hcaptcha%') TO STDOUT WITH CSV HEADER" > "$BACKUP_DIR/captcha_settings.csv" 2>/dev/null || echo "No captcha settings found or already removed"
 
 # Backup captcha challenges table data
 echo "Backing up captcha_challenges table data..."
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "\COPY (SELECT * FROM captcha_challenges) TO '$BACKUP_DIR/captcha_challenges.csv' WITH CSV HEADER" 2>/dev/null || echo "captcha_challenges table not found or empty"
+docker exec "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "\COPY (SELECT * FROM captcha_challenges) TO STDOUT WITH CSV HEADER" > "$BACKUP_DIR/captcha_challenges.csv" 2>/dev/null || echo "captcha_challenges table not found or empty"
 
 # Get table structure for rollback
 echo "Backing up captcha_challenges table structure..."
-pg_dump -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -t captcha_challenges --schema-only > "$BACKUP_DIR/captcha_challenges_schema.sql" 2>/dev/null || echo "captcha_challenges table not found"
+docker exec "$DOCKER_CONTAINER" pg_dump -U "$DB_USER" -d "$DB_NAME" -t captcha_challenges --schema-only > "$BACKUP_DIR/captcha_challenges_schema.sql" 2>/dev/null || echo "captcha_challenges table not found"
 
 echo -e "${GREEN}✓ Backup completed${NC}"
 echo ""
@@ -79,7 +85,7 @@ echo "Step 2: Removing captcha settings"
 echo "=========================================="
 
 # Remove captcha settings from system_settings
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
+docker exec "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" << 'EOF'
 
 -- Start transaction
 BEGIN;
@@ -120,14 +126,17 @@ echo "=========================================="
 echo "Step 3: Dropping captcha_challenges table"
 echo "=========================================="
 
-psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" << 'EOF'
+docker exec "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" << 'EOF'
 
 -- Check if table exists
 DO $$
+DECLARE
+    row_count INTEGER;
 BEGIN
     IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'captcha_challenges') THEN
         -- Get row count before dropping
-        EXECUTE 'SELECT COUNT(*) as row_count FROM captcha_challenges';
+        SELECT COUNT(*) INTO row_count FROM captcha_challenges;
+        RAISE NOTICE 'captcha_challenges table has % rows', row_count;
 
         -- Drop the table
         DROP TABLE IF EXISTS captcha_challenges CASCADE;

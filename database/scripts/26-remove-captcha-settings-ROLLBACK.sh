@@ -33,8 +33,7 @@ fi
 # Database connection details
 DB_NAME="${DB_NAME:-feedback}"
 DB_USER="${DB_USER:-feedback_user}"
-DB_HOST="${DB_HOST:-localhost}"
-DB_PORT="${DB_PORT:-5432}"
+DOCKER_CONTAINER="${DOCKER_CONTAINER:-feedback_db}"
 
 # Colors for output
 RED='\033[0;31m'
@@ -48,7 +47,14 @@ echo "=========================================="
 echo ""
 echo "Backup directory: $BACKUP_DIR"
 echo "Database: $DB_NAME"
+echo "Docker Container: $DOCKER_CONTAINER"
 echo ""
+
+# Check if Docker container is running
+if ! docker ps | grep -q "$DOCKER_CONTAINER"; then
+    echo -e "${RED}Error: Docker container '$DOCKER_CONTAINER' is not running${NC}"
+    exit 1
+fi
 
 # Confirm before proceeding
 read -p "Are you sure you want to restore captcha settings? (yes/no): " CONFIRM
@@ -65,19 +71,19 @@ echo "=========================================="
 # Restore table structure
 if [ -f "$BACKUP_DIR/captcha_challenges_schema.sql" ]; then
     echo "Restoring table structure..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -f "$BACKUP_DIR/captcha_challenges_schema.sql"
+    cat "$BACKUP_DIR/captcha_challenges_schema.sql" | docker exec -i "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME"
     echo -e "${GREEN}✓ Table structure restored${NC}"
 else
     echo -e "${RED}✗ Schema backup file not found${NC}"
 fi
 
 # Restore table data
-if [ -f "$BACKUP_DIR/captcha_challenges.csv" ]; then
+if [ -f "$BACKUP_DIR/captcha_challenges.csv" ] && [ -s "$BACKUP_DIR/captcha_challenges.csv" ]; then
     echo "Restoring table data..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "\COPY captcha_challenges FROM '$BACKUP_DIR/captcha_challenges.csv' WITH CSV HEADER"
+    cat "$BACKUP_DIR/captcha_challenges.csv" | docker exec -i "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "\COPY captcha_challenges FROM STDIN WITH CSV HEADER"
     echo -e "${GREEN}✓ Table data restored${NC}"
 else
-    echo "No table data to restore (file not found or table was empty)"
+    echo "No table data to restore (file not found or empty)"
 fi
 
 echo ""
@@ -85,12 +91,12 @@ echo "=========================================="
 echo "Step 2: Restoring captcha settings"
 echo "=========================================="
 
-if [ -f "$BACKUP_DIR/captcha_settings.csv" ]; then
+if [ -f "$BACKUP_DIR/captcha_settings.csv" ] && [ -s "$BACKUP_DIR/captcha_settings.csv" ]; then
     echo "Restoring settings..."
-    psql -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" -d "$DB_NAME" -c "\COPY system_settings FROM '$BACKUP_DIR/captcha_settings.csv' WITH CSV HEADER"
+    cat "$BACKUP_DIR/captcha_settings.csv" | docker exec -i "$DOCKER_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" -c "\COPY system_settings FROM STDIN WITH CSV HEADER"
     echo -e "${GREEN}✓ Settings restored${NC}"
 else
-    echo -e "${RED}✗ Settings backup file not found${NC}"
+    echo -e "${YELLOW}No settings to restore (file not found or empty)${NC}"
 fi
 
 echo ""
