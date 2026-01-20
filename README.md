@@ -1016,3 +1016,5 @@ Before going live:
 **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
 
 
+
+Commit attribution verification.
