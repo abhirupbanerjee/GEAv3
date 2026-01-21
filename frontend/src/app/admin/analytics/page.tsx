@@ -201,7 +201,8 @@ export default function AnalyticsPage() {
       setError(null)
 
       // Build query params for entity filter (admin only)
-      const entityParam = isAdmin && selectedEntityIds.length > 0
+      // When all entities are selected, don't apply filter (show all data)
+      const entityParam = isAdmin && selectedEntityIds.length > 0 && selectedEntityIds.length < entities.length
         ? `?entity_id=${selectedEntityIds.join(',')}`
         : ''
 
@@ -431,10 +432,10 @@ export default function AnalyticsPage() {
               )}
             </div>
 
-            {/* Active filters display */}
+            {/* Active filters display - show max 3 chips + count */}
             {selectedEntityIds.length > 0 && (
-              <div className="mt-4 flex flex-wrap gap-2">
-                {selectedEntityIds.map((entityId) => {
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                {selectedEntityIds.slice(0, 3).map((entityId) => {
                   const entity = entities.find(e => e.unique_entity_id === entityId)
                   return entity ? (
                     <span
@@ -451,6 +452,11 @@ export default function AnalyticsPage() {
                     </span>
                   ) : null
                 })}
+                {selectedEntityIds.length > 3 && (
+                  <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">
+                    + {selectedEntityIds.length - 3} more selected
+                  </span>
+                )}
               </div>
             )}
           </div>
