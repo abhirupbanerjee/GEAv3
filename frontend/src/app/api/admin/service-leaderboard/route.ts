@@ -10,6 +10,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { pool } from '@/lib/db';
 import { getEntityFilter } from '@/lib/entity-filter';
+import { getSettings } from '@/lib/settings';
 
 export const dynamic = 'force-dynamic';
 
@@ -20,6 +21,16 @@ export async function GET(request: NextRequest) {
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Fetch configurable weights from settings
+    const weightSettings = await getSettings([
+      'LEADERBOARD_SATISFACTION_WEIGHT',
+      'LEADERBOARD_TICKET_RESOLUTION_WEIGHT',
+      'LEADERBOARD_GRIEVANCE_WEIGHT'
+    ]);
+    const satWeight = (Number(weightSettings.LEADERBOARD_SATISFACTION_WEIGHT) || 40) / 10;
+    const ticketWeight = (Number(weightSettings.LEADERBOARD_TICKET_RESOLUTION_WEIGHT) || 25) / 10;
+    const grievWeight = (Number(weightSettings.LEADERBOARD_GRIEVANCE_WEIGHT) || 35) / 10;
 
     const searchParams = request.nextUrl.searchParams;
     const entityIdParam = searchParams.get('entity_id');
@@ -70,20 +81,20 @@ export async function GET(request: NextRequest) {
         GROUP BY s.service_id, s.service_name, e.entity_name, e.unique_entity_id
         HAVING COUNT(DISTINCT f.feedback_id) > 0
       ),
-      service_request_stats AS (
+      ticket_stats AS (
         SELECT
-          sr.service_id,
-          COUNT(*) as request_count,
-          COUNT(*) FILTER (WHERE sr.status = 'completed') as completed_count,
-          COUNT(*) FILTER (WHERE sr.status = 'rejected') as rejected_count,
+          t.service_id,
+          COUNT(*) as ticket_count,
+          COUNT(*) FILTER (WHERE t.resolved_at IS NOT NULL) as resolved_count,
           ROUND(
-            (COUNT(*) FILTER (WHERE sr.status = 'completed')::numeric /
+            (COUNT(*) FILTER (WHERE t.resolved_at IS NOT NULL)::numeric /
              NULLIF(COUNT(*)::numeric, 0) * 100),
             2
-          ) as completion_rate
-        FROM ea_service_requests sr
-        ${whereClause.replace('s.entity_id', 'sr.entity_id')}
-        GROUP BY sr.service_id
+          ) as resolution_rate
+        FROM tickets t
+        WHERE t.service_id IS NOT NULL
+        ${conditions.length > 0 ? 'AND ' + conditions.map(c => c.replace('s.entity_id', 't.assigned_entity_id')).join(' AND ') : ''}
+        GROUP BY t.service_id
       )
       SELECT
         sf.service_id,
@@ -97,28 +108,27 @@ export async function GET(request: NextRequest) {
         sf.avg_clarity,
         sf.avg_timeliness,
         sf.avg_trust,
-        COALESCE(sr.request_count, 0) as request_count,
-        COALESCE(sr.completed_count, 0) as completed_count,
-        COALESCE(sr.rejected_count, 0) as rejected_count,
-        COALESCE(sr.completion_rate, 0) as completion_rate,
+        COALESCE(ts.ticket_count, 0) as ticket_count,
+        COALESCE(ts.resolved_count, 0) as resolved_count,
+        COALESCE(ts.resolution_rate, 0) as resolution_rate,
+        -- Grievance rate for display
+        ROUND(
+          COALESCE(sf.grievance_count::numeric / NULLIF(sf.feedback_count::numeric, 0) * 100, 0),
+          2
+        ) as grievance_rate,
         -- Calculate overall score (weighted average) - Scale: 0-10
-        -- Formula breakdown:
-        --   1. Customer Satisfaction (40% weight): avg_satisfaction * 0.4 (max 2.0 points from 5.0 rating)
-        --   2. Completion Rate (25% weight): completion_rate / 20 (max 5.0 points from 100% completion)
-        --   3. Grievance Penalty (35% weight): 5 - (grievance_rate * 5) (max 5.0 points, reduced by grievance rate)
-        --      where grievance_rate = grievance_count / feedback_count
-        -- Total possible score: 2.0 + 5.0 + 5.0 = 12.0, but practically 0-10 range
-        -- Higher scores indicate better service performance
+        -- Formula: (satisfaction/5 × W1) + (ticket_resolution/100 × W2) + ((1 - grievance_rate) × W3)
+        -- Where W1, W2, W3 are configurable weights (default: 4.0, 2.5, 3.5)
         ROUND(
           (
-            COALESCE(sf.avg_satisfaction, 0) * 0.4 +
-            COALESCE(sr.completion_rate, 0) / 20 +
-            (5 - COALESCE(sf.grievance_count::numeric / NULLIF(sf.feedback_count::numeric, 0) * 5, 0))
+            (COALESCE(sf.avg_satisfaction, 0) / 5) * ${satWeight} +
+            (COALESCE(ts.resolution_rate, 0) / 100) * ${ticketWeight} +
+            (1 - COALESCE(sf.grievance_count::numeric / NULLIF(sf.feedback_count::numeric, 0), 0)) * ${grievWeight}
           )::numeric,
           2
         ) as overall_score
       FROM service_feedback_stats sf
-      LEFT JOIN service_request_stats sr ON sf.service_id = sr.service_id
+      LEFT JOIN ticket_stats ts ON sf.service_id = ts.service_id
       ORDER BY overall_score DESC
     `;
 
@@ -207,6 +217,11 @@ export async function GET(request: NextRequest) {
     const response = {
       filters: {
         entity_id: finalEntityId,
+      },
+      weights: {
+        satisfaction: satWeight * 10,
+        ticket_resolution: ticketWeight * 10,
+        grievance: grievWeight * 10,
       },
       overall: {
         top_5: top5Services,

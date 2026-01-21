@@ -96,26 +96,43 @@ interface ServiceLeaderboardData {
       service_id: string
       service_name: string
       entity_name: string
+      entity_id: string
       feedback_count: number
       avg_satisfaction: string
       grievance_count: number
-      request_count: number
-      completed_count: number
-      completion_rate: string
+      ticket_count: number
+      resolved_count: number
+      resolution_rate: string
+      grievance_rate: string
       overall_score: string
+      avg_ease: string
+      avg_clarity: string
+      avg_timeliness: string
+      avg_trust: string
     }>
     bottom_5: Array<{
       service_id: string
       service_name: string
       entity_name: string
+      entity_id: string
       feedback_count: number
       avg_satisfaction: string
       grievance_count: number
-      request_count: number
-      completed_count: number
-      completion_rate: string
+      ticket_count: number
+      resolved_count: number
+      resolution_rate: string
+      grievance_rate: string
       overall_score: string
+      avg_ease: string
+      avg_clarity: string
+      avg_timeliness: string
+      avg_trust: string
     }>
+  }
+  weights: {
+    satisfaction: number
+    ticket_resolution: number
+    grievance: number
   }
   by_satisfaction: Array<any>
   by_requests: Array<any>
@@ -720,11 +737,13 @@ export default function AnalyticsPage() {
                 services={leaderboardData.overall.top_5}
                 title="Top 5 Performing Services"
                 type="top"
+                weights={leaderboardData.weights}
               />
               <ServiceLeaderboard
                 services={leaderboardData.overall.bottom_5}
                 title="Bottom 5 Performing Services"
                 type="bottom"
+                weights={leaderboardData.weights}
               />
             </div>
 

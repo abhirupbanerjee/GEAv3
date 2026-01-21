@@ -264,6 +264,15 @@ SELECT * FROM (VALUES
 ) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'File Upload' LIMIT 1);
 
+-- Category: BUSINESS_RULES - Leaderboard
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('LEADERBOARD_SATISFACTION_WEIGHT', '40', 'number', 'BUSINESS_RULES', 'Leaderboard', 'Satisfaction Weight (%)', 'Weight for customer satisfaction in leaderboard score (0-100)', '40', 0, 100, true, 50),
+    ('LEADERBOARD_TICKET_RESOLUTION_WEIGHT', '25', 'number', 'BUSINESS_RULES', 'Leaderboard', 'Ticket Resolution Weight (%)', 'Weight for ticket resolution rate in leaderboard score (0-100)', '25', 0, 100, true, 51),
+    ('LEADERBOARD_GRIEVANCE_WEIGHT', '35', 'number', 'BUSINESS_RULES', 'Leaderboard', 'Grievance Penalty Weight (%)', 'Weight for grievance penalty in leaderboard score (0-100)', '35', 0, 100, true, 52)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Leaderboard' LIMIT 1);
+
 -- Category: CONTENT - Footer Links
 INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
 SELECT * FROM (VALUES
