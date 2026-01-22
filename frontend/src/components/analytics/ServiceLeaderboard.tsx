@@ -367,38 +367,86 @@ export default function ServiceLeaderboard({ services, title, type, weights }: S
                   {/* Section 3: Score Calculation */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Score Calculation</h3>
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="space-y-2 text-sm">
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+
+                      {/* Satisfaction Component */}
+                      <div className="border-b border-gray-200 pb-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">
-                            Satisfaction: ({serviceDetails.avg_satisfaction.toFixed(2)}/5) × {serviceDetails.weights.satisfaction / 10}
+                          <span className="font-medium text-gray-900">
+                            Satisfaction ({serviceDetails.weights.satisfaction}% weight)
                           </span>
                           <span className="font-semibold text-yellow-600">
                             +{serviceDetails.score_components.satisfaction_points.toFixed(2)} pts
                           </span>
                         </div>
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
+                          Formula: (satisfaction ÷ 5) × weight
+                        </p>
+                        <p className="text-sm text-gray-600 font-mono">
+                          Calculation: ({serviceDetails.avg_satisfaction.toFixed(2)} ÷ 5) × {serviceDetails.weights.satisfaction / 10} = {serviceDetails.score_components.satisfaction_points.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Average rating: {serviceDetails.avg_satisfaction.toFixed(2)}/5 stars
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Based on {serviceDetails.feedback_count} feedback submission{serviceDetails.feedback_count !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+
+                      {/* Resolution Component */}
+                      <div className="border-b border-gray-200 pb-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">
-                            Resolution: ({serviceDetails.resolution_rate.toFixed(1)}%/100) × {serviceDetails.weights.ticket_resolution / 10}
+                          <span className="font-medium text-gray-900">
+                            Ticket Resolution ({serviceDetails.weights.ticket_resolution}% weight)
                           </span>
                           <span className="font-semibold text-green-600">
                             +{serviceDetails.score_components.resolution_points.toFixed(2)} pts
                           </span>
                         </div>
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
+                          Formula: (resolution_rate ÷ 100) × weight
+                        </p>
+                        <p className="text-sm text-gray-600 font-mono">
+                          Calculation: ({serviceDetails.resolution_rate.toFixed(0)} ÷ 100) × {serviceDetails.weights.ticket_resolution / 10} = {serviceDetails.score_components.resolution_points.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Resolution rate: {serviceDetails.resolution_rate.toFixed(0)}% ({serviceDetails.resolved_count} of {serviceDetails.ticket_count} tickets closed)
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Measures support ticket resolution efficiency
+                        </p>
+                      </div>
+
+                      {/* Grievance Component */}
+                      <div className="border-b border-gray-200 pb-3">
                         <div className="flex justify-between items-center">
-                          <span className="text-gray-600">
-                            Grievance: (1 - {(serviceDetails.grievance_rate / 100).toFixed(2)}) × {serviceDetails.weights.grievance / 10}
+                          <span className="font-medium text-gray-900">
+                            Grievance Penalty ({serviceDetails.weights.grievance}% weight)
                           </span>
                           <span className="font-semibold text-blue-600">
                             +{serviceDetails.score_components.grievance_points.toFixed(2)} pts
                           </span>
                         </div>
-                        <div className="border-t border-gray-300 pt-2 mt-2 flex justify-between items-center">
-                          <span className="font-semibold text-gray-900">Total Score</span>
-                          <span className="text-xl font-bold text-gray-900">
-                            {serviceDetails.overall_score.toFixed(2)} / 10
-                          </span>
-                        </div>
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
+                          Formula: (1 - grievance_rate) × weight
+                        </p>
+                        <p className="text-sm text-gray-600 font-mono">
+                          Calculation: (1 - {(serviceDetails.grievance_rate / 100).toFixed(2)}) × {serviceDetails.weights.grievance / 10} = {serviceDetails.score_components.grievance_points.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Grievance rate: {serviceDetails.grievance_rate.toFixed(0)}% ({serviceDetails.grievance_count} of {serviceDetails.feedback_count} flagged as grievances)
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Lower grievance rate = higher score (rewards positive feedback)
+                        </p>
+                      </div>
+
+                      {/* Total Score */}
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="font-semibold text-gray-900">Total Score</span>
+                        <span className="text-xl font-bold text-gray-900">
+                          {serviceDetails.overall_score.toFixed(2)} / 10
+                        </span>
                       </div>
                     </div>
                   </div>
