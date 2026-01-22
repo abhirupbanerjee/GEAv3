@@ -213,6 +213,102 @@ export async function GET(request: NextRequest) {
 
     const topByGrievances = await pool.query(topByGrievancesQuery, params);
 
+    // Query 5: Dimension rankings - Top and Bottom for each rating dimension
+    // Using the same base CTE with min 2 feedback requirement
+    const dimensionRankingsQuery = `
+      WITH service_with_scores AS (
+        SELECT
+          s.service_id,
+          s.service_name,
+          e.entity_name,
+          e.unique_entity_id as entity_id,
+          COUNT(DISTINCT f.feedback_id) as feedback_count,
+          ROUND(AVG(f.q1_ease)::numeric, 2) as avg_ease,
+          ROUND(AVG(f.q2_clarity)::numeric, 2) as avg_clarity,
+          ROUND(AVG(f.q3_timeliness)::numeric, 2) as avg_timeliness,
+          ROUND(AVG(f.q4_trust)::numeric, 2) as avg_trust,
+          ROUND(AVG(f.q5_overall_satisfaction)::numeric, 2) as avg_satisfaction,
+          COUNT(CASE WHEN f.grievance_flag = TRUE THEN 1 END) as grievance_count,
+          COALESCE(ts.ticket_count, 0) as ticket_count,
+          COALESCE(ts.resolved_count, 0) as resolved_count,
+          COALESCE(ts.resolution_rate, 0) as resolution_rate,
+          ROUND(
+            COALESCE(COUNT(CASE WHEN f.grievance_flag = TRUE THEN 1 END)::numeric / NULLIF(COUNT(DISTINCT f.feedback_id)::numeric, 0) * 100, 0),
+            2
+          ) as grievance_rate,
+          ROUND(
+            (
+              (COALESCE(AVG(f.q5_overall_satisfaction), 0) / 5) * ${satWeight} +
+              (COALESCE(ts.resolution_rate, 0) / 100) * ${ticketWeight} +
+              (1 - COALESCE(COUNT(CASE WHEN f.grievance_flag = TRUE THEN 1 END)::numeric / NULLIF(COUNT(DISTINCT f.feedback_id)::numeric, 0), 0)) * ${grievWeight}
+            )::numeric,
+            2
+          ) as overall_score
+        FROM service_master s
+        JOIN entity_master e ON s.entity_id = e.unique_entity_id
+        LEFT JOIN service_feedback f ON s.service_id = f.service_id
+        LEFT JOIN (
+          SELECT
+            t.service_id,
+            COUNT(*) as ticket_count,
+            COUNT(*) FILTER (WHERE t.resolved_at IS NOT NULL) as resolved_count,
+            ROUND(
+              (COUNT(*) FILTER (WHERE t.resolved_at IS NOT NULL)::numeric /
+               NULLIF(COUNT(*)::numeric, 0) * 100),
+              2
+            ) as resolution_rate
+          FROM tickets t
+          WHERE t.service_id IS NOT NULL
+          ${conditions.length > 0 ? 'AND ' + conditions.map(c => c.replace('s.entity_id', 't.assigned_entity_id')).join(' AND ') : ''}
+          GROUP BY t.service_id
+        ) ts ON s.service_id = ts.service_id
+        ${whereClause}
+        GROUP BY s.service_id, s.service_name, e.entity_name, e.unique_entity_id, ts.ticket_count, ts.resolved_count, ts.resolution_rate
+        HAVING COUNT(DISTINCT f.feedback_id) >= 2
+      ),
+      -- Top for each dimension (DESC ordering)
+      top_ease AS (SELECT * FROM service_with_scores ORDER BY avg_ease DESC, overall_score DESC, feedback_count DESC, grievance_count ASC LIMIT 1),
+      top_clarity AS (SELECT * FROM service_with_scores ORDER BY avg_clarity DESC, overall_score DESC, feedback_count DESC, grievance_count ASC LIMIT 1),
+      top_timeliness AS (SELECT * FROM service_with_scores ORDER BY avg_timeliness DESC, overall_score DESC, feedback_count DESC, grievance_count ASC LIMIT 1),
+      top_trust AS (SELECT * FROM service_with_scores ORDER BY avg_trust DESC, overall_score DESC, feedback_count DESC, grievance_count ASC LIMIT 1),
+      top_satisfaction AS (SELECT * FROM service_with_scores ORDER BY avg_satisfaction DESC, overall_score DESC, feedback_count DESC, grievance_count ASC LIMIT 1),
+      -- Bottom for each dimension (ASC ordering with reversed tiebreakers)
+      bottom_ease AS (SELECT * FROM service_with_scores ORDER BY avg_ease ASC, overall_score ASC, feedback_count ASC, grievance_count DESC LIMIT 1),
+      bottom_clarity AS (SELECT * FROM service_with_scores ORDER BY avg_clarity ASC, overall_score ASC, feedback_count ASC, grievance_count DESC LIMIT 1),
+      bottom_timeliness AS (SELECT * FROM service_with_scores ORDER BY avg_timeliness ASC, overall_score ASC, feedback_count ASC, grievance_count DESC LIMIT 1),
+      bottom_trust AS (SELECT * FROM service_with_scores ORDER BY avg_trust ASC, overall_score ASC, feedback_count ASC, grievance_count DESC LIMIT 1),
+      bottom_satisfaction AS (SELECT * FROM service_with_scores ORDER BY avg_satisfaction ASC, overall_score ASC, feedback_count ASC, grievance_count DESC LIMIT 1)
+      SELECT
+        'ease_of_access' as dimension, 'top' as rank_type, te.* FROM top_ease te
+      UNION ALL SELECT 'ease_of_access', 'bottom', be.* FROM bottom_ease be
+      UNION ALL SELECT 'clear_info', 'top', tc.* FROM top_clarity tc
+      UNION ALL SELECT 'clear_info', 'bottom', bc.* FROM bottom_clarity bc
+      UNION ALL SELECT 'timeliness', 'top', tt.* FROM top_timeliness tt
+      UNION ALL SELECT 'timeliness', 'bottom', bt.* FROM bottom_timeliness bt
+      UNION ALL SELECT 'service_trust', 'top', ttr.* FROM top_trust ttr
+      UNION ALL SELECT 'service_trust', 'bottom', btr.* FROM bottom_trust btr
+      UNION ALL SELECT 'satisfaction', 'top', ts.* FROM top_satisfaction ts
+      UNION ALL SELECT 'satisfaction', 'bottom', bs.* FROM bottom_satisfaction bs
+    `;
+
+    const dimensionRankingsResult = await pool.query(dimensionRankingsQuery, params);
+
+    // Transform dimension rankings into structured object
+    const dimensionRankings: Record<string, { top: any; bottom: any }> = {
+      ease_of_access: { top: null, bottom: null },
+      clear_info: { top: null, bottom: null },
+      timeliness: { top: null, bottom: null },
+      service_trust: { top: null, bottom: null },
+      satisfaction: { top: null, bottom: null }
+    };
+
+    for (const row of dimensionRankingsResult.rows) {
+      const { dimension, rank_type, ...serviceData } = row;
+      if (dimensionRankings[dimension]) {
+        dimensionRankings[dimension][rank_type as 'top' | 'bottom'] = serviceData;
+      }
+    }
+
     // Compile response
     const response = {
       filters: {
@@ -230,6 +326,7 @@ export async function GET(request: NextRequest) {
       by_satisfaction: topBySatisfaction.rows,
       by_requests: topByRequests.rows,
       needs_attention: topByGrievances.rows,
+      dimension_rankings: dimensionRankings,
       total_services: allServices.length,
     };
 

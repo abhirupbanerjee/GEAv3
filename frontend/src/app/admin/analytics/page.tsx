@@ -137,13 +137,75 @@ interface ServiceLeaderboardData {
   by_satisfaction: Array<any>
   by_requests: Array<any>
   needs_attention: Array<any>
+  dimension_rankings: {
+    ease_of_access: { top: DimensionService | null; bottom: DimensionService | null }
+    clear_info: { top: DimensionService | null; bottom: DimensionService | null }
+    timeliness: { top: DimensionService | null; bottom: DimensionService | null }
+    service_trust: { top: DimensionService | null; bottom: DimensionService | null }
+    satisfaction: { top: DimensionService | null; bottom: DimensionService | null }
+  }
   total_services: number
+}
+
+interface DimensionService {
+  service_id: string
+  service_name: string
+  entity_name: string
+  entity_id: string
+  feedback_count: number
+  avg_ease: string
+  avg_clarity: string
+  avg_timeliness: string
+  avg_trust: string
+  avg_satisfaction: string
+  grievance_count: number
+  ticket_count: number
+  resolved_count: number
+  resolution_rate: string
+  grievance_rate: string
+  overall_score: string
 }
 
 interface Entity {
   unique_entity_id: string
   entity_name: string
   is_active?: boolean
+}
+
+// Service details for modal (same structure as ServiceLeaderboard component)
+interface ServiceDetails {
+  service_id: string
+  service_name: string
+  entity_name: string
+  avg_ease: number
+  avg_clarity: number
+  avg_timeliness: number
+  avg_trust: number
+  avg_satisfaction: number
+  feedback_count: number
+  ticket_count: number
+  resolved_count: number
+  grievance_count: number
+  resolution_rate: number
+  grievance_rate: number
+  overall_score: number
+  score_components: {
+    satisfaction_points: number
+    resolution_points: number
+    grievance_points: number
+  }
+  weights: {
+    satisfaction: number
+    ticket_resolution: number
+    grievance: number
+  }
+  recent_comments: Array<{
+    feedback_id: string
+    comment_text: string
+    satisfaction_rating: number
+    created_at: string
+    grievance_flag: boolean
+  }>
 }
 
 export default function AnalyticsPage() {
@@ -161,6 +223,12 @@ export default function AnalyticsPage() {
   const [showEntityDropdown, setShowEntityDropdown] = useState(false)
   const [entitySearchTerm, setEntitySearchTerm] = useState('')
   const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Service details modal state
+  const [selectedServiceId, setSelectedServiceId] = useState<string | null>(null)
+  const [serviceDetails, setServiceDetails] = useState<ServiceDetails | null>(null)
+  const [loadingDetails, setLoadingDetails] = useState(false)
+  const [showAllComments, setShowAllComments] = useState(false)
 
   const isStaff = session?.user?.roleType === 'staff'
   const isAdmin = session?.user?.roleType === 'admin'
@@ -269,6 +337,31 @@ export default function AnalyticsPage() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, selectedEntityIds])
+
+  // Fetch service details when a service is selected for modal
+  useEffect(() => {
+    if (selectedServiceId) {
+      setLoadingDetails(true)
+      setShowAllComments(false)
+      fetch(`/api/admin/service-leaderboard/${selectedServiceId}`)
+        .then(res => res.json())
+        .then(data => {
+          setServiceDetails(data)
+          setLoadingDetails(false)
+        })
+        .catch(err => {
+          console.error('Error fetching service details:', err)
+          setLoadingDetails(false)
+        })
+    } else {
+      setServiceDetails(null)
+    }
+  }, [selectedServiceId])
+
+  const closeModal = () => {
+    setSelectedServiceId(null)
+    setServiceDetails(null)
+  }
 
   if (loading) {
     return (
@@ -747,92 +840,77 @@ export default function AnalyticsPage() {
               />
             </div>
 
-            {/* Additional Leaderboards */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Top by Satisfaction */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="text-2xl">⭐</div>
-                  <h3 className="text-lg font-semibold text-gray-900">Highest Satisfaction</h3>
+            {/* Dimension Rankings Section */}
+            {leaderboardData.dimension_rankings && (
+              <div className="mt-8">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-gray-900">Rating Dimensions - Top & Bottom Performers</h3>
+                  <p className="text-sm text-gray-600">Best and worst performing services for each rating dimension (min. 2 feedback required)</p>
                 </div>
-                {leaderboardData.by_satisfaction.length > 0 ? (
-                  <div className="space-y-3">
-                    {leaderboardData.by_satisfaction.map((service, index) => (
-                      <div key={service.service_id} className="border-l-4 border-yellow-400 pl-3 py-2 bg-yellow-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{service.service_name}</p>
-                            <p className="text-xs text-gray-600 truncate">{service.entity_name}</p>
-                          </div>
-                          <div className="text-right ml-2">
-                            <p className="text-lg font-bold text-yellow-600">{parseFloat(service.avg_satisfaction).toFixed(1)}</p>
-                            <p className="text-xs text-gray-500">{service.feedback_count} reviews</p>
-                          </div>
+                <div className="space-y-4">
+                  {[
+                    { key: 'ease_of_access', label: 'Ease of Access', ratingKey: 'avg_ease' },
+                    { key: 'clear_info', label: 'Clear Information', ratingKey: 'avg_clarity' },
+                    { key: 'timeliness', label: 'Timeliness', ratingKey: 'avg_timeliness' },
+                    { key: 'service_trust', label: 'Service Trust', ratingKey: 'avg_trust' },
+                    { key: 'satisfaction', label: 'Overall Satisfaction', ratingKey: 'avg_satisfaction' },
+                  ].map((dimension) => {
+                    const data = leaderboardData.dimension_rankings[dimension.key as keyof typeof leaderboardData.dimension_rankings]
+                    return (
+                      <div key={dimension.key} className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+                        <h4 className="font-semibold text-gray-800 mb-3">{dimension.label}</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Top Performer */}
+                          {data.top ? (
+                            <div
+                              onClick={() => setSelectedServiceId(data.top!.service_id)}
+                              className="border-l-4 border-green-500 bg-green-50 rounded-r-lg p-3 cursor-pointer hover:bg-green-100 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-semibold text-green-700 uppercase">Top</span>
+                                <span className="text-lg font-bold text-green-700">
+                                  {parseFloat(data.top[dimension.ratingKey as keyof DimensionService] as string).toFixed(1)}/5
+                                </span>
+                              </div>
+                              <p className="font-medium text-gray-900 truncate">{data.top.service_name}</p>
+                              <p className="text-xs text-gray-600 truncate">{data.top.entity_name}</p>
+                              <p className="text-xs text-gray-500 mt-1">{data.top.feedback_count} reviews</p>
+                            </div>
+                          ) : (
+                            <div className="border-l-4 border-gray-300 bg-gray-50 rounded-r-lg p-3">
+                              <span className="text-xs font-semibold text-gray-500 uppercase">Top</span>
+                              <p className="text-sm text-gray-400 italic mt-1">No qualifying services</p>
+                            </div>
+                          )}
+                          {/* Bottom Performer */}
+                          {data.bottom ? (
+                            <div
+                              onClick={() => setSelectedServiceId(data.bottom!.service_id)}
+                              className="border-l-4 border-red-500 bg-red-50 rounded-r-lg p-3 cursor-pointer hover:bg-red-100 transition-colors"
+                            >
+                              <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-semibold text-red-700 uppercase">Bottom</span>
+                                <span className="text-lg font-bold text-red-700">
+                                  {parseFloat(data.bottom[dimension.ratingKey as keyof DimensionService] as string).toFixed(1)}/5
+                                </span>
+                              </div>
+                              <p className="font-medium text-gray-900 truncate">{data.bottom.service_name}</p>
+                              <p className="text-xs text-gray-600 truncate">{data.bottom.entity_name}</p>
+                              <p className="text-xs text-gray-500 mt-1">{data.bottom.feedback_count} reviews</p>
+                            </div>
+                          ) : (
+                            <div className="border-l-4 border-gray-300 bg-gray-50 rounded-r-lg p-3">
+                              <span className="text-xs font-semibold text-gray-500 uppercase">Bottom</span>
+                              <p className="text-sm text-gray-400 italic mt-1">No qualifying services</p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">No data available</p>
-                )}
-              </div>
-
-              {/* Most Requested Services */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="text-2xl">📊</div>
-                  <h3 className="text-lg font-semibold text-gray-900">Most Requested</h3>
+                    )
+                  })}
                 </div>
-                {leaderboardData.by_requests.length > 0 ? (
-                  <div className="space-y-3">
-                    {leaderboardData.by_requests.map((service, index) => (
-                      <div key={service.service_id} className="border-l-4 border-blue-400 pl-3 py-2 bg-blue-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{service.service_name}</p>
-                            <p className="text-xs text-gray-600 truncate">{service.entity_name}</p>
-                          </div>
-                          <div className="text-right ml-2">
-                            <p className="text-lg font-bold text-blue-600">{service.request_count}</p>
-                            <p className="text-xs text-gray-500">{parseFloat(service.completion_rate).toFixed(0)}% completed</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">No data available</p>
-                )}
               </div>
-
-              {/* Services Needing Attention */}
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="text-2xl">🚨</div>
-                  <h3 className="text-lg font-semibold text-gray-900">Needs Attention</h3>
-                </div>
-                {leaderboardData.needs_attention.length > 0 ? (
-                  <div className="space-y-3">
-                    {leaderboardData.needs_attention.map((service, index) => (
-                      <div key={service.service_id} className="border-l-4 border-red-400 pl-3 py-2 bg-red-50">
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{service.service_name}</p>
-                            <p className="text-xs text-gray-600 truncate">{service.entity_name}</p>
-                          </div>
-                          <div className="text-right ml-2">
-                            <p className="text-lg font-bold text-red-600">{service.grievance_count}</p>
-                            <p className="text-xs text-gray-500">{parseFloat(service.grievance_rate).toFixed(0)}% grievances</p>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 text-center py-4">No grievances</p>
-                )}
-              </div>
-            </div>
+            )}
 
             {/* Stats Summary */}
             {leaderboardData.total_services > 0 && (
@@ -857,6 +935,228 @@ export default function AnalyticsPage() {
         )}
 
       </div>
+
+      {/* Service Details Modal */}
+      {selectedServiceId && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={closeModal}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-gray-900">
+                  {serviceDetails?.service_name || 'Loading...'}
+                </h2>
+                {serviceDetails && (
+                  <p className="text-sm text-gray-600">{serviceDetails.entity_name}</p>
+                )}
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="px-6 py-4">
+              {loadingDetails ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-3 text-gray-600">Loading service details...</span>
+                </div>
+              ) : serviceDetails ? (
+                <div className="space-y-6">
+                  {/* Rating Dimensions */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Rating Dimensions</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                      {[
+                        { label: 'Ease of Access', value: serviceDetails.avg_ease, color: 'blue' },
+                        { label: 'Clear Info', value: serviceDetails.avg_clarity, color: 'purple' },
+                        { label: 'Timeliness', value: serviceDetails.avg_timeliness, color: 'orange' },
+                        { label: 'Service Trust', value: serviceDetails.avg_trust, color: 'teal' },
+                        { label: 'Satisfaction', value: serviceDetails.avg_satisfaction, color: 'yellow' },
+                      ].map((dim) => (
+                        <div key={dim.label} className={`bg-${dim.color}-50 rounded-lg p-3`}>
+                          <p className="text-xs text-gray-600 mb-1">{dim.label}</p>
+                          <p className={`text-xl font-bold text-${dim.color}-600`}>
+                            {dim.value.toFixed(1)}<span className="text-sm font-normal text-gray-500">/5</span>
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Metrics Summary */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Metrics Summary</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <div className="bg-blue-50 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-blue-600">{serviceDetails.feedback_count}</p>
+                        <p className="text-sm text-gray-600">Feedback Received</p>
+                      </div>
+                      <div className="bg-green-50 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-green-600">{serviceDetails.ticket_count}</p>
+                        <p className="text-sm text-gray-600">Tickets Received</p>
+                      </div>
+                      <div className="bg-purple-50 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-purple-600">{serviceDetails.resolved_count}</p>
+                        <p className="text-sm text-gray-600">Tickets Closed</p>
+                      </div>
+                      <div className="bg-red-50 rounded-lg p-4 text-center">
+                        <p className="text-2xl font-bold text-red-600">{serviceDetails.grievance_count}</p>
+                        <p className="text-sm text-gray-600">Grievances</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Score Calculation */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Score Calculation</h3>
+                    <div className="bg-gray-50 rounded-lg p-4 space-y-4">
+                      {/* Satisfaction Component */}
+                      <div className="border-b border-gray-200 pb-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-gray-900">
+                            Satisfaction ({serviceDetails.weights.satisfaction}% weight)
+                          </span>
+                          <span className="font-semibold text-yellow-600">
+                            +{serviceDetails.score_components.satisfaction_points.toFixed(2)} pts
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
+                          Formula: (satisfaction ÷ 5) × weight
+                        </p>
+                        <p className="text-sm text-gray-600 font-mono">
+                          Calculation: ({serviceDetails.avg_satisfaction.toFixed(2)} ÷ 5) × {serviceDetails.weights.satisfaction / 10} = {serviceDetails.score_components.satisfaction_points.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Average rating: {serviceDetails.avg_satisfaction.toFixed(2)}/5 stars
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Based on {serviceDetails.feedback_count} feedback submission{serviceDetails.feedback_count !== 1 ? 's' : ''}
+                        </p>
+                      </div>
+
+                      {/* Resolution Component */}
+                      <div className="border-b border-gray-200 pb-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-gray-900">
+                            Ticket Resolution ({serviceDetails.weights.ticket_resolution}% weight)
+                          </span>
+                          <span className="font-semibold text-green-600">
+                            +{serviceDetails.score_components.resolution_points.toFixed(2)} pts
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
+                          Formula: (resolution_rate ÷ 100) × weight
+                        </p>
+                        <p className="text-sm text-gray-600 font-mono">
+                          Calculation: ({serviceDetails.resolution_rate.toFixed(0)} ÷ 100) × {serviceDetails.weights.ticket_resolution / 10} = {serviceDetails.score_components.resolution_points.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Resolution rate: {serviceDetails.resolution_rate.toFixed(0)}% ({serviceDetails.resolved_count} of {serviceDetails.ticket_count} tickets closed)
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Measures support ticket resolution efficiency
+                        </p>
+                      </div>
+
+                      {/* Grievance Component */}
+                      <div className="border-b border-gray-200 pb-3">
+                        <div className="flex justify-between items-center">
+                          <span className="font-medium text-gray-900">
+                            Grievance Penalty ({serviceDetails.weights.grievance}% weight)
+                          </span>
+                          <span className="font-semibold text-blue-600">
+                            +{serviceDetails.score_components.grievance_points.toFixed(2)} pts
+                          </span>
+                        </div>
+                        <p className="text-xs text-gray-400 mt-1 font-mono">
+                          Formula: (1 - grievance_rate) × weight
+                        </p>
+                        <p className="text-sm text-gray-600 font-mono">
+                          Calculation: (1 - {(serviceDetails.grievance_rate / 100).toFixed(2)}) × {serviceDetails.weights.grievance / 10} = {serviceDetails.score_components.grievance_points.toFixed(2)}
+                        </p>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Grievance rate: {serviceDetails.grievance_rate.toFixed(0)}% ({serviceDetails.grievance_count} of {serviceDetails.feedback_count} flagged as grievances)
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Lower grievance rate = higher score (rewards positive feedback)
+                        </p>
+                      </div>
+
+                      {/* Total Score */}
+                      <div className="flex justify-between items-center pt-1">
+                        <span className="font-semibold text-gray-900">Total Score</span>
+                        <span className="text-xl font-bold text-gray-900">
+                          {serviceDetails.overall_score.toFixed(2)} / 10
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Recent Comments */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                      Recent Feedback Comments
+                      {serviceDetails.recent_comments.length > 0 && (
+                        <span className="text-sm font-normal text-gray-500 ml-2">
+                          ({serviceDetails.recent_comments.length} comments)
+                        </span>
+                      )}
+                    </h3>
+                    {serviceDetails.recent_comments.length === 0 ? (
+                      <p className="text-gray-500 text-sm italic">No comments available</p>
+                    ) : (
+                      <div className="space-y-3">
+                        {serviceDetails.recent_comments
+                          .slice(0, showAllComments ? 20 : 5)
+                          .map((comment) => (
+                            <div
+                              key={comment.feedback_id}
+                              className={`border-l-4 ${comment.grievance_flag ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-gray-50'} rounded-r-lg p-3`}
+                            >
+                              <p className="text-sm text-gray-700">{comment.comment_text}</p>
+                              <div className="flex items-center justify-between mt-2 text-xs text-gray-500">
+                                <span>{new Date(comment.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{comment.satisfaction_rating}/5</span>
+                                  {comment.grievance_flag && (
+                                    <span className="px-2 py-0.5 bg-red-200 text-red-800 rounded text-xs">Grievance</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        {serviceDetails.recent_comments.length > 5 && (
+                          <button
+                            onClick={() => setShowAllComments(!showAllComments)}
+                            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                          >
+                            {showAllComments ? 'Show less' : `Show ${serviceDetails.recent_comments.length - 5} more comments`}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  Failed to load service details
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
