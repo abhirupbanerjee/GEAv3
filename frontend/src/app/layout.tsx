@@ -48,7 +48,7 @@ export default function RootLayout({
             <div className="relative z-[100] pointer-events-auto">
               <Header />
             </div>
-            <main className="min-h-screen relative z-0">
+            <main className="min-h-screen relative z-0 pt-16">
               {children}
             </main>
             <Footer />

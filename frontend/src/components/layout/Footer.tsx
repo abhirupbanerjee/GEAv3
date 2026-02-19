@@ -119,9 +119,14 @@ export default function Footer() {
             <h3 className="font-semibold text-lg mb-4">General Information</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/about" className="text-gray-400 hover:text-white transition-colors">
+                <a
+                  href="https://www.gov.gd/grenada"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
                   About Grenada
-                </Link>
+                </a>
               </li>
               <li>
                 <a
