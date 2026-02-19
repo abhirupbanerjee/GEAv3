@@ -152,7 +152,8 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
   const handleClearFilters = () => {
     setSearchTerm('')
     onFilterChange({
-      entity_id: isAdmin ? null : userEntityId || null,
+      view: currentFilters.view,
+      entity_id: userEntityId || null,
       service_id: null,
       status: null,
       priority: null,

@@ -303,6 +303,12 @@ const navigationItems: NavigationItem[] = [
     ],
   },
   {
+    label: 'Submit Feedback',
+    href: '/admin/feedback/submit',
+    icon: <FeedbackIcon />,
+    requiredRole: null,  // Both admin and staff can access
+  },
+  {
     label: 'Settings',
     href: '/admin/settings',
     icon: <SettingsIcon />,
@@ -319,12 +325,6 @@ const navigationItems: NavigationItem[] = [
       { label: 'AI Bots', tabKey: 'AI_BOTS', href: '/admin/ai-inventory' },
       { label: 'Backups', tabKey: 'DATABASE' },
     ],
-  },
-  {
-    label: 'Submit Feedback',
-    href: '/admin/feedback/submit',
-    icon: <FeedbackIcon />,
-    requiredRole: null,  // Both admin and staff can access
   },
 ]
 

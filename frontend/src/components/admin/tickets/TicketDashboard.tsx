@@ -9,6 +9,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useTickets } from '@/hooks/useTickets'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { useChatContext } from '@/hooks/useChatContext'
@@ -22,6 +23,7 @@ export function TicketDashboard() {
   // URL params for tab handling (Feature 1.5) - controlled via sidebar navigation
   const searchParams = useSearchParams()
   const tabFromUrl = searchParams.get('tab') as 'received' | 'submitted' | null
+  const { data: session } = useSession()
 
   // State - view defaults to 'received'
   const [filters, setFilters] = useState<TicketFilters>({
@@ -32,6 +34,7 @@ export function TicketDashboard() {
     priority: null,
     search: null
   })
+  const [isInitialized, setIsInitialized] = useState(false)
   const [sort, setSort] = useState<TicketSort>({
     by: 'created_at',
     order: 'desc'
@@ -50,6 +53,21 @@ export function TicketDashboard() {
       return prev
     })
   }, [tabFromUrl])
+
+  // Initialize entity_id filter from user's session
+  useEffect(() => {
+    if (session?.user && !isInitialized) {
+      const userEntityId = session.user.entityId
+      if (userEntityId) {
+        // Set entity_id for both admin and staff users
+        setFilters((prev) => ({
+          ...prev,
+          entity_id: userEntityId
+        }))
+      }
+      setIsInitialized(true)
+    }
+  }, [session, isInitialized])
 
   // Chat context
   const { openModal, closeModal } = useChatContext()
