@@ -192,6 +192,7 @@ export async function PUT(
       updates.push(`updated_at = NOW()`)
 
       // 4. Execute ticket update if there are field changes
+      let updatedTicket
       if (updates.length > 1) { // More than just updated_at
         updateParams.push(ticketId)
         const updateQuery = `
@@ -201,14 +202,14 @@ export async function PUT(
           RETURNING ticket_id, ticket_number, status_id, priority_id, updated_at
         `
         const updateResult = await client.query(updateQuery, updateParams)
-        const updatedTicket = updateResult.rows[0]
+        updatedTicket = updateResult.rows[0]
       } else {
         // Just update timestamp
         const timestampUpdate = await client.query(
           'UPDATE tickets SET updated_at = NOW() WHERE ticket_id = $1 RETURNING ticket_id, ticket_number, status_id, priority_id, updated_at',
           [ticketId]
         )
-        const updatedTicket = timestampUpdate.rows[0]
+        updatedTicket = timestampUpdate.rows[0]
       }
 
       // 5. Add internal note if provided
