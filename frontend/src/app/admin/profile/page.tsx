@@ -28,6 +28,7 @@ import {
   FiActivity,
   FiChevronRight,
 } from 'react-icons/fi';
+import RoleAvatar from '@/components/profile/RoleAvatar';
 
 interface Profile {
   id: string;
@@ -179,9 +180,12 @@ export default function AdminProfilePage() {
         {/* Profile Header */}
         <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8">
           <div className="flex items-center gap-4">
-            <div className="w-20 h-20 bg-white/20 backdrop-blur rounded-full flex items-center justify-center">
-              <FiUser className="w-10 h-10 text-white" />
-            </div>
+            <RoleAvatar
+              userName={profile?.name || 'User'}
+              userRole={profile?.roleType as 'admin' | 'staff'}
+              size="xl"
+              showIcon={true}
+            />
             <div className="text-white">
               <h2 className="text-xl font-semibold">{profile?.name || 'User'}</h2>
               <p className="text-white/80 text-sm">{profile?.email}</p>

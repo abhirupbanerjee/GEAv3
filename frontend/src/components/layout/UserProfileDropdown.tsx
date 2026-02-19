@@ -2,6 +2,7 @@
 
 import { useSession, signOut } from 'next-auth/react'
 import { useState, useEffect, useRef } from 'react'
+import RoleAvatar from '@/components/profile/RoleAvatar'
 
 export default function UserProfileDropdown() {
   const { data: session } = useSession()
@@ -94,11 +95,11 @@ export default function UserProfileDropdown() {
         aria-haspopup="true"
       >
         {/* Avatar */}
-        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
-          <span className="text-white font-semibold text-sm">
-            {userInitial}
-          </span>
-        </div>
+        <RoleAvatar
+          userName={session.user.name || 'User'}
+          userRole={session.user.roleType as 'admin' | 'staff'}
+          size="sm"
+        />
 
         {/* Name (hidden on mobile) */}
         <span className="hidden md:block text-sm font-medium text-gray-700">
@@ -126,11 +127,11 @@ export default function UserProfileDropdown() {
           {/* User Info Section */}
           <div className="px-4 py-3 border-b border-gray-200">
             <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center shadow-sm">
-                <span className="text-white font-semibold text-lg">
-                  {userInitial}
-                </span>
-              </div>
+              <RoleAvatar
+                userName={session.user.name || 'User'}
+                userRole={session.user.roleType as 'admin' | 'staff'}
+                size="md"
+              />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-gray-900 truncate">
                   {session.user.name || 'User'}
