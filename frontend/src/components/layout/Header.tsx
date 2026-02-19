@@ -97,7 +97,7 @@ export default function Header() {
   })
 
   return (
-    <header className={`bg-white shadow-sm fixed top-0 left-0 right-0 z-50 transition-all duration-200 ${
+    <header className={`bg-white shadow-sm fixed top-0 left-0 right-0 z-40 transition-all duration-200 ${
       showSidebarMargin ? (isCollapsed ? 'md:ml-16' : 'md:ml-64') : ''
     }`}>
       <div className="container mx-auto px-4">

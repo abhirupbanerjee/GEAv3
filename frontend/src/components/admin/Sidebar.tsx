@@ -447,7 +447,7 @@ function SidebarContent() {
           }
         }}
         className={`
-          fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col
+          fixed left-0 top-16 z-40 bg-gray-50 border-r border-gray-200 flex flex-col
           transition-all duration-200 ease-in-out
           h-[calc(100vh-4rem)]
           ${isCollapsed ? 'w-16 cursor-pointer' : 'w-64'}
@@ -498,7 +498,7 @@ function SidebarContent() {
 // Fallback loading state for Suspense (collapsed view by default)
 function SidebarFallback() {
   return (
-    <div className="fixed left-0 top-16 z-50 bg-gray-50 border-r border-gray-200 flex flex-col h-[calc(100vh-4rem)] w-16">
+    <div className="fixed left-0 top-16 z-40 bg-gray-50 border-r border-gray-200 flex flex-col h-[calc(100vh-4rem)] w-16">
       <div className="flex items-center justify-end p-2 border-b border-gray-200 bg-white">
         <div className="w-5 h-5" />
       </div>

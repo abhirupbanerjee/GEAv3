@@ -92,7 +92,7 @@ export default function Footer() {
   }
 
   return (
-    <footer className={`bg-gray-900 text-white relative z-50 transition-all duration-200 ${
+    <footer className={`bg-gray-900 text-white relative z-40 transition-all duration-200 ${
       showSidebarMargin ? (isCollapsed ? 'md:ml-16' : 'md:ml-64') : ''
     }`}>
       <div className="container-custom py-12">
