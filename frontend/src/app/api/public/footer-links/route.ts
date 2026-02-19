@@ -1,42 +1,52 @@
 /**
- * GEA Portal - Public Footer Links API
+ * GEA Portal - Public Footer Configuration API
  *
- * GET /api/public/footer-links - Get footer links (no auth required)
+ * GET /api/public/footer-links - Get complete footer configuration (no auth required)
  *
- * Returns the configured footer URLs from system settings.
- * Falls back to environment variables or defaults if DB unavailable.
+ * Returns the configured footer data from system settings including:
+ * - Government section text
+ * - Quick Links (labels + URLs)
+ * - General Information links (labels + URLs)
+ * - Copyright text
+ *
+ * Falls back to defaults if DB unavailable.
  */
 
 import { NextResponse } from 'next/server';
-import { getFooterLinks } from '@/lib/settings';
+import { getFooterConfiguration } from '@/lib/settings';
 
 export async function GET() {
   try {
-    const links = await getFooterLinks();
+    const footerConfig = await getFooterConfiguration();
 
     return NextResponse.json({
       success: true,
-      links: {
-        quickLinks: [
-          { label: 'GoG', url: links.gogUrl },
-          { label: 'eServices', url: links.eservicesUrl },
-          { label: 'Constitution', url: links.constitutionUrl },
-        ],
-      },
+      footer: footerConfig,
     });
   } catch (error) {
-    console.error('Error fetching footer links:', error);
+    console.error('Error fetching footer configuration:', error);
 
     // Return fallback values
+    const currentYear = new Date().getFullYear();
     return NextResponse.json({
       success: true,
-      links: {
-        quickLinks: [
+      footer: {
+        government_text: '',
+        quick_links: [
           { label: 'GoG', url: 'https://www.gov.gd/' },
           { label: 'eServices', url: 'https://eservice.gov.gd/' },
           { label: 'Constitution', url: 'https://grenadaparliament.gd/ova_doc/' },
         ],
+        general_info_links: [
+          { label: 'About Grenada', url: 'https://www.gov.gd/grenada' },
+          { label: 'Facts', url: 'https://www.gov.gd/' },
+          { label: 'Emergency Info', url: '#' },
+        ],
+        copyright_text: `© ${currentYear} Digital Transformation Agency (DTA) All rights reserved.`,
       },
     });
   }
 }
+
+// Cache for 5 minutes (matches settings cache TTL)
+export const revalidate = 300;

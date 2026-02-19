@@ -1,11 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { usePathname } from 'next/navigation'
 import { useSession } from 'next-auth/react'
-import { footerLinks as staticFooterLinks } from '@/config/content'
-import { config } from '@/config/env'
 import { useSidebarState } from '@/hooks/useSidebarState'
 
 interface FooterLink {
@@ -13,12 +10,18 @@ interface FooterLink {
   url: string
 }
 
+interface FooterConfiguration {
+  government_text: string
+  quick_links: FooterLink[]
+  general_info_links: FooterLink[]
+  copyright_text: string
+}
+
 export default function Footer() {
   const pathname = usePathname()
   const { data: session } = useSession()
   const { isCollapsed } = useSidebarState()
-  const [quickLinks, setQuickLinks] = useState<FooterLink[]>(staticFooterLinks.quickLinks)
-  const [gogUrl, setGogUrl] = useState(config.GOG_URL)
+  const [footerConfig, setFooterConfig] = useState<FooterConfiguration | null>(null)
   const [isCitizenAuth, setIsCitizenAuth] = useState(false)
 
   // Hide footer on citizen portal pages (they have their own layout)
@@ -48,33 +51,43 @@ export default function Footer() {
     }
   }, [session])
 
-  // Fetch dynamic footer links from settings API
+  // Fetch dynamic footer configuration from settings API
   useEffect(() => {
-    const fetchFooterLinks = async () => {
+    const fetchFooterConfig = async () => {
       try {
         const response = await fetch('/api/public/footer-links')
         if (response.ok) {
           const data = await response.json()
-          if (data.success && data.links?.quickLinks) {
-            setQuickLinks(data.links.quickLinks)
-            // Update GoG URL for Facts link
-            const gogLink = data.links.quickLinks.find((l: FooterLink) => l.label === 'GoG')
-            if (gogLink) {
-              setGogUrl(gogLink.url)
-            }
+          if (data.success && data.footer) {
+            setFooterConfig(data.footer)
           }
         }
       } catch (error) {
-        // Keep static fallback on error
-        console.error('Failed to fetch footer links:', error)
+        // Set fallback defaults on error
+        console.error('Failed to fetch footer configuration:', error)
+        const currentYear = new Date().getFullYear()
+        setFooterConfig({
+          government_text: '',
+          quick_links: [
+            { label: 'GoG', url: 'https://www.gov.gd/' },
+            { label: 'eServices', url: 'https://eservice.gov.gd/' },
+            { label: 'Constitution', url: 'https://grenadaparliament.gd/ova_doc/' },
+          ],
+          general_info_links: [
+            { label: 'About Grenada', url: 'https://www.gov.gd/grenada' },
+            { label: 'Facts', url: 'https://www.gov.gd/' },
+            { label: 'Emergency Info', url: '#' },
+          ],
+          copyright_text: `© ${currentYear} Digital Transformation Agency (DTA) All rights reserved.`,
+        })
       }
     }
-    fetchFooterLinks()
+    fetchFooterConfig()
   }, [])
 
   // Don't render on citizen routes or when any user is logged in
   const isAuthenticated = !!session || isCitizenAuth
-  if (isCitizenRoute || isAuthenticated) {
+  if (isCitizenRoute || isAuthenticated || !footerConfig) {
     return null
   }
 
@@ -93,14 +106,19 @@ export default function Footer() {
                 <div className="text-sm text-gray-400">EA Portal</div>
               </div>
             </div>
+            {footerConfig.government_text && (
+              <p className="text-sm text-gray-400 mt-2">
+                {footerConfig.government_text}
+              </p>
+            )}
           </div>
 
           {/* Quick Links */}
           <div>
             <h3 className="font-semibold text-lg mb-4">Quick Links</h3>
             <ul className="space-y-2">
-              {quickLinks.map((link) => (
-                <li key={link.label}>
+              {footerConfig.quick_links.map((link, index) => (
+                <li key={`quick-${index}`}>
                   <a
                     href={link.url}
                     target="_blank"
@@ -118,41 +136,25 @@ export default function Footer() {
           <div>
             <h3 className="font-semibold text-lg mb-4">General Information</h3>
             <ul className="space-y-2">
-              <li>
-                <a
-                  href="https://www.gov.gd/grenada"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  About Grenada
-                </a>
-              </li>
-              <li>
-                <a
-                  href={gogUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Facts
-                </a>
-              </li>
-              <li>
-                <a
-                  href="#"
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  Emergency Info
-                </a>
-              </li>
+              {footerConfig.general_info_links.map((link, index) => (
+                <li key={`info-${index}`}>
+                  <a
+                    href={link.url}
+                    target={link.url.startsWith('#') ? '_self' : '_blank'}
+                    rel={link.url.startsWith('#') ? undefined : 'noopener noreferrer'}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    {link.label}
+                  </a>
+                </li>
+              ))}
             </ul>
           </div>
         </div>
 
         {/* Copyright */}
         <div className="mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-          © {config.COPYRIGHT_YEAR} Digital Transformation Agency (DTA) All rights reserved.
+          {footerConfig.copyright_text}
         </div>
       </div>
     </footer>

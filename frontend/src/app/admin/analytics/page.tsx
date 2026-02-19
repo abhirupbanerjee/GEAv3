@@ -393,6 +393,11 @@ export default function AnalyticsPage() {
 
   // Entity filter handlers
   const toggleEntity = (entityId: string) => {
+    // Prevent removal of default entity
+    if (entityId === session?.user?.entityId) {
+      return
+    }
+
     setSelectedEntityIds(prev =>
       prev.includes(entityId)
         ? prev.filter(id => id !== entityId)
@@ -409,7 +414,8 @@ export default function AnalyticsPage() {
   }
 
   const clearEntities = () => {
-    setSelectedEntityIds([])
+    // Keep the default entity when clearing
+    setSelectedEntityIds(session?.user?.entityId ? [session.user.entityId] : [])
   }
 
   const filteredEntities = entities.filter(e =>
@@ -544,23 +550,55 @@ export default function AnalyticsPage() {
             {/* Active filters display - show max 3 chips + count */}
             {selectedEntityIds.length > 0 && (
               <div className="mt-4 flex flex-wrap items-center gap-2">
-                {selectedEntityIds.slice(0, 3).map((entityId) => {
-                  const entity = entities.find(e => e.unique_entity_id === entityId)
-                  return entity ? (
-                    <span
-                      key={entityId}
-                      className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
-                    >
-                      {entity.entity_name}
-                      <button
-                        onClick={() => toggleEntity(entityId)}
-                        className="hover:text-blue-900"
+                {/* Sort to show default entity first */}
+                {[...selectedEntityIds]
+                  .sort((a, b) => {
+                    if (a === session?.user?.entityId) return -1
+                    if (b === session?.user?.entityId) return 1
+                    return 0
+                  })
+                  .slice(0, 3)
+                  .map((entityId) => {
+                    const entity = entities.find(e => e.unique_entity_id === entityId)
+                    const isDefault = entityId === session?.user?.entityId
+
+                    return entity ? (
+                      <span
+                        key={entityId}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1 text-sm rounded-full ${
+                          isDefault
+                            ? 'bg-gray-100 text-gray-700 border border-gray-300'
+                            : 'bg-blue-100 text-blue-800'
+                        }`}
+                        title={isDefault ? 'Your default entity (cannot be removed)' : undefined}
                       >
-                        ×
-                      </button>
-                    </span>
-                  ) : null
-                })}
+                        {isDefault && (
+                          <svg
+                            className="w-3 h-3"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            aria-hidden="true"
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        )}
+                        {entity.entity_name}
+                        {!isDefault && (
+                          <button
+                            onClick={() => toggleEntity(entityId)}
+                            className="hover:text-blue-900"
+                            aria-label={`Remove ${entity.entity_name}`}
+                          >
+                            ×
+                          </button>
+                        )}
+                      </span>
+                    ) : null
+                  })}
                 {selectedEntityIds.length > 3 && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">
                     + {selectedEntityIds.length - 3} more selected

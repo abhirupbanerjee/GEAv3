@@ -52,6 +52,18 @@ export interface CachedSetting {
   expires: number;
 }
 
+export interface FooterLink {
+  label: string;
+  url: string;
+}
+
+export interface FooterConfiguration {
+  government_text: string;
+  quick_links: FooterLink[];
+  general_info_links: FooterLink[];
+  copyright_text: string;
+}
+
 // ============================================================================
 // Cache Configuration
 // ============================================================================
@@ -563,19 +575,60 @@ export async function getSendGridSettings(): Promise<{
 }
 
 /**
- * Get footer link settings
+ * Get complete footer configuration
+ * Provides structured data for all footer sections with labels and URLs
  */
-export async function getFooterLinks(): Promise<{
-  gogUrl: string;
-  eservicesUrl: string;
-  constitutionUrl: string;
-}> {
-  const settings = await getSettings(['GOG_URL', 'ESERVICES_URL', 'CONSTITUTION_URL']);
+export async function getFooterConfiguration(): Promise<FooterConfiguration> {
+  const settings = await getSettings([
+    'FOOTER_GOVERNMENT_TEXT',
+    'GOG_URL',
+    'ESERVICES_URL',
+    'CONSTITUTION_URL',
+    'QUICK_LINK_1_LABEL',
+    'QUICK_LINK_2_LABEL',
+    'QUICK_LINK_3_LABEL',
+    'GENERAL_INFO_1_LABEL',
+    'GENERAL_INFO_1_URL',
+    'GENERAL_INFO_2_LABEL',
+    'GENERAL_INFO_2_URL',
+    'GENERAL_INFO_3_LABEL',
+    'GENERAL_INFO_3_URL',
+    'FOOTER_COPYRIGHT_TEXT',
+  ]);
 
   return {
-    gogUrl: (settings['GOG_URL'] as string) || 'https://www.gov.gd/',
-    eservicesUrl: (settings['ESERVICES_URL'] as string) || 'https://eservice.gov.gd/',
-    constitutionUrl: (settings['CONSTITUTION_URL'] as string) || 'https://grenadaparliament.gd/ova_doc/',
+    government_text: (settings['FOOTER_GOVERNMENT_TEXT'] as string) || '',
+    quick_links: [
+      {
+        label: (settings['QUICK_LINK_1_LABEL'] as string) || 'GoG',
+        url: (settings['GOG_URL'] as string) || 'https://www.gov.gd/',
+      },
+      {
+        label: (settings['QUICK_LINK_2_LABEL'] as string) || 'eServices',
+        url: (settings['ESERVICES_URL'] as string) || 'https://eservice.gov.gd/',
+      },
+      {
+        label: (settings['QUICK_LINK_3_LABEL'] as string) || 'Constitution',
+        url: (settings['CONSTITUTION_URL'] as string) || 'https://grenadaparliament.gd/ova_doc/',
+      },
+    ],
+    general_info_links: [
+      {
+        label: (settings['GENERAL_INFO_1_LABEL'] as string) || 'About Grenada',
+        url: (settings['GENERAL_INFO_1_URL'] as string) || 'https://www.gov.gd/grenada',
+      },
+      {
+        label: (settings['GENERAL_INFO_2_LABEL'] as string) || 'Facts',
+        url: (settings['GENERAL_INFO_2_URL'] as string) || 'https://www.gov.gd/',
+      },
+      {
+        label: (settings['GENERAL_INFO_3_LABEL'] as string) || 'Emergency Info',
+        url: (settings['GENERAL_INFO_3_URL'] as string) || '#',
+      },
+    ],
+    copyright_text:
+      (settings['FOOTER_COPYRIGHT_TEXT'] as string) ||
+      `© ${new Date().getFullYear()} Digital Transformation Agency (DTA) All rights reserved.`,
   };
 }
 
@@ -736,7 +789,7 @@ export default {
   getRateLimitSettings,
   getThresholdSettings,
   getSendGridSettings,
-  getFooterLinks,
+  getFooterConfiguration,
   getAnalyticsCacheSettings,
   getTwilioSettings,
   getCitizenLoginSettings,
