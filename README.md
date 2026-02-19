@@ -241,6 +241,7 @@ traefik       traefik:v3.6                     Up X minutes              0.0.0.0
 **Frontend:**
 - Next.js 16 (TypeScript) with App Router
 - React 18 with Server Components
+- React Portals for modals (CSS stacking context solution)
 - Tailwind CSS for styling
 - Zod for schema validation
 - NextAuth for authentication
@@ -267,6 +268,7 @@ gogeaportal/v3/
 │
 ├── 📄 Documentation
 │   ├── README.md                          # This file
+│   ├── z-index-review.md                  # Z-index hierarchy & modal portal guide
 │   ├── .env.example                       # Environment template
 │   └── docs/
 │       ├── index.md                       # Complete documentation index
@@ -288,7 +290,8 @@ gogeaportal/v3/
 │       │   ├── API_DEVELOPMENT_PATTERNS.md  # API development patterns
 │       │   ├── DATABASE_QUERY_PATTERNS.md  # Database operations guide
 │       │   ├── TESTING_GUIDE.md           # Testing procedures
-│       │   └── ERROR_HANDLING_PATTERNS.md  # Error handling guide
+│       │   ├── ERROR_HANDLING_PATTERNS.md  # Error handling guide
+│       │   └── ../z-index-review.md       # Z-index & React Portal patterns (root)
 │       ├── user-manuals/                  # User Documentation
 │       │   ├── GEA_Portal_Master_User_Manual.md  # Master index
 │       │   ├── GEA_Portal_Anonymous_User_Manual.md  # Public users
@@ -837,6 +840,60 @@ export const navigationItems: NavItem[] = [
 ```bash
 docker compose up -d --build frontend
 ```
+
+---
+
+## 🎨 UI Development Patterns
+
+### Z-Index Hierarchy
+
+The application uses a **standardized z-index scale** to ensure proper layering of UI elements:
+
+```
+z-[102] - Modal Content (dialog boxes)          ← Highest
+z-[101] - Modal Overlays (dark background)
+z-[100] - ChatBot container
+z-50    - Dropdown menus (user profile, settings)
+z-40    - Header, Footer, Sidebar
+z-30    - Citizen Portal header
+z-20    - Tooltips
+z-10    - Autocomplete dropdowns
+z-0     - Main content area
+relative - Default elements                      ← Lowest
+```
+
+### React Portals for Modals
+
+All modals use **React Portals** (`createPortal` from `react-dom`) to render at the document body level, bypassing CSS stacking contexts:
+
+```typescript
+// BaseModal implementation
+'use client';
+import { createPortal } from 'react-dom';
+
+export function BaseModal({ isOpen, children }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[101]">{children}</div>,
+    document.body
+  );
+}
+```
+
+**Why portals are required:**
+- Modals rendered inline get trapped in parent CSS stacking contexts
+- Even with high z-index values (z-[999]), they can't appear above elements like header
+- Portals render directly as children of `<body>`, bypassing all stacking contexts
+
+**For complete developer guide, see:** [z-index-review.md](z-index-review.md)
 
 ---
 

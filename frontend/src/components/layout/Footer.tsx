@@ -76,7 +76,7 @@ export default function Footer() {
           general_info_links: [
             { label: 'About Grenada', url: 'https://www.gov.gd/grenada' },
             { label: 'Facts', url: 'https://www.gov.gd/' },
-            { label: 'Emergency Info', url: '#' },
+            { label: 'Emergency Info', url: 'https://www.gov.gd/emergency-services' },
           ],
           copyright_text: `© ${currentYear} Digital Transformation Agency (DTA) All rights reserved.`,
         })
