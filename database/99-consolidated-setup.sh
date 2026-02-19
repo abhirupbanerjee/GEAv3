@@ -381,6 +381,45 @@ setup_fresh() {
         echo ""
 
         # ========================================================================
+        # SYSTEM SETTINGS SETUP
+        # ========================================================================
+        log_section "SYSTEM SETTINGS SETUP"
+        log_info "Creating system_settings table and loading initial configuration..."
+        echo ""
+
+        # Script 16: Create system_settings table with initial settings
+        if [ -f "$SCRIPTS_DIR/16-create-system-settings.sh" ]; then
+            if "$SCRIPTS_DIR/16-create-system-settings.sh"; then
+                log_success "System settings table created successfully!"
+                echo ""
+            else
+                log_error "Failed to create system settings table"
+                log_warn "You can run it manually later with:"
+                echo "  ./database/scripts/16-create-system-settings.sh"
+                echo ""
+            fi
+        else
+            log_warn "Script 16-create-system-settings.sh not found - skipping"
+            echo ""
+        fi
+
+        # Script 17: Add footer configuration settings
+        if [ -f "$SCRIPTS_DIR/17-footer-config.sh" ]; then
+            if "$SCRIPTS_DIR/17-footer-config.sh"; then
+                log_success "Footer configuration settings added successfully!"
+                echo ""
+            else
+                log_error "Failed to add footer configuration settings"
+                log_warn "You can run it manually later with:"
+                echo "  ./database/scripts/17-footer-config.sh"
+                echo ""
+            fi
+        else
+            log_warn "Script 17-footer-config.sh not found - skipping"
+            echo ""
+        fi
+
+        # ========================================================================
         # LOAD PRODUCTION MASTER DATA
         # ========================================================================
         log_section "LOADING PRODUCTION MASTER DATA"
@@ -501,6 +540,19 @@ setup_incremental() {
 
     log_info "Running incremental updates..."
     "$SCRIPT_DIR/scripts/00-master-init.sh"
+
+    # Run system settings migrations if they haven't been run yet
+    log_info "Checking for additional migrations..."
+
+    # Script 16: Create system_settings table (if not exists)
+    if [ -f "$SCRIPTS_DIR/16-create-system-settings.sh" ]; then
+        "$SCRIPTS_DIR/16-create-system-settings.sh" || log_warn "Script 16 may have already been applied"
+    fi
+
+    # Script 17: Add footer configuration settings (if not exists)
+    if [ -f "$SCRIPTS_DIR/17-footer-config.sh" ]; then
+        "$SCRIPTS_DIR/17-footer-config.sh" || log_warn "Script 17 may have already been applied"
+    fi
 
     log_success "Incremental update completed!"
 }

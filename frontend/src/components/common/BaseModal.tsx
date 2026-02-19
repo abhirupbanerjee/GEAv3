@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 interface BaseModalProps {
   isOpen: boolean;
@@ -21,7 +22,14 @@ export function BaseModal({
   maxWidth = 'md',
   showCloseButton = true,
 }: BaseModalProps) {
-  if (!isOpen) return null;
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
+
+  if (!isOpen || !mounted) return null;
 
   const maxWidthClasses = {
     sm: 'max-w-sm',
@@ -31,7 +39,7 @@ export function BaseModal({
     '2xl': 'max-w-2xl',
   };
 
-  return (
+  const modalContent = (
     <div className="fixed inset-0 z-[101] overflow-y-auto">
       {/* Overlay */}
       <div
@@ -79,4 +87,6 @@ export function BaseModal({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

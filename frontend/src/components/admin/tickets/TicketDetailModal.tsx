@@ -7,6 +7,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useTicketDetail } from '@/hooks/useTicketDetail'
 import { useTicketUpdate } from '@/hooks/useTicketUpdate'
 import { ActivityTimeline } from './ActivityTimeline'
@@ -21,11 +22,18 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
   const { ticket, attachments, activities, isLoading, isError, error, mutate } = useTicketDetail(ticketId)
   const { updateTicket, isUpdating } = useTicketUpdate()
 
+  const [mounted, setMounted] = useState(false)
   const [selectedStatusId, setSelectedStatusId] = useState<number | null>(null)
   const [selectedPriorityId, setSelectedPriorityId] = useState<number | null>(null)
   const [internalNote, setInternalNote] = useState<string>('')
   const [visibleToCitizen, setVisibleToCitizen] = useState<boolean>(false)
   const [hasChanges, setHasChanges] = useState(false)
+
+  // Mount tracking for portal
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
 
   // Debug logging
   useEffect(() => {
@@ -131,7 +139,9 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  return (
+  if (!mounted) return null
+
+  const modalContent = (
     <div className="fixed inset-0 z-[101] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
@@ -358,4 +368,6 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
       </div>
     </div>
   )
+
+  return createPortal(modalContent, document.body)
 }
