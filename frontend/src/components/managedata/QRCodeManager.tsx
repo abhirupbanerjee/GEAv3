@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react'
 import QRCode from 'qrcode'
 import { generateQRFeedbackUrl } from '@/config/env-client'
+import { ConfirmModal } from '@/components/common/ConfirmModal'
+import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface QRCodeData {
   qr_code_id: string
@@ -55,7 +57,10 @@ export default function QRCodeManager() {
   const [showForm, setShowForm] = useState(false)
   const [editingQR, setEditingQR] = useState<QRCodeData | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
-  
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [selectedQRCode, setSelectedQRCode] = useState<QRCodeData | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+
   // Success modal state
   const [showSuccessModal, setShowSuccessModal] = useState(false)
   const [successQRCode, setSuccessQRCode] = useState<QRCodeData | null>(null)
@@ -507,19 +512,24 @@ export default function QRCodeManager() {
     }
   }
 
-  const handleToggleActive = async (qrcode: QRCodeData) => {
-    if (!confirm(`${qrcode.is_active ? 'Deactivate' : 'Activate'} QR Code ${qrcode.qr_code_id}?`)) return
+  const handleToggleActive = (qrcode: QRCodeData) => {
+    setSelectedQRCode(qrcode)
+    setShowDeactivateModal(true)
+  }
+
+  const confirmToggleActive = async () => {
+    if (!selectedQRCode) return
 
     try {
-      const response = await fetch(`/api/managedata/qrcodes/${qrcode.qr_code_id}`, {
+      const response = await fetch(`/api/managedata/qrcodes/${selectedQRCode.qr_code_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...qrcode, is_active: !qrcode.is_active })
+        body: JSON.stringify({ ...selectedQRCode, is_active: !selectedQRCode.is_active })
       })
 
       if (response.ok) {
         await loadData()
-        alert(`QR Code ${qrcode.is_active ? 'deactivated' : 'activated'}!`)
+        alert(`QR Code ${selectedQRCode.is_active ? 'deactivated' : 'activated'}!`)
       }
     } catch (error) {
       console.error('Error toggling QR code:', error)
@@ -539,7 +549,7 @@ export default function QRCodeManager() {
       is_active: qrcode.is_active
     })
     setUseAutoId(false)
-    setShowForm(true)
+    setShowEditModal(true)
   }
 
   const resetForm = () => {
@@ -554,6 +564,7 @@ export default function QRCodeManager() {
     })
     setEditingQR(null)
     setShowForm(false)
+    setShowEditModal(false)
     setUseAutoId(true)
     setSuggestedId('')
   }
@@ -591,10 +602,23 @@ export default function QRCodeManager() {
           className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         />
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditingQR(null)
+            setFormData({
+              qr_code_id: '',
+              service_id: '',
+              location_name: '',
+              location_address: '',
+              location_type: 'office',
+              notes: '',
+              is_active: true
+            })
+            setUseAutoId(true)
+            setShowEditModal(true)
+          }}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg"
         >
-          {showForm ? '✕ Cancel' : '+ Add QR Code'}
+          + Add QR Code
         </button>
       </div>
 
@@ -614,7 +638,7 @@ export default function QRCodeManager() {
                   required
                   value={formData.service_id}
                   onChange={(e) => setFormData({...formData, service_id: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
                   disabled={!!editingQR}
                 >
                   <option value="">Select Service</option>
@@ -633,7 +657,7 @@ export default function QRCodeManager() {
                   required
                   value={formData.location_type}
                   onChange={(e) => setFormData({...formData, location_type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
                   disabled={!!editingQR}
                 >
                   {LOCATION_TYPES.map(lt => (
@@ -763,23 +787,23 @@ export default function QRCodeManager() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th 
+                  <th
                     onClick={() => handleSort('qr_code_id')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    ID {getSortIcon('qr_code_id')}
+                    ID ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('location_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Location {getSortIcon('location_name')}
+                    Location ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('service_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Service {getSortIcon('service_name')}
+                    Service ↑
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Scans</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -979,6 +1003,159 @@ export default function QRCodeManager() {
           </div>
         </div>
       )}
+
+      {/* Deactivate/Activate Confirmation Modal */}
+      {selectedQRCode && (
+        <ConfirmModal
+          isOpen={showDeactivateModal}
+          onClose={() => {
+            setShowDeactivateModal(false)
+            setSelectedQRCode(null)
+          }}
+          onConfirm={confirmToggleActive}
+          title={`${selectedQRCode.is_active ? 'Deactivate' : 'Activate'} QR Code?`}
+          message={`Are you sure you want to ${selectedQRCode.is_active ? 'deactivate' : 'activate'} QR Code "${selectedQRCode.qr_code_id}" at ${selectedQRCode.location_name}?`}
+          confirmText={selectedQRCode.is_active ? 'Deactivate' : 'Activate'}
+          confirmVariant={selectedQRCode.is_active ? 'danger' : 'primary'}
+          icon="warning"
+          helperText={selectedQRCode.is_active ? 'To reactivate this QR code later, click the Activate button.' : undefined}
+        />
+      )}
+
+      {/* Add/Edit QR Code Modal */}
+      <EditFormModal
+        isOpen={showEditModal}
+        onClose={() => {
+          resetForm()
+        }}
+        onSubmit={handleSubmit}
+        title={editingQR ? '✏️ Edit QR Code' : '➕ Add New QR Code'}
+        isEditing={!!editingQR}
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Service */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Service *</label>
+            <select
+              required
+              value={formData.service_id}
+              onChange={(e) => setFormData({...formData, service_id: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+              disabled={!!editingQR}
+            >
+              <option value="">Select Service</option>
+              {services.map(service => (
+                <option key={service.service_id} value={service.service_id}>
+                  {service.service_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Location Type */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Location Type *</label>
+            <select
+              required
+              value={formData.location_type}
+              onChange={(e) => setFormData({...formData, location_type: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+              disabled={!!editingQR}
+            >
+              {LOCATION_TYPES.map(lt => (
+                <option key={lt.value} value={lt.value}>{lt.label}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* QR Code ID with Auto-suggestion */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              QR Code ID *
+              {!editingQR && suggestedId && (
+                <span className="ml-2 text-xs text-blue-600">
+                  💡 Suggested: {suggestedId}
+                </span>
+              )}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                required
+                disabled={!!editingQR}
+                value={formData.qr_code_id}
+                onChange={(e) => {
+                  setFormData({...formData, qr_code_id: e.target.value.toUpperCase()})
+                  setUseAutoId(false)
+                }}
+                placeholder="e.g., QR-IMM-001"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              />
+              {!editingQR && suggestedId && !useAutoId && (
+                <button
+                  type="button"
+                  onClick={handleUseSuggestedId}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                >
+                  Use {suggestedId}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Location Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Location Name *</label>
+            <input
+              type="text"
+              required
+              value={formData.location_name}
+              onChange={(e) => setFormData({...formData, location_name: e.target.value})}
+              placeholder="e.g., Immigration Office - St. George's"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Location Address */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Location Address *</label>
+          <textarea
+            required
+            value={formData.location_address}
+            onChange={(e) => setFormData({...formData, location_address: e.target.value})}
+            placeholder="Full address..."
+            rows={2}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Notes */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+          <textarea
+            value={formData.notes}
+            onChange={(e) => setFormData({...formData, notes: e.target.value})}
+            placeholder="Optional notes..."
+            rows={2}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Active Status */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="qr_active_modal"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="qr_active_modal" className="text-sm font-medium text-gray-700">
+            Active
+          </label>
+        </div>
+      </EditFormModal>
     </div>
   )
 }

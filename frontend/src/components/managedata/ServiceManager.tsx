@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ConfirmModal } from '@/components/common/ConfirmModal'
+import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface Service {
   service_id: string
@@ -45,6 +47,9 @@ export default function ServiceManager() {
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterEntity, setFilterEntity] = useState<string>('all')
   const [filterActive, setFilterActive] = useState<string>('active')
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [selectedService, setSelectedService] = useState<Service | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   // Sorting state
   const [sortField, setSortField] = useState<SortField | null>(null)
@@ -194,24 +199,27 @@ export default function ServiceManager() {
   }
 
   // CORRECTED: Toggle active using PUT (not DELETE)
-  const handleToggleActive = async (service: Service) => {
-    if (!confirm(`${service.is_active ? 'Deactivate' : 'Activate'} ${service.service_name}?`)) {
-      return
-    }
+  const handleToggleActive = (service: Service) => {
+    setSelectedService(service)
+    setShowDeactivateModal(true)
+  }
+
+  const confirmToggleActive = async () => {
+    if (!selectedService) return
 
     try {
-      const response = await fetch(`/api/managedata/services/${service.service_id}`, {
+      const response = await fetch(`/api/managedata/services/${selectedService.service_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...service,
-          is_active: !service.is_active
+          ...selectedService,
+          is_active: !selectedService.is_active
         })
       })
 
       if (response.ok) {
         await loadData()
-        alert(`Service ${service.is_active ? 'deactivated' : 'activated'}!`)
+        alert(`Service ${selectedService.is_active ? 'deactivated' : 'activated'}!`)
       }
     } catch (error) {
       console.error('Error toggling service:', error)
@@ -231,7 +239,7 @@ export default function ServiceManager() {
       is_active: service.is_active
     })
     setUseAutoId(false)
-    setShowForm(true)
+    setShowEditModal(true)
   }
 
   // Reset form
@@ -246,6 +254,7 @@ export default function ServiceManager() {
     })
     setEditingService(null)
     setShowForm(false)
+    setShowEditModal(false)
     setUseAutoId(true)
     setSuggestedId('')
   }
@@ -438,10 +447,22 @@ export default function ServiceManager() {
         </div>
 
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditingService(null)
+            setFormData({
+              service_id: '',
+              service_name: '',
+              entity_id: '',
+              service_category: 'General',
+              service_description: '',
+              is_active: true
+            })
+            setUseAutoId(true)
+            setShowEditModal(true)
+          }}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2 whitespace-nowrap"
         >
-          {showForm ? '✕ Cancel' : '+ Add Service'}
+          + Add Service
         </button>
       </div>
 
@@ -615,29 +636,29 @@ export default function ServiceManager() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th 
+                  <th
                     onClick={() => handleSort('service_id')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    ID {getSortIcon('service_id')}
+                    ID ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('service_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Service Name {getSortIcon('service_name')}
+                    Service Name ↑
                   </th>
                   <th
                     onClick={() => handleSort('entity_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Service Entity {getSortIcon('entity_name')}
+                    Service Entity ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('service_category')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Category {getSortIcon('service_category')}
+                    Category ↑
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -916,6 +937,155 @@ export default function ServiceManager() {
           </div>
         </div>
       )}
+
+      {/* Deactivate/Activate Confirmation Modal */}
+      {selectedService && (
+        <ConfirmModal
+          isOpen={showDeactivateModal}
+          onClose={() => {
+            setShowDeactivateModal(false)
+            setSelectedService(null)
+          }}
+          onConfirm={confirmToggleActive}
+          title={`${selectedService.is_active ? 'Deactivate' : 'Activate'} Service?`}
+          message={`Are you sure you want to ${selectedService.is_active ? 'deactivate' : 'activate'} "${selectedService.service_name}"?`}
+          confirmText={selectedService.is_active ? 'Deactivate' : 'Activate'}
+          confirmVariant={selectedService.is_active ? 'danger' : 'primary'}
+          icon="warning"
+          helperText={selectedService.is_active ? 'To reactivate this service later, click the Activate button.' : undefined}
+        />
+      )}
+
+      {/* Add/Edit Service Modal */}
+      <EditFormModal
+        isOpen={showEditModal}
+        onClose={() => {
+          resetForm()
+        }}
+        onSubmit={handleSubmit}
+        title={editingService ? '✏️ Edit Service' : '➕ Add New Service'}
+        isEditing={!!editingService}
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Entity */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Entity/Department *
+            </label>
+            <select
+              required
+              value={formData.entity_id}
+              onChange={(e) => setFormData({...formData, entity_id: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={!!editingService}
+            >
+              <option value="">Select Entity</option>
+              {entities.map(entity => (
+                <option key={entity.unique_entity_id} value={entity.unique_entity_id}>
+                  {entity.entity_name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Category */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
+            </label>
+            <select
+              required
+              value={formData.service_category}
+              onChange={(e) => setFormData({...formData, service_category: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={!!editingService}
+            >
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Service ID with Auto-suggestion */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Service ID *
+              {!editingService && suggestedId && (
+                <span className="ml-2 text-xs text-blue-600">
+                  💡 Suggested: {suggestedId}
+                </span>
+              )}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                required
+                disabled={!!editingService}
+                value={formData.service_id}
+                onChange={(e) => {
+                  setFormData({...formData, service_id: e.target.value.toUpperCase()})
+                  setUseAutoId(false)
+                }}
+                placeholder="e.g., SVC-XXX-001"
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              />
+              {!editingService && suggestedId && !useAutoId && (
+                <button
+                  type="button"
+                  onClick={handleUseSuggestedId}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                >
+                  Use {suggestedId}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Service Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Service Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.service_name}
+              onChange={(e) => setFormData({...formData, service_name: e.target.value})}
+              placeholder="e.g., Passport Application"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        {/* Description */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description *
+          </label>
+          <textarea
+            required
+            value={formData.service_description}
+            onChange={(e) => setFormData({...formData, service_description: e.target.value})}
+            placeholder="Brief description of the service..."
+            rows={3}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Active Status */}
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="service_active_modal"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="service_active_modal" className="text-sm font-medium text-gray-700">
+            Active (available for feedback)
+          </label>
+        </div>
+      </EditFormModal>
     </div>
   )
 }

@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { ConfirmModal } from '@/components/common/ConfirmModal'
+import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface Entity {
   unique_entity_id: string
@@ -24,7 +26,10 @@ export default function EntityManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [filterType, setFilterType] = useState<string>('all')
   const [filterActive, setFilterActive] = useState<string>('active')
-  
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
+
   // Sorting state
   const [sortField, setSortField] = useState<SortField>('entity_type')
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
@@ -118,19 +123,24 @@ export default function EntityManager() {
     }
   }
 
-  const handleToggleActive = async (entity: Entity) => {
-    if (!confirm(`${entity.is_active ? 'Deactivate' : 'Activate'} ${entity.entity_name}?`)) return
+  const handleToggleActive = (entity: Entity) => {
+    setSelectedEntity(entity)
+    setShowDeactivateModal(true)
+  }
+
+  const confirmToggleActive = async () => {
+    if (!selectedEntity) return
 
     try {
-      const response = await fetch(`/api/managedata/entities/${entity.unique_entity_id}`, {
+      const response = await fetch(`/api/managedata/entities/${selectedEntity.unique_entity_id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...entity, is_active: !entity.is_active })
+        body: JSON.stringify({ ...selectedEntity, is_active: !selectedEntity.is_active })
       })
 
       if (response.ok) {
         await loadEntities()
-        alert(`Entity ${entity.is_active ? 'deactivated' : 'activated'}!`)
+        alert(`Entity ${selectedEntity.is_active ? 'deactivated' : 'activated'}!`)
       }
     } catch (error) {
       console.error('Error toggling entity:', error)
@@ -148,7 +158,7 @@ export default function EntityManager() {
       is_active: entity.is_active
     })
     setUseAutoId(false)
-    setShowForm(true)
+    setShowEditModal(true)
   }
 
   const resetForm = () => {
@@ -161,6 +171,7 @@ export default function EntityManager() {
     })
     setEditingEntity(null)
     setShowForm(false)
+    setShowEditModal(false)
     setUseAutoId(true)
     setSuggestedId('')
   }
@@ -252,10 +263,21 @@ export default function EntityManager() {
         </div>
 
         <button
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            setEditingEntity(null)
+            setFormData({
+              unique_entity_id: '',
+              entity_name: '',
+              entity_type: 'ministry',
+              parent_entity_id: '',
+              is_active: true
+            })
+            setUseAutoId(true)
+            setShowEditModal(true)
+          }}
           className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
         >
-          {showForm ? '✕ Cancel' : '+ Add Entity'}
+          + Add Entity
         </button>
       </div>
 
@@ -277,7 +299,7 @@ export default function EntityManager() {
                   required
                   value={formData.entity_type}
                   onChange={(e) => setFormData({...formData, entity_type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
                   disabled={!!editingEntity}
                 >
                   <option value="ministry">Ministry</option>
@@ -416,35 +438,35 @@ export default function EntityManager() {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th 
+                  <th
                     onClick={() => handleSort('unique_entity_id')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    ID {getSortIcon('unique_entity_id')}
+                    ID ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('entity_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Name {getSortIcon('entity_name')}
+                    Name ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('entity_type')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Type {getSortIcon('entity_type')}
+                    Type ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('parent_entity_name')}
                     className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Parent {getSortIcon('parent_entity_name')}
+                    Parent ↑
                   </th>
-                  <th 
+                  <th
                     onClick={() => handleSort('is_active')}
                     className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
                   >
-                    Status {getSortIcon('is_active')}
+                    Status ↑
                   </th>
                   <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
                 </tr>
@@ -502,6 +524,143 @@ export default function EntityManager() {
           </div>
         )}
       </div>
+
+      {/* Deactivate/Activate Confirmation Modal */}
+      {selectedEntity && (
+        <ConfirmModal
+          isOpen={showDeactivateModal}
+          onClose={() => {
+            setShowDeactivateModal(false)
+            setSelectedEntity(null)
+          }}
+          onConfirm={confirmToggleActive}
+          title={`${selectedEntity.is_active ? 'Deactivate' : 'Activate'} Entity?`}
+          message={`Are you sure you want to ${selectedEntity.is_active ? 'deactivate' : 'activate'} "${selectedEntity.entity_name}"?`}
+          confirmText={selectedEntity.is_active ? 'Deactivate' : 'Activate'}
+          confirmVariant={selectedEntity.is_active ? 'danger' : 'primary'}
+          icon="warning"
+          helperText={selectedEntity.is_active ? 'To reactivate this entity later, click the Activate button.' : undefined}
+        />
+      )}
+
+      {/* Add/Edit Entity Modal */}
+      <EditFormModal
+        isOpen={showEditModal}
+        onClose={() => {
+          resetForm()
+        }}
+        onSubmit={handleSubmit}
+        title={editingEntity ? '✏️ Edit Entity' : '➕ Add New Entity'}
+        isEditing={!!editingEntity}
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Entity Type - Show first to trigger ID suggestion */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Entity Type *
+            </label>
+            <select
+              required
+              value={formData.entity_type}
+              onChange={(e) => setFormData({...formData, entity_type: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+              disabled={!!editingEntity}
+            >
+              <option value="ministry">Ministry</option>
+              <option value="department">Department</option>
+              <option value="agency">Agency</option>
+              <option value="statutory_body">Statutory Body</option>
+            </select>
+          </div>
+
+          {/* Entity ID with Auto-suggestion */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Entity ID *
+              {!editingEntity && suggestedId && (
+                <span className="ml-2 text-xs text-blue-600">
+                  💡 Suggested: {suggestedId}
+                </span>
+              )}
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                required
+                disabled={!!editingEntity || (useAutoId && loadingId)}
+                value={formData.unique_entity_id}
+                onChange={(e) => {
+                  setFormData({...formData, unique_entity_id: e.target.value})
+                  setUseAutoId(false)
+                }}
+                placeholder={loadingId ? "Generating..." : "e.g., MIN-006"}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+              />
+              {!editingEntity && suggestedId && !useAutoId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, unique_entity_id: suggestedId }))
+                    setUseAutoId(true)
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                >
+                  Use {suggestedId}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Entity Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Entity Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.entity_name}
+              onChange={(e) => setFormData({...formData, entity_name: e.target.value})}
+              placeholder="e.g., Ministry of Agriculture"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Parent Entity */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Parent Entity (Optional)
+            </label>
+            <select
+              value={formData.parent_entity_id}
+              onChange={(e) => setFormData({...formData, parent_entity_id: e.target.value})}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">None (Top Level)</option>
+              {entities
+                .filter(e => e.is_active && e.unique_entity_id !== formData.unique_entity_id)
+                .map(entity => (
+                  <option key={entity.unique_entity_id} value={entity.unique_entity_id}>
+                    {entity.entity_name} ({entity.entity_type})
+                  </option>
+                ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="is_active_modal"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
+            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="is_active_modal" className="text-sm font-medium text-gray-700">
+            Active (visible in system)
+          </label>
+        </div>
+      </EditFormModal>
     </div>
   )
 }
