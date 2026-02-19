@@ -83,7 +83,6 @@ export default function CitizensPage() {
     try {
       setLoading(true);
       const params = new URLSearchParams();
-      if (searchQuery) params.set('search', searchQuery);
       if (statusFilter !== 'all') params.set('status', statusFilter);
       params.set('sort', sortField);
       params.set('order', 'desc');
@@ -102,16 +101,6 @@ export default function CitizensPage() {
       console.error('Error fetching citizens:', err);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSearch = () => {
-    fetchCitizens();
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleSearch();
     }
   };
 
@@ -171,6 +160,11 @@ export default function CitizensPage() {
       console.error('Error unblocking citizen:', err);
     }
   };
+
+  // Client-side filtering - matches admin/staff page pattern
+  const filteredCitizens = citizens.filter(citizen =>
+    citizen.phone.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   const formatDate = (dateStr: string | null): string => {
     if (!dateStr) return 'Never';
@@ -273,7 +267,6 @@ export default function CitizensPage() {
                 placeholder="Search by phone number..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={handleKeyDown}
                 className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
@@ -307,13 +300,6 @@ export default function CitizensPage() {
             <option value="tickets">Sort by Tickets (High→Low)</option>
             <option value="created">Sort by Created Date</option>
           </select>
-
-          <button
-            onClick={handleSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Search
-          </button>
         </div>
       </div>
 
@@ -347,14 +333,14 @@ export default function CitizensPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
-              {citizens.length === 0 ? (
+              {filteredCitizens.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
-                    No citizens found
+                    {searchQuery ? 'No citizens found matching your search' : 'No citizens found'}
                   </td>
                 </tr>
               ) : (
-                citizens.map((citizen) => (
+                filteredCitizens.map((citizen) => (
                   <tr key={citizen.citizen_id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">

@@ -10,7 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { performLogout } from '@/lib/citizen-auth';
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     await performLogout();
 

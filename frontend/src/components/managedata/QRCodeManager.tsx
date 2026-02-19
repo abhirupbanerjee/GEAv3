@@ -5,22 +5,8 @@ import QRCode from 'qrcode'
 import { generateQRFeedbackUrl } from '@/config/env-client'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
-
-interface QRCodeData {
-  qr_code_id: string
-  service_id: string
-  service_name?: string
-  entity_id: string
-  entity_name?: string
-  location_name: string
-  location_address: string
-  location_type: string
-  generated_url: string
-  scan_count: number
-  is_active: boolean
-  notes: string
-  created_at: string
-}
+import { useQRCodes } from '@/hooks/useQRCodes'
+import type { QRCodeData, QRCodeFilters, QRCodeSort } from '@/types/managedata'
 
 interface Entity {
   unique_entity_id: string
@@ -36,9 +22,6 @@ interface Service {
   is_active: boolean
 }
 
-type SortField = 'qr_code_id' | 'location_name' | 'location_type' | 'service_name'
-type SortDirection = 'asc' | 'desc' | null
-
 const LOCATION_TYPES = [
   { value: 'office', label: 'Office' },
   { value: 'kiosk', label: 'Kiosk' },
@@ -50,13 +33,10 @@ const LOCATION_TYPES = [
 ]
 
 export default function QRCodeManager() {
-  const [qrcodes, setQRCodes] = useState<QRCodeData[]>([])
   const [services, setServices] = useState<Service[]>([])
   const [entities, setEntities] = useState<Entity[]>([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingQR, setEditingQR] = useState<QRCodeData | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
   const [showDeactivateModal, setShowDeactivateModal] = useState(false)
   const [selectedQRCode, setSelectedQRCode] = useState<QRCodeData | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -66,9 +46,24 @@ export default function QRCodeManager() {
   const [successQRCode, setSuccessQRCode] = useState<QRCodeData | null>(null)
   const [qrCodeImage, setQrCodeImage] = useState<string>('')
 
-  // Sorting state
-  const [sortField, setSortField] = useState<SortField | null>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [filters, setFilters] = useState<QRCodeFilters>({
+    search: '',
+    is_active: 'active'
+  })
+  const [sort, setSort] = useState<QRCodeSort>({
+    by: 'created_at',
+    order: 'desc'
+  })
+
+  // Use pagination hook
+  const { qrcodes, pagination, isLoading, mutate } = useQRCodes({
+    filters,
+    sort,
+    page,
+    limit: 20
+  })
 
   // Auto-ID state
   const [suggestedId, setSuggestedId] = useState<string>('')
@@ -84,36 +79,28 @@ export default function QRCodeManager() {
     is_active: true
   })
 
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [qrRes, servicesRes, entitiesRes] = await Promise.all([
-        fetch('/api/managedata/qrcodes'),
-        fetch('/api/managedata/services'),
-        fetch('/api/managedata/entities')
-      ])
-      
-      if (qrRes.ok) {
-        const data = await qrRes.json()
-        setQRCodes(data)
-      }
-      if (servicesRes.ok) {
-        const data = await servicesRes.json()
-        setServices(data.filter((s: Service) => s.is_active))
-      }
-      if (entitiesRes.ok) {
-        const data = await entitiesRes.json()
-        setEntities(data.filter((e: Entity) => e.is_active))
-      }
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Load services and entities for dropdowns (keep separate from paginated QR codes)
   useEffect(() => {
-    loadData()
+    const loadDropdownData = async () => {
+      try {
+        const [servicesRes, entitiesRes] = await Promise.all([
+          fetch('/api/managedata/services'),
+          fetch('/api/managedata/entities')
+        ])
+
+        if (servicesRes.ok) {
+          const data = await servicesRes.json()
+          setServices(data.filter((s: Service) => s.is_active))
+        }
+        if (entitiesRes.ok) {
+          const data = await entitiesRes.json()
+          setEntities(data.filter((e: Entity) => e.is_active))
+        }
+      } catch (error) {
+        console.error('Error loading dropdown data:', error)
+      }
+    }
+    loadDropdownData()
   }, [])
 
   // Fetch suggested ID when service is selected
@@ -439,23 +426,15 @@ export default function QRCodeManager() {
   }
 
   // Sorting handler
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      if (sortDirection === 'asc') {
-        setSortDirection('desc')
-      } else if (sortDirection === 'desc') {
-        setSortField(null)
-        setSortDirection(null)
-      }
+  const handleSort = (field: QRCodeSort['by']) => {
+    if (sort.by === field) {
+      // Toggle order if clicking same column
+      setSort(prev => ({ ...prev, order: prev.order === 'asc' ? 'desc' : 'asc' }))
     } else {
-      setSortField(field)
-      setSortDirection('asc')
+      // New column, default to ascending
+      setSort({ by: field, order: 'asc' })
     }
-  }
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️'
-    return sortDirection === 'asc' ? '↑' : '↓'
+    setPage(1) // Reset to page 1 on sort change
   }
 
   // Submit handler with success modal
@@ -483,11 +462,11 @@ export default function QRCodeManager() {
       })
 
       if (response.ok) {
-        await loadData()
-        
+        await mutate()
+
         // Get entity from entities array
         const entity = entities.find(e => e.unique_entity_id === service.entity_id)
-        
+
         const updatedQRCode = {
           ...payload,
           service_name: service.service_name,
@@ -500,7 +479,7 @@ export default function QRCodeManager() {
         setSuccessQRCode(updatedQRCode)
         await generateQRCode(updatedQRCode.generated_url)
         setShowSuccessModal(true)
-        
+
         resetForm()
       } else {
         const error = await response.json()
@@ -528,7 +507,7 @@ export default function QRCodeManager() {
       })
 
       if (response.ok) {
-        await loadData()
+        await mutate()
         alert(`QR Code ${selectedQRCode.is_active ? 'deactivated' : 'activated'}!`)
       }
     } catch (error) {
@@ -574,22 +553,6 @@ export default function QRCodeManager() {
     setUseAutoId(true)
   }
 
-  // Filter and sort QR codes
-  const filteredQRCodes = qrcodes
-    .filter(qr =>
-      qr.location_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      qr.qr_code_id.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (!sortField || !sortDirection) return 0
-      
-      let aVal = a[sortField] || ''
-      let bVal = b[sortField] || ''
-      
-      const comparison = String(aVal).localeCompare(String(bVal))
-      return sortDirection === 'asc' ? comparison : -comparison
-    })
-
   return (
     <div>
       {/* Header and Search */}
@@ -597,8 +560,11 @@ export default function QRCodeManager() {
         <input
           type="text"
           placeholder="Search QR codes..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          value={filters.search || ''}
+          onChange={(e) => {
+            setFilters(prev => ({ ...prev, search: e.target.value }))
+            setPage(1)
+          }}
           className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
         />
         <button
@@ -770,48 +736,51 @@ export default function QRCodeManager() {
       {/* QR Code Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <h3 className="text-lg font-bold text-gray-900">QR Codes ({filteredQRCodes.length})</h3>
+          <h3 className="text-lg font-bold text-gray-900">
+            QR Codes {pagination && `(${pagination.total_count})`}
+          </h3>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading QR codes...</p>
           </div>
-        ) : filteredQRCodes.length === 0 ? (
+        ) : qrcodes.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-500 text-lg">No QR codes found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th
-                    onClick={() => handleSort('qr_code_id')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    ID ↑
-                  </th>
-                  <th
-                    onClick={() => handleSort('location_name')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    Location ↑
-                  </th>
-                  <th
-                    onClick={() => handleSort('service_name')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    Service ↑
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Scans</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredQRCodes.map((qr) => (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th
+                      onClick={() => handleSort('qr_code_id')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      ID ↑
+                    </th>
+                    <th
+                      onClick={() => handleSort('location_name')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      Location ↑
+                    </th>
+                    <th
+                      onClick={() => handleSort('service_name')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      Service ↑
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Scans</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {qrcodes.map((qr) => (
                   <tr key={qr.qr_code_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">{qr.qr_code_id}</td>
                     <td className="px-6 py-4 text-sm">
@@ -868,10 +837,88 @@ export default function QRCodeManager() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination && (
+              <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                {/* Mobile View - Previous/Next only */}
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => setPage(page - 1)}
+                    disabled={!pagination.has_prev}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPage(page + 1)}
+                    disabled={!pagination.has_next}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+
+                {/* Desktop View - Full pagination */}
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
+                      <span className="font-medium">
+                        {Math.min(pagination.page * pagination.limit, pagination.total_count)}
+                      </span>{' '}
+                      of <span className="font-medium">{pagination.total_count}</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                      {/* Previous Button */}
+                      <button
+                        onClick={() => setPage(page - 1)}
+                        disabled={!pagination.has_prev}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Previous</span>
+                        ‹
+                      </button>
+
+                      {/* Page Numbers (show up to 5) */}
+                      {[...Array(Math.min(pagination.total_pages, 5))].map((_, i) => {
+                        const pageNum = i + 1
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              pagination.page === pageNum
+                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+
+                      {/* Next Button */}
+                      <button
+                        onClick={() => setPage(page + 1)}
+                        disabled={!pagination.has_next}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Next</span>
+                        ›
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

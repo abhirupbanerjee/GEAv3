@@ -3,36 +3,36 @@
 import { useState, useEffect } from 'react'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
-
-interface Entity {
-  unique_entity_id: string
-  entity_name: string
-  entity_type: string
-  parent_entity_id: string | null
-  parent_entity_name?: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
-
-type SortField = 'unique_entity_id' | 'entity_name' | 'entity_type' | 'parent_entity_name' | 'is_active'
-type SortDirection = 'asc' | 'desc' | null
+import { useEntities } from '@/hooks/useEntities'
+import type { Entity, EntityFilters, EntitySort } from '@/types/managedata'
 
 export default function EntityManager() {
-  const [entities, setEntities] = useState<Entity[]>([])
-  const [loading, setLoading] = useState(true)
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [filters, setFilters] = useState<EntityFilters>({
+    search: '',
+    entity_type: 'all',
+    is_active: 'active'
+  })
+  const [sort, setSort] = useState<EntitySort>({
+    by: 'entity_type',
+    order: 'asc'
+  })
+
+  // Fetch entities with pagination
+  const { entities, pagination, isLoading, mutate } = useEntities({
+    filters,
+    sort,
+    page,
+    limit: 20
+  })
+
+  // UI state
   const [showForm, setShowForm] = useState(false)
   const [editingEntity, setEditingEntity] = useState<Entity | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterType, setFilterType] = useState<string>('all')
-  const [filterActive, setFilterActive] = useState<string>('active')
   const [showDeactivateModal, setShowDeactivateModal] = useState(false)
   const [selectedEntity, setSelectedEntity] = useState<Entity | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
-
-  // Sorting state
-  const [sortField, setSortField] = useState<SortField>('entity_type')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('asc')
 
   // Auto-ID state
   const [suggestedId, setSuggestedId] = useState<string>('')
@@ -47,24 +47,7 @@ export default function EntityManager() {
     is_active: true
   })
 
-  const loadEntities = async () => {
-    setLoading(true)
-    try {
-      const response = await fetch('/api/managedata/entities')
-      if (response.ok) {
-        const data = await response.json()
-        setEntities(data)
-      }
-    } catch (error) {
-      console.error('Error loading entities:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => {
-    loadEntities()
-  }, [])
+  // Removed loadEntities - now using useEntities hook
 
   // Fetch suggested ID when type changes
   const fetchSuggestedId = async (type: string) => {
@@ -110,7 +93,7 @@ export default function EntityManager() {
       })
 
       if (response.ok) {
-        await loadEntities()
+        await mutate()
         resetForm()
         alert(editingEntity ? 'Entity updated!' : 'Entity created!')
       } else {
@@ -139,7 +122,7 @@ export default function EntityManager() {
       })
 
       if (response.ok) {
-        await loadEntities()
+        await mutate()
         alert(`Entity ${selectedEntity.is_active ? 'deactivated' : 'activated'}!`)
       }
     } catch (error) {
@@ -176,55 +159,19 @@ export default function EntityManager() {
     setSuggestedId('')
   }
 
-  // Sorting function
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      // Cycle through: asc -> desc -> null (default)
-      if (sortDirection === 'asc') {
-        setSortDirection('desc')
-      } else if (sortDirection === 'desc') {
-        setSortDirection(null)
-        setSortField('entity_type') // Reset to default
-      }
+  // Sorting function - now triggers server-side sort
+  const handleSort = (field: EntitySort['by']) => {
+    if (sort.by === field) {
+      // Toggle order if clicking same column
+      setSort(prev => ({ ...prev, order: prev.order === 'asc' ? 'desc' : 'asc' }))
     } else {
-      setSortField(field)
-      setSortDirection('asc')
+      // New column, default to ascending
+      setSort({ by: field, order: 'asc' })
     }
+    setPage(1) // Reset to page 1 on sort change
   }
 
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️'
-    if (sortDirection === 'asc') return '↑'
-    if (sortDirection === 'desc') return '↓'
-    return '↕️'
-  }
-
-  // Filter and sort entities
-  const filteredAndSortedEntities = entities
-    .filter(entity => {
-      const matchesSearch = entity.entity_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           entity.unique_entity_id.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesType = filterType === 'all' || entity.entity_type === filterType
-      const matchesActive = filterActive === 'all' || 
-                           (filterActive === 'active' && entity.is_active) ||
-                           (filterActive === 'inactive' && !entity.is_active)
-      return matchesSearch && matchesType && matchesActive
-    })
-    .sort((a, b) => {
-      if (!sortDirection) return 0
-
-      let aVal = a[sortField] || ''
-      let bVal = b[sortField] || ''
-
-      // Handle boolean for is_active
-      if (sortField === 'is_active') {
-        aVal = a.is_active ? '1' : '0'
-        bVal = b.is_active ? '1' : '0'
-      }
-
-      const comparison = String(aVal).localeCompare(String(bVal))
-      return sortDirection === 'asc' ? comparison : -comparison
-    })
+  // Removed client-side filtering/sorting - now done server-side via useEntities hook
 
   return (
     <div>
@@ -234,14 +181,20 @@ export default function EntityManager() {
           <input
             type="text"
             placeholder="Search entities..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.search || ''}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, search: e.target.value }))
+              setPage(1)
+            }}
             className="flex-1 max-w-md px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
 
           <select
-            value={filterType}
-            onChange={(e) => setFilterType(e.target.value)}
+            value={filters.entity_type || 'all'}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, entity_type: e.target.value }))
+              setPage(1)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Types</option>
@@ -252,8 +205,11 @@ export default function EntityManager() {
           </select>
 
           <select
-            value={filterActive}
-            onChange={(e) => setFilterActive(e.target.value)}
+            value={filters.is_active || 'active'}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, is_active: e.target.value as 'active' | 'inactive' | 'all' }))
+              setPage(1)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="active">Active Only</option>
@@ -420,20 +376,21 @@ export default function EntityManager() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg font-bold text-gray-900">
-            Entities ({filteredAndSortedEntities.length})
+            Entities ({pagination ? pagination.total_count : 0})
           </h3>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading entities...</p>
           </div>
-        ) : filteredAndSortedEntities.length === 0 ? (
+        ) : entities.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-500 text-lg">No entities found</p>
           </div>
         ) : (
+          <>
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
@@ -472,7 +429,7 @@ export default function EntityManager() {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredAndSortedEntities.map((entity) => (
+                {entities.map((entity) => (
                   <tr key={entity.unique_entity_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                       {entity.unique_entity_id}
@@ -522,6 +479,84 @@ export default function EntityManager() {
               </tbody>
             </table>
           </div>
+
+          {/* Pagination Controls */}
+          {pagination && (
+            <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+              {/* Mobile View - Previous/Next only */}
+              <div className="flex-1 flex justify-between sm:hidden">
+                <button
+                  onClick={() => setPage(page - 1)}
+                  disabled={!pagination.has_prev}
+                  className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage(page + 1)}
+                  disabled={!pagination.has_next}
+                  className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+
+              {/* Desktop View - Full pagination */}
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700">
+                    Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
+                    <span className="font-medium">
+                      {Math.min(pagination.page * pagination.limit, pagination.total_count)}
+                    </span>{' '}
+                    of <span className="font-medium">{pagination.total_count}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                    {/* Previous Button */}
+                    <button
+                      onClick={() => setPage(page - 1)}
+                      disabled={!pagination.has_prev}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Previous</span>
+                      ‹
+                    </button>
+
+                    {/* Page Numbers (show up to 5) */}
+                    {[...Array(Math.min(pagination.total_pages, 5))].map((_, i) => {
+                      const pageNum = i + 1
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setPage(pageNum)}
+                          className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                            pagination.page === pageNum
+                              ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                              : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      )
+                    })}
+
+                    {/* Next Button */}
+                    <button
+                      onClick={() => setPage(page + 1)}
+                      disabled={!pagination.has_next}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <span className="sr-only">Next</span>
+                      ›
+                    </button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          )}
+          </>
         )}
       </div>
 

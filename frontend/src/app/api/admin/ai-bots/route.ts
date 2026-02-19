@@ -17,7 +17,7 @@ import { pool } from '@/lib/db';
  * GET /api/admin/ai-bots
  * List all AI bots
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);

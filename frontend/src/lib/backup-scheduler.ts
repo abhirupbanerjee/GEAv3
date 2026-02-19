@@ -67,15 +67,17 @@ function buildCronExpression(
       // Run every day at specified time
       return `${minute} ${hour} * * *`
 
-    case 'weekly':
+    case 'weekly': {
       // Run every week on specified day (0 = Sunday)
       const dayOfWeek = Math.min(Math.max(scheduleDay, 0), 6)
       return `${minute} ${hour} * * ${dayOfWeek}`
+    }
 
-    case 'monthly':
+    case 'monthly': {
       // Run on specified day of month
       const dayOfMonth = Math.min(Math.max(scheduleDay, 1), 28) // Cap at 28 to avoid month-end issues
       return `${minute} ${hour} ${dayOfMonth} * *`
+    }
 
     default:
       // Default to daily at 2:00 AM

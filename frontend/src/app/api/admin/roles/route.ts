@@ -15,7 +15,7 @@ import { pool } from '@/lib/db';
  * Admin: sees all roles
  * Staff: sees only staff roles (for adding users to their entity)
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);

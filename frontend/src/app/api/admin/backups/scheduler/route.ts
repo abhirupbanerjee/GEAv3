@@ -27,7 +27,7 @@ interface ExtendedSession {
  * GET /api/admin/backups/scheduler
  * Get current scheduler status
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = (await getServerSession(authOptions)) as ExtendedSession

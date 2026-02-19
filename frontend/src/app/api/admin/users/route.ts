@@ -20,7 +20,7 @@ import { getServiceRequestEntityId, getSetting } from '@/lib/settings';
  * Admin: sees all users
  * Staff: sees only users from their own entity
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);

@@ -11,7 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCitizenLoginSettings } from '@/lib/settings';
 import { getCurrentCitizen } from '@/lib/citizen-auth';
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check if citizen login is enabled
     const settings = await getCitizenLoginSettings();

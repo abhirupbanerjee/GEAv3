@@ -363,9 +363,10 @@ function convertToType(value: string | null, type: string): unknown {
   }
 
   switch (type) {
-    case 'number':
+    case 'number': {
       const num = parseFloat(value);
       return isNaN(num) ? 0 : num;
+    }
 
     case 'boolean':
       return value === 'true' || value === '1' || value === 'yes';
@@ -394,12 +395,13 @@ function validateSettingValue(
 ): { valid: boolean; message?: string } {
   // Type-specific validation
   switch (setting.setting_type) {
-    case 'email':
+    case 'email': {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (value && !emailRegex.test(value)) {
         return { valid: false, message: 'Invalid email format' };
       }
       break;
+    }
 
     case 'url':
       if (value) {
@@ -411,7 +413,7 @@ function validateSettingValue(
       }
       break;
 
-    case 'number':
+    case 'number': {
       const num = parseFloat(value);
       if (isNaN(num)) {
         return { valid: false, message: 'Must be a number' };
@@ -423,6 +425,7 @@ function validateSettingValue(
         return { valid: false, message: `Maximum value is ${setting.max_value}` };
       }
       break;
+    }
 
     case 'json':
       if (value) {

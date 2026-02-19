@@ -132,16 +132,16 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
   }
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-[101] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
       <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
         {/* Background overlay */}
         <div
-          className="fixed inset-0 z-[100] bg-gray-500 bg-opacity-75 transition-opacity"
+          className="fixed inset-0 z-[101] bg-gray-500 bg-opacity-75 transition-opacity"
           onClick={onClose}
         ></div>
 
         {/* Modal panel */}
-        <div className="relative z-[101] inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
+        <div className="relative z-[102] inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-4xl sm:w-full">
           {/* Header */}
           <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
             <div className="flex items-center justify-between">

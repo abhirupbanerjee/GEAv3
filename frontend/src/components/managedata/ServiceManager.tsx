@@ -3,18 +3,8 @@
 import { useState, useEffect } from 'react'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
-
-interface Service {
-  service_id: string
-  service_name: string
-  entity_id: string
-  entity_name?: string
-  service_category: string
-  service_description: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
+import { useServices } from '@/hooks/useServices'
+import type { Service, ServiceFilters, ServiceSort } from '@/types/managedata'
 
 interface Entity {
   unique_entity_id: string
@@ -34,26 +24,34 @@ interface ServiceAttachment {
   created_at: string
 }
 
-type SortField = 'service_id' | 'service_name' | 'entity_name' | 'service_category'
-type SortDirection = 'asc' | 'desc' | null
-
 export default function ServiceManager() {
-  const [services, setServices] = useState<Service[]>([])
   const [entities, setEntities] = useState<Entity[]>([])
-  const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [filterEntity, setFilterEntity] = useState<string>('all')
-  const [filterActive, setFilterActive] = useState<string>('active')
   const [showDeactivateModal, setShowDeactivateModal] = useState(false)
   const [selectedService, setSelectedService] = useState<Service | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
 
-  // Sorting state
-  const [sortField, setSortField] = useState<SortField | null>(null)
-  const [sortDirection, setSortDirection] = useState<SortDirection>(null)
+  // Pagination state
+  const [page, setPage] = useState(1)
+  const [filters, setFilters] = useState<ServiceFilters>({
+    search: '',
+    service_category: 'all',
+    entity_id: 'all',
+    is_active: 'active'
+  })
+  const [sort, setSort] = useState<ServiceSort>({
+    by: 'service_name',
+    order: 'asc'
+  })
+
+  // Use pagination hook
+  const { services, pagination, isLoading, mutate } = useServices({
+    filters,
+    sort,
+    page,
+    limit: 20
+  })
 
   // Auto-ID state
   const [suggestedId, setSuggestedId] = useState<string>('')
@@ -86,38 +84,24 @@ export default function ServiceManager() {
 
   // Categories (EXACT from original)
   const categories = [
-    'Immigration', 'Tax & Revenue', 'Customs', 'Civil Registry', 
+    'Immigration', 'Tax & Revenue', 'Customs', 'Civil Registry',
     'Property', 'Health', 'Tourism', 'Utilities', 'Digital', 'General'
   ]
 
-  // Load services and entities
-  const loadData = async () => {
-    setLoading(true)
-    try {
-      const [servicesRes, entitiesRes] = await Promise.all([
-        fetch('/api/managedata/services'),
-        fetch('/api/managedata/entities')
-      ])
-      
-      // CORRECTED: Direct array response (not wrapped)
-      if (servicesRes.ok) {
-        const servicesData = await servicesRes.json()
-        setServices(servicesData)
-      }
-      
-      if (entitiesRes.ok) {
-        const entitiesData = await entitiesRes.json()
-        setEntities(entitiesData.filter((e: Entity) => e.is_active))
-      }
-    } catch (error) {
-      console.error('Error loading data:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
-
+  // Load entities for dropdown (keep separate from paginated services)
   useEffect(() => {
-    loadData()
+    const loadEntities = async () => {
+      try {
+        const response = await fetch('/api/managedata/entities')
+        if (response.ok) {
+          const data = await response.json()
+          setEntities(data.filter((e: Entity) => e.is_active))
+        }
+      } catch (error) {
+        console.error('Error loading entities:', error)
+      }
+    }
+    loadEntities()
   }, [])
 
   // Fetch suggested ID when category changes
@@ -146,36 +130,27 @@ export default function ServiceManager() {
   }
 
   // Sorting handler
-  const handleSort = (field: SortField) => {
-    if (sortField === field) {
-      // Cycle: asc -> desc -> null
-      if (sortDirection === 'asc') {
-        setSortDirection('desc')
-      } else if (sortDirection === 'desc') {
-        setSortField(null)
-        setSortDirection(null)
-      }
+  const handleSort = (field: ServiceSort['by']) => {
+    if (sort.by === field) {
+      // Toggle order if clicking same column
+      setSort(prev => ({ ...prev, order: prev.order === 'asc' ? 'desc' : 'asc' }))
     } else {
-      setSortField(field)
-      setSortDirection('asc')
+      // New column, default to ascending
+      setSort({ by: field, order: 'asc' })
     }
-  }
-
-  const getSortIcon = (field: SortField) => {
-    if (sortField !== field) return '↕️'
-    return sortDirection === 'asc' ? '↑' : '↓'
+    setPage(1) // Reset to page 1 on sort change
   }
 
   // Handle form submit
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    
+
     try {
       // CORRECTED: Path params, not query params
       const url = editingService
         ? `/api/managedata/services/${editingService.service_id}`
         : '/api/managedata/services'
-      
+
       const method = editingService ? 'PUT' : 'POST'
 
       const response = await fetch(url, {
@@ -185,7 +160,7 @@ export default function ServiceManager() {
       })
 
       if (response.ok) {
-        await loadData()
+        await mutate()
         resetForm()
         alert(editingService ? 'Service updated!' : 'Service created!')
       } else {
@@ -218,7 +193,7 @@ export default function ServiceManager() {
       })
 
       if (response.ok) {
-        await loadData()
+        await mutate()
         alert(`Service ${selectedService.is_active ? 'deactivated' : 'activated'}!`)
       }
     } catch (error) {
@@ -372,28 +347,6 @@ export default function ServiceManager() {
     }
   }
 
-  // Filter and sort services
-  const filteredServices = services
-    .filter(service => {
-      const matchesSearch = service.service_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           service.service_id.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = filterCategory === 'all' || service.service_category === filterCategory
-      const matchesEntity = filterEntity === 'all' || service.entity_id === filterEntity
-      const matchesActive = filterActive === 'all' || 
-                           (filterActive === 'active' && service.is_active) ||
-                           (filterActive === 'inactive' && !service.is_active)
-      return matchesSearch && matchesCategory && matchesEntity && matchesActive
-    })
-    .sort((a, b) => {
-      if (!sortField || !sortDirection) return 0
-      
-      let aVal = a[sortField] || ''
-      let bVal = b[sortField] || ''
-      
-      const comparison = String(aVal).localeCompare(String(bVal))
-      return sortDirection === 'asc' ? comparison : -comparison
-    })
-
   return (
     <div>
       {/* Action Bar */}
@@ -403,15 +356,21 @@ export default function ServiceManager() {
           <input
             type="text"
             placeholder="Search services..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            value={filters.search || ''}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, search: e.target.value }))
+              setPage(1)
+            }}
             className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
 
           {/* Category Filter */}
           <select
-            value={filterCategory}
-            onChange={(e) => setFilterCategory(e.target.value)}
+            value={filters.service_category || 'all'}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, service_category: e.target.value }))
+              setPage(1)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Categories</option>
@@ -422,8 +381,11 @@ export default function ServiceManager() {
 
           {/* Entity Filter */}
           <select
-            value={filterEntity}
-            onChange={(e) => setFilterEntity(e.target.value)}
+            value={filters.entity_id || 'all'}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, entity_id: e.target.value }))
+              setPage(1)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">All Entities</option>
@@ -436,8 +398,11 @@ export default function ServiceManager() {
 
           {/* Active Filter */}
           <select
-            value={filterActive}
-            onChange={(e) => setFilterActive(e.target.value)}
+            value={filters.is_active || 'active'}
+            onChange={(e) => {
+              setFilters(prev => ({ ...prev, is_active: e.target.value as 'active' | 'inactive' | 'all' }))
+              setPage(1)
+            }}
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           >
             <option value="active">Active Only</option>
@@ -618,54 +583,55 @@ export default function ServiceManager() {
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
           <h3 className="text-lg font-bold text-gray-900">
-            Services ({filteredServices.length})
+            Services {pagination && `(${pagination.total_count})`}
           </h3>
         </div>
 
-        {loading ? (
+        {isLoading ? (
           <div className="p-12 text-center">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
             <p className="mt-4 text-gray-600">Loading services...</p>
           </div>
-        ) : filteredServices.length === 0 ? (
+        ) : services.length === 0 ? (
           <div className="p-12 text-center">
             <p className="text-gray-500 text-lg">No services found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th
-                    onClick={() => handleSort('service_id')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    ID ↑
-                  </th>
-                  <th
-                    onClick={() => handleSort('service_name')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    Service Name ↑
-                  </th>
-                  <th
-                    onClick={() => handleSort('entity_name')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    Service Entity ↑
-                  </th>
-                  <th
-                    onClick={() => handleSort('service_category')}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
-                  >
-                    Category ↑
-                  </th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
-                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredServices.map((service) => (
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 border-b border-gray-200">
+                  <tr>
+                    <th
+                      onClick={() => handleSort('service_id')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      ID ↑
+                    </th>
+                    <th
+                      onClick={() => handleSort('service_name')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      Service Name ↑
+                    </th>
+                    <th
+                      onClick={() => handleSort('entity_name')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      Service Entity ↑
+                    </th>
+                    <th
+                      onClick={() => handleSort('service_category')}
+                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase cursor-pointer hover:bg-gray-100"
+                    >
+                      Category ↑
+                    </th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Status</th>
+                    <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {services.map((service) => (
                   <tr key={service.service_id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-mono text-gray-900">
                       {service.service_id}
@@ -722,10 +688,88 @@ export default function ServiceManager() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination && (
+              <div className="bg-gray-50 px-6 py-4 flex items-center justify-between border-t border-gray-200">
+                {/* Mobile View - Previous/Next only */}
+                <div className="flex-1 flex justify-between sm:hidden">
+                  <button
+                    onClick={() => setPage(page - 1)}
+                    disabled={!pagination.has_prev}
+                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button
+                    onClick={() => setPage(page + 1)}
+                    disabled={!pagination.has_next}
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+
+                {/* Desktop View - Full pagination */}
+                <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700">
+                      Showing <span className="font-medium">{(pagination.page - 1) * pagination.limit + 1}</span> to{' '}
+                      <span className="font-medium">
+                        {Math.min(pagination.page * pagination.limit, pagination.total_count)}
+                      </span>{' '}
+                      of <span className="font-medium">{pagination.total_count}</span> results
+                    </p>
+                  </div>
+                  <div>
+                    <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+                      {/* Previous Button */}
+                      <button
+                        onClick={() => setPage(page - 1)}
+                        disabled={!pagination.has_prev}
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Previous</span>
+                        ‹
+                      </button>
+
+                      {/* Page Numbers (show up to 5) */}
+                      {[...Array(Math.min(pagination.total_pages, 5))].map((_, i) => {
+                        const pageNum = i + 1
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
+                              pagination.page === pageNum
+                                ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                                : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        )
+                      })}
+
+                      {/* Next Button */}
+                      <button
+                        onClick={() => setPage(page + 1)}
+                        disabled={!pagination.has_next}
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <span className="sr-only">Next</span>
+                        ›
+                      </button>
+                    </nav>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 

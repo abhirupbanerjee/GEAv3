@@ -13,7 +13,7 @@ import { pool } from '@/lib/db';
  * GET /api/admin/entities
  * List all entities for user assignment
  */
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication and authorization
     const session = await getServerSession(authOptions);

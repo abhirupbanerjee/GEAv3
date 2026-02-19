@@ -335,7 +335,6 @@ export default function AnalyticsPage() {
     if (session) {
       fetchAnalytics()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session, selectedEntityIds])
 
   // Fetch service details when a service is selected for modal

@@ -32,10 +32,10 @@ export function BaseModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[100] overflow-y-auto">
+    <div className="fixed inset-0 z-[101] overflow-y-auto">
       {/* Overlay */}
       <div
-        className="fixed inset-0 bg-gray-900 bg-opacity-60 transition-opacity"
+        className="fixed inset-0 z-[101] bg-gray-900 bg-opacity-60 transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -43,7 +43,7 @@ export function BaseModal({
       {/* Modal container */}
       <div className="flex min-h-full items-center justify-center p-4">
         <div
-          className={`relative bg-white rounded-lg shadow-2xl w-full ${maxWidthClasses[maxWidth]} transform transition-all`}
+          className={`relative z-[102] bg-white rounded-lg shadow-2xl w-full ${maxWidthClasses[maxWidth]} transform transition-all`}
           onClick={(e) => e.stopPropagation()}
           role="dialog"
           aria-modal="true"

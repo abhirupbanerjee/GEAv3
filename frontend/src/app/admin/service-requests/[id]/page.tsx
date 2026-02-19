@@ -156,7 +156,6 @@ export default function ServiceRequestDetailPage() {
       fetchRequestDetails();
       fetchComments();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [requestId]);
 
   const handleStatusChange = async () => {
