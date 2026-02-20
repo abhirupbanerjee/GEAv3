@@ -1313,12 +1313,19 @@ function SettingsPageContent() {
 
   // Group settings by subcategory
   const groupBySubcategory = (settingsList: SystemSetting[], category: string) => {
-    return settingsList.reduce((acc, setting) => {
+    const grouped = settingsList.reduce((acc, setting) => {
       const sub = setting.subcategory || 'General'
       if (!acc[sub]) acc[sub] = []
       acc[sub].push(setting)
       return acc
     }, {} as Record<string, SystemSetting[]>)
+
+    // Sort each subcategory's settings by sort_order
+    Object.keys(grouped).forEach(sub => {
+      grouped[sub].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+    })
+
+    return grouped
   }
 
   // Check if setting is a branding setting (favicon or logo, not alt text)
