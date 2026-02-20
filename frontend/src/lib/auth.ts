@@ -148,7 +148,7 @@ export const authOptions: NextAuthOptions = {
      * creating a session. We check if the user's email exists in our
      * users table and is active.
      */
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account: _account, profile: _profile }) {
       const email = user.email;
       const name = user.name;
       const image = user.image;
@@ -192,7 +192,7 @@ export const authOptions: NextAuthOptions = {
      * This enriches the JWT token with user role and entity data
      * from our database. This data will be available in the session.
      */
-    async jwt({ token, user, account, trigger }) {
+    async jwt({ token, user, account: _account, trigger }) {
       // Initial sign in OR session update (when updateSession() is called)
       const email = user?.email || (token?.email as string | undefined);
 
@@ -247,7 +247,7 @@ export const authOptions: NextAuthOptions = {
 
   // Events for logging and audit
   events: {
-    async signIn({ user, account, profile, isNewUser }) {
+    async signIn({ user, account, profile: _profile, isNewUser }) {
       console.log(`User signed in: ${user.email} (provider: ${account?.provider})`);
 
       // Log sign-in event to audit log

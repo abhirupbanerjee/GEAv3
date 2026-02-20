@@ -90,7 +90,7 @@ export default function TicketDetailsPage() {
           setActivities(data.activities || []);
           setError('');
         }
-      } catch (err) {
+      } catch (_err) {
         setError('An error occurred while fetching ticket details');
         setTicket(null);
         setActivities([]);

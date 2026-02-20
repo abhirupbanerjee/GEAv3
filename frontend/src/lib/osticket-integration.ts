@@ -158,7 +158,7 @@ function getRatingEmoji(rating: number): string {
 async function createOsTicket(
   feedback: FeedbackData,
   config: OsTicketConfig,
-  reason: string
+  _reason: string
 ): Promise<{ success: boolean; ticketNumber?: string; error?: string }> {
   
   const ticketData: any = {
@@ -213,7 +213,7 @@ async function createOsTicket(
           ticketNumber: ticketNumber.toString() 
         };
       }
-    } catch (e) {
+    } catch (_e) {
       // If JSON parse fails, treat response as plain text ticket number
       const ticketNumber = responseText.trim();
       if (ticketNumber && ticketNumber.length > 0) {

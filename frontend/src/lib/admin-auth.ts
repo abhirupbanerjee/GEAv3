@@ -1,6 +1,5 @@
 import bcrypt from 'bcryptjs';
 import { cookies } from 'next/headers';
-import { NextRequest } from 'next/server';
 
 const ADMIN_PASSWORD_HASH = process.env.ADMIN_PASSWORD_HASH || '';
 const SESSION_SECRET = process.env.ADMIN_SESSION_SECRET || 'default-secret-change-in-production';

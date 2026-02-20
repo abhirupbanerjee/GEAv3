@@ -12,7 +12,7 @@
  *   - entity_id: Optional (filter by entity)
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { executeQuery } from '@/lib/db'
 import {
   respondSuccess,

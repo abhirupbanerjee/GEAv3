@@ -8,7 +8,7 @@
  * No authentication required
  */
 
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest } from 'next/server'
 import { executeQuery } from '@/lib/db'
 import {
   respondSuccess,

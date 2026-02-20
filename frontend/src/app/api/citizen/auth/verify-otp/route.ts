@@ -59,7 +59,6 @@ export async function POST(request: NextRequest) {
     if (!citizen) {
       // Create new citizen record
       citizen = await createCitizen(normalizedPhone);
-      isNewUser = true;
 
       if (!citizen) {
         return NextResponse.json(

@@ -10,7 +10,7 @@
  */
 
 import { pool } from './db';
-import { decryptValue, encryptValue, isEncrypted, maskSensitiveValue } from './settings-encryption';
+import { decryptValue, encryptValue, maskSensitiveValue } from './settings-encryption';
 
 // ============================================================================
 // Types

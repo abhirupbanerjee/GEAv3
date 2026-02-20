@@ -9,7 +9,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getCitizenLoginSettings } from '@/lib/settings';
-import { sendOtp, normalizePhone, validatePhone } from '@/lib/twilio';
+import { sendOtp, validatePhone } from '@/lib/twilio';
 import { findCitizenByPhone } from '@/lib/citizen-auth';
 
 export async function POST(request: NextRequest) {

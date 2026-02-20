@@ -84,7 +84,6 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique filename
-    const ext = path.extname(file.name) || getExtensionFromMime(file.type);
     const uniqueId = crypto.randomBytes(8).toString('hex');
     const timestamp = Date.now();
     const safeOriginalName = file.name

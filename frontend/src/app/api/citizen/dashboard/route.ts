@@ -119,7 +119,7 @@ export async function GET(_request: NextRequest) {
     allRecent.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
 
     // Remove createdAt before returning (not needed by frontend)
-    const recentItems = allRecent.slice(0, 5).map(({ createdAt, ...item }) => item);
+    const recentItems = allRecent.slice(0, 5).map(({ createdAt: _createdAt, ...item }) => item);
 
     const ticketRow = ticketStats.rows[0] || { total: 0, open: 0, resolved: 0 };
     const feedbackRow = feedbackStats.rows[0] || { total: 0, pending: 0 };

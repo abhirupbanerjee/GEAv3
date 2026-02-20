@@ -42,7 +42,7 @@
 
 import { useSession } from 'next-auth/react';
 import { useEffect, useState } from 'react';
-import { FiUserPlus, FiEdit2, FiCheckCircle, FiXCircle, FiTrash2, FiSearch } from 'react-icons/fi';
+import { FiUserPlus, FiEdit2, FiCheckCircle, FiXCircle, FiSearch } from 'react-icons/fi';
 import { useChatContext } from '@/hooks/useChatContext';
 import { config } from '@/config/env';
 import { EditFormModal } from '@/components/common/EditFormModal';

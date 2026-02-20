@@ -1312,7 +1312,7 @@ function SettingsPageContent() {
   }
 
   // Group settings by subcategory
-  const groupBySubcategory = (settingsList: SystemSetting[], category: string) => {
+  const groupBySubcategory = (settingsList: SystemSetting[], _category: string) => {
     const grouped = settingsList.reduce((acc, setting) => {
       const sub = setting.subcategory || 'General'
       if (!acc[sub]) acc[sub] = []

@@ -81,7 +81,6 @@ export default function UserProfileDropdown() {
     return null
   }
 
-  const userInitial = session.user.name?.charAt(0)?.toUpperCase() || 'U'
   const isAdmin = session.user.roleType === 'admin'
 
   return (

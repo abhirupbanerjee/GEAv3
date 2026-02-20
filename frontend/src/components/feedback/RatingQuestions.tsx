@@ -61,7 +61,7 @@ export default function RatingQuestions({ ratings, onRatingChange }: RatingQuest
   const [hoveredQuestion, setHoveredQuestion] = useState<keyof Ratings | null>(null)
   const [hoveredRating, setHoveredRating] = useState<number>(0)
 
-  const StarRating = ({ questionId, value }: { questionId: keyof Ratings; value: number }) => {
+  const StarRating = ({ questionId, value: _value }: { questionId: keyof Ratings; value: number }) => {
     const currentRating = ratings[questionId]
     const displayRating = hoveredQuestion === questionId && hoveredRating > 0 
       ? hoveredRating 

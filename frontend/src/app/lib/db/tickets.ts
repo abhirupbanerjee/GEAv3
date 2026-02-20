@@ -270,7 +270,7 @@ export async function getCategoryById(
 export async function listCategories(
   client: PoolClient,
   entityId?: string,
-  serviceId?: string
+  _serviceId?: string
 ) {
   let query = `
     SELECT

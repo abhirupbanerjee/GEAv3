@@ -66,12 +66,6 @@ function hashUserAgent(userAgent: string): string {
     .substring(0, 16);
 }
 
-// NEW: Validate requester category
-function isValidRequesterCategory(category: string | null | undefined): boolean {
-  if (!category) return true; // Optional field
-  return VALID_REQUESTER_CATEGORIES.includes(category.toLowerCase());
-}
-
 // Check rate limit (existing function)
 async function checkRateLimit(ipHash: string, limit: number = 5): Promise<boolean> {
   const result = await pool.query(

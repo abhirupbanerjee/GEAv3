@@ -52,15 +52,6 @@ async function validateTicketExists(ticketId: string) {
   return result.rows[0];
 }
 
-// Extract ticket ID from route parameter
-function getTicketIdFromParams(params: any): string {
-  const id = params?.id;
-  if (!id) {
-    throw new Error('Ticket ID is required in URL');
-  }
-  return id;
-}
-
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }

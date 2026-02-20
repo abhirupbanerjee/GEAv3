@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { citizen_id, phone } = sessionResult.rows[0];
+    const { citizen_id, phone: _phone } = sessionResult.rows[0];
 
     // Check for refresh parameter
     const searchParams = request.nextUrl.searchParams;

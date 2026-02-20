@@ -15,7 +15,6 @@ import {
   formatValidationErrors 
 } from '@/lib/validation'
 import {
-  respondSuccess,
   respondError,
   respondValidationError,
   respondServerError,
@@ -96,7 +95,7 @@ export async function POST(request: NextRequest) {
     let body: any
     try {
       body = await request.json()
-    } catch (error) {
+    } catch (_error) {
       logError('POST', '/api/tickets/submit', 'Invalid JSON', requestId)
       return respondValidationError(
         { body: ['Invalid JSON format'] },
