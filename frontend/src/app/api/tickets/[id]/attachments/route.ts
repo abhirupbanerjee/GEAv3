@@ -14,25 +14,26 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
+import { getSetting } from '@/lib/settings';
 
-// Constraints from ticket_attachments schema
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+// Helper function to map file extensions to mimetypes
+const EXTENSION_TO_MIMETYPE: Record<string, string> = {
+  'pdf': 'application/pdf',
+  'jpg': 'image/jpeg',
+  'jpeg': 'image/jpeg',
+  'png': 'image/png',
+  'gif': 'image/gif',
+  'doc': 'application/msword',
+  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'xls': 'application/vnd.ms-excel',
+  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+};
 
-// Allowed file types for government documents
-const ALLOWED_MIMETYPES = [
-  'application/pdf',
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'application/vnd.ms-excel',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-];
-
-// Validate file mimetype
-function isAllowedMimetype(mimetype: string): boolean {
-  return ALLOWED_MIMETYPES.includes(mimetype);
+// Validate file mimetype against allowed extensions
+function isAllowedMimetype(mimetype: string, allowedExtensions: string[]): boolean {
+  // Get allowed mimetypes from allowed extensions
+  const allowedMimetypes = allowedExtensions.map(ext => EXTENSION_TO_MIMETYPE[ext.toLowerCase()]).filter(Boolean);
+  return allowedMimetypes.includes(mimetype);
 }
 
 // Validate ticket exists
@@ -68,9 +69,14 @@ export async function POST(
   const { id } = await params;
 
   try {
+    // Fetch file upload settings from database (5-minute cache)
+    const maxFileSize = Number(await getSetting('MAX_FILE_SIZE', '5242880'));
+    const allowedFileTypes = String(await getSetting('ALLOWED_FILE_TYPES', 'pdf,jpg,jpeg,png,doc,docx,xlsx,xls'));
+    const allowedExtensions = allowedFileTypes.split(',').map(ext => ext.trim());
+
     // Get ticket ID from route params
     const ticketId = id;
-    
+
     // ============================================
     // STEP 1: Validate ticket exists
     // ============================================
@@ -122,25 +128,27 @@ export async function POST(
       );
     }
     
-    if (fileSize > MAX_FILE_SIZE) {
+    if (fileSize > maxFileSize) {
       return NextResponse.json(
-        { 
-          error: `File size exceeds maximum limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+        {
+          error: `File size exceeds maximum limit of ${maxFileSize / 1024 / 1024}MB`,
           file_size_bytes: fileSize,
-          max_size_bytes: MAX_FILE_SIZE,
+          max_size_bytes: maxFileSize,
           timestamp: new Date().toISOString()
         },
         { status: 413 }
       );
     }
-    
+
     // Validate mimetype
-    if (!isAllowedMimetype(mimetype)) {
+    if (!isAllowedMimetype(mimetype, allowedExtensions)) {
+      const allowedMimetypes = allowedExtensions.map(ext => EXTENSION_TO_MIMETYPE[ext.toLowerCase()]).filter(Boolean);
       return NextResponse.json(
-        { 
+        {
           error: 'File type not allowed',
           provided_type: mimetype,
-          allowed_types: ALLOWED_MIMETYPES,
+          allowed_types: allowedMimetypes,
+          allowed_extensions: allowedExtensions,
           timestamp: new Date().toISOString()
         },
         { status: 415 }
@@ -204,7 +212,7 @@ export async function POST(
       },
       metadata: {
         processing_time_ms: processingTime,
-        max_file_size_bytes: MAX_FILE_SIZE
+        max_file_size_bytes: maxFileSize
       },
       message: 'File successfully uploaded to ticket'
     }, { status: 201 });

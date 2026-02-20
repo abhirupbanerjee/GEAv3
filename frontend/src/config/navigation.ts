@@ -4,8 +4,6 @@
 // Menu structure and routing for the portal
 // ============================================
 
-import { config } from './env';
-
 // Navigation item type
 export interface NavItem {
   label: string;
@@ -29,16 +27,6 @@ export const navigationItems: NavItem[] = [
     label: 'Feedback',
     href: '/feedback',
     type: 'internal'
-  },
-  {
-    label: 'Repository',
-    href: config.DMS_URL,
-    type: 'external'
-  },
-  {
-    label: 'Git',
-    href: config.GIT_URL,
-    type: 'external'
   }
 ];
 

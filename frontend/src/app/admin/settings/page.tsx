@@ -869,6 +869,27 @@ function SettingsPageContent() {
     const isChanged = pendingChanges[setting.setting_key] !== undefined
     const showSecret = showSecrets[setting.setting_key]
 
+    // Special handling for SITE_NAME - read-only, controlled by .env file
+    if (setting.setting_key === 'SITE_NAME') {
+      const envValue = process.env.NEXT_PUBLIC_SITE_NAME || value
+      return (
+        <div className="space-y-2">
+          <input
+            type="text"
+            value={envValue}
+            disabled
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600 cursor-not-allowed"
+          />
+          <p className="text-xs text-blue-600 bg-blue-50 p-2 rounded flex items-start gap-2">
+            <span className="text-sm">ℹ️</span>
+            <span>
+              To change the site name, update the <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">NEXT_PUBLIC_SITE_NAME</code> variable in the <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">.env</code> file and rebuild the application using <code className="px-1 py-0.5 bg-blue-100 rounded text-xs font-mono">docker compose up -d --build</code>
+            </span>
+          </p>
+        </div>
+      )
+    }
+
     // Special handling for BACKUP_SCHEDULE_TIME - time picker with guidance
     if (setting.setting_key === 'BACKUP_SCHEDULE_TIME') {
       return (

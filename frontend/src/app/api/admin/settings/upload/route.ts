@@ -14,10 +14,10 @@ import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 import crypto from 'crypto';
+import { getSetting } from '@/lib/settings';
 
-// Allowed image types
+// Allowed image types (kept hardcoded for security)
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/x-icon'];
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // Upload directories
 const UPLOAD_DIRS = {
@@ -33,6 +33,9 @@ type UploadCategory = keyof typeof UPLOAD_DIRS;
  */
 export async function POST(request: NextRequest) {
   try {
+    // Fetch file upload settings from database (5-minute cache)
+    const maxFileSize = Number(await getSetting('MAX_FILE_SIZE', '5242880'));
+
     // Check authentication and authorization
     const session = await getServerSession(authOptions);
 
@@ -64,9 +67,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate file size
-    if (file.size > MAX_FILE_SIZE) {
+    if (file.size > maxFileSize) {
       return NextResponse.json(
-        { error: `File too large. Maximum size: ${MAX_FILE_SIZE / 1024 / 1024}MB` },
+        { error: `File too large. Maximum size: ${maxFileSize / 1024 / 1024}MB` },
         { status: 400 }
       );
     }

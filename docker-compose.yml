@@ -88,8 +88,6 @@ services:
       dockerfile: Dockerfile
       args:
         # Using simple form (VAR instead of VAR=${VAR}) so .env takes precedence over empty shell variables
-        - DMS_URL
-        - GIT_URL
         - CHATBOT_URL
         - GOG_URL
         - ESERVICES_URL

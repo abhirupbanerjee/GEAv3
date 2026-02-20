@@ -5,7 +5,7 @@
 // ============================================
 
 import sgMail from '@sendgrid/mail';
-import { config } from '@/config/env';
+import { getSendGridSettings } from '@/lib/settings';
 
 // Lazy initialization state
 let isInitialized = false;
@@ -15,10 +15,13 @@ let initializationLogged = false;
  * Initialize SendGrid with API key (lazy - only when first email is sent)
  * Returns true if SendGrid is configured and ready
  */
-function initializeSendGrid(): boolean {
+async function initializeSendGrid(): Promise<boolean> {
   if (isInitialized) return true;
 
-  const apiKey = config.SENDGRID_API_KEY;
+  // Fetch from database (5-minute cache, auto-decrypts API key)
+  const settings = await getSendGridSettings();
+  const apiKey = settings.apiKey;
+
   if (!apiKey) {
     if (!initializationLogged) {
       console.warn('⚠️ SendGrid not configured - email features disabled');
@@ -37,8 +40,8 @@ function initializeSendGrid(): boolean {
  * Check if email sending is enabled
  * Use this to conditionally show email-related UI or skip email logic
  */
-export function isEmailEnabled(): boolean {
-  return initializeSendGrid();
+export async function isEmailEnabled(): Promise<boolean> {
+  return await initializeSendGrid();
 }
 
 export interface EmailData {
@@ -59,13 +62,15 @@ export interface EmailResult {
  * Returns success: false if SendGrid is not configured (no error thrown)
  */
 export async function sendEmail(emailData: EmailData): Promise<EmailResult> {
-  if (!initializeSendGrid()) {
+  if (!await initializeSendGrid()) {
     console.warn('⚠️ Email not sent - SendGrid not configured');
     return { success: false, error: 'SendGrid not configured' };
   }
 
-  const fromEmail = config.SENDGRID_FROM_EMAIL || 'noreply@example.com';
-  const fromName = config.SENDGRID_FROM_NAME || 'GEA Portal';
+  // Fetch email display settings from database (5-minute cache)
+  const settings = await getSendGridSettings();
+  const fromEmail = settings.fromEmail || 'noreply@example.com';
+  const fromName = settings.fromName || 'GEA Portal';
 
   try {
     const msg = {
@@ -97,7 +102,7 @@ export async function sendBulkEmail(
   subject: string,
   html: string
 ): Promise<EmailResult> {
-  if (!initializeSendGrid()) {
+  if (!await initializeSendGrid()) {
     console.warn('⚠️ Bulk email not sent - SendGrid not configured');
     return { success: false, error: 'SendGrid not configured' };
   }
@@ -106,8 +111,10 @@ export async function sendBulkEmail(
     return { success: true }; // Nothing to send
   }
 
-  const fromEmail = config.SENDGRID_FROM_EMAIL || 'noreply@example.com';
-  const fromName = config.SENDGRID_FROM_NAME || 'GEA Portal';
+  // Fetch email display settings from database (5-minute cache)
+  const settings = await getSendGridSettings();
+  const fromEmail = settings.fromEmail || 'noreply@example.com';
+  const fromName = settings.fromName || 'GEA Portal';
 
   const messages = recipients.map((to) => ({
     to,

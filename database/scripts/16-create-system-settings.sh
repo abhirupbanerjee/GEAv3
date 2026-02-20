@@ -113,7 +113,7 @@ INSERT INTO system_settings (setting_key, setting_value, setting_type, category,
 SELECT * FROM (VALUES
     ('SITE_NAME', 'Government of Grenada - EA Portal', 'string', 'SYSTEM', 'General', 'Site Name', 'Application name displayed in headers and browser tabs', 'GEA Portal', true, 1),
     ('SITE_SHORT_NAME', 'GEA Portal', 'string', 'SYSTEM', 'General', 'Site Short Name', 'Abbreviated site name for compact displays', 'GEA', true, 2),
-    ('COPYRIGHT_YEAR', '2025', 'string', 'SYSTEM', 'General', 'Copyright Year', 'Year displayed in footer copyright notice', '2025', true, 3),
+    -- ('COPYRIGHT_YEAR', '2025', 'string', 'SYSTEM', 'General', 'Copyright Year', 'Year displayed in footer copyright notice', '2025', true, 3), -- REMOVED: Unused setting, footer uses FOOTER_COPYRIGHT_TEXT instead
     ('SESSION_DURATION_HOURS', '2', 'number', 'SYSTEM', 'General', 'Session Duration (hours)', 'How long admin sessions remain active before requiring re-login', '2', false, 4)
 ) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE category = 'SYSTEM' LIMIT 1);

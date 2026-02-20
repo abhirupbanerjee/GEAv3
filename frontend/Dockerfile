@@ -6,8 +6,6 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Build arguments (existing)
-ARG DMS_URL
-ARG GIT_URL
 ARG CHATBOT_URL
 ARG GOG_URL
 ARG ESERVICES_URL
@@ -60,8 +58,6 @@ COPY ./src/proxy.ts ./src/proxy.ts
 # Generate env.ts from build arguments (UPDATED)
 RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "export const config = {" >> src/config/env.ts && \
-    echo "  DMS_URL: '${DMS_URL}'," >> src/config/env.ts && \
-    echo "  GIT_URL: '${GIT_URL}'," >> src/config/env.ts && \
     echo "  CHATBOT_URL: '${CHATBOT_URL}'," >> src/config/env.ts && \
     echo "  GOG_URL: '${GOG_URL}'," >> src/config/env.ts && \
     echo "  ESERVICES_URL: '${ESERVICES_URL}'," >> src/config/env.ts && \

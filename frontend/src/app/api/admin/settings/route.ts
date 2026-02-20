@@ -105,7 +105,21 @@ export async function POST(request: NextRequest) {
     let hasErrors = false;
     let requiresRestart = false;
 
+    // Environment-controlled settings that cannot be updated via UI
+    const ENV_CONTROLLED_SETTINGS = ['SITE_NAME'];
+
     for (const { key, value } of settings) {
+      // Skip settings that are controlled by environment variables
+      if (ENV_CONTROLLED_SETTINGS.includes(key)) {
+        results.push({
+          key,
+          success: false,
+          message: `${key} is controlled by the .env file (NEXT_PUBLIC_${key}). Please update the environment variable and rebuild the application.`,
+        });
+        hasErrors = true;
+        continue;
+      }
+
       const result = await updateSetting(key, {
         value,
         changedBy: session.user.email || 'admin',

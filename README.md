@@ -478,6 +478,46 @@ EXTERNAL_API_KEY=your-64-character-hex-key
 
 See [.env.example](.env.example) for the complete list with descriptions.
 
+### Configuration Architecture
+
+The portal uses two configuration sources:
+
+| **Environment Variables (.env)** | **Database Settings (Admin UI)** |
+|----------------------------------|----------------------------------|
+| Infrastructure & security | Runtime configuration |
+| Build-time settings | Content & display |
+| **Requires Docker rebuild** | **Changes apply immediately** |
+
+**Environment-Controlled Settings** (require rebuild):
+- Site name (`NEXT_PUBLIC_SITE_NAME`)
+- Domain configuration
+- Security credentials (API keys, secrets)
+- Database connection
+
+**Runtime-Controlled Settings** (via Admin UI):
+- Email display settings
+- Rate limits
+- File upload limits
+- Content text (welcome messages, copyright)
+- Footer links
+
+**⚠️ Important:** Changes to environment variables require rebuilding containers:
+```bash
+docker compose down
+docker compose up -d --build
+```
+
+For detailed configuration guidance, see [Administrator Guide](docs/developer-guides/ADMIN_GUIDE.md).
+
+### Removed Variables
+
+The following variables have been removed as of v3.2.0:
+- `DMS_URL` - Unused
+- `GIT_URL` - Unused
+- `COPYRIGHT_YEAR` - Replaced by `FOOTER_COPYRIGHT_TEXT` in database
+
+If upgrading, remove these from your `.env` file.
+
 ### Generate Secure Passwords
 
 ```bash

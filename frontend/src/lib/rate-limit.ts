@@ -12,7 +12,7 @@
 
 import crypto from 'crypto'
 import { pool } from './db'
-import { config } from '@/config/env'
+import { getRateLimitSettings } from '@/lib/settings'
 
 // ============================================
 // TYPES
@@ -31,21 +31,6 @@ export interface RateLimitStatus {
 // ============================================
 
 type RateLimitType = 'feedback' | 'grievance'
-
-/**
- * Get rate limit for a specific endpoint type
- * Reads from config/env.ts
- */
-function getRateLimit(type: RateLimitType): number {
-  switch (type) {
-    case 'feedback':
-      return config.EA_SERVICE_RATE_LIMIT || 5
-    case 'grievance':
-      return config.GRIEVANCE_RATE_LIMIT || 2
-    default:
-      return 5
-  }
-}
 
 // ============================================
 // CORE FUNCTIONS
@@ -109,7 +94,12 @@ export async function checkRateLimit(
   ipHash: string,
   type: RateLimitType = 'feedback'
 ): Promise<RateLimitStatus> {
-  const limit = getRateLimit(type)
+  // Fetch rate limits from database (5-minute cache)
+  const settings = await getRateLimitSettings()
+  const limit = type === 'feedback'
+    ? settings.feedbackLimit
+    : settings.grievanceLimit
+
   const now = new Date()
   const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
 
@@ -170,7 +160,10 @@ export async function checkRateLimit(
 export async function checkGrievanceRateLimit(
   ipHash: string
 ): Promise<RateLimitStatus> {
-  const limit = getRateLimit('grievance')
+  // Fetch rate limits from database (5-minute cache)
+  const settings = await getRateLimitSettings()
+  const limit = settings.grievanceLimit
+
   const now = new Date()
   const oneHourAgo = new Date(now.getTime() - 3600 * 1000)
 
@@ -234,7 +227,12 @@ export async function getRateLimitStats(
   ips_at_limit: number
   average_per_ip: number
 }> {
-  const limit = getRateLimit(type)
+  // Fetch rate limits from database (5-minute cache)
+  const settings = await getRateLimitSettings()
+  const limit = type === 'feedback'
+    ? settings.feedbackLimit
+    : settings.grievanceLimit
+
   const oneHourAgo = new Date(Date.now() - 3600 * 1000)
 
   try {
