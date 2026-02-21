@@ -57,17 +57,37 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { service_id, service_name, entity_id, service_category, service_description, is_active } = body
+    const {
+      service_id,
+      service_name,
+      entity_id,
+      service_category,
+      service_description,
+      is_active,
+      life_events,
+      delivery_channel,
+      target_consumers
+    } = body
 
     if (!service_id || !service_name || !entity_id || !service_category || !service_description) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
     await pool.query(`
-      INSERT INTO service_master 
-        (service_id, service_name, entity_id, service_category, service_description, is_active)
-      VALUES ($1, $2, $3, $4, $5, $6)
-    `, [service_id, service_name, entity_id, service_category, service_description, is_active !== false])
+      INSERT INTO service_master
+        (service_id, service_name, entity_id, service_category, service_description, is_active, life_events, delivery_channel, target_consumers)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+    `, [
+      service_id,
+      service_name,
+      entity_id,
+      service_category,
+      service_description,
+      is_active !== false,
+      life_events || [],
+      delivery_channel || [],
+      target_consumers || []
+    ])
 
     return NextResponse.json({ success: true, message: 'Service created' })
   } catch (error) {

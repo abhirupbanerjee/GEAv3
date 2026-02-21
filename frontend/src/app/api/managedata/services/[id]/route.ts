@@ -11,7 +11,16 @@ export async function PUT(
   const { id } = await params
   try {
     const body = await request.json()
-    const { service_name, entity_id, service_category, service_description, is_active } = body
+    const {
+      service_name,
+      entity_id,
+      service_category,
+      service_description,
+      is_active,
+      life_events,
+      delivery_channel,
+      target_consumers
+    } = body
 
     await pool.query(`
       UPDATE service_master
@@ -21,9 +30,22 @@ export async function PUT(
         service_category = $3,
         service_description = $4,
         is_active = $5,
+        life_events = $6,
+        delivery_channel = $7,
+        target_consumers = $8,
         updated_at = CURRENT_TIMESTAMP
-      WHERE service_id = $6
-    `, [service_name, entity_id, service_category, service_description, is_active, id])
+      WHERE service_id = $9
+    `, [
+      service_name,
+      entity_id,
+      service_category,
+      service_description,
+      is_active,
+      life_events || [],
+      delivery_channel || [],
+      target_consumers || [],
+      id
+    ])
 
     return NextResponse.json({ success: true, message: 'Service updated' })
   } catch (error) {

@@ -59,6 +59,9 @@ export interface Service {
   service_category: string
   service_description: string
   is_active: boolean
+  life_events?: string[]  // Array of life event tags for citizen-centric navigation
+  delivery_channel?: string[]  // Array of delivery channel values (office, web, mobile, etc.)
+  target_consumers?: string[]  // Array of target consumer values (citizen, business, etc.)
   created_at: string
   updated_at: string
 }
@@ -67,6 +70,7 @@ export interface ServiceFilters {
   search?: string | null
   service_category?: string | null
   entity_id?: string | null
+  life_event?: string | null  // Filter by life event
   is_active?: 'active' | 'inactive' | 'all'
 }
 

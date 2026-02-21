@@ -270,6 +270,10 @@ const navigationItems: NavigationItem[] = [
       { label: 'Entities', tabKey: 'entities' },
       { label: 'Services', tabKey: 'services' },
       { label: 'QR Codes', tabKey: 'qrcodes' },
+      { label: 'Categories', tabKey: 'categories' },
+      { label: 'Life Events', tabKey: 'lifeevents' },
+      { label: 'Delivery Channels', tabKey: 'deliverychannels' },
+      { label: 'Service Consumers', tabKey: 'serviceconsumers' },
     ],
   },
   {

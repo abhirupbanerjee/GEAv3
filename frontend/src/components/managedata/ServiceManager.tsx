@@ -27,6 +27,8 @@ interface ServiceAttachment {
 
 export default function ServiceManager() {
   const [entities, setEntities] = useState<Entity[]>([])
+  const [deliveryChannels, setDeliveryChannels] = useState<any[]>([])
+  const [serviceConsumers, setServiceConsumers] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
   const [editingService, setEditingService] = useState<Service | null>(null)
   const [showDeactivateModal, setShowDeactivateModal] = useState(false)
@@ -65,7 +67,10 @@ export default function ServiceManager() {
     entity_id: '',
     service_category: 'general',
     service_description: '',
-    is_active: true
+    is_active: true,
+    life_events: [] as string[],
+    delivery_channel: [] as string[],
+    target_consumers: [] as string[]
   })
 
   // Attachment management state
@@ -90,18 +95,65 @@ export default function ServiceManager() {
     label: string  // Display name (what users see)
   }
 
-  // Original 10 categories (mapped to database values)
+  // Comprehensive categories based on actual 173 services analysis
   const categories: Category[] = [
-    { value: 'immigration_passports_and_travel', label: 'Immigration' },
+    // Identity & Immigration
+    { value: 'identity_and_civil_registration', label: 'Identity & Civil Registration' },
+    { value: 'immigration_passports_and_travel', label: 'Immigration & Travel' },
+
+    // Tax & Customs
     { value: 'taxation_duties_and_revenue', label: 'Tax & Revenue' },
-    { value: 'taxation_duties_and_revenue', label: 'Customs' },
-    { value: 'identity_and_civil_registration', label: 'Civil Registry' },
-    { value: 'land_administration_and_cadastre', label: 'Property' },
-    { value: 'health_services_and_clinics', label: 'Health' },
-    { value: 'tourism_culture_and_events', label: 'Tourism' },
-    { value: 'utilities_and_public_infrastructure', label: 'Utilities' },
-    { value: 'digital_government_and_ict_services', label: 'Digital' },
-    { value: 'general', label: 'General' }
+
+    // Health (3 sub-categories - 21 services)
+    { value: 'health_services_and_clinics', label: 'Health Services & Clinics' },
+    { value: 'health_facility_licensing', label: 'Health Facility Licensing' },
+    { value: 'public_health_and_sanitation', label: 'Public Health & Sanitation' },
+
+    // Social Protection (3 sub-categories - 40+ services)
+    { value: 'social_protection_and_family_support', label: 'Social Protection & Family Support' },
+    { value: 'social_protection_and_insurance', label: 'Social Protection & Insurance (NIS)' },
+    { value: 'social_protection_cash_transfers', label: 'Social Protection: Cash Transfers' },
+
+    // Education (3 sub-categories - 14 services)
+    { value: 'education_exams_and_assessment', label: 'Education: Exams & Assessment' },
+    { value: 'education_scholarships_and_financial_aid', label: 'Education: Scholarships & Aid' },
+    { value: 'education_school_administration', label: 'Education: School Administration' },
+
+    // Land, Property & Housing
+    { value: 'land_administration_and_cadastre', label: 'Land Administration & Cadastre' },
+    { value: 'land_use_planning_and_building_control', label: 'Planning & Building Control' },
+    { value: 'housing_support', label: 'Housing Support' },
+
+    // Business & Investment
+    { value: 'business_and_commerce', label: 'Business & Commerce' },
+    { value: 'investment_and_business_support', label: 'Investment & Business Support' },
+
+    // Agriculture & Natural Resources
+    { value: 'agriculture_and_rural_development', label: 'Agriculture & Rural Development' },
+    { value: 'fisheries_and_marine_resources', label: 'Fisheries & Marine Resources' },
+    { value: 'forestry_and_wildlife_management', label: 'Forestry & Wildlife' },
+    { value: 'cooperatives_and_producer_organizations', label: 'Cooperatives & Producer Organizations' },
+
+    // Transport, Justice, Tourism
+    { value: 'transport_vehicles_and_civil_aviation', label: 'Transport & Vehicles' },
+    { value: 'justice_legal_affairs_and_law_enforcement', label: 'Justice & Law Enforcement' },
+    { value: 'tourism_culture_and_events', label: 'Tourism & Culture' },
+
+    // Infrastructure & Services
+    { value: 'utilities_and_public_infrastructure', label: 'Utilities & Infrastructure' },
+    { value: 'digital_government_and_ict_services', label: 'Digital Government Services' },
+    { value: 'enterprise_architecture_services', label: 'Enterprise Architecture' },
+
+    // Specialized Services
+    { value: 'financial_regulation_and_licensing', label: 'Financial Regulation & Licensing' },
+    { value: 'standards_quality_and_safety', label: 'Standards, Quality & Safety' },
+    { value: 'statistics_and_data', label: 'Statistics & Data' },
+    { value: 'youth_and_community_development', label: 'Youth & Community Development' },
+    { value: 'disaster_support_and_assessment', label: 'Disaster Support' },
+    { value: 'governance_elections_and_public_administration', label: 'Governance & Public Administration' },
+
+    // Catch-all
+    { value: 'general', label: 'General Services' }
   ]
 
   // Helper to get display label for category
@@ -109,6 +161,58 @@ export default function ServiceManager() {
     if (!value) return '-'
     const category = categories.find(cat => cat.value === value)
     return category ? category.label : value
+  }
+
+  // Life Events interface and constant
+  interface LifeEvent {
+    value: string
+    label: string
+    description: string
+  }
+
+  // Comprehensive life events based on analysis of 173 actual services
+  const lifeEvents: LifeEvent[] = [
+    // Family Life Events
+    { value: 'having_a_baby', label: 'Having a Baby', description: 'Birth registration, maternity benefits, maternal health services' },
+    { value: 'getting_married', label: 'Getting Married', description: 'Marriage licence, marriage certificate, name change' },
+    { value: 'death_and_bereavement', label: 'Death & Bereavement', description: 'Death certificate, funeral benefits, survivor benefits' },
+    { value: 'child_welfare', label: 'Child Protection & Welfare', description: 'Foster care, adoption, child protection, parenting support' },
+
+    // Education Journey
+    { value: 'going_to_school', label: 'Going to School', description: 'School placement, transfers, exam registration' },
+    { value: 'pursuing_higher_education', label: 'Pursuing Higher Education', description: 'Scholarships, study leave, bursaries, transcripts' },
+
+    // Employment & Business
+    { value: 'starting_a_business', label: 'Starting a Business', description: 'Business registration, TRN, VAT registration, licenses' },
+    { value: 'starting_work', label: 'Starting Work', description: 'Work permits, NIS registration, employment documents' },
+    { value: 'losing_a_job', label: 'Job Loss / Unemployment', description: 'Unemployment benefits, retraining, social assistance' },
+    { value: 'retiring', label: 'Retiring', description: 'NIS pension, age benefits, senior citizen support' },
+
+    // Housing & Property
+    { value: 'buying_property', label: 'Buying Property / Building Home', description: 'Land purchase, surveys, building permits, property tax' },
+    { value: 'moving_house', label: 'Moving / Changing Address', description: 'Utilities connection, address change, school transfers' },
+
+    // Transport
+    { value: 'getting_drivers_license', label: 'Learning to Drive', description: "Learner's permit, driver's test, license renewal" },
+    { value: 'buying_a_vehicle', label: 'Buying a Vehicle', description: 'Vehicle registration, transfer, fitness test, licence fees' },
+
+    // Crisis & Support
+    { value: 'experiencing_hardship', label: 'Experiencing Hardship', description: 'SEED cash transfer, emergency assistance, social support' },
+    { value: 'disaster_recovery', label: 'Recovering from Disaster', description: 'Household assessment, emergency assistance, rebuilding' },
+    { value: 'violence_or_abuse', label: 'Experiencing Violence / Abuse', description: 'GBV support, shelter placement, crisis intervention' },
+
+    // Health
+    { value: 'illness_or_disability', label: 'Dealing with Illness / Disability', description: 'Hospital services, disability grants, home care, benefits' },
+
+    // Immigration & Travel
+    { value: 'traveling_abroad', label: 'Traveling Abroad', description: 'Passport application/renewal, visas, travel documents' },
+    { value: 'coming_to_grenada', label: 'Coming to Grenada', description: 'Visas, entry permits, work permits, immigration services' }
+  ]
+
+  // Helper to get display label for life event
+  const getLifeEventLabel = (value: string): string => {
+    const event = lifeEvents.find(e => e.value === value)
+    return event ? event.label : value
   }
 
   // Load entities for dropdown (keep separate from paginated services)
@@ -125,6 +229,38 @@ export default function ServiceManager() {
       }
     }
     loadEntities()
+  }, [])
+
+  // Load delivery channels
+  useEffect(() => {
+    const loadDeliveryChannels = async () => {
+      try {
+        const response = await fetch('/api/managedata/deliverychannels')
+        if (response.ok) {
+          const data = await response.json()
+          setDeliveryChannels(data.filter((c: any) => c.is_active))
+        }
+      } catch (error) {
+        console.error('Error loading delivery channels:', error)
+      }
+    }
+    loadDeliveryChannels()
+  }, [])
+
+  // Load service consumers
+  useEffect(() => {
+    const loadServiceConsumers = async () => {
+      try {
+        const response = await fetch('/api/managedata/serviceconsumers')
+        if (response.ok) {
+          const data = await response.json()
+          setServiceConsumers(data.filter((c: any) => c.is_active))
+        }
+      } catch (error) {
+        console.error('Error loading service consumers:', error)
+      }
+    }
+    loadServiceConsumers()
   }, [])
 
   // Load allowed file types from settings
@@ -259,7 +395,10 @@ export default function ServiceManager() {
       entity_id: service.entity_id,
       service_category: service.service_category,
       service_description: service.service_description,
-      is_active: service.is_active
+      is_active: service.is_active,
+      life_events: service.life_events || [],
+      delivery_channel: service.delivery_channel || [],
+      target_consumers: service.target_consumers || []
     })
     setUseAutoId(false)
     setShowEditModal(true)
@@ -273,7 +412,10 @@ export default function ServiceManager() {
       entity_id: '',
       service_category: 'general',
       service_description: '',
-      is_active: true
+      is_active: true,
+      life_events: [],
+      delivery_channel: [],
+      target_consumers: []
     })
     setEditingService(null)
     setShowForm(false)
@@ -477,7 +619,10 @@ export default function ServiceManager() {
               entity_id: '',
               service_category: 'general',
               service_description: '',
-              is_active: true
+              is_active: true,
+              life_events: [],
+              delivery_channel: [],
+              target_consumers: []
             })
             setUseAutoId(true)
             setShowEditModal(true)
@@ -1169,7 +1314,152 @@ export default function ServiceManager() {
               <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
+        </div>
 
+        {/* Life Events - Multi-select */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Life Events (Optional)
+            <span className="ml-2 text-xs text-gray-500 font-normal">
+              Tag this service with relevant life events to help citizens find it
+            </span>
+          </label>
+          <div className="border border-gray-300 rounded-lg p-4 max-h-64 overflow-y-auto bg-gray-50">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {lifeEvents.map(event => (
+                <label
+                  key={event.value}
+                  className="flex items-start gap-2 p-2 hover:bg-white rounded cursor-pointer transition-colors"
+                  title={event.description}
+                >
+                  <input
+                    type="checkbox"
+                    checked={formData.life_events?.includes(event.value) || false}
+                    onChange={(e) => {
+                      const currentEvents = formData.life_events || []
+                      if (e.target.checked) {
+                        setFormData({
+                          ...formData,
+                          life_events: [...currentEvents, event.value]
+                        })
+                      } else {
+                        setFormData({
+                          ...formData,
+                          life_events: currentEvents.filter(v => v !== event.value)
+                        })
+                      }
+                    }}
+                    className="mt-0.5 w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                  />
+                  <span className="text-sm text-gray-700 select-none">
+                    {event.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {formData.life_events && formData.life_events.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-200">
+                <p className="text-xs text-gray-600">
+                  Selected: {formData.life_events.map(v => getLifeEventLabel(v)).join(', ')}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          {/* Delivery Channels - Multi-select */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Delivery Channels (Optional)
+              <span className="ml-2 text-xs text-gray-500 font-normal">
+                How is this service delivered?
+              </span>
+            </label>
+            <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50">
+              <div className="space-y-2">
+                {deliveryChannels.map((channel: any) => (
+                  <label
+                    key={channel.value}
+                    className="flex items-center gap-2 p-2 hover:bg-white rounded cursor-pointer transition-colors"
+                    title={channel.description}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.delivery_channel?.includes(channel.value) || false}
+                      onChange={(e) => {
+                        const current = formData.delivery_channel || []
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            delivery_channel: [...current, channel.value]
+                          })
+                        } else {
+                          setFormData({
+                            ...formData,
+                            delivery_channel: current.filter(v => v !== channel.value)
+                          })
+                        }
+                      }}
+                      className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                    />
+                    <span className="text-sm">
+                      {channel.icon && <span className="mr-1">{channel.icon}</span>}
+                      {channel.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Target Consumers - Multi-select */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Target Consumers (Optional)
+              <span className="ml-2 text-xs text-gray-500 font-normal">
+                Who uses this service?
+              </span>
+            </label>
+            <div className="border border-gray-300 rounded-lg p-3 max-h-48 overflow-y-auto bg-gray-50">
+              <div className="space-y-2">
+                {serviceConsumers.map((consumer: any) => (
+                  <label
+                    key={consumer.value}
+                    className="flex items-center gap-2 p-2 hover:bg-white rounded cursor-pointer transition-colors"
+                    title={consumer.description}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={formData.target_consumers?.includes(consumer.value) || false}
+                      onChange={(e) => {
+                        const current = formData.target_consumers || []
+                        if (e.target.checked) {
+                          setFormData({
+                            ...formData,
+                            target_consumers: [...current, consumer.value]
+                          })
+                        } else {
+                          setFormData({
+                            ...formData,
+                            target_consumers: current.filter(v => v !== consumer.value)
+                          })
+                        }
+                      }}
+                      className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                    />
+                    <span className="text-sm">
+                      {consumer.icon && <span className="mr-1">{consumer.icon}</span>}
+                      {consumer.label}
+                    </span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
           {/* Service ID with Auto-suggestion */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">

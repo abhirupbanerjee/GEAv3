@@ -44,17 +44,25 @@ import { useSearchParams } from 'next/navigation'
 import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
 import QRCodeManager from '@/components/managedata/QRCodeManager'
+import CategoryManager from '@/components/managedata/CategoryManager'
+import LifeEventManager from '@/components/managedata/LifeEventManager'
+import DeliveryChannelManager from '@/components/managedata/DeliveryChannelManager'
+import ServiceConsumerManager from '@/components/managedata/ServiceConsumerManager'
 import { useChatContext } from '@/hooks/useChatContext'
 import type { Entity, Service } from '@/types/managedata'
 
-type Tab = 'entities' | 'services' | 'qrcodes'
-const VALID_TABS: Tab[] = ['entities', 'services', 'qrcodes']
+type Tab = 'entities' | 'services' | 'qrcodes' | 'categories' | 'lifeevents' | 'deliverychannels' | 'serviceconsumers'
+const VALID_TABS: Tab[] = ['entities', 'services', 'qrcodes', 'categories', 'lifeevents', 'deliverychannels', 'serviceconsumers']
 
 // Tab configuration - defined outside component for stable reference (prevents infinite re-render)
 const TABS = [
   { id: 'entities' as Tab, label: 'Entities', icon: '🏛️', count: 'Ministries, Depts, Agencies' },
   { id: 'services' as Tab, label: 'Services', icon: '📋', count: 'Government Services' },
-  { id: 'qrcodes' as Tab, label: 'QR Codes', icon: '📱', count: 'Physical Locations' }
+  { id: 'qrcodes' as Tab, label: 'QR Codes', icon: '📱', count: 'Physical Locations' },
+  { id: 'categories' as Tab, label: 'Categories', icon: '🏷️', count: 'Service Categories' },
+  { id: 'lifeevents' as Tab, label: 'Life Events', icon: '🌟', count: 'Life Event Tags' },
+  { id: 'deliverychannels' as Tab, label: 'Delivery Channels', icon: '🚚', count: 'Service Delivery Methods' },
+  { id: 'serviceconsumers' as Tab, label: 'Service Consumers', icon: '👥', count: 'Target Audiences' }
 ]
 
 // Download helper for JSON export
@@ -135,8 +143,12 @@ function ManageDataPageContent() {
       const exportData = services.map((s: Service) => ({
         id: s.service_id,
         name: s.service_name,
+        description: s.service_description,
         entity_id: s.entity_id,
         category: s.service_category || null,
+        life_events: s.life_events || [],
+        delivery_channel: s.delivery_channel || [],
+        target_consumers: s.target_consumers || [],
         is_active: s.is_active
       }))
 
@@ -150,22 +162,123 @@ function ManageDataPageContent() {
     }
   }, [])
 
-  // Export both as a combined bundle
+  // Export QR codes
+  const exportQRCodes = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/qrcodes')
+      if (!res.ok) throw new Error('Failed to fetch QR codes')
+      const data = await res.json()
+
+      downloadJSON(data.qrcodes || data, `gea-qrcodes-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export QR codes error:', error)
+      alert('Failed to export QR codes')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export categories
+  const exportCategories = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/categories')
+      if (!res.ok) throw new Error('Failed to fetch categories')
+      const data = await res.json()
+
+      downloadJSON(data, `gea-categories-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export categories error:', error)
+      alert('Failed to export categories')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export life events
+  const exportLifeEvents = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/lifeevents')
+      if (!res.ok) throw new Error('Failed to fetch life events')
+      const data = await res.json()
+
+      downloadJSON(data, `gea-lifeevents-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export life events error:', error)
+      alert('Failed to export life events')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export delivery channels
+  const exportDeliveryChannels = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/deliverychannels')
+      if (!res.ok) throw new Error('Failed to fetch delivery channels')
+      const data = await res.json()
+
+      downloadJSON(data, `gea-delivery-channels-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export delivery channels error:', error)
+      alert('Failed to export delivery channels')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export service consumers
+  const exportServiceConsumers = useCallback(async () => {
+    setIsExporting(true)
+    try {
+      const res = await fetch('/api/managedata/serviceconsumers')
+      if (!res.ok) throw new Error('Failed to fetch service consumers')
+      const data = await res.json()
+
+      downloadJSON(data, `gea-service-consumers-${new Date().toISOString().split('T')[0]}.json`)
+    } catch (error) {
+      console.error('Export service consumers error:', error)
+      alert('Failed to export service consumers')
+    } finally {
+      setIsExporting(false)
+      setShowExportMenu(false)
+    }
+  }, [])
+
+  // Export all as a combined bundle
   const exportAll = useCallback(async () => {
     setIsExporting(true)
     try {
-      const [entitiesRes, servicesRes] = await Promise.all([
+      const [entitiesRes, servicesRes, qrcodesRes, categoriesRes, lifeEventsRes, deliveryChannelsRes, serviceConsumersRes] = await Promise.all([
         fetch('/api/managedata/entities?all=true'),
-        fetch('/api/managedata/services')
+        fetch('/api/managedata/services'),
+        fetch('/api/managedata/qrcodes'),
+        fetch('/api/managedata/categories'),
+        fetch('/api/managedata/lifeevents'),
+        fetch('/api/managedata/deliverychannels'),
+        fetch('/api/managedata/serviceconsumers')
       ])
 
       if (!entitiesRes.ok || !servicesRes.ok) throw new Error('Failed to fetch data')
 
       const entities = await entitiesRes.json()
       const services = await servicesRes.json()
+      const qrcodes = await qrcodesRes.json()
+      const categories = await categoriesRes.json()
+      const lifeEvents = await lifeEventsRes.json()
+      const deliveryChannels = await deliveryChannelsRes.json()
+      const serviceConsumers = await serviceConsumersRes.json()
 
       const exportData = {
         exported_at: new Date().toISOString(),
+        version: '2.0',
         entities: entities.map((e: Entity) => ({
           id: e.unique_entity_id,
           name: e.entity_name,
@@ -176,10 +289,19 @@ function ManageDataPageContent() {
         services: services.map((s: Service) => ({
           id: s.service_id,
           name: s.service_name,
+          description: s.service_description,
           entity_id: s.entity_id,
           category: s.service_category || null,
+          life_events: s.life_events || [],
+          delivery_channel: s.delivery_channel || [],
+          target_consumers: s.target_consumers || [],
           is_active: s.is_active
-        }))
+        })),
+        qrcodes: qrcodes.qrcodes || qrcodes,
+        categories,
+        life_events: lifeEvents,
+        delivery_channels: deliveryChannels,
+        service_consumers: serviceConsumers
       }
 
       downloadJSON(exportData, `gea-master-data-${new Date().toISOString().split('T')[0]}.json`)
@@ -252,6 +374,36 @@ function ManageDataPageContent() {
                 >
                   <span>Services (JSON)</span>
                 </button>
+                <button
+                  onClick={exportQRCodes}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>QR Codes (JSON)</span>
+                </button>
+                <button
+                  onClick={exportCategories}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>Categories (JSON)</span>
+                </button>
+                <button
+                  onClick={exportLifeEvents}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>Life Events (JSON)</span>
+                </button>
+                <button
+                  onClick={exportDeliveryChannels}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>Delivery Channels (JSON)</span>
+                </button>
+                <button
+                  onClick={exportServiceConsumers}
+                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <span>Service Consumers (JSON)</span>
+                </button>
                 <div className="border-t border-gray-100 my-1"></div>
                 <button
                   onClick={exportAll}
@@ -270,6 +422,10 @@ function ManageDataPageContent() {
             {activeTab === 'entities' && <EntityManager />}
             {activeTab === 'services' && <ServiceManager />}
             {activeTab === 'qrcodes' && <QRCodeManager />}
+            {activeTab === 'categories' && <CategoryManager />}
+            {activeTab === 'lifeevents' && <LifeEventManager />}
+            {activeTab === 'deliverychannels' && <DeliveryChannelManager />}
+            {activeTab === 'serviceconsumers' && <ServiceConsumerManager />}
           </div>
         </div>
 
@@ -278,7 +434,7 @@ function ManageDataPageContent() {
           <h3 className="text-lg font-bold text-blue-900 mb-3">
             💡 Quick Guide
           </h3>
-          <div className="grid md:grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-sm">
             <div>
               <strong className="text-blue-900">Entities:</strong>
               <p className="text-blue-800 mt-1">
@@ -295,6 +451,30 @@ function ManageDataPageContent() {
               <strong className="text-blue-900">QR Codes:</strong>
               <p className="text-blue-800 mt-1">
                 Generate QR codes for physical locations (offices, kiosks)
+              </p>
+            </div>
+            <div>
+              <strong className="text-blue-900">Categories:</strong>
+              <p className="text-blue-800 mt-1">
+                Manage service categories for better organization and filtering
+              </p>
+            </div>
+            <div>
+              <strong className="text-blue-900">Life Events:</strong>
+              <p className="text-blue-800 mt-1">
+                Define life event tags for citizen-centric service discovery
+              </p>
+            </div>
+            <div>
+              <strong className="text-blue-900">Delivery Channels:</strong>
+              <p className="text-blue-800 mt-1">
+                Manage service delivery methods (office, web, mobile, etc.)
+              </p>
+            </div>
+            <div>
+              <strong className="text-blue-900">Service Consumers:</strong>
+              <p className="text-blue-800 mt-1">
+                Define target audiences for services (citizen, business, etc.)
               </p>
             </div>
           </div>
