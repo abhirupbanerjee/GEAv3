@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FiEdit2, FiTrash2, FiSave, FiX, FiPlus, FiTag } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiPlus, FiTag } from 'react-icons/fi'
+import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface Category {
   id: number
@@ -18,7 +19,7 @@ export default function CategoryManager() {
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     value: '',
@@ -88,7 +89,7 @@ export default function CategoryManager() {
       sort_order: category.sort_order,
       is_active: category.is_active
     })
-    setShowAddForm(true)
+    setShowEditModal(true)
   }
 
   const handleDelete = async (id: number) => {
@@ -122,7 +123,7 @@ export default function CategoryManager() {
       is_active: true
     })
     setEditingId(null)
-    setShowAddForm(false)
+    setShowEditModal(false)
   }
 
   const filteredCategories = categories.filter(cat =>
@@ -153,7 +154,10 @@ export default function CategoryManager() {
           </p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={() => {
+            resetForm()
+            setShowEditModal(true)
+          }}
           className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors"
         >
           <FiPlus /> Add Category
@@ -171,111 +175,86 @@ export default function CategoryManager() {
         />
       </div>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <form onSubmit={handleSubmit} className="bg-purple-50 border border-purple-200 rounded-lg p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editingId ? 'Edit Category' : 'Add New Category'}
-            </h3>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <FiX size={20} />
-            </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Value (Database Key) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                placeholder="e.g., health_services_and_clinics"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-                disabled={!!editingId}
-              />
-              <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Label (Display Name) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                placeholder="e.g., Health Services & Clinics"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
+      {/* Add/Edit Modal */}
+      <EditFormModal
+        isOpen={showEditModal}
+        onClose={() => resetForm()}
+        onSubmit={handleSubmit}
+        title={editingId ? '✏️ Edit Category' : '➕ Add New Category'}
+        isEditing={!!editingId}
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Value (Database Key) *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              placeholder="e.g., health_services_and_clinics"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={!!editingId}
+            />
+            <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              Label (Display Name) *
             </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Brief description of this category..."
-              rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
+            <input
+              type="text"
+              required
+              value={formData.label}
+              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+              placeholder="e.g., Health Services & Clinics"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Brief description of this category..."
+            rows={2}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sort Order
+            </label>
+            <input
+              type="number"
+              value={formData.sort_order}
+              onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort Order
-              </label>
-              <input
-                type="number"
-                value={formData.sort_order}
-                onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-7">
-              <input
-                type="checkbox"
-                id="category_active"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-              />
-              <label htmlFor="category_active" className="text-sm font-medium text-gray-700">
-                Active
-              </label>
-            </div>
+          <div className="flex items-center gap-2 pt-7">
+            <input
+              type="checkbox"
+              id="category_active"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="category_active" className="text-sm font-medium text-gray-700">
+              Active
+            </label>
           </div>
-
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <FiSave /> {editingId ? 'Update' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
+        </div>
+      </EditFormModal>
 
       {/* Categories Table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FiEdit2, FiTrash2, FiSave, FiX, FiPlus, FiTruck } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiPlus, FiTruck } from 'react-icons/fi'
+import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface DeliveryChannel {
   id: number
@@ -19,7 +20,7 @@ export default function DeliveryChannelManager() {
   const [channels, setChannels] = useState<DeliveryChannel[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     value: '',
@@ -90,7 +91,7 @@ export default function DeliveryChannelManager() {
       sort_order: channel.sort_order,
       is_active: channel.is_active
     })
-    setShowAddForm(true)
+    setShowEditModal(true)
   }
 
   const handleDelete = async (id: number) => {
@@ -125,7 +126,7 @@ export default function DeliveryChannelManager() {
       is_active: true
     })
     setEditingId(null)
-    setShowAddForm(false)
+    setShowEditModal(false)
   }
 
   const filteredChannels = channels.filter(ch =>
@@ -156,7 +157,10 @@ export default function DeliveryChannelManager() {
           </p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={() => {
+            resetForm()
+            setShowEditModal(true)
+          }}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 transition-colors"
         >
           <FiPlus /> Add Channel
@@ -174,125 +178,100 @@ export default function DeliveryChannelManager() {
         />
       </div>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <form onSubmit={handleSubmit} className="bg-indigo-50 border border-indigo-200 rounded-lg p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editingId ? 'Edit Delivery Channel' : 'Add New Delivery Channel'}
-            </h3>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <FiX size={20} />
-            </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Value (Database Key) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                placeholder="e.g., web_portal"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-                disabled={!!editingId}
-              />
-              <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Label (Display Name) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                placeholder="e.g., Web Portal"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
+      {/* Add/Edit Modal */}
+      <EditFormModal
+        isOpen={showEditModal}
+        onClose={() => resetForm()}
+        onSubmit={handleSubmit}
+        title={editingId ? 'Edit Delivery Channel' : 'Add New Delivery Channel'}
+        isEditing={!!editingId}
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Value (Database Key) *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              placeholder="e.g., web_portal"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={!!editingId}
+            />
+            <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              Label (Display Name) *
             </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Brief description..."
-              rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
+            <input
+              type="text"
+              required
+              value={formData.label}
+              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+              placeholder="e.g., Web Portal"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description
+          </label>
+          <textarea
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Brief description..."
+            rows={2}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Icon (Emoji)
+            </label>
+            <input
+              type="text"
+              value={formData.icon}
+              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              placeholder="🌐"
+              maxLength={2}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Icon (Emoji)
-              </label>
-              <input
-                type="text"
-                value={formData.icon}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                placeholder="🌐"
-                maxLength={2}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort Order
-              </label>
-              <input
-                type="number"
-                value={formData.sort_order}
-                onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500"
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-7">
-              <input
-                type="checkbox"
-                id="channel_active"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
-              />
-              <label htmlFor="channel_active" className="text-sm font-medium text-gray-700">
-                Active
-              </label>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sort Order
+            </label>
+            <input
+              type="number"
+              value={formData.sort_order}
+              onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              className="px-6 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <FiSave /> {editingId ? 'Update' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+          <div className="flex items-center gap-2 pt-7">
+            <input
+              type="checkbox"
+              id="channel_active"
+              checked={formData.is_active}
+              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+            />
+            <label htmlFor="channel_active" className="text-sm font-medium text-gray-700">
+              Active
+            </label>
           </div>
-        </form>
-      )}
+        </div>
+      </EditFormModal>
 
       {/* Channels Table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">

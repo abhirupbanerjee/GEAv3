@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FiEdit2, FiTrash2, FiSave, FiX, FiPlus, FiStar } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiPlus, FiStar } from 'react-icons/fi'
+import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface LifeEvent {
   id: number
@@ -32,7 +33,7 @@ export default function LifeEventManager() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [filterCategory, setFilterCategory] = useState<string>('all')
-  const [showAddForm, setShowAddForm] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [formData, setFormData] = useState({
     value: '',
@@ -106,7 +107,7 @@ export default function LifeEventManager() {
       sort_order: event.sort_order,
       is_active: event.is_active
     })
-    setShowAddForm(true)
+    setShowEditModal(true)
   }
 
   const handleDelete = async (id: number) => {
@@ -142,7 +143,7 @@ export default function LifeEventManager() {
       is_active: true
     })
     setEditingId(null)
-    setShowAddForm(false)
+    setShowEditModal(false)
   }
 
   const filteredLifeEvents = lifeEvents.filter(event => {
@@ -178,7 +179,10 @@ export default function LifeEventManager() {
           </p>
         </div>
         <button
-          onClick={() => setShowAddForm(!showAddForm)}
+          onClick={() => {
+            resetForm()
+            setShowEditModal(true)
+          }}
           className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center gap-2 transition-colors"
         >
           <FiPlus /> Add Life Event
@@ -210,142 +214,117 @@ export default function LifeEventManager() {
         </div>
       </div>
 
-      {/* Add/Edit Form */}
-      {showAddForm && (
-        <form onSubmit={handleSubmit} className="bg-amber-50 border border-amber-200 rounded-lg p-6 space-y-4">
-          <div className="flex items-center justify-between mb-2">
-            <h3 className="text-lg font-semibold text-gray-900">
-              {editingId ? 'Edit Life Event' : 'Add New Life Event'}
-            </h3>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              <FiX size={20} />
-            </button>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Value (Database Key) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.value}
-                onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-                placeholder="e.g., having_a_baby"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-                disabled={!!editingId}
-              />
-              <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Label (Display Name) *
-              </label>
-              <input
-                type="text"
-                required
-                value={formData.label}
-                onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                placeholder="e.g., Having a Baby"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
+      {/* Add/Edit Modal */}
+      <EditFormModal
+        isOpen={showEditModal}
+        onClose={() => resetForm()}
+        onSubmit={handleSubmit}
+        title={editingId ? 'Edit Life Event' : 'Add New Life Event'}
+        isEditing={!!editingId}
+      >
+        <div className="grid md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Value (Database Key) *
+            </label>
+            <input
+              type="text"
+              required
+              value={formData.value}
+              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
+              placeholder="e.g., having_a_baby"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              disabled={!!editingId}
+            />
+            <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
           </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Description *
+              Label (Display Name) *
             </label>
-            <textarea
-              required
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Brief description of services related to this life event..."
-              rows={2}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-            />
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category *
-              </label>
-              <select
-                required
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-              >
-                {EVENT_CATEGORIES.map(cat => (
-                  <option key={cat.value} value={cat.value}>{cat.label}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Icon (Emoji)
-              </label>
-              <input
-                type="text"
-                value={formData.icon}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                placeholder="🍼"
-                maxLength={2}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Sort Order
-              </label>
-              <input
-                type="number"
-                value={formData.sort_order}
-                onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
             <input
-              type="checkbox"
-              id="lifeevent_active"
-              checked={formData.is_active}
-              onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-              className="w-4 h-4 text-amber-500 rounded focus:ring-amber-500"
+              type="text"
+              required
+              value={formData.label}
+              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+              placeholder="e.g., Having a Baby"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
-            <label htmlFor="lifeevent_active" className="text-sm font-medium text-gray-700">
-              Active
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Description *
+          </label>
+          <textarea
+            required
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            placeholder="Brief description of services related to this life event..."
+            rows={2}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="grid md:grid-cols-3 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
             </label>
+            <select
+              required
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              {EVENT_CATEGORIES.map(cat => (
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              ))}
+            </select>
           </div>
 
-          <div className="flex gap-2 pt-2">
-            <button
-              type="submit"
-              className="px-6 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg flex items-center gap-2 transition-colors"
-            >
-              <FiSave /> {editingId ? 'Update' : 'Save'}
-            </button>
-            <button
-              type="button"
-              onClick={resetForm}
-              className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg transition-colors"
-            >
-              Cancel
-            </button>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Icon (Emoji)
+            </label>
+            <input
+              type="text"
+              value={formData.icon}
+              onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
+              placeholder="🍼"
+              maxLength={2}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
           </div>
-        </form>
-      )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Sort Order
+            </label>
+            <input
+              type="number"
+              value={formData.sort_order}
+              onChange={(e) => setFormData({ ...formData, sort_order: parseInt(e.target.value) })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <input
+            type="checkbox"
+            id="lifeevent_active"
+            checked={formData.is_active}
+            onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+          />
+          <label htmlFor="lifeevent_active" className="text-sm font-medium text-gray-700">
+            Active
+          </label>
+        </div>
+      </EditFormModal>
 
       {/* Life Events Table */}
       <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
