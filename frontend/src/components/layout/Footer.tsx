@@ -65,7 +65,6 @@ export default function Footer() {
       } catch (error) {
         // Set fallback defaults on error
         console.error('Failed to fetch footer configuration:', error)
-        const currentYear = new Date().getFullYear()
         setFooterConfig({
           government_text: '',
           quick_links: [
@@ -78,7 +77,7 @@ export default function Footer() {
             { label: 'Facts', url: 'https://www.gov.gd/' },
             { label: 'Emergency Info', url: 'https://www.gov.gd/emergency-services' },
           ],
-          copyright_text: `© ${currentYear} Digital Transformation Agency (DTA) All rights reserved.`,
+          copyright_text: '© Digital Transformation Agency (DTA) All rights reserved.',
         })
       }
     }

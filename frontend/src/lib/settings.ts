@@ -628,7 +628,7 @@ export async function getFooterConfiguration(): Promise<FooterConfiguration> {
     ],
     copyright_text:
       (settings['FOOTER_COPYRIGHT_TEXT'] as string) ||
-      `© ${new Date().getFullYear()} Digital Transformation Agency (DTA) All rights reserved.`,
+      '© Digital Transformation Agency (DTA) All rights reserved.',
   };
 }
 

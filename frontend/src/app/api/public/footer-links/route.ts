@@ -27,7 +27,6 @@ export async function GET() {
     console.error('Error fetching footer configuration:', error);
 
     // Return fallback values
-    const currentYear = new Date().getFullYear();
     return NextResponse.json({
       success: true,
       footer: {
@@ -42,7 +41,7 @@ export async function GET() {
           { label: 'Facts', url: 'https://www.gov.gd/' },
           { label: 'Emergency Info', url: '#' },
         ],
-        copyright_text: `© ${currentYear} Digital Transformation Agency (DTA) All rights reserved.`,
+        copyright_text: '© Digital Transformation Agency (DTA) All rights reserved.',
       },
     });
   }

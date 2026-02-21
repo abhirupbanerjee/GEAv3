@@ -913,6 +913,107 @@ function SettingsPageContent() {
       )
     }
 
+    // Special handling for file size settings - show in MB instead of bytes
+    if (setting.setting_key === 'MAX_FILE_SIZE' || setting.setting_key === 'MAX_TOTAL_UPLOAD_SIZE') {
+      const bytesToMB = (bytes: number) => bytes / (1024 * 1024)
+      const mbToBytes = (mb: number) => Math.round(mb * 1024 * 1024)
+
+      const valueInBytes = Number(value) || 0
+      const valueInMB = bytesToMB(valueInBytes)
+      const minMB = setting.min_value ? bytesToMB(Number(setting.min_value)) : 0
+      const maxMB = setting.max_value ? bytesToMB(Number(setting.max_value)) : 100
+
+      const description = setting.setting_key === 'MAX_FILE_SIZE'
+        ? 'Maximum size per individual file upload in megabytes'
+        : 'Maximum total size for all files in one upload in megabytes'
+
+      return (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              value={valueInMB}
+              onChange={(e) => {
+                const mbValue = Number(e.target.value)
+                const bytesValue = mbToBytes(mbValue)
+                handleSettingChange(setting.setting_key, String(bytesValue))
+              }}
+              min={minMB}
+              max={maxMB}
+              step="0.1"
+              className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 ${
+                isChanged ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'
+              }`}
+            />
+            <span className="text-sm text-gray-500 whitespace-nowrap">MB</span>
+          </div>
+          <p className="text-xs text-gray-500">
+            Range: {minMB} MB - {maxMB} MB (Current: {valueInMB.toFixed(2)} MB = {valueInBytes.toLocaleString()} bytes)
+          </p>
+        </div>
+      )
+    }
+
+    // Special handling for ALLOWED_FILE_TYPES - multi-select checkboxes
+    if (setting.setting_key === 'ALLOWED_FILE_TYPES') {
+      const availableFileTypes = [
+        { value: 'pdf', label: 'PDF (.pdf)' },
+        { value: 'doc', label: 'Word (.doc)' },
+        { value: 'docx', label: 'Word (.docx)' },
+        { value: 'xls', label: 'Excel (.xls)' },
+        { value: 'xlsx', label: 'Excel (.xlsx)' },
+        { value: 'ppt', label: 'PowerPoint (.ppt)' },
+        { value: 'pptx', label: 'PowerPoint (.pptx)' },
+        { value: 'txt', label: 'Text (.txt)' },
+        { value: 'csv', label: 'CSV (.csv)' },
+        { value: 'jpg', label: 'JPEG (.jpg)' },
+        { value: 'jpeg', label: 'JPEG (.jpeg)' },
+        { value: 'png', label: 'PNG (.png)' },
+        { value: 'gif', label: 'GIF (.gif)' },
+        { value: 'svg', label: 'SVG (.svg)' },
+        { value: 'zip', label: 'ZIP (.zip)' },
+        { value: 'rar', label: 'RAR (.rar)' },
+      ]
+
+      const selectedTypes = value.split(',').map(t => t.trim()).filter(Boolean)
+
+      const toggleFileType = (fileType: string) => {
+        const newTypes = selectedTypes.includes(fileType)
+          ? selectedTypes.filter(t => t !== fileType)
+          : [...selectedTypes, fileType]
+        handleSettingChange(setting.setting_key, newTypes.join(','))
+      }
+
+      return (
+        <div className={`border rounded-lg p-3 ${isChanged ? 'border-yellow-400 bg-yellow-50' : 'border-gray-300'}`}>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+            {availableFileTypes.map((fileType) => (
+              <label
+                key={fileType.value}
+                className="flex items-center gap-2 p-2 rounded hover:bg-gray-50 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedTypes.includes(fileType.value)}
+                  onChange={() => toggleFileType(fileType.value)}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">{fileType.label}</span>
+              </label>
+            ))}
+          </div>
+          {selectedTypes.length === 0 && (
+            <p className="text-xs text-red-600 mt-2">At least one file type must be selected</p>
+          )}
+          {selectedTypes.length > 0 && (
+            <p className="text-xs text-gray-500 mt-2">
+              {selectedTypes.length} file type{selectedTypes.length !== 1 ? 's' : ''} selected
+            </p>
+          )}
+        </div>
+      )
+    }
+
     // Special handling for BACKUP_SCHEDULE_TIME - time picker with guidance
     if (setting.setting_key === 'BACKUP_SCHEDULE_TIME') {
       return (
