@@ -90,41 +90,17 @@ export default function ServiceManager() {
     label: string  // Display name (what users see)
   }
 
-  // All 34 categories from database
+  // Original 10 categories (mapped to database values)
   const categories: Category[] = [
-    { value: 'agriculture_and_rural_development', label: 'Agriculture & Rural Development' },
-    { value: 'business_and_commerce', label: 'Business & Commerce' },
-    { value: 'cooperatives_and_producer_organizations', label: 'Cooperatives & Producer Organizations' },
-    { value: 'digital_government_and_ict_services', label: 'Digital Government & ICT Services' },
-    { value: 'disaster_support_and_assessment', label: 'Disaster Support & Assessment' },
-    { value: 'education_exams_and_assessment', label: 'Education: Exams & Assessment' },
-    { value: 'education_scholarships_and_financial_aid', label: 'Education: Scholarships & Financial Aid' },
-    { value: 'education_school_administration', label: 'Education: School Administration' },
-    { value: 'enterprise_architecture_services', label: 'Enterprise Architecture Services' },
-    { value: 'financial_regulation_and_licensing', label: 'Financial Regulation & Licensing' },
-    { value: 'fisheries_and_marine_resources', label: 'Fisheries & Marine Resources' },
-    { value: 'forestry_and_wildlife_management', label: 'Forestry & Wildlife Management' },
-    { value: 'governance_elections_and_public_administration', label: 'Governance, Elections & Public Administration' },
-    { value: 'health_facility_licensing', label: 'Health: Facility Licensing' },
-    { value: 'health_services_and_clinics', label: 'Health: Services & Clinics' },
-    { value: 'housing_support', label: 'Housing Support' },
-    { value: 'identity_and_civil_registration', label: 'Identity & Civil Registration' },
-    { value: 'immigration_passports_and_travel', label: 'Immigration, Passports & Travel' },
-    { value: 'investment_and_business_support', label: 'Investment & Business Support' },
-    { value: 'justice_legal_affairs_and_law_enforcement', label: 'Justice, Legal Affairs & Law Enforcement' },
-    { value: 'land_administration_and_cadastre', label: 'Land Administration & Cadastre' },
-    { value: 'land_use_planning_and_building_control', label: 'Land Use Planning & Building Control' },
-    { value: 'public_health_and_sanitation', label: 'Public Health & Sanitation' },
-    { value: 'social_protection_and_family_support', label: 'Social Protection & Family Support' },
-    { value: 'social_protection_and_insurance', label: 'Social Protection & Insurance' },
-    { value: 'social_protection_cash_transfers', label: 'Social Protection: Cash Transfers' },
-    { value: 'standards_quality_and_safety', label: 'Standards, Quality & Safety' },
-    { value: 'statistics_and_data', label: 'Statistics & Data' },
-    { value: 'taxation_duties_and_revenue', label: 'Taxation, Duties & Revenue' },
-    { value: 'tourism_culture_and_events', label: 'Tourism, Culture & Events' },
-    { value: 'transport_vehicles_and_civil_aviation', label: 'Transport, Vehicles & Civil Aviation' },
-    { value: 'utilities_and_public_infrastructure', label: 'Utilities & Public Infrastructure' },
-    { value: 'youth_and_community_development', label: 'Youth & Community Development' },
+    { value: 'immigration_passports_and_travel', label: 'Immigration' },
+    { value: 'taxation_duties_and_revenue', label: 'Tax & Revenue' },
+    { value: 'taxation_duties_and_revenue', label: 'Customs' },
+    { value: 'identity_and_civil_registration', label: 'Civil Registry' },
+    { value: 'land_administration_and_cadastre', label: 'Property' },
+    { value: 'health_services_and_clinics', label: 'Health' },
+    { value: 'tourism_culture_and_events', label: 'Tourism' },
+    { value: 'utilities_and_public_infrastructure', label: 'Utilities' },
+    { value: 'digital_government_and_ict_services', label: 'Digital' },
     { value: 'general', label: 'General' }
   ]
 

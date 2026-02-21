@@ -1,8 +1,8 @@
 {
-  "totalPages": 25,
+  "totalPages": 39,
   "documented": 23,
-  "inferred": 2,
-  "coverage": "92%",
+  "inferred": 16,
+  "coverage": "59%",
   "documentedRoutes": [
     "/",
     "/about",
@@ -29,8 +29,22 @@
     "/services"
   ],
   "inferredRoutes": [
+    "/admin/feedback/submit",
+    "/admin/profile",
+    "/admin/profile/activity",
     "/admin/setting",
-    "/admin/staff/settings"
+    "/admin/staff/settings",
+    "/admin/users/citizens",
+    "/citizen",
+    "/citizen/analytics",
+    "/citizen/feedback",
+    "/citizen/feedback/submit",
+    "/citizen/grievances",
+    "/citizen/grievances/:id",
+    "/citizen/profile",
+    "/citizen/register",
+    "/citizen/tickets",
+    "/citizen/tickets/:id"
   ],
-  "generatedAt": "2026-01-18T19:59:04.287Z"
+  "generatedAt": "2026-02-21T16:58:28.932Z"
 }
