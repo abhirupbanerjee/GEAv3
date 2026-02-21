@@ -119,6 +119,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 RUN mkdir -p /app/public/uploads/branding /app/public/uploads/contacts && \
     chown -R nextjs:nodejs /app/public/uploads
 
+# Pre-create backup directory with proper permissions
+RUN mkdir -p /tmp/gea_backups && \
+    chmod 755 /tmp/gea_backups && \
+    chown nextjs:nodejs /tmp/gea_backups
+
 USER nextjs
 
 # Expose port

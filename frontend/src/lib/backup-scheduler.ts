@@ -142,48 +142,66 @@ export async function initBackupScheduler(): Promise<void> {
     return
   }
 
-  try {
-    // Check if scheduled backups are enabled
-    const enabled = await getBooleanSetting('BACKUP_SCHEDULE_ENABLED', false)
+  const maxRetries = 3
+  const retryDelay = 5000 // 5 seconds
 
-    if (!enabled) {
-      console.log('[BackupScheduler] Scheduled backups are disabled')
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`[BackupScheduler] Initialization attempt ${attempt}/${maxRetries}`)
+
+      // Check if scheduled backups are enabled
+      const enabled = await getBooleanSetting('BACKUP_SCHEDULE_ENABLED', false)
+
+      if (!enabled) {
+        console.log('[BackupScheduler] Scheduled backups are disabled')
+        isInitialized = true
+        return
+      }
+
+      // Get schedule configuration
+      const scheduleType = await getSetting('BACKUP_SCHEDULE_TYPE', 'daily')
+      const scheduleTime = await getSetting('BACKUP_SCHEDULE_TIME', '02:00')
+      const scheduleDay = await getNumberSetting('BACKUP_SCHEDULE_DAY', 0)
+      const scheduleTimezone = await getSetting('BACKUP_SCHEDULE_TIMEZONE', 'America/Grenada')
+
+      // Build cron expression
+      const cronExpression = buildCronExpression(scheduleType, scheduleTime, scheduleDay)
+
+      // Validate cron expression
+      if (!cron.validate(cronExpression)) {
+        console.error(`[BackupScheduler] Invalid cron expression: ${cronExpression}`)
+        return
+      }
+
+      // Stop existing task if any
+      if (scheduledTask) {
+        scheduledTask.stop()
+        scheduledTask = null
+      }
+
+      // Schedule the backup task
+      scheduledTask = cron.schedule(cronExpression, executeScheduledBackup, {
+        timezone: scheduleTimezone,
+      })
+
       isInitialized = true
-      return
+      console.log(
+        `[BackupScheduler] ✓ Successfully initialized with schedule: ${scheduleType} at ${scheduleTime} (${scheduleTimezone}) (cron: ${cronExpression})`
+      )
+
+      return // Success, exit retry loop
+    } catch (error) {
+      console.error(`[BackupScheduler] Initialization attempt ${attempt}/${maxRetries} failed:`, error)
+
+      if (attempt < maxRetries) {
+        console.log(`[BackupScheduler] Retrying in ${retryDelay}ms...`)
+        await new Promise((resolve) => setTimeout(resolve, retryDelay))
+      } else {
+        console.error('[BackupScheduler] All initialization attempts failed')
+        // Don't set isInitialized = true on failure
+        // This allows manual restart via API
+      }
     }
-
-    // Get schedule configuration
-    const scheduleType = await getSetting('BACKUP_SCHEDULE_TYPE', 'daily')
-    const scheduleTime = await getSetting('BACKUP_SCHEDULE_TIME', '02:00')
-    const scheduleDay = await getNumberSetting('BACKUP_SCHEDULE_DAY', 0)
-    const scheduleTimezone = await getSetting('BACKUP_SCHEDULE_TIMEZONE', 'America/Grenada')
-
-    // Build cron expression
-    const cronExpression = buildCronExpression(scheduleType, scheduleTime, scheduleDay)
-
-    // Validate cron expression
-    if (!cron.validate(cronExpression)) {
-      console.error(`[BackupScheduler] Invalid cron expression: ${cronExpression}`)
-      return
-    }
-
-    // Stop existing task if any
-    if (scheduledTask) {
-      scheduledTask.stop()
-      scheduledTask = null
-    }
-
-    // Schedule the backup task
-    scheduledTask = cron.schedule(cronExpression, executeScheduledBackup, {
-      timezone: scheduleTimezone,
-    })
-
-    isInitialized = true
-    console.log(
-      `[BackupScheduler] Initialized with schedule: ${scheduleType} at ${scheduleTime} (${scheduleTimezone}) (cron: ${cronExpression})`
-    )
-  } catch (error) {
-    console.error('[BackupScheduler] Failed to initialize:', error)
   }
 }
 

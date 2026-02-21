@@ -7,6 +7,7 @@ volumes:
   traefik_acme:
   feedback_db_data:
   redis_data:
+  gea_backups:
 
 services:
   traefik:
@@ -176,6 +177,16 @@ services:
 
       # External API Access
       - EXTERNAL_API_KEY=${EXTERNAL_API_KEY}
+
+      # Database backup configuration (direct PostgreSQL access, bypasses PgBouncer)
+      - BACKUP_DB_HOST=feedback_db
+      - BACKUP_DB_PORT=5432
+      - BACKUP_DB_NAME=${FEEDBACK_DB_NAME}
+      - BACKUP_DB_USER=${FEEDBACK_DB_USER}
+      - BACKUP_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
+
+    volumes:
+      - gea_backups:/tmp/gea_backups
 
     depends_on:
       feedback_db:
