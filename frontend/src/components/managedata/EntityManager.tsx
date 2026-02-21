@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 import { FiChevronDown } from 'react-icons/fi'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
@@ -8,6 +9,11 @@ import { useEntities } from '@/hooks/useEntities'
 import type { Entity, EntityFilters, EntitySort } from '@/types/managedata'
 
 export default function EntityManager() {
+  // Session and role check
+  const { data: session } = useSession()
+  const isAdmin = session?.user?.roleType === 'admin'
+  const canModifyEntities = isAdmin // Staff users have read-only access
+
   // Pagination state
   const [page, setPage] = useState(1)
   const [filters, setFilters] = useState<EntityFilters>({
@@ -219,23 +225,25 @@ export default function EntityManager() {
           </select>
         </div>
 
-        <button
-          onClick={() => {
-            setEditingEntity(null)
-            setFormData({
-              unique_entity_id: '',
-              entity_name: '',
-              entity_type: 'ministry',
-              parent_entity_id: '',
-              is_active: true
-            })
-            setUseAutoId(true)
-            setShowEditModal(true)
-          }}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
-        >
-          + Add Entity
-        </button>
+        {canModifyEntities && (
+          <button
+            onClick={() => {
+              setEditingEntity(null)
+              setFormData({
+                unique_entity_id: '',
+                entity_name: '',
+                entity_type: 'ministry',
+                parent_entity_id: '',
+                is_active: true
+              })
+              setUseAutoId(true)
+              setShowEditModal(true)
+            }}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2"
+          >
+            + Add Entity
+          </button>
+        )}
       </div>
 
       {/* Add/Edit Form */}
@@ -460,22 +468,28 @@ export default function EntityManager() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleEdit(entity)}
-                          className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleToggleActive(entity)}
-                          className={`px-3 py-1 text-xs rounded ${
-                            entity.is_active
-                              ? 'bg-red-600 hover:bg-red-700 text-white'
-                              : 'bg-green-600 hover:bg-green-700 text-white'
-                          }`}
-                        >
-                          {entity.is_active ? 'Deactivate' : 'Activate'}
-                        </button>
+                        {canModifyEntities ? (
+                          <>
+                            <button
+                              onClick={() => handleEdit(entity)}
+                              className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleToggleActive(entity)}
+                              className={`px-3 py-1 text-xs rounded ${
+                                entity.is_active
+                                  ? 'bg-red-600 hover:bg-red-700 text-white'
+                                  : 'bg-green-600 hover:bg-green-700 text-white'
+                              }`}
+                            >
+                              {entity.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 text-xs italic">Read-only</span>
+                        )}
                       </div>
                     </td>
                   </tr>
