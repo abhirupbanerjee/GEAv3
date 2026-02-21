@@ -7,6 +7,8 @@ import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
 import { useQRCodes } from '@/hooks/useQRCodes'
 import type { QRCodeData, QRCodeFilters, QRCodeSort } from '@/types/managedata'
+import { FiChevronDown } from 'react-icons/fi'
+import { SearchableSelect } from '@/components/common/SearchableSelect'
 
 interface Entity {
   unique_entity_id: string
@@ -1083,36 +1085,38 @@ export default function QRCodeManager() {
           {/* Service */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Service *</label>
-            <select
-              required
+            <SearchableSelect
               value={formData.service_id}
-              onChange={(e) => setFormData({...formData, service_id: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+              onChange={(value) => setFormData({...formData, service_id: value})}
+              options={services.map(s => ({
+                value: s.service_id,
+                label: s.service_name
+              }))}
+              placeholder="Select Service"
               disabled={!!editingQR}
-            >
-              <option value="">Select Service</option>
-              {services.map(service => (
-                <option key={service.service_id} value={service.service_id}>
-                  {service.service_name}
-                </option>
-              ))}
-            </select>
+              required
+              emptyMessage="No services found"
+              className="w-full"
+            />
           </div>
 
           {/* Location Type */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Location Type *</label>
-            <select
-              required
-              value={formData.location_type}
-              onChange={(e) => setFormData({...formData, location_type: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
-              disabled={!!editingQR}
-            >
-              {LOCATION_TYPES.map(lt => (
-                <option key={lt.value} value={lt.value}>{lt.label}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                required
+                value={formData.location_type}
+                onChange={(e) => setFormData({...formData, location_type: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+                disabled={!!editingQR}
+              >
+                {LOCATION_TYPES.map(lt => (
+                  <option key={lt.value} value={lt.value}>{lt.label}</option>
+                ))}
+              </select>
+              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
           </div>
 
           {/* QR Code ID with Auto-suggestion */}
