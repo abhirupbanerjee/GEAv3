@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { FiChevronDown, FiLock } from 'react-icons/fi'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
 import { useServices } from '@/hooks/useServices'
@@ -1105,20 +1106,27 @@ export default function ServiceManager() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Entity/Department *
             </label>
-            <select
-              required
-              value={formData.entity_id}
-              onChange={(e) => setFormData({...formData, entity_id: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={!!editingService}
-            >
-              <option value="">Select Entity</option>
-              {entities.map(entity => (
-                <option key={entity.unique_entity_id} value={entity.unique_entity_id}>
-                  {entity.entity_name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                required
+                value={formData.entity_id}
+                onChange={(e) => setFormData({...formData, entity_id: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+                disabled={!!editingService}
+              >
+                <option value="">Select Entity</option>
+                {entities.map(entity => (
+                  <option key={entity.unique_entity_id} value={entity.unique_entity_id}>
+                    {entity.entity_name}
+                  </option>
+                ))}
+              </select>
+              {!!editingService ? (
+                <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              ) : (
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              )}
+            </div>
           </div>
 
           {/* Category */}
@@ -1126,17 +1134,24 @@ export default function ServiceManager() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Category *
             </label>
-            <select
-              required
-              value={formData.service_category}
-              onChange={(e) => setFormData({...formData, service_category: e.target.value})}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={!!editingService}
-            >
-              {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                required
+                value={formData.service_category}
+                onChange={(e) => setFormData({...formData, service_category: e.target.value})}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+                disabled={!!editingService}
+              >
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+              {!!editingService ? (
+                <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              ) : (
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              )}
+            </div>
           </div>
 
           {/* Service ID with Auto-suggestion */}
@@ -1150,18 +1165,23 @@ export default function ServiceManager() {
               )}
             </label>
             <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                disabled={!!editingService}
-                value={formData.service_id}
-                onChange={(e) => {
-                  setFormData({...formData, service_id: e.target.value.toUpperCase()})
-                  setUseAutoId(false)
-                }}
-                placeholder="e.g., SVC-XXX-001"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  required
+                  disabled={!!editingService}
+                  value={formData.service_id}
+                  onChange={(e) => {
+                    setFormData({...formData, service_id: e.target.value.toUpperCase()})
+                    setUseAutoId(false)
+                  }}
+                  placeholder="e.g., SVC-XXX-001"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+                {!!editingService && (
+                  <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                )}
+              </div>
               {!editingService && suggestedId && !useAutoId && (
                 <button
                   type="button"

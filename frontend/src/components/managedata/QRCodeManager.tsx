@@ -7,7 +7,7 @@ import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
 import { useQRCodes } from '@/hooks/useQRCodes'
 import type { QRCodeData, QRCodeFilters, QRCodeSort } from '@/types/managedata'
-import { FiChevronDown } from 'react-icons/fi'
+import { FiChevronDown, FiLock } from 'react-icons/fi'
 import { SearchableSelect } from '@/components/common/SearchableSelect'
 
 interface Entity {
@@ -1097,6 +1097,7 @@ export default function QRCodeManager() {
               required
               emptyMessage="No services found"
               className="w-full"
+              showLockWhenDisabled={true}
             />
           </div>
 
@@ -1115,7 +1116,11 @@ export default function QRCodeManager() {
                   <option key={lt.value} value={lt.value}>{lt.label}</option>
                 ))}
               </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              {!!editingQR ? (
+                <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              ) : (
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              )}
             </div>
           </div>
 
@@ -1130,18 +1135,23 @@ export default function QRCodeManager() {
               )}
             </label>
             <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                disabled={!!editingQR}
-                value={formData.qr_code_id}
-                onChange={(e) => {
-                  setFormData({...formData, qr_code_id: e.target.value.toUpperCase()})
-                  setUseAutoId(false)
-                }}
-                placeholder="e.g., QR-IMM-001"
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  required
+                  disabled={!!editingQR}
+                  value={formData.qr_code_id}
+                  onChange={(e) => {
+                    setFormData({...formData, qr_code_id: e.target.value.toUpperCase()})
+                    setUseAutoId(false)
+                  }}
+                  placeholder="e.g., QR-IMM-001"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+                {!!editingQR && (
+                  <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                )}
+              </div>
               {!editingQR && suggestedId && !useAutoId && (
                 <button
                   type="button"

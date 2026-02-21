@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { FiChevronDown } from 'react-icons/fi'
+import { FiChevronDown, FiLock } from 'react-icons/fi'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
 import { useEntities } from '@/hooks/useEntities'
@@ -625,7 +625,11 @@ export default function EntityManager() {
                 <option value="agency">Agency</option>
                 <option value="statutory_body">Statutory Body</option>
               </select>
-              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              {!!editingEntity ? (
+                <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              ) : (
+                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+              )}
             </div>
           </div>
 
@@ -640,18 +644,23 @@ export default function EntityManager() {
               )}
             </label>
             <div className="flex gap-2">
-              <input
-                type="text"
-                required
-                disabled={!!editingEntity || (useAutoId && loadingId)}
-                value={formData.unique_entity_id}
-                onChange={(e) => {
-                  setFormData({...formData, unique_entity_id: e.target.value})
-                  setUseAutoId(false)
-                }}
-                placeholder={loadingId ? "Generating..." : "e.g., MIN-006"}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
-              />
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  required
+                  disabled={!!editingEntity || (useAutoId && loadingId)}
+                  value={formData.unique_entity_id}
+                  onChange={(e) => {
+                    setFormData({...formData, unique_entity_id: e.target.value})
+                    setUseAutoId(false)
+                  }}
+                  placeholder={loadingId ? "Generating..." : "e.g., MIN-006"}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+                {!!editingEntity && (
+                  <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                )}
+              </div>
               {!editingEntity && suggestedId && !useAutoId && (
                 <button
                   type="button"

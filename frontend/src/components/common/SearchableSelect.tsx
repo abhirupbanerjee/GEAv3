@@ -2,7 +2,7 @@
 
 import { useState, Fragment } from 'react'
 import { Combobox } from '@headlessui/react'
-import { FiChevronDown, FiCheck } from 'react-icons/fi'
+import { FiChevronDown, FiCheck, FiLock } from 'react-icons/fi'
 
 interface Option {
   value: string
@@ -19,6 +19,7 @@ interface SearchableSelectProps {
   className?: string
   label?: string
   emptyMessage?: string
+  showLockWhenDisabled?: boolean
 }
 
 export function SearchableSelect({
@@ -30,7 +31,8 @@ export function SearchableSelect({
   required = false,
   className = '',
   label,
-  emptyMessage = 'No results found'
+  emptyMessage = 'No results found',
+  showLockWhenDisabled = false
 }: SearchableSelectProps) {
   const [query, setQuery] = useState('')
 
@@ -65,10 +67,11 @@ export function SearchableSelect({
           />
 
           <Combobox.Button className="absolute inset-y-0 right-0 flex items-center pr-3">
-            <FiChevronDown
-              className="h-4 w-4 text-gray-400"
-              aria-hidden="true"
-            />
+            {disabled && showLockWhenDisabled ? (
+              <FiLock className="h-4 w-4 text-gray-400" aria-hidden="true" />
+            ) : (
+              <FiChevronDown className="h-4 w-4 text-gray-400" aria-hidden="true" />
+            )}
           </Combobox.Button>
 
           {/* Hidden input for form validation */}
