@@ -338,14 +338,39 @@ export default function LifeEventManager() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Icon (Emoji)
             </label>
-            <input
-              type="text"
+            <select
               value={formData.icon}
               onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-              placeholder="🍼"
-              maxLength={2}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="">No icon</option>
+              <option value="👶">👶 Baby</option>
+              <option value="🍼">🍼 Infant</option>
+              <option value="👨‍👩‍👧‍👦">👨‍👩‍👧‍👦 Family</option>
+              <option value="💍">💍 Marriage</option>
+              <option value="💔">💔 Divorce</option>
+              <option value="⚰️">⚰️ Death</option>
+              <option value="🎓">🎓 Graduation</option>
+              <option value="📚">📚 Education</option>
+              <option value="🏫">🏫 School</option>
+              <option value="💼">💼 Employment</option>
+              <option value="👔">👔 Job</option>
+              <option value="📊">📊 Business</option>
+              <option value="🏢">🏢 Company</option>
+              <option value="🏠">🏠 Housing</option>
+              <option value="🏡">🏡 Home</option>
+              <option value="🔑">🔑 Property</option>
+              <option value="✈️">✈️ Immigration</option>
+              <option value="🛂">🛂 Visa</option>
+              <option value="🌍">🌍 Travel</option>
+              <option value="🏥">🏥 Hospital</option>
+              <option value="💊">💊 Medical</option>
+              <option value="🩺">🩺 Health</option>
+              <option value="🚗">🚗 Vehicle</option>
+              <option value="🪪">🪪 ID Card</option>
+              <option value="📄">📄 Document</option>
+              <option value="⚖️">⚖️ Legal</option>
+            </select>
           </div>
 
           <div>

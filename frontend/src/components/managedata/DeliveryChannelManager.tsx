@@ -285,14 +285,37 @@ export default function DeliveryChannelManager() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Icon (Emoji)
             </label>
-            <input
-              type="text"
+            <select
               value={formData.icon}
               onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-              placeholder="🌐"
-              maxLength={2}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="">No icon</option>
+              <option value="🌐">🌐 Web Portal</option>
+              <option value="💻">💻 Computer</option>
+              <option value="🖥️">🖥️ Desktop</option>
+              <option value="📱">📱 Mobile App</option>
+              <option value="📲">📲 Mobile Device</option>
+              <option value="☎️">☎️ Phone Call</option>
+              <option value="📞">📞 Telephone</option>
+              <option value="📧">📧 Email</option>
+              <option value="✉️">✉️ Mail</option>
+              <option value="💬">💬 Chat</option>
+              <option value="🏢">🏢 In-Person Office</option>
+              <option value="🏛️">🏛️ Government Office</option>
+              <option value="🪟">🪟 Service Window</option>
+              <option value="📬">📬 Postal Mail</option>
+              <option value="📮">📮 Mail Drop</option>
+              <option value="📠">📠 Fax</option>
+              <option value="🎥">🎥 Video Call</option>
+              <option value="📹">📹 Video Conference</option>
+              <option value="🗣️">🗣️ Voice</option>
+              <option value="📻">📻 Radio</option>
+              <option value="📺">📺 Television</option>
+              <option value="🤖">🤖 Chatbot</option>
+              <option value="🔔">🔔 Notification</option>
+              <option value="📡">📡 Digital</option>
+            </select>
           </div>
 
           <div>

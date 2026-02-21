@@ -285,14 +285,38 @@ export default function ServiceConsumerManager() {
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Icon (Emoji)
             </label>
-            <input
-              type="text"
+            <select
               value={formData.icon}
               onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-              placeholder="👤"
-              maxLength={2}
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-            />
+            >
+              <option value="">No icon</option>
+              <option value="👤">👤 Individual</option>
+              <option value="👥">👥 Citizens</option>
+              <option value="🧑">🧑 Person</option>
+              <option value="👨">👨 Male</option>
+              <option value="👩">👩 Female</option>
+              <option value="👨‍💼">👨‍💼 Professional</option>
+              <option value="👩‍💼">👩‍💼 Business Person</option>
+              <option value="👨‍⚕️">👨‍⚕️ Healthcare Worker</option>
+              <option value="👩‍⚕️">👩‍⚕️ Medical Professional</option>
+              <option value="👨‍🏫">👨‍🏫 Teacher</option>
+              <option value="👩‍🎓">👩‍🎓 Student</option>
+              <option value="👶">👶 Child</option>
+              <option value="👴">👴 Senior Citizen</option>
+              <option value="👵">👵 Elderly</option>
+              <option value="🧑‍🦽">🧑‍🦽 Person with Disability</option>
+              <option value="🏢">🏢 Business</option>
+              <option value="🏭">🏭 Industry</option>
+              <option value="🏪">🏪 Small Business</option>
+              <option value="🏛️">🏛️ Government</option>
+              <option value="🏫">🏫 Educational Institution</option>
+              <option value="🏥">🏥 Healthcare Facility</option>
+              <option value="⚖️">⚖️ Legal Entity</option>
+              <option value="🌐">🌐 International</option>
+              <option value="🤝">🤝 Partnership</option>
+              <option value="👨‍👩‍👧‍👦">👨‍👩‍👧‍👦 Family</option>
+            </select>
           </div>
 
           <div>
