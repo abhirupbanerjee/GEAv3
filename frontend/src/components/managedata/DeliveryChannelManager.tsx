@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FiEdit2, FiTrash2, FiPlus, FiTruck } from 'react-icons/fi'
+import { FiEdit2, FiTrash2, FiPlus, FiTruck, FiLock } from 'react-icons/fi'
 import { EditFormModal } from '@/components/common/EditFormModal'
 
 interface DeliveryChannel {
@@ -22,6 +22,8 @@ export default function DeliveryChannelManager() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [suggestedValue, setSuggestedValue] = useState('')
+  const [useAutoValue, setUseAutoValue] = useState(true)
   const [formData, setFormData] = useState({
     value: '',
     label: '',
@@ -34,6 +36,23 @@ export default function DeliveryChannelManager() {
   useEffect(() => {
     loadChannels()
   }, [])
+
+  // Auto-generate value from label
+  const generateValueFromLabel = (label: string) => {
+    return label
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '')
+  }
+
+  // Update suggested value when label changes (only when adding new)
+  useEffect(() => {
+    if (!editingId && formData.label && useAutoValue) {
+      const suggested = generateValueFromLabel(formData.label)
+      setSuggestedValue(suggested)
+      setFormData(prev => ({ ...prev, value: suggested }))
+    }
+  }, [formData.label, editingId, useAutoValue])
 
   const loadChannels = async () => {
     try {
@@ -91,6 +110,7 @@ export default function DeliveryChannelManager() {
       sort_order: channel.sort_order,
       is_active: channel.is_active
     })
+    setUseAutoValue(false)
     setShowEditModal(true)
   }
 
@@ -127,6 +147,8 @@ export default function DeliveryChannelManager() {
     })
     setEditingId(null)
     setShowEditModal(false)
+    setSuggestedValue('')
+    setUseAutoValue(true)
   }
 
   const filteredChannels = channels.filter(ch =>
@@ -189,22 +211,6 @@ export default function DeliveryChannelManager() {
         <div className="grid md:grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Value (Database Key) *
-            </label>
-            <input
-              type="text"
-              required
-              value={formData.value}
-              onChange={(e) => setFormData({ ...formData, value: e.target.value })}
-              placeholder="e.g., web_portal"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-              disabled={!!editingId}
-            />
-            <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
               Label (Display Name) *
             </label>
             <input
@@ -215,6 +221,49 @@ export default function DeliveryChannelManager() {
               placeholder="e.g., Web Portal"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Value (Database Key) *
+              {!editingId && suggestedValue && (
+                <span className="ml-2 text-xs text-blue-600">
+                  💡 Suggested: {suggestedValue}
+                </span>
+              )}
+            </label>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  required
+                  value={formData.value}
+                  onChange={(e) => {
+                    setFormData({ ...formData, value: e.target.value })
+                    setUseAutoValue(false)
+                  }}
+                  placeholder="e.g., web_portal"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+                  disabled={!!editingId}
+                />
+                {!!editingId && (
+                  <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                )}
+              </div>
+              {!editingId && suggestedValue && !useAutoValue && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFormData(prev => ({ ...prev, value: suggestedValue }))
+                    setUseAutoValue(true)
+                  }}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                >
+                  Use {suggestedValue}
+                </button>
+              )}
+            </div>
+            <p className="text-xs text-gray-500 mt-1">Use snake_case, no spaces</p>
           </div>
         </div>
 
