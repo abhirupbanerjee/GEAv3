@@ -97,7 +97,8 @@ export async function GET(request: NextRequest) {
       pool.query('SELECT value, label, description FROM service_categories WHERE is_active = true ORDER BY sort_order'),
       pool.query('SELECT value, label, description, category FROM life_events WHERE is_active = true ORDER BY category, sort_order'),
       pool.query('SELECT value, label, description FROM delivery_channels WHERE is_active = true ORDER BY sort_order'),
-      pool.query('SELECT value, label, description FROM service_consumers WHERE is_active = true ORDER BY sort_order')
+      pool.query('SELECT value, label, description FROM service_consumers WHERE is_active = true ORDER BY sort_order'),
+      pool.query('SELECT unique_entity_id as value, entity_name as label FROM entity_master WHERE is_active = true ORDER BY entity_name')
     ])
 
     return NextResponse.json({
@@ -108,7 +109,8 @@ export async function GET(request: NextRequest) {
         categories: metadata[0].rows,
         life_events: metadata[1].rows,
         delivery_channels: metadata[2].rows,
-        service_consumers: metadata[3].rows
+        service_consumers: metadata[3].rows,
+        entities: metadata[4].rows
       },
       filters_applied: {
         category,

@@ -41,6 +41,8 @@
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import ServiceSearch from '@/components/feedback/ServiceSearch'
+import ServiceFilterBar from '@/components/feedback/ServiceFilterBar'
+import ServiceResultsGrid from '@/components/feedback/ServiceResultsGrid'
 import RatingQuestions from '@/components/feedback/RatingQuestions'
 import SuccessMessage from '@/components/feedback/SuccessMessage'
 import { useChatContext } from '@/hooks/useChatContext'
@@ -98,6 +100,15 @@ function FeedbackPageContent() {
   // QR code handling
   const [isLoadingPrefilledService, setIsLoadingPrefilledService] = useState(false)
   const [qrCodeId, setQrCodeId] = useState<string | null>(null)
+
+  // Filter state for browsing services
+  const [filters, setFilters] = useState({
+    entity_id: null as string | null,
+    life_event: null as string | null,
+    category: null as string | null
+  })
+  const [browseServices, setBrowseServices] = useState<Service[]>([])
+  const [isLoadingServices, setIsLoadingServices] = useState(false)
 
   // Handle pre-filled service from URL parameters (QR code scans)
   useEffect(() => {
@@ -181,6 +192,46 @@ function FeedbackPageContent() {
     }
   }, [clearForm])
 
+  // Fetch filtered services when filters change
+  useEffect(() => {
+    if (hasActiveFilters()) {
+      fetchFilteredServices()
+    } else {
+      setBrowseServices([])
+    }
+  }, [filters])
+
+  const hasActiveFilters = (): boolean => {
+    return !!(filters.entity_id || filters.life_event || filters.category)
+  }
+
+  const fetchFilteredServices = async () => {
+    setIsLoadingServices(true)
+    try {
+      const params = new URLSearchParams()
+      if (filters.entity_id) params.append('entity_id', filters.entity_id)
+      if (filters.life_event) params.append('life_event', filters.life_event)
+      if (filters.category) params.append('category', filters.category)
+
+      const res = await fetch(`/api/public/services?${params}`)
+      const data = await res.json()
+      setBrowseServices(data.services || [])
+    } catch (error) {
+      console.error('Error fetching services:', error)
+      setBrowseServices([])
+    } finally {
+      setIsLoadingServices(false)
+    }
+  }
+
+  const handleServiceSelect = (service: Service) => {
+    setSelectedService(service)
+    // Clear filters when service selected
+    setFilters({ entity_id: null, life_event: null, category: null })
+    setBrowseServices([])
+    // Scroll to top to show form
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
 
   // Reset form
   const resetForm = () => {
@@ -356,21 +407,71 @@ function FeedbackPageContent() {
         {/* Main Form */}
         <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* Step 1: Service Selection */}
-          <section className="bg-white p-8 rounded-lg shadow-md">
-            <div className="flex items-center mb-6">
-              <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
-                1
+          {/* Step 1: Service Selection (only show when no service selected) */}
+          {!selectedService && (
+            <section className="bg-white p-8 rounded-lg shadow-md">
+              <div className="flex items-center mb-6">
+                <div className="w-10 h-10 bg-blue-600 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                  1
+                </div>
+                <h2 className="text-2xl font-bold text-gray-900">
+                  Select Service
+                </h2>
               </div>
-              <h2 className="text-2xl font-bold text-gray-900">
-                Select Service
-              </h2>
+
+              {/* NEW: Filter Bar */}
+              <ServiceFilterBar
+                filters={filters}
+                onFilterChange={setFilters}
+              />
+
+              <div className="my-6 text-center text-gray-500 text-sm">
+                ── OR ──
+              </div>
+
+              {/* EXISTING: Search Box */}
+              <ServiceSearch
+                selectedService={null}
+                onServiceSelect={handleServiceSelect}
+              />
+
+              {/* NEW: Results Grid (only when filters active) */}
+              {hasActiveFilters() && (
+                <div className="mt-8">
+                  <ServiceResultsGrid
+                    services={browseServices}
+                    loading={isLoadingServices}
+                    onServiceSelect={handleServiceSelect}
+                    hasActiveFilters={hasActiveFilters()}
+                  />
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Selected Service Banner */}
+          {selectedService && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="font-semibold text-green-900">{selectedService.service_name}</h3>
+                  </div>
+                  <p className="text-sm text-green-700 mt-1">{selectedService.entity_name}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedService(null)}
+                  className="text-sm text-green-700 hover:text-green-900 underline"
+                  type="button"
+                >
+                  Change Service
+                </button>
+              </div>
             </div>
-            <ServiceSearch 
-              selectedService={selectedService}
-              onServiceSelect={setSelectedService}
-            />
-          </section>
+          )}
 
           {/* Step 2: Who are you? */}
           {selectedService && (
