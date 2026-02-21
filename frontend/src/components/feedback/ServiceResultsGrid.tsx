@@ -7,13 +7,15 @@ interface ServiceResultsGridProps {
   loading: boolean
   onServiceSelect: (service: any) => void
   hasActiveFilters: boolean
+  popularServiceIds?: Set<string>
 }
 
 export default function ServiceResultsGrid({
   services,
   loading,
   onServiceSelect,
-  hasActiveFilters
+  hasActiveFilters,
+  popularServiceIds
 }: ServiceResultsGridProps) {
   // Loading State
   if (loading) {
@@ -126,6 +128,7 @@ export default function ServiceResultsGrid({
             key={service.service_id}
             service={service}
             onSelect={onServiceSelect}
+            isPopular={popularServiceIds?.has(service.service_id) || false}
           />
         ))}
       </div>

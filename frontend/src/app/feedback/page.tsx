@@ -43,6 +43,7 @@ import { useSearchParams } from 'next/navigation'
 import ServiceSearch from '@/components/feedback/ServiceSearch'
 import ServiceFilterBar from '@/components/feedback/ServiceFilterBar'
 import ServiceResultsGrid from '@/components/feedback/ServiceResultsGrid'
+import PopularServices from '@/components/feedback/PopularServices'
 import RatingQuestions from '@/components/feedback/RatingQuestions'
 import SuccessMessage from '@/components/feedback/SuccessMessage'
 import { useChatContext } from '@/hooks/useChatContext'
@@ -109,6 +110,8 @@ function FeedbackPageContent() {
   })
   const [browseServices, setBrowseServices] = useState<Service[]>([])
   const [isLoadingServices, setIsLoadingServices] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [popularServiceIds, setPopularServiceIds] = useState<Set<string>>(new Set())
 
   // Handle pre-filled service from URL parameters (QR code scans)
   useEffect(() => {
@@ -192,6 +195,23 @@ function FeedbackPageContent() {
     }
   }, [clearForm])
 
+  // Fetch popular service IDs on mount
+  useEffect(() => {
+    const fetchPopularServiceIds = async () => {
+      try {
+        const res = await fetch('/api/feedback/popular-services')
+        const data = await res.json()
+        if (data.success && data.services) {
+          const ids = new Set<string>(data.services.map((s: any) => s.service_id as string))
+          setPopularServiceIds(ids)
+        }
+      } catch (error) {
+        console.error('Error fetching popular service IDs:', error)
+      }
+    }
+    fetchPopularServiceIds()
+  }, [])
+
   // Fetch filtered services when filters change
   useEffect(() => {
     if (hasActiveFilters()) {
@@ -202,7 +222,7 @@ function FeedbackPageContent() {
   }, [filters])
 
   const hasActiveFilters = (): boolean => {
-    return !!(filters.entity_id || filters.life_event || filters.category)
+    return !!(filters.entity_id || filters.life_event || filters.category || searchQuery.trim())
   }
 
   const fetchFilteredServices = async () => {
@@ -433,6 +453,7 @@ function FeedbackPageContent() {
               <ServiceSearch
                 selectedService={null}
                 onServiceSelect={handleServiceSelect}
+                onSearchChange={setSearchQuery}
               />
 
               {/* NEW: Results Grid (only when filters active) */}
@@ -443,8 +464,14 @@ function FeedbackPageContent() {
                     loading={isLoadingServices}
                     onServiceSelect={handleServiceSelect}
                     hasActiveFilters={hasActiveFilters()}
+                    popularServiceIds={popularServiceIds}
                   />
                 </div>
+              )}
+
+              {/* NEW: Popular Services (only when no filters active) */}
+              {!hasActiveFilters() && (
+                <PopularServices onServiceSelect={handleServiceSelect} />
               )}
             </section>
           )}

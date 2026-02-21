@@ -14,15 +14,21 @@ interface Service {
 interface ServiceSearchProps {
   selectedService: Service | null
   onServiceSelect: (service: Service | null) => void
+  onSearchChange?: (query: string) => void
 }
 
-export default function ServiceSearch({ selectedService, onServiceSelect }: ServiceSearchProps) {
+export default function ServiceSearch({ selectedService, onServiceSelect, onSearchChange }: ServiceSearchProps) {
   const [searchQuery, setSearchQuery] = useState('')
   const [searchResults, setSearchResults] = useState<Service[]>([])
   const [isSearching, setIsSearching] = useState(false)
   const [showDropdown, setShowDropdown] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const searchRef = useRef<HTMLDivElement>(null)
+
+  // Notify parent of search query changes
+  useEffect(() => {
+    onSearchChange?.(searchQuery)
+  }, [searchQuery, onSearchChange])
 
   // Close dropdown when clicking outside
   useEffect(() => {
