@@ -20,6 +20,16 @@ async function initializeSendGrid(): Promise<boolean> {
 
   // Fetch from database (5-minute cache, auto-decrypts API key)
   const settings = await getSendGridSettings();
+
+  // Check if SendGrid is enabled
+  if (!settings.enabled) {
+    if (!initializationLogged) {
+      console.warn('⚠️ SendGrid disabled - email features disabled');
+      initializationLogged = true;
+    }
+    return false;
+  }
+
   const apiKey = settings.apiKey;
 
   if (!apiKey) {

@@ -540,13 +540,14 @@ export async function getSendGridSettings(): Promise<{
   apiKey: string;
   fromEmail: string;
   fromName: string;
+  enabled: boolean;
 }> {
   // For sensitive settings, we need to get the full value
   try {
     const result = await pool.query<SystemSetting>(
       `SELECT setting_key, setting_value, is_sensitive
        FROM system_settings
-       WHERE setting_key IN ('SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL', 'SENDGRID_FROM_NAME')
+       WHERE setting_key IN ('SENDGRID_API_KEY', 'SENDGRID_FROM_EMAIL', 'SENDGRID_FROM_NAME', 'SENDGRID_ENABLED')
        AND is_active = true`
     );
 
@@ -563,6 +564,7 @@ export async function getSendGridSettings(): Promise<{
       apiKey: settings['SENDGRID_API_KEY'] || process.env.SENDGRID_API_KEY || '',
       fromEmail: settings['SENDGRID_FROM_EMAIL'] || process.env.SENDGRID_FROM_EMAIL || '',
       fromName: settings['SENDGRID_FROM_NAME'] || process.env.SENDGRID_FROM_NAME || 'GEA Portal',
+      enabled: settings['SENDGRID_ENABLED'] === 'true',
     };
   } catch (error) {
     console.error('Error fetching SendGrid settings:', error);
@@ -570,6 +572,7 @@ export async function getSendGridSettings(): Promise<{
       apiKey: process.env.SENDGRID_API_KEY || '',
       fromEmail: process.env.SENDGRID_FROM_EMAIL || '',
       fromName: process.env.SENDGRID_FROM_NAME || 'GEA Portal',
+      enabled: true, // Default to enabled if error
     };
   }
 }

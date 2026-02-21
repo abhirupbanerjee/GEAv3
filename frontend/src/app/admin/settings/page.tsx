@@ -1446,29 +1446,11 @@ function SettingsPageContent() {
 
     // Sort each subcategory's settings by sort_order
     Object.keys(grouped).forEach(sub => {
-      // TEMP DEBUG: Log before/after sort for Footer Configuration
-      if (sub === 'Footer Configuration') {
-        console.log('Footer settings before sort:', grouped[sub].map(s => ({
-          key: s.setting_key,
-          name: s.display_name,
-          order: s.sort_order,
-          type: typeof s.sort_order
-        })))
-      }
-
       grouped[sub].sort((a, b) => {
         const orderA = Number(a.sort_order) || 0
         const orderB = Number(b.sort_order) || 0
         return orderA - orderB
       })
-
-      if (sub === 'Footer Configuration') {
-        console.log('Footer settings after sort:', grouped[sub].map(s => ({
-          key: s.setting_key,
-          name: s.display_name,
-          order: s.sort_order
-        })))
-      }
     })
 
     return grouped

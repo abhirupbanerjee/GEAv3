@@ -76,11 +76,12 @@ export default function ServiceManager() {
   const [editingAttachment, setEditingAttachment] = useState<ServiceAttachment | null>(null)
   const [attachmentFormData, setAttachmentFormData] = useState({
     filename: '',
-    file_extension: 'pdf,zip',
+    file_extension: '',
     is_mandatory: false,
     description: '',
     sort_order: 0
   })
+  const [allowedFileTypes, setAllowedFileTypes] = useState<string[]>([])
 
   // Categories (EXACT from original)
   const categories = [
@@ -102,6 +103,31 @@ export default function ServiceManager() {
       }
     }
     loadEntities()
+  }, [])
+
+  // Load allowed file types from settings
+  useEffect(() => {
+    const loadAllowedFileTypes = async () => {
+      try {
+        const response = await fetch('/api/settings/public?keys=ALLOWED_FILE_TYPES')
+        if (response.ok) {
+          const data = await response.json()
+          const types = data.settings?.ALLOWED_FILE_TYPES || 'pdf,jpg,jpeg,png,doc,docx,xlsx,xls'
+          setAllowedFileTypes(
+            types.split(',')
+              .map((t: string) => t.trim().toLowerCase())
+              .filter((t: string) => t)
+          )
+        } else {
+          // Fallback to default if API fails
+          setAllowedFileTypes(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xlsx', 'xls'])
+        }
+      } catch (error) {
+        console.error('Error loading file types:', error)
+        setAllowedFileTypes(['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx', 'xlsx', 'xls'])
+      }
+    }
+    loadAllowedFileTypes()
   }, [])
 
   // Fetch suggested ID when category changes
@@ -273,7 +299,7 @@ export default function ServiceManager() {
   const resetAttachmentForm = () => {
     setAttachmentFormData({
       filename: '',
-      file_extension: 'pdf,zip',
+      file_extension: '',
       is_mandatory: false,
       description: '',
       sort_order: attachments.length
@@ -285,6 +311,12 @@ export default function ServiceManager() {
   const handleAttachmentSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedServiceForAttachments) return
+
+    // Validate at least one file type selected
+    if (!attachmentFormData.file_extension || attachmentFormData.file_extension.trim() === '') {
+      alert('Please select at least one allowed file type')
+      return
+    }
 
     try {
       const url = editingAttachment
@@ -823,15 +855,69 @@ export default function ServiceManager() {
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Allowed File Types *
                         </label>
-                        <input
-                          type="text"
-                          required
-                          value={attachmentFormData.file_extension}
-                          onChange={(e) => setAttachmentFormData({...attachmentFormData, file_extension: e.target.value})}
-                          placeholder="e.g., pdf,zip,docx"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                        />
-                        <p className="text-xs text-gray-500 mt-1">Comma-separated extensions without dots</p>
+                        {allowedFileTypes.length === 0 ? (
+                          <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                            Loading file types...
+                          </div>
+                        ) : (
+                          <div className="border border-gray-300 rounded-lg p-3 bg-white">
+                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 max-h-40 overflow-y-auto">
+                              {allowedFileTypes.map((fileType) => {
+                                const selectedTypes = attachmentFormData.file_extension
+                                  .split(',')
+                                  .map(t => t.trim())
+                                  .filter(t => t)
+                                const isSelected = selectedTypes.includes(fileType)
+
+                                return (
+                                  <label
+                                    key={fileType}
+                                    className={`flex items-center gap-2 p-2 rounded cursor-pointer transition-colors ${
+                                      isSelected
+                                        ? 'bg-blue-50 border border-blue-200'
+                                        : 'bg-gray-50 border border-gray-200 hover:bg-gray-100'
+                                    }`}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={isSelected}
+                                      onChange={(e) => {
+                                        const currentTypes = attachmentFormData.file_extension
+                                          .split(',')
+                                          .map(t => t.trim())
+                                          .filter(t => t)
+
+                                        let newTypes: string[]
+                                        if (e.target.checked) {
+                                          newTypes = [...currentTypes, fileType]
+                                        } else {
+                                          newTypes = currentTypes.filter(t => t !== fileType)
+                                        }
+
+                                        setAttachmentFormData({
+                                          ...attachmentFormData,
+                                          file_extension: newTypes.join(',')
+                                        })
+                                      }}
+                                      className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    />
+                                    <span className="text-sm font-mono text-gray-700">{fileType}</span>
+                                  </label>
+                                )
+                              })}
+                            </div>
+                            {attachmentFormData.file_extension && (
+                              <div className="mt-2 pt-2 border-t border-gray-200">
+                                <p className="text-xs text-gray-500">
+                                  Selected: <span className="font-mono">{attachmentFormData.file_extension || 'none'}</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        <p className="text-xs text-gray-500 mt-1">
+                          Select which file types users can upload for this document requirement
+                        </p>
                       </div>
                     </div>
 
@@ -842,7 +928,7 @@ export default function ServiceManager() {
                       <textarea
                         value={attachmentFormData.description}
                         onChange={(e) => setAttachmentFormData({...attachmentFormData, description: e.target.value})}
-                        placeholder="pdf and zip allowed. Use zip for multiple files and different formats."
+                        placeholder="Optional instructions for this document (e.g., 'Use ZIP for multiple files')"
                         rows={2}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                       />
@@ -895,9 +981,9 @@ export default function ServiceManager() {
                   onClick={() => {
                     setAttachmentFormData({
                       filename: '',
-                      file_extension: 'pdf,zip',
+                      file_extension: '',
                       is_mandatory: false,
-                      description: 'pdf and zip allowed. Use zip for multiple files and different formats.',
+                      description: '',
                       sort_order: attachments.length
                     })
                     setShowAttachmentForm(true)
