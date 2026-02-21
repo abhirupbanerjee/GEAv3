@@ -1142,7 +1142,7 @@ export default function QRCodeManager() {
                 <button
                   type="button"
                   onClick={handleUseSuggestedId}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap h-10"
                 >
                   Use {suggestedId}
                 </button>

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { FiChevronDown } from 'react-icons/fi'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
 import { useEntities } from '@/hooks/useEntities'
@@ -251,18 +252,21 @@ export default function EntityManager() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Entity Type *
                 </label>
-                <select
-                  required
-                  value={formData.entity_type}
-                  onChange={(e) => setFormData({...formData, entity_type: e.target.value})}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
-                  disabled={!!editingEntity}
-                >
-                  <option value="ministry">Ministry</option>
-                  <option value="department">Department</option>
-                  <option value="agency">Agency</option>
-                  <option value="statutory_body">Statutory Body</option>
-                </select>
+                <div className="relative">
+                  <select
+                    required
+                    value={formData.entity_type}
+                    onChange={(e) => setFormData({...formData, entity_type: e.target.value})}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
+                    disabled={!!editingEntity}
+                  >
+                    <option value="ministry">Ministry</option>
+                    <option value="department">Department</option>
+                    <option value="agency">Agency</option>
+                    <option value="statutory_body">Statutory Body</option>
+                  </select>
+                  <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                </div>
               </div>
 
               {/* Entity ID with Auto-suggestion */}
@@ -295,7 +299,7 @@ export default function EntityManager() {
                         setFormData(prev => ({ ...prev, unique_entity_id: suggestedId }))
                         setUseAutoId(true)
                       }}
-                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                      className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap h-10"
                     >
                       Use {suggestedId}
                     </button>

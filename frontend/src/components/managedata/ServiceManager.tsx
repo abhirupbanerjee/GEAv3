@@ -350,8 +350,8 @@ export default function ServiceManager() {
   return (
     <div>
       {/* Action Bar */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4 flex-1 flex-wrap">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-6">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:flex-wrap flex-1">
           {/* Search */}
           <input
             type="text"
@@ -364,51 +364,54 @@ export default function ServiceManager() {
             className="flex-1 min-w-[200px] px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
           />
 
-          {/* Category Filter */}
-          <select
-            value={filters.service_category || 'all'}
-            onChange={(e) => {
-              setFilters(prev => ({ ...prev, service_category: e.target.value }))
-              setPage(1)
-            }}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
+          {/* Filters Group */}
+          <div className="flex gap-3 sm:gap-2 items-center flex-wrap">
+            {/* Category Filter */}
+            <select
+              value={filters.service_category || 'all'}
+              onChange={(e) => {
+                setFilters(prev => ({ ...prev, service_category: e.target.value }))
+                setPage(1)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Categories</option>
+              {categories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
 
-          {/* Entity Filter */}
-          <select
-            value={filters.entity_id || 'all'}
-            onChange={(e) => {
-              setFilters(prev => ({ ...prev, entity_id: e.target.value }))
-              setPage(1)
-            }}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Entities</option>
-            {entities.map(entity => (
-              <option key={entity.unique_entity_id} value={entity.unique_entity_id}>
-                {entity.entity_name}
-              </option>
-            ))}
-          </select>
+            {/* Entity Filter */}
+            <select
+              value={filters.entity_id || 'all'}
+              onChange={(e) => {
+                setFilters(prev => ({ ...prev, entity_id: e.target.value }))
+                setPage(1)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">All Entities</option>
+              {entities.map(entity => (
+                <option key={entity.unique_entity_id} value={entity.unique_entity_id}>
+                  {entity.entity_name}
+                </option>
+              ))}
+            </select>
 
-          {/* Active Filter */}
-          <select
-            value={filters.is_active || 'active'}
-            onChange={(e) => {
-              setFilters(prev => ({ ...prev, is_active: e.target.value as 'active' | 'inactive' | 'all' }))
-              setPage(1)
-            }}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="active">Active Only</option>
-            <option value="inactive">Inactive Only</option>
-            <option value="all">All Status</option>
-          </select>
+            {/* Active Filter */}
+            <select
+              value={filters.is_active || 'active'}
+              onChange={(e) => {
+                setFilters(prev => ({ ...prev, is_active: e.target.value as 'active' | 'inactive' | 'all' }))
+                setPage(1)
+              }}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="active">Active Only</option>
+              <option value="inactive">Inactive Only</option>
+              <option value="all">All Status</option>
+            </select>
+          </div>
         </div>
 
         <button
@@ -425,7 +428,7 @@ export default function ServiceManager() {
             setUseAutoId(true)
             setShowEditModal(true)
           }}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2 whitespace-nowrap"
+          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg flex items-center gap-2 whitespace-nowrap w-full sm:w-auto"
         >
           + Add Service
         </button>
@@ -1077,7 +1080,7 @@ export default function ServiceManager() {
                 <button
                   type="button"
                   onClick={handleUseSuggestedId}
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm rounded-lg whitespace-nowrap h-10"
                 >
                   Use {suggestedId}
                 </button>
