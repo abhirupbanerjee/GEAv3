@@ -236,7 +236,14 @@ export async function GET(
           },
           source: ticket.source
         },
-        attachments: attachmentsResult.rows.map((att: any) => ({
+        attachments: attachmentsResult.rows.map((att: {
+          attachment_id: number;
+          filename: string;
+          mimetype: string;
+          file_size: number;
+          uploaded_by: string;
+          created_at: string;
+        }) => ({
           attachment_id: att.attachment_id,
           filename: att.filename,
           mimetype: att.mimetype,
@@ -244,7 +251,13 @@ export async function GET(
           uploaded_by: att.uploaded_by,
           created_at: att.created_at
         })),
-        activities: activityResult.rows.map((act: any) => ({
+        activities: activityResult.rows.map((act: {
+          activity_id: number;
+          activity_type: string;
+          performed_by: string;
+          description: string;
+          created_at: string;
+        }) => ({
           activity_id: act.activity_id,
           activity_type: act.activity_type,
           performed_by: act.performed_by,

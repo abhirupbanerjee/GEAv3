@@ -80,9 +80,9 @@ export async function GET(request: NextRequest) {
       LEFT JOIN tickets t ON tc.category_id = t.category_id 
       WHERE tc.is_active = TRUE
     `
-    
-    const params: any[] = []
-    
+
+    const params: Array<string | number | null> = []
+
     // Add optional filters
     if (serviceId) {
       query += ` AND tc.service_id = $${params.length + 1}`

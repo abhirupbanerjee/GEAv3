@@ -540,8 +540,9 @@ function AddUserModal({
       }
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to add user';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -738,8 +739,9 @@ function EditUserModal({
       }
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to update user';
+      setError(message);
     } finally {
       setLoading(false);
     }

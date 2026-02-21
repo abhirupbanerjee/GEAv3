@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
 
     // Build query
     const conditions: string[] = ['f.is_active = true'];
-    const params: any[] = [];
+    const params: Array<string | number | null> = [];
     let paramIndex = 1;
 
     if (serviceId) {

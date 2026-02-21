@@ -14,6 +14,7 @@
 import React, { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import type { TicketFilters } from '@/types/tickets'
+import type { Entity, Service } from '@/types/managedata'
 
 interface FilterSectionProps {
   onFilterChange: (filters: TicketFilters) => void
@@ -67,14 +68,14 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
       const data = await res.json()
       if (Array.isArray(data)) {
         setEntities(
-          data.map((e: any) => ({
+          data.map((e: Entity) => ({
             value: e.unique_entity_id,
             label: e.entity_name
           }))
         )
       } else if (data.success && Array.isArray(data.data)) {
         setEntities(
-          data.data.map((e: any) => ({
+          data.data.map((e: Entity) => ({
             value: e.unique_entity_id,
             label: e.entity_name
           }))
@@ -94,14 +95,14 @@ export function FilterSection({ onFilterChange, currentFilters }: FilterSectionP
       const data = await res.json()
       if (Array.isArray(data)) {
         setServices(
-          data.map((s: any) => ({
+          data.map((s: Service) => ({
             value: s.service_id,
             label: s.service_name
           }))
         )
       } else if (data.success && Array.isArray(data.data)) {
         setServices(
-          data.data.map((s: any) => ({
+          data.data.map((s: Service) => ({
             value: s.service_id,
             label: s.service_name
           }))

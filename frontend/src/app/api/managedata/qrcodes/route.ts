@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
     `, [qr_code_id, service_id, entity_id, location_name, location_address, location_type || 'office', generated_url, notes, is_active !== false])
 
     return NextResponse.json({ success: true, message: 'QR code created' })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating QR code:', error)
-    if (error.code === '23505') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
       return NextResponse.json({ error: 'QR Code ID already exists' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Failed to create QR code' }, { status: 500 })

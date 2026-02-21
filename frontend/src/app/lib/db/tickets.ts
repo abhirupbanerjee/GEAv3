@@ -285,7 +285,7 @@ export async function listCategories(
     WHERE tc.is_active = true
   `;
 
-  const values: any[] = [];
+  const values: Array<string | number | null> = [];
 
   if (entityId) {
     query += ` AND tc.entity_id = $${values.length + 1}`;

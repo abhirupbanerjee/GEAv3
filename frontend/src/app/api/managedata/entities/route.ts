@@ -72,9 +72,9 @@ export async function POST(request: NextRequest) {
     `, [unique_entity_id, entity_name, entity_type, parent_entity_id || null, is_active !== false])
 
     return NextResponse.json({ success: true, message: 'Entity created' })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating entity:', error)
-    if (error.code === '23505') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
       return NextResponse.json({ error: 'Entity ID already exists' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Failed to create entity' }, { status: 500 })

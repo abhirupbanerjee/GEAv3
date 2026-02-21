@@ -90,14 +90,14 @@ export async function GET(request: NextRequest) {
       ORDER BY ts.sort_order
     `
     const statusResult = await executeQuery(statusQuery, queryParams)
-    const statusBreakdown = statusResult.rows.reduce((acc: any, row: any) => {
+    const statusBreakdown = statusResult.rows.reduce((acc: Record<string, { name: string; count: number; color: string }>, row: any) => {
       acc[row.status_code] = {
         name: row.status_name,
         count: parseInt(row.count),
         color: row.color_code
       }
       return acc
-    }, {})
+    }, {} as Record<string, { name: string; count: number; color: string }>)
 
     // Query 3: Priority breakdown
     const priorityQuery = `
@@ -113,14 +113,14 @@ export async function GET(request: NextRequest) {
       ORDER BY pl.sort_order
     `
     const priorityResult = await executeQuery(priorityQuery, queryParams)
-    const priorityBreakdown = priorityResult.rows.reduce((acc: any, row: any) => {
+    const priorityBreakdown = priorityResult.rows.reduce((acc: Record<string, { name: string; count: number; color: string }>, row: any) => {
       acc[row.priority_code.toLowerCase()] = {
         name: row.priority_name,
         count: parseInt(row.count),
         color: row.color_code
       }
       return acc
-    }, {})
+    }, {} as Record<string, { name: string; count: number; color: string }>)
 
     // Query 4: Additional metrics
     const metricsQuery = `

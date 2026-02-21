@@ -369,8 +369,9 @@ export default function NewServiceRequestPage() {
 
       alert('Service request created successfully!');
       router.push('/admin/service-requests');
-    } catch (error: any) {
-      alert(`Error: ${error.message}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create request';
+      alert(`Error: ${message}`);
       console.error(error);
     } finally {
       setLoading(false);

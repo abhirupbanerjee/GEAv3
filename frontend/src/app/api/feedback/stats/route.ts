@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     // Build WHERE conditions
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: Array<string | number | null> = [];
     let paramIndex = 1;
 
     // Handle multiple service IDs (comma-separated)

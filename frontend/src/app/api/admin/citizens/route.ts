@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
 
     // Build WHERE clause
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: Array<string | number | null> = [];
     let paramIndex = 1;
 
     // Search by phone only (PII protection)

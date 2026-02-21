@@ -33,7 +33,7 @@ type SectionFetcher = (entityId: string | null) => Promise<any>;
  */
 async function getFeedbackStats(entityId: string | null) {
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: Array<string | number | null> = [];
   let paramIndex = 1;
 
   if (entityId) {
@@ -133,14 +133,14 @@ async function getTicketStats(entityId: string | null) {
     queryParams
   );
 
-  const statusBreakdown = statusResult.rows.reduce((acc: any, row: any) => {
+  const statusBreakdown = statusResult.rows.reduce((acc: Record<string, { name: string; count: number; color: string }>, row: any) => {
     acc[row.status_code] = {
       name: row.status_name,
       count: parseInt(row.count),
       color: row.color_code,
     };
     return acc;
-  }, {});
+  }, {} as Record<string, { name: string; count: number; color: string }>);
 
   // Priority breakdown
   const priorityResult = await pool.query(
@@ -159,14 +159,14 @@ async function getTicketStats(entityId: string | null) {
     queryParams
   );
 
-  const priorityBreakdown = priorityResult.rows.reduce((acc: any, row: any) => {
+  const priorityBreakdown = priorityResult.rows.reduce((acc: Record<string, { name: string; count: number; color: string }>, row: any) => {
     acc[row.priority_code.toLowerCase()] = {
       name: row.priority_name,
       count: parseInt(row.count),
       color: row.color_code,
     };
     return acc;
-  }, {});
+  }, {} as Record<string, { name: string; count: number; color: string }>);
 
   // Additional metrics
   const metricsResult = await pool.query(
@@ -201,7 +201,7 @@ async function getTicketStats(entityId: string | null) {
  */
 async function getServiceLeaderboard(entityId: string | null) {
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: Array<string | number | null> = [];
   let paramIndex = 1;
 
   if (entityId) {
@@ -260,7 +260,7 @@ async function getServiceLeaderboard(entityId: string | null) {
  */
 async function getServiceRequestStats(entityId: string | null) {
   const conditions: string[] = [];
-  const params: any[] = [];
+  const params: Array<string | number | null> = [];
   let paramIndex = 1;
 
   if (entityId) {
@@ -312,7 +312,7 @@ async function getServiceRequestStats(entityId: string | null) {
  */
 async function getEntities(entityId: string | null) {
   let whereClause = '';
-  const queryParams: any[] = [];
+  const queryParams: Array<string | number | null> = [];
 
   if (entityId) {
     whereClause = 'WHERE e.unique_entity_id = $1';
@@ -345,7 +345,7 @@ async function getEntities(entityId: string | null) {
  */
 async function getServices(entityId: string | null) {
   let whereClause = '';
-  const queryParams: any[] = [];
+  const queryParams: Array<string | number | null> = [];
 
   if (entityId) {
     whereClause = 'WHERE s.entity_id = $1';

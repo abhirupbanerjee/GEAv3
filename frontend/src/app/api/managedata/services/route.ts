@@ -70,9 +70,9 @@ export async function POST(request: NextRequest) {
     `, [service_id, service_name, entity_id, service_category, service_description, is_active !== false])
 
     return NextResponse.json({ success: true, message: 'Service created' })
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating service:', error)
-    if (error.code === '23505') {
+    if (error && typeof error === 'object' && 'code' in error && error.code === '23505') {
       return NextResponse.json({ error: 'Service ID already exists' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Failed to create service' }, { status: 500 })

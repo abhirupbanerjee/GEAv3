@@ -212,7 +212,36 @@ export async function GET(request: NextRequest) {
     const ticketsResult = await executeQuery(ticketsQuery, queryParams)
 
     // Format response
-    const tickets = ticketsResult.rows.map((ticket: any) => ({
+    interface TicketRow {
+      ticket_id: number;
+      ticket_number: string;
+      subject: string;
+      description: string;
+      submitter_name: string;
+      submitter_email: string;
+      submitter_type: string;
+      submitter_entity_id: string;
+      submitter_entity_name: string;
+      created_at: string;
+      updated_at: string;
+      sla_resolution_target: string;
+      status_id: number;
+      status_name: string;
+      status_code: string;
+      status_color: string;
+      priority_id: number;
+      priority_name: string;
+      priority_code: string;
+      priority_color: string;
+      service_id: string;
+      service_name: string;
+      entity_id: string;
+      entity_name: string;
+      assigned_entity_id: string;
+      assigned_entity_name: string;
+      is_overdue: boolean;
+    }
+    const tickets = ticketsResult.rows.map((ticket: TicketRow) => ({
       ticket_id: ticket.ticket_id,
       ticket_number: ticket.ticket_number,
       subject: ticket.subject,

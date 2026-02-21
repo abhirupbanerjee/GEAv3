@@ -45,6 +45,7 @@ import EntityManager from '@/components/managedata/EntityManager'
 import ServiceManager from '@/components/managedata/ServiceManager'
 import QRCodeManager from '@/components/managedata/QRCodeManager'
 import { useChatContext } from '@/hooks/useChatContext'
+import type { Entity, Service } from '@/types/managedata'
 
 type Tab = 'entities' | 'services' | 'qrcodes'
 const VALID_TABS: Tab[] = ['entities', 'services', 'qrcodes']
@@ -57,7 +58,7 @@ const TABS = [
 ]
 
 // Download helper for JSON export
-function downloadJSON(data: any, filename: string) {
+function downloadJSON(data: unknown, filename: string) {
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -105,7 +106,7 @@ function ManageDataPageContent() {
       if (!res.ok) throw new Error('Failed to fetch entities')
       const entities = await res.json()
 
-      const exportData = entities.map((e: any) => ({
+      const exportData = entities.map((e: Entity) => ({
         id: e.unique_entity_id,
         name: e.entity_name,
         type: e.entity_type,
@@ -131,7 +132,7 @@ function ManageDataPageContent() {
       if (!res.ok) throw new Error('Failed to fetch services')
       const services = await res.json()
 
-      const exportData = services.map((s: any) => ({
+      const exportData = services.map((s: Service) => ({
         id: s.service_id,
         name: s.service_name,
         entity_id: s.entity_id,
@@ -165,14 +166,14 @@ function ManageDataPageContent() {
 
       const exportData = {
         exported_at: new Date().toISOString(),
-        entities: entities.map((e: any) => ({
+        entities: entities.map((e: Entity) => ({
           id: e.unique_entity_id,
           name: e.entity_name,
           type: e.entity_type,
           parent_id: e.parent_entity_id || null,
           is_active: e.is_active
         })),
-        services: services.map((s: any) => ({
+        services: services.map((s: Service) => ({
           id: s.service_id,
           name: s.service_name,
           entity_id: s.entity_id,

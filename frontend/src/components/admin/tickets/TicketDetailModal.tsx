@@ -11,6 +11,7 @@ import { createPortal } from 'react-dom'
 import { useTicketDetail } from '@/hooks/useTicketDetail'
 import { useTicketUpdate } from '@/hooks/useTicketUpdate'
 import { ActivityTimeline } from './ActivityTimeline'
+import type { TicketUpdatePayload } from '@/types/tickets'
 
 interface TicketDetailModalProps {
   ticketId: number
@@ -76,7 +77,7 @@ export function TicketDetailModal({ ticketId, onClose, onUpdate }: TicketDetailM
       return
     }
 
-    const payload: any = {
+    const payload: TicketUpdatePayload = {
       performed_by: 'admin' // TODO: Get from session
     }
 

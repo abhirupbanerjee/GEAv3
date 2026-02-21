@@ -85,7 +85,7 @@ export function getPool(): Pool {
  */
 export async function executeQuery<T = any>(
   query: string,
-  values: any[] = []
+  values: Array<string | number | null> = []
 ): Promise<QueryResult<T>> {
   const p = getPool()
 

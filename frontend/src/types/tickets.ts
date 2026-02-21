@@ -197,6 +197,7 @@ export interface TicketUpdatePayload {
   status_id?: number
   priority_id?: number
   internal_note?: string
+  visible_to_citizen?: boolean
   performed_by?: string
 }
 

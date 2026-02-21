@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
 
     // Build query
     const conditions: string[] = [];
-    const params: any[] = [];
+    const params: Array<string | number | null> = [];
     let paramIndex = 1;
 
     if (status) {

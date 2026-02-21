@@ -1,10 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import type { FeedbackStatsData, FeedbackFilters } from '@/types/analytics'
 
 interface ExportButtonProps {
-  statsData: any
-  filters: any
+  statsData: FeedbackStatsData
+  filters: FeedbackFilters
 }
 
 export default function ExportButton({ statsData, filters }: ExportButtonProps) {
