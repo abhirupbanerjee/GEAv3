@@ -212,6 +212,7 @@ WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Citizen Log
 -- Category: INTEGRATIONS - SendGrid
 INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, is_sensitive, default_value, is_runtime, sort_order)
 SELECT * FROM (VALUES
+    ('SENDGRID_ENABLED', 'true', 'boolean', 'INTEGRATIONS', 'Email', 'Enable SendGrid', 'Enable or disable email notifications. When disabled, emails will not be sent but the system will continue to function.', false, 'true', true, 0),
     ('SENDGRID_API_KEY', '', 'secret', 'INTEGRATIONS', 'Email', 'SendGrid API Key', 'API key for SendGrid email service', true, '', true, 1),
     ('SENDGRID_FROM_EMAIL', 'alerts.dtahelpdesk@gmail.com', 'email', 'INTEGRATIONS', 'Email', 'Sender Email', 'Email address that sends notifications', false, 'noreply@example.com', true, 2),
     ('SENDGRID_FROM_NAME', 'DTA', 'string', 'INTEGRATIONS', 'Email', 'Sender Name', 'Display name for sent emails', false, 'GEA Portal', true, 3)

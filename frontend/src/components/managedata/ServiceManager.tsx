@@ -63,7 +63,7 @@ export default function ServiceManager() {
     service_id: '',
     service_name: '',
     entity_id: '',
-    service_category: 'General',
+    service_category: 'general',
     service_description: '',
     is_active: true
   })
@@ -84,11 +84,56 @@ export default function ServiceManager() {
   })
   const [allowedFileTypes, setAllowedFileTypes] = useState<string[]>([])
 
-  // Categories (EXACT from original)
-  const categories = [
-    'Immigration', 'Tax & Revenue', 'Customs', 'Civil Registry',
-    'Property', 'Health', 'Tourism', 'Utilities', 'Digital', 'General'
+  // Category interface for value/label mapping
+  interface Category {
+    value: string  // Database value (what gets saved)
+    label: string  // Display name (what users see)
+  }
+
+  // All 34 categories from database
+  const categories: Category[] = [
+    { value: 'agriculture_and_rural_development', label: 'Agriculture & Rural Development' },
+    { value: 'business_and_commerce', label: 'Business & Commerce' },
+    { value: 'cooperatives_and_producer_organizations', label: 'Cooperatives & Producer Organizations' },
+    { value: 'digital_government_and_ict_services', label: 'Digital Government & ICT Services' },
+    { value: 'disaster_support_and_assessment', label: 'Disaster Support & Assessment' },
+    { value: 'education_exams_and_assessment', label: 'Education: Exams & Assessment' },
+    { value: 'education_scholarships_and_financial_aid', label: 'Education: Scholarships & Financial Aid' },
+    { value: 'education_school_administration', label: 'Education: School Administration' },
+    { value: 'enterprise_architecture_services', label: 'Enterprise Architecture Services' },
+    { value: 'financial_regulation_and_licensing', label: 'Financial Regulation & Licensing' },
+    { value: 'fisheries_and_marine_resources', label: 'Fisheries & Marine Resources' },
+    { value: 'forestry_and_wildlife_management', label: 'Forestry & Wildlife Management' },
+    { value: 'governance_elections_and_public_administration', label: 'Governance, Elections & Public Administration' },
+    { value: 'health_facility_licensing', label: 'Health: Facility Licensing' },
+    { value: 'health_services_and_clinics', label: 'Health: Services & Clinics' },
+    { value: 'housing_support', label: 'Housing Support' },
+    { value: 'identity_and_civil_registration', label: 'Identity & Civil Registration' },
+    { value: 'immigration_passports_and_travel', label: 'Immigration, Passports & Travel' },
+    { value: 'investment_and_business_support', label: 'Investment & Business Support' },
+    { value: 'justice_legal_affairs_and_law_enforcement', label: 'Justice, Legal Affairs & Law Enforcement' },
+    { value: 'land_administration_and_cadastre', label: 'Land Administration & Cadastre' },
+    { value: 'land_use_planning_and_building_control', label: 'Land Use Planning & Building Control' },
+    { value: 'public_health_and_sanitation', label: 'Public Health & Sanitation' },
+    { value: 'social_protection_and_family_support', label: 'Social Protection & Family Support' },
+    { value: 'social_protection_and_insurance', label: 'Social Protection & Insurance' },
+    { value: 'social_protection_cash_transfers', label: 'Social Protection: Cash Transfers' },
+    { value: 'standards_quality_and_safety', label: 'Standards, Quality & Safety' },
+    { value: 'statistics_and_data', label: 'Statistics & Data' },
+    { value: 'taxation_duties_and_revenue', label: 'Taxation, Duties & Revenue' },
+    { value: 'tourism_culture_and_events', label: 'Tourism, Culture & Events' },
+    { value: 'transport_vehicles_and_civil_aviation', label: 'Transport, Vehicles & Civil Aviation' },
+    { value: 'utilities_and_public_infrastructure', label: 'Utilities & Public Infrastructure' },
+    { value: 'youth_and_community_development', label: 'Youth & Community Development' },
+    { value: 'general', label: 'General' }
   ]
+
+  // Helper to get display label for category
+  const getCategoryLabel = (value: string | null): string => {
+    if (!value) return '-'
+    const category = categories.find(cat => cat.value === value)
+    return category ? category.label : value
+  }
 
   // Load entities for dropdown (keep separate from paginated services)
   useEffect(() => {
@@ -250,7 +295,7 @@ export default function ServiceManager() {
       service_id: '',
       service_name: '',
       entity_id: '',
-      service_category: 'General',
+      service_category: 'general',
       service_description: '',
       is_active: true
     })
@@ -410,7 +455,7 @@ export default function ServiceManager() {
             >
               <option value="all">All Categories</option>
               {categories.map(cat => (
-                <option key={cat} value={cat}>{cat}</option>
+                <option key={cat.value} value={cat.value}>{cat.label}</option>
               ))}
             </select>
 
@@ -454,7 +499,7 @@ export default function ServiceManager() {
               service_id: '',
               service_name: '',
               entity_id: '',
-              service_category: 'General',
+              service_category: 'general',
               service_description: '',
               is_active: true
             })
@@ -510,7 +555,7 @@ export default function ServiceManager() {
                   disabled={!!editingService}
                 >
                   {categories.map(cat => (
-                    <option key={cat} value={cat}>{cat}</option>
+                    <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
                 </select>
               </div>
@@ -685,7 +730,7 @@ export default function ServiceManager() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
                       <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs">
-                        {service.service_category}
+                        {getCategoryLabel(service.service_category)}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
@@ -1139,18 +1184,13 @@ export default function ServiceManager() {
                 required
                 value={formData.service_category}
                 onChange={(e) => setFormData({...formData, service_category: e.target.value})}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none disabled:bg-gray-100 disabled:cursor-not-allowed disabled:text-gray-600"
-                disabled={!!editingService}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 appearance-none"
               >
                 {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                  <option key={cat.value} value={cat.value}>{cat.label}</option>
                 ))}
               </select>
-              {!!editingService ? (
-                <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              ) : (
-                <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-              )}
+              <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
             </div>
           </div>
 
