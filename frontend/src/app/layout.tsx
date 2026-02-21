@@ -6,6 +6,10 @@ import ChatBot from '@/components/ChatBot'
 import SessionProvider from '@/components/providers/SessionProvider'
 import { ChatContextProvider } from '@/providers/ChatContextProvider'
 import { getSetting } from '@/lib/settings'
+import DynamicFavicon from '@/components/DynamicFavicon'
+
+// Revalidate metadata every 60 seconds for dynamic favicon updates
+export const revalidate = 60
 
 // Convert legacy /uploads/ paths to /api/uploads/ for proper serving
 function convertUploadPath(path: string): string {
@@ -20,11 +24,15 @@ export async function generateMetadata(): Promise<Metadata> {
   const siteFaviconRaw = await getSetting('SITE_FAVICON', '')
   const siteFavicon = convertUploadPath(siteFaviconRaw)
 
-  const icons: Metadata['icons'] = siteFavicon
+  // Add timestamp for cache busting (changes every hour)
+  const cacheBuster = siteFavicon ? `?v=${Math.floor(Date.now() / 3600000)}` : ''
+  const faviconUrl = siteFavicon ? `${siteFavicon}${cacheBuster}` : undefined
+
+  const icons: Metadata['icons'] = faviconUrl
     ? {
-        icon: siteFavicon,
-        shortcut: siteFavicon,
-        apple: siteFavicon,
+        icon: faviconUrl,
+        shortcut: faviconUrl,
+        apple: faviconUrl,
       }
     : undefined
 
@@ -43,6 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        <DynamicFavicon />
         <SessionProvider>
           <ChatContextProvider>
             <Header />

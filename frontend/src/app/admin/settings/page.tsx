@@ -763,7 +763,30 @@ function SettingsPageContent() {
       const data = await response.json()
       if (data.success) {
         handleSettingChange(settingKey, data.file.path)
-        setMessage({ type: 'success', text: 'Image uploaded successfully' })
+        setMessage({ type: 'success', text: 'Image uploaded successfully. Saving...' })
+
+        // Auto-save favicon to database immediately
+        const saveResponse = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: [{ key: settingKey, value: data.file.path }],
+            changeReason: 'Branding image upload'
+          })
+        })
+
+        const saveData = await saveResponse.json()
+        if (saveData.success) {
+          setMessage({ type: 'success', text: 'Favicon uploaded and saved successfully' })
+          // Remove from pending changes since it's saved
+          setPendingChanges(prev => {
+            const newChanges = { ...prev }
+            delete newChanges[settingKey]
+            return newChanges
+          })
+        } else {
+          setMessage({ type: 'error', text: 'Uploaded but failed to save setting' })
+        }
       } else {
         setMessage({ type: 'error', text: data.error || 'Failed to upload image' })
       }
