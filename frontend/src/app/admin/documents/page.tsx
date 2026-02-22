@@ -20,6 +20,17 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  DragOverlay,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  DragStartEvent,
+  DragEndEvent,
+} from '@dnd-kit/core'
 import FolderTree from '@/components/documents/FolderTree'
 import DocumentList from '@/components/documents/DocumentList'
 import UploadModal from '@/components/documents/UploadModal'
@@ -28,6 +39,7 @@ import CreateFolderModal from '@/components/documents/CreateFolderModal'
 import EditFolderModal from '@/components/documents/EditFolderModal'
 import BulkTagsModal from '@/components/documents/BulkTagsModal'
 import BulkMoveModal from '@/components/documents/BulkMoveModal'
+import DocumentDragOverlay from '@/components/documents/DocumentDragOverlay'
 import { Document, FolderNode, DocumentSortBy } from '@/types/documents'
 
 // ============================================================================
@@ -63,8 +75,21 @@ export default function DocumentsPage() {
   const [renamingFolder, setRenamingFolder] = useState<FolderNode | null>(null)
   const [bulkSelectedIds, setBulkSelectedIds] = useState<number[]>([])
 
+  // Drag and drop state
+  const [activeDragIds, setActiveDragIds] = useState<number[]>([])
+
   const isAdmin = session?.user?.roleType === 'admin'
   const limit = 50
+
+  // Drag and drop sensors (pointer + touch)
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  )
 
   // Fetch folders
   const fetchFolders = useCallback(async () => {
@@ -506,12 +531,13 @@ export default function DocumentsPage() {
     setShowBulkMoveModal(true)
   }
 
-  // Save bulk move
-  const handleSaveBulkMove = async (folderId: number | null) => {
+  // Save bulk move (used by modal and drag-drop)
+  const handleSaveBulkMove = async (folderId: number | null, documentIds?: number[]) => {
+    const idsToMove = documentIds || bulkSelectedIds
     const res = await fetch('/api/admin/documents/bulk', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ document_ids: bulkSelectedIds, folder_id: folderId }),
+      body: JSON.stringify({ document_ids: idsToMove, folder_id: folderId }),
     })
     const result = await res.json()
 
@@ -643,6 +669,44 @@ export default function DocumentsPage() {
     return findFolder(folders)
   }
 
+  // Drag and drop handlers
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event
+    const dragData = active.data.current as { type: string; ids: number[] } | undefined
+    if (dragData?.type === 'documents') {
+      setActiveDragIds(dragData.ids)
+    }
+  }
+
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event
+    setActiveDragIds([])
+
+    if (!over) return
+
+    const dragData = active.data.current as { type: string; ids: number[] } | undefined
+    const dropData = over.data.current as { type: string; folderId: number | 'unfiled' | 'all' | 'trash' } | undefined
+
+    if (!dragData || !dropData) return
+
+    // Only handle document drops on folders
+    if (dragData.type === 'documents' && dropData.type === 'folder') {
+      // Don't allow drops on "all" or "trash"
+      if (dropData.folderId === 'all' || dropData.folderId === 'trash') {
+        return
+      }
+
+      const targetFolderId = dropData.folderId === 'unfiled' ? null : dropData.folderId
+
+      try {
+        await handleSaveBulkMove(targetFolderId, dragData.ids)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to move documents')
+        setTimeout(() => setError(''), 5000)
+      }
+    }
+  }
+
   // Auth check
   if (status === 'loading') {
     return (
@@ -692,52 +756,66 @@ export default function DocumentsPage() {
         </div>
       )}
 
-      {/* Main content */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Folder tree */}
-        <div className="w-64 flex-shrink-0">
-          <FolderTree
-            folders={folders}
-            selectedFolderId={selectedFolderId}
-            onSelectFolder={handleSelectFolder}
-            onCreateFolder={isAdmin ? handleCreateFolder : undefined}
-            onRenameFolder={isAdmin ? handleRenameFolder : undefined}
-            onDeleteFolder={isAdmin ? handleDeleteFolder : undefined}
-            isAdmin={isAdmin}
-            trashCount={trashCount}
-          />
+      {/* Main content with drag and drop */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={handleDragStart}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex flex-1 overflow-hidden">
+          {/* Folder tree */}
+          <div className="w-64 flex-shrink-0">
+            <FolderTree
+              folders={folders}
+              selectedFolderId={selectedFolderId}
+              onSelectFolder={handleSelectFolder}
+              onCreateFolder={isAdmin ? handleCreateFolder : undefined}
+              onRenameFolder={isAdmin ? handleRenameFolder : undefined}
+              onDeleteFolder={isAdmin ? handleDeleteFolder : undefined}
+              isAdmin={isAdmin}
+              trashCount={trashCount}
+            />
+          </div>
+
+          {/* Document list */}
+          <div className="flex-1 overflow-hidden bg-gray-50">
+            <DocumentList
+              documents={documents}
+              total={total}
+              page={page}
+              limit={limit}
+              sortBy={sortBy}
+              searchQuery={searchQuery}
+              isLoading={loading}
+              isAdmin={isAdmin}
+              isTrashView={selectedFolderId === 'trash'}
+              isUnfiledView={selectedFolderId === 'unfiled'}
+              onSearch={handleSearch}
+              onSort={handleSort}
+              onPageChange={setPage}
+              onDownload={handleDownload}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onRestore={handleRestore}
+              onPermanentDelete={handlePermanentDelete}
+              onBulkAddTags={isAdmin ? handleBulkAddTags : undefined}
+              onBulkDelete={isAdmin ? handleBulkDelete : undefined}
+              onBulkDownload={handleBulkDownload}
+              onBulkMove={isAdmin ? handleBulkMove : undefined}
+              onBulkRestore={isAdmin ? handleBulkRestore : undefined}
+              onBulkPermanentDelete={isAdmin ? handleBulkPermanentDelete : undefined}
+            />
+          </div>
         </div>
 
-        {/* Document list */}
-        <div className="flex-1 overflow-hidden bg-gray-50">
-          <DocumentList
-            documents={documents}
-            total={total}
-            page={page}
-            limit={limit}
-            sortBy={sortBy}
-            searchQuery={searchQuery}
-            isLoading={loading}
-            isAdmin={isAdmin}
-            isTrashView={selectedFolderId === 'trash'}
-            isUnfiledView={selectedFolderId === 'unfiled'}
-            onSearch={handleSearch}
-            onSort={handleSort}
-            onPageChange={setPage}
-            onDownload={handleDownload}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onRestore={handleRestore}
-            onPermanentDelete={handlePermanentDelete}
-            onBulkAddTags={isAdmin ? handleBulkAddTags : undefined}
-            onBulkDelete={isAdmin ? handleBulkDelete : undefined}
-            onBulkDownload={handleBulkDownload}
-            onBulkMove={isAdmin ? handleBulkMove : undefined}
-            onBulkRestore={isAdmin ? handleBulkRestore : undefined}
-            onBulkPermanentDelete={isAdmin ? handleBulkPermanentDelete : undefined}
-          />
-        </div>
-      </div>
+        {/* Drag overlay - shows preview while dragging */}
+        <DragOverlay>
+          {activeDragIds.length > 0 && (
+            <DocumentDragOverlay count={activeDragIds.length} />
+          )}
+        </DragOverlay>
+      </DndContext>
 
       {/* Modals */}
       <UploadModal

@@ -13,6 +13,8 @@
  */
 
 import { useState } from 'react'
+import { useDraggable } from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import { Document, DocumentSortBy } from '@/types/documents'
 import { formatFileSize } from '@/lib/file-validation'
 
@@ -125,6 +127,48 @@ const FileIcon = ({ extension }: { extension: string }) => {
         d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
       />
     </svg>
+  )
+}
+
+// ============================================================================
+// DRAGGABLE ROW WRAPPER
+// ============================================================================
+
+interface DraggableRowProps {
+  doc: Document
+  isSelected: boolean
+  selectedIds: Set<number>
+  isDraggable: boolean
+  children: React.ReactNode
+}
+
+function DraggableRow({ doc, isSelected, selectedIds, isDraggable, children }: DraggableRowProps) {
+  const { attributes, listeners, setNodeRef, isDragging } = useDraggable({
+    id: `doc-${doc.id}`,
+    data: {
+      type: 'documents',
+      // If this doc is selected, drag all selected; otherwise just this one
+      ids: isSelected ? Array.from(selectedIds) : [doc.id],
+    },
+    disabled: !isDraggable,
+  })
+
+  const style = {
+    transform: CSS.Translate.toString(isDragging ? { x: 0, y: 0, scaleX: 1, scaleY: 1 } : null),
+    opacity: isDragging ? 0.5 : 1,
+    cursor: isDraggable ? 'grab' : 'default',
+  }
+
+  return (
+    <tr
+      ref={setNodeRef}
+      style={style}
+      {...listeners}
+      {...attributes}
+      className={`hover:bg-gray-50 ${isSelected ? 'bg-blue-50' : ''} ${isDragging ? 'bg-blue-100' : ''}`}
+    >
+      {children}
+    </tr>
   )
 }
 
@@ -558,9 +602,12 @@ export default function DocumentList({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {documents.map((doc) => (
-                <tr
+                <DraggableRow
                   key={doc.id}
-                  className={`hover:bg-gray-50 ${selectedIds.has(doc.id) ? 'bg-blue-50' : ''}`}
+                  doc={doc}
+                  isSelected={selectedIds.has(doc.id)}
+                  selectedIds={selectedIds}
+                  isDraggable={isAdmin && !isTrashView}
                 >
                   {/* Checkbox */}
                   <td className="w-10 px-4 py-3">
@@ -736,7 +783,7 @@ export default function DocumentList({
                       )}
                     </div>
                   </td>
-                </tr>
+                </DraggableRow>
               ))}
             </tbody>
           </table>

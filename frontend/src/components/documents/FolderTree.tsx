@@ -12,6 +12,7 @@
  */
 
 import { useState } from 'react'
+import { useDroppable } from '@dnd-kit/core'
 import { FolderNode } from '@/types/documents'
 
 // ============================================================================
@@ -111,6 +112,36 @@ const TrashFolderIcon = () => (
 )
 
 // ============================================================================
+// DROPPABLE WRAPPER
+// ============================================================================
+
+interface DroppableFolderProps {
+  id: string
+  folderId: number | 'unfiled' | 'all' | 'trash'
+  children: React.ReactNode
+  disabled?: boolean
+}
+
+function DroppableFolder({ id, folderId, children, disabled = false }: DroppableFolderProps) {
+  const { setNodeRef, isOver } = useDroppable({
+    id,
+    data: { type: 'folder', folderId },
+    disabled,
+  })
+
+  return (
+    <div
+      ref={setNodeRef}
+      className={`transition-colors rounded-md ${
+        isOver && !disabled ? 'ring-2 ring-blue-400 bg-blue-50' : ''
+      }`}
+    >
+      {children}
+    </div>
+  )
+}
+
+// ============================================================================
 // TYPES
 // ============================================================================
 
@@ -160,7 +191,7 @@ function FolderNodeItem({
   const canAddSubfolder = isAdmin && level < 3
 
   return (
-    <div>
+    <DroppableFolder id={`folder-${node.id}`} folderId={node.id}>
       <div
         className={`group flex items-center gap-1 py-1.5 px-2 rounded-md cursor-pointer transition-colors ${
           isSelected
@@ -261,7 +292,7 @@ function FolderNodeItem({
           ))}
         </div>
       )}
-    </div>
+    </DroppableFolder>
   )
 }
 
@@ -335,17 +366,19 @@ export default function FolderTree({
         </div>
 
         {/* Unfiled */}
-        <div
-          className={`flex items-center gap-2 py-1.5 px-2 mt-2 rounded-md cursor-pointer transition-colors ${
-            selectedFolderId === 'unfiled'
-              ? 'bg-blue-100 text-blue-700'
-              : 'hover:bg-gray-100 text-gray-700'
-          }`}
-          onClick={() => onSelectFolder('unfiled')}
-        >
-          <UnfiledIcon />
-          <span className="text-sm font-medium text-gray-500">Unfiled</span>
-        </div>
+        <DroppableFolder id="folder-unfiled" folderId="unfiled">
+          <div
+            className={`flex items-center gap-2 py-1.5 px-2 mt-2 rounded-md cursor-pointer transition-colors ${
+              selectedFolderId === 'unfiled'
+                ? 'bg-blue-100 text-blue-700'
+                : 'hover:bg-gray-100 text-gray-700'
+            }`}
+            onClick={() => onSelectFolder('unfiled')}
+          >
+            <UnfiledIcon />
+            <span className="text-sm font-medium text-gray-500">Unfiled</span>
+          </div>
+        </DroppableFolder>
 
         {/* Trash */}
         {isAdmin && (
