@@ -451,8 +451,6 @@ function FeedbackPageContent() {
 
               {/* EXISTING: Search Box */}
               <ServiceSearch
-                selectedService={null}
-                onServiceSelect={handleServiceSelect}
                 onSearchChange={setSearchQuery}
               />
 

@@ -13,6 +13,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import ServiceSearch from '@/components/feedback/ServiceSearch';
+import ServiceResultsGrid from '@/components/feedback/ServiceResultsGrid';
 import RatingQuestions from '@/components/feedback/RatingQuestions';
 import { FiArrowLeft, FiLoader, FiCheck, FiExternalLink, FiAlertCircle } from 'react-icons/fi';
 
@@ -69,6 +70,11 @@ function CitizenFeedbackContent() {
   const [isLoadingPrefilledService, setIsLoadingPrefilledService] = useState(false);
   const [qrCodeId, setQrCodeId] = useState<string | null>(null);
 
+  // Search functionality
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Service[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+
   // Handle pre-filled service from URL parameters
   useEffect(() => {
     const serviceId = searchParams.get('service');
@@ -102,6 +108,37 @@ function CitizenFeedbackContent() {
     }
   }, [searchParams, selectedService]);
 
+  // Handle search query changes
+  useEffect(() => {
+    if (searchQuery.length >= 2) {
+      setIsSearching(true);
+      const params = new URLSearchParams({ search: searchQuery });
+
+      fetch(`/api/public/services?${params}`)
+        .then((res) => res.json())
+        .then((data) => {
+          setSearchResults(data.services || []);
+        })
+        .catch((error) => {
+          console.error('Error searching services:', error);
+          setSearchResults([]);
+        })
+        .finally(() => {
+          setIsSearching(false);
+        });
+    } else {
+      setSearchResults([]);
+    }
+  }, [searchQuery]);
+
+  // Handle service selection from search results
+  const handleServiceSelect = (service: Service) => {
+    setSelectedService(service);
+    setSearchQuery('');
+    setSearchResults([]);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Reset form
   const resetForm = () => {
     setSelectedService(null);
@@ -120,6 +157,8 @@ function CitizenFeedbackContent() {
     setFeedbackId(null);
     setTicketInfo(null);
     setQrCodeId(null);
+    setSearchQuery('');
+    setSearchResults([]);
   };
 
   // Validate form
@@ -308,20 +347,59 @@ function CitizenFeedbackContent() {
       {/* Main Form */}
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Step 1: Service Selection */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
-              1
+        {!selectedService && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-8 bg-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                1
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                Select Service
+              </h2>
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">
-              Select Service
-            </h2>
+
+            {/* Search Input */}
+            <ServiceSearch onSearchChange={setSearchQuery} />
+
+            {/* Search Results */}
+            {searchQuery.length >= 2 && (
+              <div className="mt-6">
+                <ServiceResultsGrid
+                  services={searchResults}
+                  loading={isSearching}
+                  onServiceSelect={handleServiceSelect}
+                  hasActiveFilters={searchQuery.length >= 2}
+                />
+              </div>
+            )}
           </div>
-          <ServiceSearch
-            selectedService={selectedService}
-            onServiceSelect={setSelectedService}
-          />
-        </div>
+        )}
+
+        {/* Selected Service Banner */}
+        {selectedService && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <FiCheck className="w-6 h-6 text-green-600" />
+                  <h3 className="font-semibold text-green-900">{selectedService.service_name}</h3>
+                </div>
+                <p className="text-sm text-green-700 mt-1">{selectedService.entity_name}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedService(null);
+                  setSearchQuery('');
+                  setSearchResults([]);
+                }}
+                className="text-sm text-green-700 hover:text-green-900 underline"
+              >
+                Change Service
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Step 2: Who are you? */}
         {selectedService && (
