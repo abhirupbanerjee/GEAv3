@@ -241,6 +241,17 @@ echo "  ✓ Citizen block tracking added"
 echo ""
 
 # ============================================================================
+# STEP 12c: ADD PUBLIC HELPDESK SETTING
+# ============================================================================
+echo "▶ Step 12c: Adding public helpdesk toggle setting..."
+echo ""
+
+docker exec -i "$DB_CONTAINER" psql -U "$DB_USER" -d "$DB_NAME" < "$SCRIPTS_DIR/31-add-public-helpdesk-setting.sql"
+
+echo "  ✓ Public helpdesk setting added"
+echo ""
+
+# ============================================================================
 # STEP 13: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -321,7 +332,7 @@ echo "  ✓ File extensions support multiple formats"
 echo "  ✓ Reference data loaded"
 echo "  ✓ 27 EA service attachment requirements configured"
 echo "  ✓ System settings and leadership contacts tables created"
-echo "  ✓ ~40 configurable settings seeded"
+echo "  ✓ ~53 configurable settings seeded"
 echo ""
 echo "🎯 Next Steps:"
 echo ""

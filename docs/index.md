@@ -1,8 +1,8 @@
 # 📚 Grenada EA Portal v3 - Complete Documentation Index
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-**Version:** 3.2.0 (Redis Caching + PgBouncer Connection Pooling)
-**Last Updated:** January 2026
+**Version:** 3.3.0 (Public Helpdesk Toggle + Admin Settings)
+**Last Updated:** February 22, 2026
 **Status:** ✅ Production Ready
 
 ---
@@ -41,17 +41,19 @@
 - ✅ Auto-grievance creation for low ratings (≤2.5)
 
 ### Phase 2b: Grievance & Ticketing System
-- ✅ PostgreSQL 15 database (23 tables, 44+ indexes)
+- ✅ PostgreSQL 16 database (33 tables, 44+ indexes)
 - ✅ Citizen grievance submission with attachments
 - ✅ EA service request management (admin portal)
 - ✅ Native ticketing system with SLA tracking
 - ✅ Ticket activity timeline with resolution comments
+- ✅ Public helpdesk with admin-controlled toggle
 - ✅ IP-based rate limiting protection
 - ✅ Email notifications (SendGrid)
 - ✅ IP hashing for privacy (SHA256)
 - ✅ Master data management (entities, services, QR codes)
+- ✅ Admin-configurable system settings (~53 settings)
 - ✅ Admin ticket management dashboard
-- ✅ Comprehensive API (42+ endpoints)
+- ✅ Comprehensive API (43+ endpoints)
 - ✅ External API for bot/integration access (API key auth)
 - ✅ OpenAPI specifications for external endpoints
 - ✅ PII masking for external data access
@@ -91,7 +93,7 @@
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | Next.js API Routes | 14.x | RESTful API endpoints |
-| PostgreSQL | 15 | Primary database |
+| PostgreSQL | 16.11 | Primary database |
 | node-postgres (pg) | 8.x | Database driver |
 | SendGrid | Latest | Email notifications |
 | NextAuth | 4.x | Authentication & session management |
@@ -160,7 +162,7 @@ gogeaportal/v3/
         │
         └── src/
             ├── app/
-            │   ├── api/             ← API Routes (42+ endpoints)
+            │   ├── api/             ← API Routes (43+ endpoints)
             │   │   ├── feedback/    ← Feedback APIs
             │   │   ├── tickets/     ← Ticket APIs
             │   │   ├── helpdesk/    ← Helpdesk APIs
@@ -781,7 +783,8 @@ docker system prune -a
 ## 📊 Project Statistics
 
 ### Current Implementation (Phase 2b + Authentication + External API)
-- **Total API Endpoints:** 42+ (feedback, tickets, helpdesk, admin, master data, auth, content, external)
+- **Total API Endpoints:** 43+ (feedback, tickets, helpdesk, admin, master data, auth, content, external)
+- **Public API Endpoints:** 6 (health, categories, helpdesk status)
 - **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
 - **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
@@ -809,7 +812,7 @@ docker system prune -a
 
 ### Technology Documentation
 - **Next.js 14:** https://nextjs.org/docs
-- **PostgreSQL 15:** https://www.postgresql.org/docs/15/
+- **PostgreSQL 16:** https://www.postgresql.org/docs/16/
 - **NextAuth v4:** https://next-auth.js.org/
 - **Docker:** https://docs.docker.com/
 - **Docker Compose:** https://docs.docker.com/compose/
@@ -898,7 +901,7 @@ docker system prune -a
 
 ---
 
-**Last Updated:** December 19, 2025
-**Version:** 3.1.0 (Phase 2b + Authentication + External API)
+**Last Updated:** February 22, 2026
+**Version:** 3.3.0 (Public Helpdesk Toggle + Admin Settings)
 **Status:** ✅ Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git

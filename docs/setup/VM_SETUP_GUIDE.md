@@ -2,8 +2,8 @@
 
 **Complete guide for deploying GEA Portal on a fresh Virtual Machine**
 
-**Version:** 1.2
-**Last Updated:** January 19, 2026
+**Version:** 1.3
+**Last Updated:** February 22, 2026
 **Status:** Production Ready
 
 ---
@@ -672,10 +672,11 @@ docker compose build --no-cache && docker compose up -d
 ```
 
 
-**Document Version:** 1.2
-**Last Updated:** January 19, 2026
+**Document Version:** 1.3
+**Last Updated:** February 22, 2026
 **Maintained By:** GEA Portal Development Team
 
 **Change Log:**
+- v1.3 (Feb 22, 2026): Updated for Public Helpdesk toggle feature, confirmed PostgreSQL 16, updated settings count
 - v1.2 (Jan 19, 2026): Updated VM specs to D2s_v4 (8GB, Premium SSD), added PostgreSQL 16, PgBouncer, Redis
 - v1.1 (Dec 19, 2025): Initial production version

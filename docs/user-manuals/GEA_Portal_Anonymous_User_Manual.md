@@ -396,8 +396,10 @@ Check your ticket status:
 
 ### 6.2 How to Check Ticket Status
 
+> **⚠️ Note:** The public helpdesk feature may be temporarily disabled by administrators. If you see a "Service temporarily unavailable" message when trying to access the helpdesk, please [log in to the citizen portal](../../citizen/login) to view your tickets, or contact support for assistance.
+
 **Step 1: Access the Helpdesk**
-- Click **"Helpdesk"** in the main navigation menu
+- Click **"Helpdesk"** in the main navigation menu (if visible)
 - Or navigate to `/helpdesk`
 
 **Step 2: Enter Your Ticket Number**

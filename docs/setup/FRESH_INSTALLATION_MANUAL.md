@@ -2,8 +2,8 @@
 
 **Complete Step-by-Step Guide for First-Time Installation**
 
-**Version:** 1.2
-**Last Updated:** January 19, 2026
+**Version:** 1.3
+**Last Updated:** February 22, 2026
 **Status:** Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3
 
@@ -38,7 +38,7 @@ This manual provides complete instructions for performing a **fresh installation
 ✅ Set up all infrastructure components (Docker, PostgreSQL, Next.js, Traefik)
 ✅ Initialize the database schema (33 tables, 44+ indexes)
 ✅ Load **master data only** (entities, services, service attachments)
-✅ Load **system settings** (~40 configurable admin settings)
+✅ Load **system settings** (~53 configurable admin settings)
 ✅ Create initial admin user(s)
 ✅ Configure OAuth authentication
 ✅ Enable SSL certificates
@@ -750,7 +750,7 @@ cd ~/GEAv3/database
   ✓ Reference data loaded
   ✓ 27 EA service attachment requirements configured
   ✓ System settings and leadership contacts tables created
-  ✓ ~40 configurable settings seeded
+  ✓ ~53 configurable settings seeded
   ✓ Service provider entities configured
 
 ✓ MASTER INITIALIZATION COMPLETE
@@ -1645,11 +1645,12 @@ After completing the fresh installation:
 
 ---
 
-**Document Version:** 1.2
-**Last Updated:** January 19, 2026
+**Document Version:** 1.3
+**Last Updated:** February 22, 2026
 **Status:** Production Ready
 **Maintained By:** GEA Portal Development Team
 
 **Change Log:**
+- v1.3 (Feb 22, 2026): Updated PostgreSQL 15→16, updated settings count (40→53), added Public Helpdesk toggle feature
 - v1.2 (Jan 19, 2026): Updated VM requirements to 8GB RAM minimum, added Premium SSD recommendations, noted D-series for consistent performance
 - v1.1 (Jan 14, 2026): Initial production manual

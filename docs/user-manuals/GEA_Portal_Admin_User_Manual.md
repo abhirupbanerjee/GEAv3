@@ -1325,6 +1325,39 @@ Configure AI chatbot widgets:
 
 **Link:** Manage individual bots at `/admin/ai-inventory`
 
+#### Public Helpdesk
+
+Control public access to ticket tracking without authentication:
+
+| Setting | Description |
+|---------|-------------|
+| **Enable Public Helpdesk** | Toggle public ticket tracking ON/OFF |
+
+**Behavior When ENABLED (Default):**
+- Public users can access `/helpdesk` page
+- "Track Ticket Status" button shown after feedback submission
+- Anyone with a ticket number can view ticket status
+- "Helpdesk" link appears in main navigation menu
+
+**Behavior When DISABLED:**
+- `/helpdesk` page shows "Service temporarily unavailable" message
+- "Track Ticket Status" button hidden after feedback submission
+- Tickets continue to be created normally in the database
+- Citizen portal (`/citizen/tickets`) remains fully functional
+- "Helpdesk" link automatically hidden from navigation menu
+
+**Use Cases:**
+- Temporarily disable during system maintenance
+- Restrict ticket visibility to authenticated users only
+- Reduce public portal traffic during high-load periods
+- Comply with privacy requirements for sensitive tickets
+
+**Technical Details:**
+- Changes take effect immediately (no rebuild required)
+- Setting stored in: `system_settings.PUBLIC_HELPDESK_ENABLED`
+- Database script: `31-add-public-helpdesk-setting.sql`
+- API endpoint: `/api/helpdesk/status` (checks setting)
+
 ### 10.6 Business Rules Settings (Tab 4)
 
 #### Rate Limits
