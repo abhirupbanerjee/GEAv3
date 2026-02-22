@@ -2,7 +2,7 @@
 
 **Complete guide for deploying GEA Portal on a fresh Virtual Machine**
 
-**Version:** 1.3
+**Version:** 1.4
 **Last Updated:** February 22, 2026
 **Status:** Production Ready
 
@@ -32,7 +32,7 @@ This guide walks you through deploying the GEA Portal v3 on a fresh virtual mach
 
 - **Frontend** - Next.js 16 application
 - **Database** - PostgreSQL 16
-- **Connection Pool** - PgBouncer v1.23.1
+- **Connection Pool** - PgBouncer v1.25.1-p0
 - **Cache** - Redis 7.4.4
 - **Reverse Proxy** - Traefik v3.6 with automatic SSL
 
@@ -678,5 +678,6 @@ docker compose build --no-cache && docker compose up -d
 
 **Change Log:**
 - v1.3 (Feb 22, 2026): Updated for Public Helpdesk toggle feature, confirmed PostgreSQL 16, updated settings count
+- v1.4 (Feb 22, 2026): Updated PgBouncer v1.23.1→v1.25.1-p0 (CVE-2025-12819), synced table/settings counts with production
 - v1.2 (Jan 19, 2026): Updated VM specs to D2s_v4 (8GB, Premium SSD), added PostgreSQL 16, PgBouncer, Redis
 - v1.1 (Dec 19, 2025): Initial production version

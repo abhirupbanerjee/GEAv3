@@ -2,7 +2,7 @@
 
 **Complete Step-by-Step Guide for First-Time Installation**
 
-**Version:** 1.3
+**Version:** 1.4
 **Last Updated:** February 22, 2026
 **Status:** Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3
@@ -36,9 +36,9 @@
 This manual provides complete instructions for performing a **fresh installation** of the GEA Portal v3 on a new virtual machine. This installation will:
 
 ✅ Set up all infrastructure components (Docker, PostgreSQL, Next.js, Traefik)
-✅ Initialize the database schema (33 tables, 44+ indexes)
+✅ Initialize the database schema (44 tables, 60+ indexes)
 ✅ Load **master data only** (entities, services, service attachments)
-✅ Load **system settings** (~53 configurable admin settings)
+✅ Load **system settings** (75 configurable admin settings)
 ✅ Create initial admin user(s)
 ✅ Configure OAuth authentication
 ✅ Enable SSL certificates
@@ -750,7 +750,7 @@ cd ~/GEAv3/database
   ✓ Reference data loaded
   ✓ 27 EA service attachment requirements configured
   ✓ System settings and leadership contacts tables created
-  ✓ ~53 configurable settings seeded
+  ✓ 75 configurable settings seeded
   ✓ Service provider entities configured
 
 ✓ MASTER INITIALIZATION COMPLETE
@@ -765,7 +765,7 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 # List all tables
 \dt
 
-# Expected output: Should see 33 tables
+# Expected output: Should see 44 tables
 # entity_master, service_master, users, tickets, system_settings, leadership_contacts, etc.
 
 # Check table counts
@@ -815,13 +815,13 @@ The `--clear` flag ensures any sample data is removed before loading production 
   ✓ Schema is up to date (contact columns present)
 
 ▶ Step 3: Loading entity_master...
-  ✓ Loaded 66 entities from CSV
+  ✓ Loaded 68 entities from CSV
 
 ▶ Step 4: Loading service_master...
-  ✓ Loaded 167 services from CSV
+  ✓ Loaded 169 services from CSV
 
 ▶ Step 5: Loading service_attachments...
-  ✓ Loaded 177 attachment requirements from CSV
+  ✓ Loaded 181 attachment requirements from CSV
 
 ▶ Step 6: Validating data integrity...
   ✓ All foreign key relationships valid
@@ -832,9 +832,9 @@ The `--clear` flag ensures any sample data is removed before loading production 
 ╚═══════════════════════════════════════════════════════════════════╝
 
 Record counts:
-  Entities: 66
-  Services: 167
-  Service Attachments: 177
+  Entities: 68
+  Services: 169
+  Service Attachments: 181
 
 ✓ MASTER DATA LOAD COMPLETE
 ```
@@ -854,9 +854,9 @@ cd ~/GEAv3/database/scripts
 ╚═══════════════════════════════════════════════════════════════════╝
 
 ✓ Master Data Counts:
-  Entities: 66
-  Services: 167
-  Service Attachments: 177
+  Entities: 68
+  Services: 169
+  Service Attachments: 181
 
 ✓ Entity Types Distribution:
   Ministry: 15
@@ -1425,9 +1425,9 @@ docker compose restart frontend
 **33 Tables Organized by Category:**
 
 **Master Data (7 tables):**
-- `entity_master` - Government entities (66 entities)
-- `service_master` - Government services (167 services)
-- `service_attachments` - Document requirements (177 attachments)
+- `entity_master` - Government entities (68 entities)
+- `service_master` - Government services (169 services)
+- `service_attachments` - Document requirements (181 attachments)
 - `priority_levels` - Priority definitions
 - `ticket_status` - Ticket workflow states
 - `ticket_categories` - Ticket categorization
@@ -1651,6 +1651,7 @@ After completing the fresh installation:
 **Maintained By:** GEA Portal Development Team
 
 **Change Log:**
+- v1.4 (Feb 22, 2026): Synced with production (44 tables, 75 settings, 68 entities, 169 services, 181 attachments)
 - v1.3 (Feb 22, 2026): Updated PostgreSQL 15→16, updated settings count (40→53), added Public Helpdesk toggle feature
 - v1.2 (Jan 19, 2026): Updated VM requirements to 8GB RAM minimum, added Premium SSD recommendations, noted D-series for consistent performance
 - v1.1 (Jan 14, 2026): Initial production manual

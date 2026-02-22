@@ -1,25 +1,25 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL - LOAD MASTER DATA v2.1
+# GEA PORTAL - LOAD MASTER DATA v2.2
 # ============================================================================
-# Version: 2.1
+# Version: 2.2
 # Purpose: Load cleaned master data from CSV files
-# Date: November 25, 2025
+# Date: February 22, 2026
 #
 # WHAT THIS SCRIPT DOES:
-# ✓ Loads entity_master (66 government entities)
-# ✓ Loads service_master (167 government services)
-# ✓ Loads service_attachments (177 document requirements)
+# ✓ Loads entity_master (68 government entities)
+# ✓ Loads service_master (169 government services - excluding test)
+# ✓ Loads service_attachments (181 document requirements)
 # ✓ Auto-detects and clears default sample data
-# ✓ Auto-migrates schema if contact columns missing (NEW in v2.1)
+# ✓ Auto-migrates schema if contact columns missing
 # ✓ Validates foreign key relationships
 # ✓ Verifies data integrity after load
 #
-# CHANGES IN v2.1:
-# - Added automatic schema migration for contact_email and contact_phone columns
-# - Fixes Azure VM schema mismatch issue transparently
-# - No user interaction needed for schema updates
+# CHANGES IN v2.2:
+# - Updated counts to match production (68 entities, 169 services, 181 attachments)
+# - service_master now supports array columns (life_events, delivery_channel, target_consumers)
+# - AGY-018 marked as inactive, DEPT-001 (GIS) added
 #
 # USAGE:
 #   ./database/scripts/11-load-master-data.sh            # Interactive (prompts if data exists)
@@ -59,7 +59,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 echo ""
-log_section "GEA PORTAL - LOAD MASTER DATA v2.1"
+log_section "GEA PORTAL - LOAD MASTER DATA v2.2"
 echo "  Loading: Entities, Services, Service Attachments"
 echo ""
 

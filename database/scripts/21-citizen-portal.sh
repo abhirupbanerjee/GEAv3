@@ -40,8 +40,16 @@ CREATE TABLE IF NOT EXISTS citizens (
     is_active BOOLEAN DEFAULT true,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    last_login TIMESTAMP
+    last_login TIMESTAMP,
+    block_reason TEXT,
+    blocked_at TIMESTAMP,
+    blocked_by VARCHAR(255)
 );
+
+-- Add missing columns (migration safety)
+ALTER TABLE citizens ADD COLUMN IF NOT EXISTS block_reason TEXT;
+ALTER TABLE citizens ADD COLUMN IF NOT EXISTS blocked_at TIMESTAMP;
+ALTER TABLE citizens ADD COLUMN IF NOT EXISTS blocked_by VARCHAR(255);
 
 -- Indexes for citizens table
 CREATE INDEX IF NOT EXISTS idx_citizens_phone ON citizens(phone);

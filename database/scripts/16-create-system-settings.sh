@@ -291,6 +291,71 @@ SELECT * FROM (VALUES
 ) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Caching' LIMIT 1);
 
+-- Category: DATABASE - Configuration
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('BACKUP_DIRECTORY', '/backups', 'string', 'DATABASE', 'Configuration', 'Backup Directory', 'Directory path for database backups', '/backups', false, 1),
+    ('BACKUP_DATABASE_NAME', 'feedback', 'string', 'DATABASE', 'Configuration', 'Database Name', 'Name of the database to backup', 'feedback', false, 2),
+    ('BACKUP_POSTGRES_VERSION', '16', 'string', 'DATABASE', 'Configuration', 'PostgreSQL Version', 'PostgreSQL version for compatibility', '16', false, 3)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE category = 'DATABASE' AND subcategory = 'Configuration' LIMIT 1);
+
+-- Category: DATABASE - Retention
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('BACKUP_RETENTION_DAYS', '30', 'number', 'DATABASE', 'Retention', 'Retention Period (days)', 'Number of days to keep backup files', '30', 1, 365, true, 10),
+    ('BACKUP_RETENTION_COUNT', '5', 'number', 'DATABASE', 'Retention', 'Minimum Backup Count', 'Minimum number of backups to always keep', '5', 1, 50, true, 11),
+    ('BACKUP_RETENTION_ENABLED', 'true', 'boolean', 'DATABASE', 'Retention', 'Enable Auto-Cleanup', 'Enable automatic cleanup of old backups', 'true', NULL, NULL, true, 12)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, min_value, max_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE category = 'DATABASE' AND subcategory = 'Retention' LIMIT 1);
+
+-- Category: DATABASE - Schedule
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, options, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('BACKUP_SCHEDULE_ENABLED', 'false', 'boolean', 'DATABASE', 'Schedule', 'Enable Scheduled Backups', 'Enable automatic scheduled database backups', 'false', NULL, true, 20),
+    ('BACKUP_SCHEDULE_TYPE', 'daily', 'select', 'DATABASE', 'Schedule', 'Backup Schedule Type', 'Frequency of scheduled backups', 'daily', '{"options": [{"value": "daily", "label": "Daily"}, {"value": "weekly", "label": "Weekly"}]}', true, 21),
+    ('BACKUP_SCHEDULE_TIME', '02:00', 'string', 'DATABASE', 'Schedule', 'Backup Time', 'Time of day to run scheduled backup (HH:MM format)', '02:00', NULL, true, 22),
+    ('BACKUP_SCHEDULE_DAY', 'sunday', 'select', 'DATABASE', 'Schedule', 'Backup Day', 'Day of week for weekly backups', 'sunday', '{"options": [{"value": "monday", "label": "Monday"}, {"value": "tuesday", "label": "Tuesday"}, {"value": "wednesday", "label": "Wednesday"}, {"value": "thursday", "label": "Thursday"}, {"value": "friday", "label": "Friday"}, {"value": "saturday", "label": "Saturday"}, {"value": "sunday", "label": "Sunday"}]}', true, 23),
+    ('BACKUP_SCHEDULE_TIMEZONE', 'America/Grenada', 'string', 'DATABASE', 'Schedule', 'Backup Timezone', 'Timezone for scheduled backup times', 'America/Grenada', NULL, true, 24)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, options, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE category = 'DATABASE' AND subcategory = 'Schedule' LIMIT 1);
+
+-- Category: CONTENT - Footer Configuration
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('FOOTER_GOVERNMENT_TEXT', 'Government of Grenada', 'string', 'CONTENT', 'Footer Configuration', 'Government Section Text', 'Text displayed in the government section of the footer', 'Government of Grenada', true, 1),
+    ('QUICK_LINK_1_LABEL', 'Government Portal', 'string', 'CONTENT', 'Footer Configuration', 'Quick Link 1 Label', 'Label for the first quick link', 'Government Portal', true, 2),
+    ('QUICK_LINK_2_LABEL', 'eServices', 'string', 'CONTENT', 'Footer Configuration', 'Quick Link 2 Label', 'Label for the second quick link', 'eServices', true, 4),
+    ('QUICK_LINK_3_LABEL', 'Constitution', 'string', 'CONTENT', 'Footer Configuration', 'Quick Link 3 Label', 'Label for the third quick link', 'Constitution', true, 6),
+    ('GENERAL_INFO_1_LABEL', 'About Grenada', 'string', 'CONTENT', 'Footer Configuration', 'General Info 1 Label', 'Label for first general info link', 'About Grenada', true, 10),
+    ('GENERAL_INFO_1_URL', 'https://www.gov.gd/about-grenada', 'url', 'CONTENT', 'Footer Configuration', 'General Info 1 URL', 'URL for first general info link', 'https://www.gov.gd/about-grenada', true, 11),
+    ('GENERAL_INFO_2_LABEL', 'Government Directory', 'string', 'CONTENT', 'Footer Configuration', 'General Info 2 Label', 'Label for second general info link', 'Government Directory', true, 12),
+    ('GENERAL_INFO_2_URL', 'https://www.gov.gd/directory', 'url', 'CONTENT', 'Footer Configuration', 'General Info 2 URL', 'URL for second general info link', 'https://www.gov.gd/directory', true, 13),
+    ('GENERAL_INFO_3_LABEL', 'Contact Government', 'string', 'CONTENT', 'Footer Configuration', 'General Info 3 Label', 'Label for third general info link', 'Contact Government', true, 14),
+    ('GENERAL_INFO_3_URL', 'https://www.gov.gd/contact', 'url', 'CONTENT', 'Footer Configuration', 'General Info 3 URL', 'URL for third general info link', 'https://www.gov.gd/contact', true, 15),
+    ('FOOTER_COPYRIGHT_TEXT', '© 2026 Government of Grenada. All rights reserved.', 'string', 'CONTENT', 'Footer Configuration', 'Copyright Text', 'Copyright text displayed in footer', '© 2026 Government of Grenada. All rights reserved.', true, 20)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE category = 'CONTENT' AND subcategory = 'Footer Configuration' LIMIT 1);
+
+-- Category: INTEGRATIONS - Public Features
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('PUBLIC_HELPDESK_ENABLED', 'true', 'boolean', 'INTEGRATIONS', 'Public Features', 'Enable Public Helpdesk', 'Allow public users to submit helpdesk tickets without login', 'true', true, 1)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Public Features' LIMIT 1);
+
+-- Category: USER_MANAGEMENT - Roles
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+SELECT * FROM (VALUES
+    ('ADMIN_ALLOWED_ENTITIES', '["AGY-005"]', 'json', 'USER_MANAGEMENT', 'Roles', 'Entities Allowed to Have Admins', 'JSON array of entity IDs that can have admin users', '["AGY-005"]', true, 1)
+) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE category = 'USER_MANAGEMENT' AND subcategory = 'Roles' LIMIT 1);
+
+-- Add COPYRIGHT_YEAR setting (was removed but needed)
+INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
+SELECT 'COPYRIGHT_YEAR', '2026', 'string', 'SYSTEM', 'General', 'Copyright Year', 'Year displayed in footer copyright notice', '2026', true, 3
+WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE setting_key = 'COPYRIGHT_YEAR');
+
 -- ============================================================================
 -- SEED INITIAL LEADERSHIP CONTACTS (only if table is empty)
 -- ============================================================================
@@ -315,7 +380,9 @@ SELECT
     COUNT(*) FILTER (WHERE category = 'INTEGRATIONS') AS integration_settings,
     COUNT(*) FILTER (WHERE category = 'BUSINESS_RULES') AS business_rules,
     COUNT(*) FILTER (WHERE category = 'CONTENT') AS content_settings,
-    COUNT(*) FILTER (WHERE category = 'PERFORMANCE') AS performance_settings
+    COUNT(*) FILTER (WHERE category = 'DATABASE') AS database_settings,
+    COUNT(*) FILTER (WHERE category = 'PERFORMANCE') AS performance_settings,
+    COUNT(*) FILTER (WHERE category = 'USER_MANAGEMENT') AS user_mgmt_settings
 FROM system_settings;
 
 SELECT

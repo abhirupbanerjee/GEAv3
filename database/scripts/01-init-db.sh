@@ -1,24 +1,28 @@
 #!/bin/bash
 
 # ============================================================================
-# GEA PORTAL DATABASE INITIALIZATION - MIGRATION-SAFE v6.2 (Ticket Activity)
+# GEA PORTAL DATABASE INITIALIZATION - MIGRATION-SAFE v7.0 (Production Sync)
 # ============================================================================
-# Purpose: Initialize/migrate GEA Portal database with Phase 2b schema
-# Architecture: Phase 2b - Grievances + EA Services + Tickets + Admin Dashboard
-# Date: November 22, 2025
-# Fixed: PostgreSQL 13 compatibility + ticket_activity table
+# Purpose: Initialize/migrate GEA Portal database with Phase 2b+ schema
+# Architecture: Phase 2b+ - Full production feature parity
+# Date: February 22, 2026
+# Updated: Sync with production schema (44 tables, 75 settings)
 #
-# FIXES IN v6.2:
+# CHANGES IN v7.0:
+# - Added service_master columns: life_events[], delivery_channel[], target_consumers[]
+# - Added 11 new tables from production (ai_bots, documents, etc.)
+# - Updated ea_service_request_attachments file size: 5MB → 10MB
+# - Updated service_attachments file_extension: VARCHAR(10) → VARCHAR(50)
+# - Added ticket_notes table for internal notes
+# - Added ea_service_request_comments table
+# - Added service catalog lookup tables (life_events, service_categories, etc.)
+# - Added document repository tables (doc_folders, documents)
+# - Added ai_bots table
+# - Added backup_audit_log table
+#
+# PREVIOUS FIXES (v6.2):
 # - Added ticket_activity table for admin dashboard
 # - Added ticket_attachments table
-# - Seed initial activity records for existing tickets
-# - Support for ticket activity timeline and internal notes
-#
-# PREVIOUS FIXES (v6.1):
-# - Replaced ADD CONSTRAINT IF NOT EXISTS with PL/pgSQL DO blocks
-# - Added column existence checks before creating indexes
-# - Service_feedback indexes check for actual columns
-# - Compatible with PostgreSQL 13, 14, 15+
 #
 # ============================================================================
 
@@ -31,9 +35,9 @@ MIGRATION_MODE="auto"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║   GEA PORTAL DATABASE INITIALIZATION v6.2 - ADMIN DASHBOARD       ║"
-echo "║   Phase 2b: Grievances + EA Services + Tickets + Activity Log     ║"
-echo "║   Added: ticket_activity & ticket_attachments tables              ║"
+echo "║   GEA PORTAL DATABASE INITIALIZATION v7.0 - PRODUCTION SYNC        ║"
+echo "║   Phase 2b+: Full production feature parity (44 tables)           ║"
+echo "║   Added: 11 new tables, service catalog lookups, document repo    ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 
@@ -108,8 +112,12 @@ CREATE TABLE IF NOT EXISTS entity_master (
     contact_phone VARCHAR(20),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_service_provider BOOLEAN DEFAULT FALSE
 );
+
+-- Add is_service_provider column if missing (migration safety)
+ALTER TABLE entity_master ADD COLUMN IF NOT EXISTS is_service_provider BOOLEAN DEFAULT FALSE;
 
 CREATE TABLE IF NOT EXISTS service_master (
     service_id VARCHAR(50) PRIMARY KEY,
@@ -119,8 +127,16 @@ CREATE TABLE IF NOT EXISTS service_master (
     service_description TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    life_events TEXT[] DEFAULT '{}',
+    delivery_channel TEXT[] DEFAULT '{}',
+    target_consumers TEXT[] DEFAULT '{}'
 );
+
+-- Add new columns if missing (migration safety)
+ALTER TABLE service_master ADD COLUMN IF NOT EXISTS life_events TEXT[] DEFAULT '{}';
+ALTER TABLE service_master ADD COLUMN IF NOT EXISTS delivery_channel TEXT[] DEFAULT '{}';
+ALTER TABLE service_master ADD COLUMN IF NOT EXISTS target_consumers TEXT[] DEFAULT '{}';
 
 -- ============================================================================
 -- PRIORITY & STATUS LOOKUP TABLES
@@ -488,10 +504,23 @@ CREATE TABLE IF NOT EXISTS ea_service_request_attachments (
     is_mandatory BOOLEAN DEFAULT FALSE,
     uploaded_by VARCHAR(255) DEFAULT 'system',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT check_ea_file_size CHECK (file_size > 0 AND file_size <= 5242880)
+    CONSTRAINT check_ea_file_size CHECK (file_size > 0 AND file_size <= 10485760)
 );
 
 CREATE INDEX IF NOT EXISTS idx_ea_attachment ON ea_service_request_attachments(request_id);
+
+-- Update file size constraint to 10MB if needed (migration safety)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.check_constraints
+        WHERE constraint_name = 'check_ea_file_size'
+    ) THEN
+        ALTER TABLE ea_service_request_attachments DROP CONSTRAINT IF EXISTS check_ea_file_size;
+        ALTER TABLE ea_service_request_attachments ADD CONSTRAINT check_ea_file_size
+            CHECK (file_size > 0 AND file_size <= 10485760);
+    END IF;
+END $$;
 
 -- ============================================================================
 -- SERVICE ATTACHMENTS MASTER DATA
@@ -500,7 +529,7 @@ CREATE TABLE IF NOT EXISTS service_attachments (
     service_attachment_id SERIAL PRIMARY KEY,
     service_id VARCHAR(50) NOT NULL REFERENCES service_master(service_id),
     filename VARCHAR(255) NOT NULL,
-    file_extension VARCHAR(10),
+    file_extension VARCHAR(50),
     is_mandatory BOOLEAN DEFAULT FALSE,
     description TEXT,
     sort_order INTEGER DEFAULT 0,
@@ -509,8 +538,248 @@ CREATE TABLE IF NOT EXISTS service_attachments (
     CONSTRAINT unique_service_file UNIQUE(service_id, filename)
 );
 
+-- Expand file_extension column if too small (migration safety)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM information_schema.columns
+        WHERE table_name = 'service_attachments' AND column_name = 'file_extension'
+        AND character_maximum_length < 50
+    ) THEN
+        ALTER TABLE service_attachments ALTER COLUMN file_extension TYPE VARCHAR(50);
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_service_attachment_service ON service_attachments(service_id);
 CREATE INDEX IF NOT EXISTS idx_service_attachment_active ON service_attachments(is_active);
+
+-- ============================================================================
+-- SERVICE CATALOG LOOKUP TABLES (v7.0)
+-- ============================================================================
+
+-- Life Events - Tags for service discovery
+CREATE TABLE IF NOT EXISTS life_events (
+    id SERIAL PRIMARY KEY,
+    value VARCHAR(100) NOT NULL UNIQUE,
+    label VARCHAR(200) NOT NULL,
+    description TEXT NOT NULL,
+    category VARCHAR(50) NOT NULL,
+    icon VARCHAR(10),
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE life_events IS 'Lookup table for life event tags - managed via admin UI';
+COMMENT ON COLUMN life_events.value IS 'Database key (snake_case, e.g., having_a_baby)';
+COMMENT ON COLUMN life_events.label IS 'Display name shown to users';
+COMMENT ON COLUMN life_events.category IS 'Category grouping (family, education, employment, etc.)';
+
+CREATE INDEX IF NOT EXISTS idx_life_events_category ON life_events(category);
+CREATE INDEX IF NOT EXISTS idx_life_events_active ON life_events(is_active);
+
+-- Service Categories - Lookup table
+CREATE TABLE IF NOT EXISTS service_categories (
+    id SERIAL PRIMARY KEY,
+    value VARCHAR(100) NOT NULL UNIQUE,
+    label VARCHAR(200) NOT NULL,
+    description TEXT,
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE service_categories IS 'Lookup table for service categories - managed via admin UI';
+CREATE INDEX IF NOT EXISTS idx_service_categories_active ON service_categories(is_active);
+
+-- Service Consumers - Target audience lookup
+CREATE TABLE IF NOT EXISTS service_consumers (
+    id SERIAL PRIMARY KEY,
+    value VARCHAR(100) NOT NULL UNIQUE,
+    label VARCHAR(200) NOT NULL,
+    description TEXT,
+    icon VARCHAR(10),
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_service_consumers_active ON service_consumers(is_active);
+
+-- Delivery Channels - How services are delivered
+CREATE TABLE IF NOT EXISTS delivery_channels (
+    id SERIAL PRIMARY KEY,
+    value VARCHAR(100) NOT NULL UNIQUE,
+    label VARCHAR(200) NOT NULL,
+    description TEXT,
+    icon VARCHAR(10),
+    sort_order INTEGER DEFAULT 0,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_delivery_channels_active ON delivery_channels(is_active);
+
+-- ============================================================================
+-- DOCUMENT REPOSITORY TABLES (v7.0)
+-- ============================================================================
+
+-- Document Folders - Hierarchical folder structure (max 3 levels)
+CREATE TABLE IF NOT EXISTS doc_folders (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    parent_id INTEGER REFERENCES doc_folders(id) ON DELETE CASCADE,
+    folder_path VARCHAR(1000) NOT NULL,
+    level INTEGER NOT NULL CHECK (level >= 1 AND level <= 3),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_folders_parent ON doc_folders(parent_id);
+CREATE INDEX IF NOT EXISTS idx_doc_folders_path ON doc_folders(folder_path);
+CREATE INDEX IF NOT EXISTS idx_doc_folders_active ON doc_folders(is_active);
+
+-- Documents - File storage with metadata
+CREATE TABLE IF NOT EXISTS documents (
+    id SERIAL PRIMARY KEY,
+    title VARCHAR(500) NOT NULL,
+    description TEXT,
+    file_name VARCHAR(500) NOT NULL,
+    stored_file_name VARCHAR(500) NOT NULL,
+    file_path VARCHAR(1000) NOT NULL,
+    file_size INTEGER NOT NULL,
+    file_type VARCHAR(100) NOT NULL,
+    file_extension VARCHAR(20) NOT NULL,
+    folder_id INTEGER REFERENCES doc_folders(id) ON DELETE SET NULL,
+    tags TEXT[] DEFAULT '{}',
+    visibility VARCHAR(20) DEFAULT 'all_staff' CHECK (visibility IN ('all_staff', 'admin_only')),
+    is_active BOOLEAN DEFAULT TRUE,
+    download_count INTEGER DEFAULT 0,
+    uploaded_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT NOW(),
+    updated_at TIMESTAMP DEFAULT NOW(),
+    deleted_at TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_documents_folder ON documents(folder_id);
+CREATE INDEX IF NOT EXISTS idx_documents_visibility ON documents(visibility);
+CREATE INDEX IF NOT EXISTS idx_documents_active ON documents(is_active);
+CREATE INDEX IF NOT EXISTS idx_documents_tags ON documents USING GIN(tags);
+
+-- Trigger for documents updated_at
+CREATE OR REPLACE FUNCTION update_documents_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trigger_documents_updated_at ON documents;
+CREATE TRIGGER trigger_documents_updated_at
+    BEFORE UPDATE ON documents
+    FOR EACH ROW
+    EXECUTE FUNCTION update_documents_updated_at();
+
+-- ============================================================================
+-- AI BOTS TABLE (v7.0)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ai_bots (
+    id VARCHAR(50) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    url TEXT,
+    description TEXT,
+    status VARCHAR(20) DEFAULT 'planned' NOT NULL CHECK (status IN ('active', 'planned', 'inactive')),
+    deployment VARCHAR(100),
+    audience VARCHAR(100),
+    modality VARCHAR(50),
+    category VARCHAR(100),
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_by VARCHAR(255),
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_by VARCHAR(255)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_bots_status ON ai_bots(status);
+CREATE INDEX IF NOT EXISTS idx_ai_bots_active ON ai_bots(is_active);
+
+-- ============================================================================
+-- BACKUP AUDIT LOG TABLE (v7.0)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS backup_audit_log (
+    audit_id SERIAL PRIMARY KEY,
+    action VARCHAR(20) NOT NULL CHECK (action IN ('create', 'download', 'restore', 'delete', 'scheduled')),
+    filename VARCHAR(255) NOT NULL,
+    performed_by VARCHAR(255) NOT NULL,
+    ip_address VARCHAR(45),
+    user_agent TEXT,
+    details JSONB,
+    safety_backup_filename VARCHAR(255),
+    tables_restored INTEGER,
+    rows_restored INTEGER,
+    file_size BIGINT,
+    duration_ms INTEGER,
+    status VARCHAR(20) DEFAULT 'success' CHECK (status IN ('success', 'failed', 'in_progress')),
+    error_message TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_backup_audit_action ON backup_audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_backup_audit_date ON backup_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_backup_audit_user ON backup_audit_log(performed_by);
+
+-- ============================================================================
+-- EA SERVICE REQUEST COMMENTS TABLE (v7.0)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ea_service_request_comments (
+    comment_id SERIAL PRIMARY KEY,
+    request_id INTEGER NOT NULL REFERENCES ea_service_requests(request_id) ON DELETE CASCADE,
+    comment_text TEXT NOT NULL,
+    comment_type VARCHAR(50) DEFAULT 'internal_note',
+    is_status_change BOOLEAN DEFAULT FALSE,
+    old_status VARCHAR(20),
+    new_status VARCHAR(20),
+    created_by VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    is_visible_to_staff BOOLEAN DEFAULT TRUE
+);
+
+COMMENT ON TABLE ea_service_request_comments IS 'Comments and notes for EA service requests, including status change history';
+COMMENT ON COLUMN ea_service_request_comments.comment_type IS 'Types: internal_note, status_change, admin_note';
+COMMENT ON COLUMN ea_service_request_comments.is_visible_to_staff IS 'Controls visibility for staff users';
+
+CREATE INDEX IF NOT EXISTS idx_ea_comments_request ON ea_service_request_comments(request_id);
+CREATE INDEX IF NOT EXISTS idx_ea_comments_created ON ea_service_request_comments(created_at DESC);
+
+-- ============================================================================
+-- TICKET NOTES TABLE (v7.0)
+-- ============================================================================
+
+CREATE TABLE IF NOT EXISTS ticket_notes (
+    note_id SERIAL PRIMARY KEY,
+    ticket_id INTEGER NOT NULL REFERENCES tickets(ticket_id) ON DELETE CASCADE,
+    note_text TEXT NOT NULL,
+    is_public BOOLEAN DEFAULT FALSE,
+    created_by VARCHAR(255) DEFAULT 'system',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+COMMENT ON TABLE ticket_notes IS 'Internal notes for tickets (primarily for staff use)';
+COMMENT ON COLUMN ticket_notes.is_public IS 'Whether note is visible to ticket submitter';
+
+CREATE INDEX IF NOT EXISTS idx_ticket_notes_ticket ON ticket_notes(ticket_id);
+CREATE INDEX IF NOT EXISTS idx_ticket_notes_public ON ticket_notes(is_public) WHERE is_public = TRUE;
 
 -- ============================================================================
 -- AUDIT & SECURITY TABLES
@@ -825,7 +1094,7 @@ INDEXES
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║     ✓ INITIALIZATION COMPLETE v6.2 - ADMIN DASHBOARD READY       ║"
+echo "║     ✓ INITIALIZATION COMPLETE v7.0 - PRODUCTION SYNC             ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
 echo "📊 Migration Summary:"
@@ -836,15 +1105,18 @@ echo "  ✓ All SQL syntax errors FIXED (using DO blocks)"
 echo "  ✓ Idempotent: Safe to run multiple times"
 echo "  ✓ Non-destructive: No data lost"
 echo ""
-echo "✅ Critical Columns Added:"
-echo "  ✓ entity_id (multi-ministry routing)"
-echo "  ✓ requester_category (gov employee classification)"
+echo "✅ Schema Updates (v7.0):"
+echo "  ✓ service_master: +life_events[], delivery_channel[], target_consumers[]"
+echo "  ✓ entity_master: +is_service_provider"
+echo "  ✓ ea_service_request_attachments: file size limit 5MB → 10MB"
+echo "  ✓ service_attachments: file_extension VARCHAR(10) → VARCHAR(50)"
 echo ""
-echo "📋 Phase 2b Status:"
-echo "  ✓ FLOW 1: Service Feedback → Auto-Created Grievance"
-echo "  ✓ FLOW 2: EA Service Request (Admin Portal)"
-echo "  ✓ FLOW 3: Formal Citizen Grievance"
-echo "  ✓ FLOW 4: Ticket System (FIXED & Ready)"
+echo "📋 New Tables Added (v7.0):"
+echo "  ✓ Service catalog lookups: life_events, service_categories, service_consumers, delivery_channels"
+echo "  ✓ Document repository: doc_folders, documents"
+echo "  ✓ AI features: ai_bots"
+echo "  ✓ Audit: backup_audit_log"
+echo "  ✓ Comments/Notes: ea_service_request_comments, ticket_notes"
 echo ""
 echo "🔒 Security Ready:"
 echo "  ✓ Rate limiting"
@@ -853,11 +1125,5 @@ echo "  ✓ File constraints"
 echo ""
 echo "📦 Backup Location: $BACKUP_FILE"
 echo ""
-echo "🎯 Next Steps:"
-echo "  1. Update from-feedback API to use entity_id and requester_category"
-echo "  2. Test feedback → ticket creation flow"
-echo "  3. Verify ticket_number appears in response"
-echo "  4. Deploy to production"
-echo ""
-echo "✓ Migration Complete - Ready for Phase 2b!"
+echo "✓ Migration Complete - Production Parity Achieved!"
 echo ""

@@ -3,9 +3,9 @@
 # ============================================================================
 # GEA PORTAL - VERIFY MASTER DATA AND SYNTHETIC DATA
 # ============================================================================
-# Version: 1.0
+# Version: 1.1
 # Purpose: Comprehensive validation of master data and generated transactions
-# Date: November 25, 2025
+# Date: February 22, 2026
 #
 # WHAT THIS SCRIPT CHECKS:
 # ✓ Row counts for all tables
@@ -13,6 +13,11 @@
 # ✓ Data quality metrics (distributions, ranges, completeness)
 # ✓ Referential integrity across all relationships
 # ✓ Performance analytics (ratings, SLA compliance, etc.)
+#
+# EXPECTED PRODUCTION COUNTS (as of Feb 2026):
+# - entity_master: 68 entities (17 ministries, 51 agencies/departments)
+# - service_master: 169 services (excluding test services)
+# - service_attachments: 181 document requirements
 #
 # USAGE:
 #   ./database/13-verify-master-data.sh
@@ -26,7 +31,7 @@ DB_NAME="feedback"
 
 echo ""
 echo "╔═══════════════════════════════════════════════════════════════════╗"
-echo "║   GEA PORTAL - DATA VERIFICATION v1.0                             ║"
+echo "║   GEA PORTAL - DATA VERIFICATION v1.1                             ║"
 echo "║   Comprehensive integrity and quality checks                      ║"
 echo "╚═══════════════════════════════════════════════════════════════════╝"
 echo ""
@@ -656,11 +661,11 @@ WHERE file_size > 5242880
 UNION ALL
 
 SELECT
-    'Oversized EA Attachments',
+    'Oversized EA Attachments (>10MB)',
     COUNT(*),
     CASE WHEN COUNT(*) = 0 THEN '✓ PASS' ELSE '✗ FAIL' END
 FROM ea_service_request_attachments
-WHERE file_size > 5242880
+WHERE file_size > 10485760
 
 UNION ALL
 
@@ -728,7 +733,7 @@ WITH validation_results AS (
         'File Size Constraints',
         CASE
             WHEN NOT EXISTS (SELECT 1 FROM grievance_attachments WHERE file_size > 5242880)
-             AND NOT EXISTS (SELECT 1 FROM ea_service_request_attachments WHERE file_size > 5242880)
+             AND NOT EXISTS (SELECT 1 FROM ea_service_request_attachments WHERE file_size > 10485760)
              AND NOT EXISTS (SELECT 1 FROM ticket_attachments WHERE file_size > 5242880)
             THEN '✓ PASS'
             ELSE '✗ FAIL'
@@ -927,7 +932,7 @@ FROM (
     SELECT 'File Size Constraints',
         CASE
             WHEN NOT EXISTS (SELECT 1 FROM grievance_attachments WHERE file_size > 5242880)
-             AND NOT EXISTS (SELECT 1 FROM ea_service_request_attachments WHERE file_size > 5242880)
+             AND NOT EXISTS (SELECT 1 FROM ea_service_request_attachments WHERE file_size > 10485760)
              AND NOT EXISTS (SELECT 1 FROM ticket_attachments WHERE file_size > 5242880)
             THEN '✓ PASS'
             ELSE '✗ FAIL'

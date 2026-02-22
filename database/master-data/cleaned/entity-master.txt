@@ -30,7 +30,7 @@ AGY-014,"Grenada Bureau of Standards (GNBS)",regulator,MIN-014,,,TRUE
 AGY-015,"National Telecommunications Regulatory Commission (NTRC)",regulator,MIN-013,,,TRUE
 AGY-016,"Grenada Food and Nutrition Council",agency,MIN-014,,,TRUE
 AGY-017,"Grenada Cultural Foundation",agency,MIN-011,,,TRUE
-AGY-018,"Child Protection Authority",agency,MIN-012,,,TRUE
+AGY-018,"Child Protection Authority",agency,MIN-012,,,FALSE
 AGY-019,"Grenada Authority for the Regulation of Financial Institutions (GARFIN)",regulator,MIN-005,,,TRUE
 AGY-020,"National Insurance Scheme (NIS)",agency,MIN-005,,,TRUE
 DEP-001,"Cabinet Office",department,MIN-017,,,TRUE
@@ -66,3 +66,4 @@ DEP-030,"Cooperatives Division",department,MIN-014,,,TRUE
 DEP-031,"Building & Planning Authority (Physical Development)",department,MIN-009,,,TRUE
 DEP-032,"Transport Division",department,MIN-009,,,TRUE
 DEP-033,"Public Works Division",department,MIN-009,,,TRUE
+DEPT-001,"Government Information Services (GIS)",department,MIN-013,,,TRUE
