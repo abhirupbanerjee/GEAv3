@@ -69,7 +69,7 @@ services:
       retries: 5
 
   pgbouncer:
-    image: edoburu/pgbouncer:v1.25.1
+    image: edoburu/pgbouncer:v1.25.1-p0
     container_name: pgbouncer
     restart: unless-stopped
     networks:
