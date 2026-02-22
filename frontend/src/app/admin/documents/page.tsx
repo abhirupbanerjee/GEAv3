@@ -25,6 +25,7 @@ import DocumentList from '@/components/documents/DocumentList'
 import UploadModal from '@/components/documents/UploadModal'
 import EditModal from '@/components/documents/EditModal'
 import CreateFolderModal from '@/components/documents/CreateFolderModal'
+import RenameFolderModal from '@/components/documents/RenameFolderModal'
 import { Document, FolderNode, DocumentSortBy } from '@/types/documents'
 
 // ============================================================================
@@ -39,7 +40,8 @@ export default function DocumentsPage() {
   const [folders, setFolders] = useState<FolderNode[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
   const [total, setTotal] = useState(0)
-  const [selectedFolderId, setSelectedFolderId] = useState<number | 'all' | 'unfiled' | null>('all')
+  const [selectedFolderId, setSelectedFolderId] = useState<number | 'all' | 'unfiled' | 'trash' | null>('all')
+  const [trashCount, setTrashCount] = useState(0)
   const [searchQuery, setSearchQuery] = useState('')
   const [sortBy, setSortBy] = useState<DocumentSortBy>('newest')
   const [page, setPage] = useState(1)
@@ -51,8 +53,10 @@ export default function DocumentsPage() {
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
+  const [showRenameFolderModal, setShowRenameFolderModal] = useState(false)
   const [editingDocument, setEditingDocument] = useState<Document | null>(null)
   const [createFolderParentId, setCreateFolderParentId] = useState<number | null>(null)
+  const [renamingFolder, setRenamingFolder] = useState<FolderNode | null>(null)
 
   const isAdmin = session?.user?.roleType === 'admin'
   const limit = 50
@@ -78,6 +82,8 @@ export default function DocumentsPage() {
 
       if (selectedFolderId === 'unfiled') {
         params.set('folder_id', 'unfiled')
+      } else if (selectedFolderId === 'trash') {
+        params.set('folder_id', 'trash')
       } else if (selectedFolderId !== 'all' && selectedFolderId !== null) {
         params.set('folder_id', selectedFolderId.toString())
       }
@@ -96,12 +102,14 @@ export default function DocumentsPage() {
       if (data.success) {
         setDocuments(data.documents)
         setTotal(data.total)
+        if (data.trashCount !== undefined) {
+          setTrashCount(data.trashCount)
+        }
       } else {
         setError(data.error || 'Failed to fetch documents')
       }
-    } catch (err) {
+    } catch {
       setError('Failed to fetch documents')
-      console.error(err)
     } finally {
       setLoading(false)
     }
@@ -129,7 +137,7 @@ export default function DocumentsPage() {
   }
 
   // Handle folder selection
-  const handleSelectFolder = (folderId: number | 'all' | 'unfiled' | null) => {
+  const handleSelectFolder = (folderId: number | 'all' | 'unfiled' | 'trash' | null) => {
     setSelectedFolderId(folderId)
     setPage(1)
   }
@@ -176,7 +184,51 @@ export default function DocumentsPage() {
       const data = await res.json()
 
       if (data.success) {
-        setSuccessMessage('Document deleted')
+        setSuccessMessage('Document moved to trash')
+        setTimeout(() => setSuccessMessage(''), 3000)
+        fetchDocuments()
+      } else {
+        setError(data.error || 'Failed to delete document')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch {
+      setError('Failed to delete document')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  // Handle restore from trash
+  const handleRestore = async (doc: Document) => {
+    try {
+      const res = await fetch(`/api/admin/documents/${doc.id}/restore`, {
+        method: 'POST',
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSuccessMessage('Document restored')
+        setTimeout(() => setSuccessMessage(''), 3000)
+        fetchDocuments()
+      } else {
+        setError(data.error || 'Failed to restore document')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch {
+      setError('Failed to restore document')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  // Handle permanent delete
+  const handlePermanentDelete = async (doc: Document) => {
+    try {
+      const res = await fetch(`/api/admin/documents/${doc.id}?permanent=true`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSuccessMessage('Document permanently deleted')
         setTimeout(() => setSuccessMessage(''), 3000)
         fetchDocuments()
       } else {
@@ -211,6 +263,67 @@ export default function DocumentsPage() {
     setSuccessMessage('Folder created')
     setTimeout(() => setSuccessMessage(''), 3000)
     fetchFolders()
+  }
+
+  // Handle rename folder
+  const handleRenameFolder = (folder: FolderNode) => {
+    setRenamingFolder(folder)
+    setShowRenameFolderModal(true)
+  }
+
+  // Save renamed folder
+  const handleSaveRenameFolder = async (folderId: number, newName: string) => {
+    const res = await fetch(`/api/admin/documents/folders/${folderId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName }),
+    })
+    const data = await res.json()
+
+    if (!data.success) {
+      throw new Error(data.error || 'Failed to rename folder')
+    }
+
+    setSuccessMessage('Folder renamed')
+    setTimeout(() => setSuccessMessage(''), 3000)
+    fetchFolders()
+    fetchDocuments()
+  }
+
+  // Handle delete folder
+  const handleDeleteFolder = async (folder: FolderNode) => {
+    // Show confirmation
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${folder.name}"?\n\nAny documents in this folder will be moved to "Unfiled".`
+    )
+
+    if (!confirmed) return
+
+    try {
+      const res = await fetch(`/api/admin/documents/folders/${folder.id}`, {
+        method: 'DELETE',
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSuccessMessage(`Folder deleted. ${data.documentsMovedToUnfiled || 0} documents moved to Unfiled.`)
+        setTimeout(() => setSuccessMessage(''), 5000)
+
+        // If we were viewing this folder, switch to "all"
+        if (selectedFolderId === folder.id) {
+          setSelectedFolderId('all')
+        }
+
+        fetchFolders()
+        fetchDocuments()
+      } else {
+        setError(data.error || 'Failed to delete folder')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch {
+      setError('Failed to delete folder')
+      setTimeout(() => setError(''), 5000)
+    }
   }
 
   // Handle single file upload
@@ -409,7 +522,10 @@ export default function DocumentsPage() {
             selectedFolderId={selectedFolderId}
             onSelectFolder={handleSelectFolder}
             onCreateFolder={isAdmin ? handleCreateFolder : undefined}
+            onRenameFolder={isAdmin ? handleRenameFolder : undefined}
+            onDeleteFolder={isAdmin ? handleDeleteFolder : undefined}
             isAdmin={isAdmin}
+            trashCount={trashCount}
           />
         </div>
 
@@ -424,12 +540,15 @@ export default function DocumentsPage() {
             searchQuery={searchQuery}
             isLoading={loading}
             isAdmin={isAdmin}
+            isTrashView={selectedFolderId === 'trash'}
             onSearch={handleSearch}
             onSort={handleSort}
             onPageChange={setPage}
             onDownload={handleDownload}
             onEdit={handleEdit}
             onDelete={handleDelete}
+            onRestore={handleRestore}
+            onPermanentDelete={handlePermanentDelete}
           />
         </div>
       </div>
@@ -462,6 +581,16 @@ export default function DocumentsPage() {
           setCreateFolderParentId(null)
         }}
         onSave={handleSaveFolder}
+      />
+
+      <RenameFolderModal
+        isOpen={showRenameFolderModal}
+        folder={renamingFolder}
+        onClose={() => {
+          setShowRenameFolderModal(false)
+          setRenamingFolder(null)
+        }}
+        onSave={handleSaveRenameFolder}
       />
     </div>
   )

@@ -55,6 +55,28 @@ const PlusIcon = () => (
   </svg>
 )
 
+const EditIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+    />
+  </svg>
+)
+
+const TrashIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+)
+
 const AllDocumentsIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path
@@ -77,25 +99,41 @@ const UnfiledIcon = () => (
   </svg>
 )
 
+const TrashFolderIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+    />
+  </svg>
+)
+
 // ============================================================================
 // TYPES
 // ============================================================================
 
 interface FolderTreeProps {
   folders: FolderNode[]
-  selectedFolderId: number | 'all' | 'unfiled' | null
-  onSelectFolder: (folderId: number | 'all' | 'unfiled' | null) => void
+  selectedFolderId: number | 'all' | 'unfiled' | 'trash' | null
+  onSelectFolder: (folderId: number | 'all' | 'unfiled' | 'trash' | null) => void
   onCreateFolder?: (parentId: number | null) => void
+  onRenameFolder?: (folder: FolderNode) => void
+  onDeleteFolder?: (folder: FolderNode) => void
   isAdmin: boolean
+  trashCount?: number
 }
 
 interface FolderNodeItemProps {
   node: FolderNode
-  selectedFolderId: number | 'all' | 'unfiled' | null
+  selectedFolderId: number | 'all' | 'unfiled' | 'trash' | null
   expandedIds: Set<number>
-  onSelectFolder: (folderId: number | 'all' | 'unfiled' | null) => void
+  onSelectFolder: (folderId: number | 'all' | 'unfiled' | 'trash' | null) => void
   onToggleExpand: (folderId: number) => void
   onCreateFolder?: (parentId: number | null) => void
+  onRenameFolder?: (folder: FolderNode) => void
+  onDeleteFolder?: (folder: FolderNode) => void
   isAdmin: boolean
   level: number
 }
@@ -111,6 +149,8 @@ function FolderNodeItem({
   onSelectFolder,
   onToggleExpand,
   onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
   isAdmin,
   level,
 }: FolderNodeItemProps) {
@@ -153,18 +193,51 @@ function FolderNodeItem({
           <span className="truncate text-sm font-medium">{node.name}</span>
         </div>
 
-        {/* Add subfolder button (admin only, up to level 3) */}
-        {canAddSubfolder && onCreateFolder && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation()
-              onCreateFolder(node.id)
-            }}
-            className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 rounded transition-opacity"
-            title="Add subfolder"
-          >
-            <PlusIcon />
-          </button>
+        {/* Action buttons (admin only) */}
+        {isAdmin && (
+          <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+            {/* Add subfolder button (up to level 3) */}
+            {canAddSubfolder && onCreateFolder && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onCreateFolder(node.id)
+                }}
+                className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-700"
+                title="Add subfolder"
+              >
+                <PlusIcon />
+              </button>
+            )}
+
+            {/* Rename button */}
+            {onRenameFolder && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onRenameFolder(node)
+                }}
+                className="p-1 hover:bg-gray-200 rounded text-gray-500 hover:text-gray-700"
+                title="Rename folder"
+              >
+                <EditIcon />
+              </button>
+            )}
+
+            {/* Delete button */}
+            {onDeleteFolder && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation()
+                  onDeleteFolder(node)
+                }}
+                className="p-1 hover:bg-red-100 rounded text-gray-500 hover:text-red-600"
+                title="Delete folder"
+              >
+                <TrashIcon />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -180,6 +253,8 @@ function FolderNodeItem({
               onSelectFolder={onSelectFolder}
               onToggleExpand={onToggleExpand}
               onCreateFolder={onCreateFolder}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
               isAdmin={isAdmin}
               level={level + 1}
             />
@@ -199,7 +274,10 @@ export default function FolderTree({
   selectedFolderId,
   onSelectFolder,
   onCreateFolder,
+  onRenameFolder,
+  onDeleteFolder,
   isAdmin,
+  trashCount = 0,
 }: FolderTreeProps) {
   const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set())
 
@@ -248,6 +326,8 @@ export default function FolderTree({
               onSelectFolder={onSelectFolder}
               onToggleExpand={handleToggleExpand}
               onCreateFolder={onCreateFolder}
+              onRenameFolder={onRenameFolder}
+              onDeleteFolder={onDeleteFolder}
               isAdmin={isAdmin}
               level={0}
             />
@@ -266,20 +346,40 @@ export default function FolderTree({
           <UnfiledIcon />
           <span className="text-sm font-medium text-gray-500">Unfiled</span>
         </div>
-      </div>
 
-      {/* Add root folder button (admin only) */}
-      {isAdmin && onCreateFolder && (
-        <div className="px-4 py-3 border-t border-gray-200">
-          <button
-            onClick={() => onCreateFolder(null)}
-            className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+        {/* Trash */}
+        {isAdmin && (
+          <div
+            className={`flex items-center gap-2 py-1.5 px-2 mt-2 rounded-md cursor-pointer transition-colors ${
+              selectedFolderId === 'trash'
+                ? 'bg-blue-100 text-blue-700'
+                : 'hover:bg-gray-100 text-gray-700'
+            }`}
+            onClick={() => onSelectFolder('trash')}
           >
-            <PlusIcon />
-            <span>New Folder</span>
-          </button>
-        </div>
-      )}
+            <TrashFolderIcon />
+            <span className="text-sm font-medium text-gray-500">Trash</span>
+            {trashCount > 0 && (
+              <span className="ml-auto text-xs bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full">
+                {trashCount}
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Add root folder button (admin only) */}
+        {isAdmin && onCreateFolder && (
+          <div className="mt-4 pt-2 border-t border-gray-100">
+            <button
+              onClick={() => onCreateFolder(null)}
+              className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700"
+            >
+              <PlusIcon />
+              <span>New Folder</span>
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

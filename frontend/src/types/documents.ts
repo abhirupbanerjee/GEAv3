@@ -63,6 +63,7 @@ export interface Document {
   uploaded_by: string
   created_at: string
   updated_at: string
+  deleted_at: string | null  // Set when document is moved to trash
 }
 
 export interface DocumentListResponse {
@@ -143,6 +144,8 @@ export const MAX_BATCH_FILES = 100
 export const MAX_BATCH_SIZE = 500 * 1024 * 1024 // 500MB total
 
 export const MAX_FOLDER_DEPTH = 3
+
+export const TRASH_RETENTION_DAYS = 30  // Days before auto-purge from trash
 
 export const MAX_TAGS = 10
 

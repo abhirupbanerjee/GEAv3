@@ -51,17 +51,35 @@ export async function GET(request: NextRequest) {
     const sort = searchParams.get('sort') || 'newest'
 
     // Build query
-    const conditions: string[] = ['d.is_active = true']
+    const conditions: string[] = []
     const params: (string | number | null)[] = []
     let paramIndex = 1
 
-    // Folder filter
-    if (folder_id === 'unfiled') {
-      conditions.push('d.folder_id IS NULL')
-    } else if (folder_id && folder_id !== 'all') {
-      conditions.push(`d.folder_id = $${paramIndex}`)
-      params.push(parseInt(folder_id, 10))
-      paramIndex++
+    // Folder filter (including special values: all, unfiled, trash)
+    if (folder_id === 'trash') {
+      // Trash: show soft-deleted documents (is_active = false)
+      // Admin only - staff can't see trash
+      if (session.user.roleType !== 'admin') {
+        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
+      }
+      conditions.push('d.is_active = false')
+
+      // Auto-cleanup: permanently delete documents in trash older than 30 days
+      await pool.query(
+        `DELETE FROM documents
+         WHERE is_active = false AND deleted_at < NOW() - INTERVAL '30 days'`
+      )
+    } else {
+      // Normal view: show active documents only
+      conditions.push('d.is_active = true')
+
+      if (folder_id === 'unfiled') {
+        conditions.push('d.folder_id IS NULL')
+      } else if (folder_id && folder_id !== 'all') {
+        conditions.push(`d.folder_id = $${paramIndex}`)
+        params.push(parseInt(folder_id, 10))
+        paramIndex++
+      }
     }
 
     // Tags filter
@@ -123,7 +141,7 @@ export async function GET(request: NextRequest) {
         d.id, d.title, d.description, d.file_name, d.stored_file_name, d.file_path,
         d.file_size, d.file_type, d.file_extension, d.folder_id, d.tags, d.visibility,
         d.is_active, d.download_count, d.uploaded_by, d.created_at, d.updated_at,
-        f.folder_path, f.name as folder_name
+        d.deleted_at, f.folder_path, f.name as folder_name
        FROM documents d
        LEFT JOIN doc_folders f ON d.folder_id = f.id
        ${whereClause}
@@ -132,12 +150,22 @@ export async function GET(request: NextRequest) {
       params
     )
 
+    // Get trash count for admin users (only once per request, not for every render)
+    let trashCount = 0
+    if (session.user.roleType === 'admin') {
+      const trashResult = await pool.query(
+        'SELECT COUNT(*) as count FROM documents WHERE is_active = false'
+      )
+      trashCount = parseInt(trashResult.rows[0].count, 10)
+    }
+
     return NextResponse.json({
       success: true,
       documents: result.rows,
       total,
       page,
       limit,
+      trashCount,
     })
   } catch (error) {
     console.error('Error fetching documents:', error)

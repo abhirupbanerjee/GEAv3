@@ -64,6 +64,17 @@ const TrashIcon = () => (
   </svg>
 )
 
+const RestoreIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"
+    />
+  </svg>
+)
+
 const FileIcon = ({ extension }: { extension: string }) => {
   const colorMap: Record<string, string> = {
     pdf: 'text-red-500',
@@ -102,12 +113,15 @@ interface DocumentListProps {
   searchQuery: string
   isLoading: boolean
   isAdmin: boolean
+  isTrashView?: boolean
   onSearch: (query: string) => void
   onSort: (sortBy: DocumentSortBy) => void
   onPageChange: (page: number) => void
   onDownload: (document: Document) => void
   onEdit: (document: Document) => void
   onDelete: (document: Document) => void
+  onRestore?: (document: Document) => void
+  onPermanentDelete?: (document: Document) => void
 }
 
 // ============================================================================
@@ -123,14 +137,18 @@ export default function DocumentList({
   searchQuery,
   isLoading,
   isAdmin,
+  isTrashView = false,
   onSearch,
   onSort,
   onPageChange,
   onDownload,
   onEdit,
   onDelete,
+  onRestore,
+  onPermanentDelete,
 }: DocumentListProps) {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
+  const [permanentDeleteConfirmId, setPermanentDeleteConfirmId] = useState<number | null>(null)
 
   const totalPages = Math.ceil(total / limit)
 
@@ -158,6 +176,20 @@ export default function DocumentList({
   const handleConfirmDelete = (doc: Document) => {
     setDeleteConfirmId(null)
     onDelete(doc)
+  }
+
+  // Handle permanent delete confirmation
+  const handlePermanentDeleteClick = (doc: Document) => {
+    setPermanentDeleteConfirmId(doc.id)
+    // Auto-cancel after 5 seconds
+    setTimeout(() => setPermanentDeleteConfirmId(null), 5000)
+  }
+
+  const handleConfirmPermanentDelete = (doc: Document) => {
+    setPermanentDeleteConfirmId(null)
+    if (onPermanentDelete) {
+      onPermanentDelete(doc)
+    }
   }
 
   return (
@@ -204,11 +236,19 @@ export default function DocumentList({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={1}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                d={isTrashView
+                  ? "M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  : "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"}
               />
             </svg>
-            <p className="text-lg font-medium">No documents found</p>
-            <p className="text-sm">Upload a document to get started</p>
+            <p className="text-lg font-medium">
+              {isTrashView ? 'Trash is empty' : 'No documents found'}
+            </p>
+            <p className="text-sm">
+              {isTrashView
+                ? 'Deleted documents will appear here'
+                : 'Upload a document to get started'}
+            </p>
           </div>
         ) : (
           <table className="w-full">
@@ -227,7 +267,7 @@ export default function DocumentList({
                   Size
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date
+                  {isTrashView ? 'Deleted' : 'Date'}
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Actions
@@ -290,59 +330,113 @@ export default function DocumentList({
 
                   {/* Date */}
                   <td className="px-4 py-3">
-                    <span className="text-sm text-gray-500">{formatDate(doc.created_at)}</span>
+                    <span className="text-sm text-gray-500">
+                      {isTrashView && doc.deleted_at
+                        ? formatDate(doc.deleted_at)
+                        : formatDate(doc.created_at)}
+                    </span>
                   </td>
 
                   {/* Actions */}
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-2">
-                      {/* Download */}
-                      <button
-                        onClick={() => onDownload(doc)}
-                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
-                        title="Download"
-                      >
-                        <DownloadIcon />
-                      </button>
-
-                      {/* Edit (admin only) */}
-                      {isAdmin && (
-                        <button
-                          onClick={() => onEdit(doc)}
-                          className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
-                          title="Edit"
-                        >
-                          <EditIcon />
-                        </button>
-                      )}
-
-                      {/* Delete (admin only) */}
-                      {isAdmin && (
+                      {isTrashView ? (
+                        /* Trash view actions: Restore and Permanent Delete */
                         <>
-                          {deleteConfirmId === doc.id ? (
-                            <div className="flex items-center gap-1 text-xs">
-                              <span className="text-gray-500">Delete?</span>
-                              <button
-                                onClick={() => handleConfirmDelete(doc)}
-                                className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-                              >
-                                Yes
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirmId(null)}
-                                className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                              >
-                                No
-                              </button>
-                            </div>
-                          ) : (
+                          {/* Restore */}
+                          {onRestore && (
                             <button
-                              onClick={() => handleDeleteClick(doc)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                              title="Delete"
+                              onClick={() => onRestore(doc)}
+                              className="p-1.5 text-gray-400 hover:text-green-600 hover:bg-green-50 rounded transition-colors"
+                              title="Restore"
                             >
-                              <TrashIcon />
+                              <RestoreIcon />
                             </button>
+                          )}
+
+                          {/* Permanent Delete */}
+                          {onPermanentDelete && (
+                            <>
+                              {permanentDeleteConfirmId === doc.id ? (
+                                <div className="flex items-center gap-1 text-xs">
+                                  <span className="text-red-600 font-medium">Permanent?</span>
+                                  <button
+                                    onClick={() => handleConfirmPermanentDelete(doc)}
+                                    className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    onClick={() => setPermanentDeleteConfirmId(null)}
+                                    className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                                  >
+                                    No
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handlePermanentDeleteClick(doc)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Delete permanently"
+                                >
+                                  <TrashIcon />
+                                </button>
+                              )}
+                            </>
+                          )}
+                        </>
+                      ) : (
+                        /* Normal view actions: Download, Edit, Delete */
+                        <>
+                          {/* Download */}
+                          <button
+                            onClick={() => onDownload(doc)}
+                            className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                            title="Download"
+                          >
+                            <DownloadIcon />
+                          </button>
+
+                          {/* Edit (admin only) */}
+                          {isAdmin && (
+                            <button
+                              onClick={() => onEdit(doc)}
+                              className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded transition-colors"
+                              title="Edit"
+                            >
+                              <EditIcon />
+                            </button>
+                          )}
+
+                          {/* Delete (admin only) */}
+                          {isAdmin && (
+                            <>
+                              {deleteConfirmId === doc.id ? (
+                                <div className="flex items-center gap-1 text-xs">
+                                  <span className="text-gray-500">Delete?</span>
+                                  <button
+                                    onClick={() => handleConfirmDelete(doc)}
+                                    className="px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirmId(null)}
+                                    className="px-2 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                                  >
+                                    No
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={() => handleDeleteClick(doc)}
+                                  className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                  title="Delete"
+                                >
+                                  <TrashIcon />
+                                </button>
+                              )}
+                            </>
                           )}
                         </>
                       )}

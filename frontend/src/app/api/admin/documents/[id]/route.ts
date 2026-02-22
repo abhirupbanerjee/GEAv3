@@ -232,8 +232,10 @@ export async function PATCH(
 }
 
 // ============================================================================
-// DELETE - Soft delete document
+// DELETE - Soft delete or permanent delete document
 // ============================================================================
+// Use ?permanent=true for permanent deletion (from trash)
+// Default behavior is soft delete (move to trash)
 
 export async function DELETE(
   request: NextRequest,
@@ -241,6 +243,8 @@ export async function DELETE(
 ) {
   try {
     const { id } = await params
+    const { searchParams } = new URL(request.url)
+    const isPermanent = searchParams.get('permanent') === 'true'
 
     // Check authentication
     const session = await getServerSession(authOptions)
@@ -253,22 +257,56 @@ export async function DELETE(
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    // Soft delete (set is_active = false)
-    const result = await pool.query(
-      `UPDATE documents SET is_active = false
-       WHERE id = $1 AND is_active = true
-       RETURNING id`,
-      [parseInt(id, 10)]
-    )
+    const docId = parseInt(id, 10)
 
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+    if (isPermanent) {
+      // Permanent delete - only allowed for documents already in trash (is_active = false)
+      // Get document info first
+      const docResult = await pool.query<{ file_path: string }>(
+        'SELECT file_path FROM documents WHERE id = $1 AND is_active = false',
+        [docId]
+      )
+
+      if (docResult.rows.length === 0) {
+        return NextResponse.json(
+          { error: 'Document not found in trash' },
+          { status: 404 }
+        )
+      }
+
+      // Delete from database (hard delete)
+      await pool.query('DELETE FROM documents WHERE id = $1', [docId])
+
+      // Optionally delete file from disk
+      // Note: Keeping file on disk for now as a safety measure
+      // Uncomment below to also delete the file:
+      // const filePath = path.join(UPLOAD_ROOT, docResult.rows[0].file_path)
+      // if (existsSync(filePath)) {
+      //   await unlink(filePath)
+      // }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Document permanently deleted',
+      })
+    } else {
+      // Soft delete (set is_active = false, deleted_at = NOW())
+      const result = await pool.query(
+        `UPDATE documents SET is_active = false, deleted_at = NOW()
+         WHERE id = $1 AND is_active = true
+         RETURNING id`,
+        [docId]
+      )
+
+      if (result.rows.length === 0) {
+        return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: 'Document moved to trash',
+      })
     }
-
-    return NextResponse.json({
-      success: true,
-      message: 'Document deleted',
-    })
   } catch (error) {
     console.error('Error deleting document:', error)
     return NextResponse.json(
