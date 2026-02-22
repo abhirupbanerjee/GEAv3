@@ -785,7 +785,7 @@ export async function getPublicHelpdeskSettings(): Promise<{
   enabled: boolean;
 }> {
   try {
-    const enabled = await getSetting<boolean>('PUBLIC_HELPDESK_ENABLED', true);
+    const enabled = await getSetting('PUBLIC_HELPDESK_ENABLED', 'true');
 
     return {
       enabled: enabled === true || enabled === 'true',
