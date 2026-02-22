@@ -8,6 +8,7 @@ volumes:
   feedback_db_data:
   redis_data:
   gea_backups:
+  documents_data:
 
 services:
   traefik:
@@ -187,6 +188,7 @@ services:
 
     volumes:
       - gea_backups:/tmp/gea_backups
+      - documents_data:/app/public/uploads/documents
 
     depends_on:
       feedback_db:

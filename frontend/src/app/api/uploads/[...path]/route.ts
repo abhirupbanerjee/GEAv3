@@ -23,10 +23,18 @@ const MIME_TYPES: Record<string, string> = {
   '.webp': 'image/webp',
   '.svg': 'image/svg+xml',
   '.ico': 'image/x-icon',
+  // Document types
+  '.pdf': 'application/pdf',
+  '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.xls': 'application/vnd.ms-excel',
+  '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  '.txt': 'text/plain',
+  '.md': 'text/markdown',
 };
 
 // Allowed directories (security: prevent directory traversal)
-const ALLOWED_DIRS = ['branding', 'contacts'];
+const ALLOWED_DIRS = ['branding', 'contacts', 'documents'];
 
 /**
  * GET /api/uploads/[...path]

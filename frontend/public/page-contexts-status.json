@@ -1,14 +1,15 @@
 {
-  "totalPages": 39,
-  "documented": 23,
+  "totalPages": 40,
+  "documented": 24,
   "inferred": 16,
-  "coverage": "59%",
+  "coverage": "60%",
   "documentedRoutes": [
     "/",
     "/about",
     "/admin",
     "/admin/ai-inventory",
     "/admin/analytics",
+    "/admin/documents",
     "/admin/home",
     "/admin/managedata",
     "/admin/service-requests",
@@ -46,5 +47,5 @@
     "/citizen/tickets",
     "/citizen/tickets/:id"
   ],
-  "generatedAt": "2026-02-22T13:37:03.758Z"
+  "generatedAt": "2026-02-22T18:10:28.191Z"
 }

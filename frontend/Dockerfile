@@ -116,7 +116,7 @@ COPY --from=builder --chown=nextjs:nodejs /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Pre-create upload directories for runtime writes
-RUN mkdir -p /app/public/uploads/branding /app/public/uploads/contacts && \
+RUN mkdir -p /app/public/uploads/branding /app/public/uploads/contacts /app/public/uploads/documents && \
     chown -R nextjs:nodejs /app/public/uploads
 
 # Pre-create backup directory with proper permissions
