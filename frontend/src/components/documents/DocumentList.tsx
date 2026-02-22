@@ -367,14 +367,14 @@ export default function DocumentList({
           </button>
           <div className="flex-1" />
 
-          {/* Move to Folder button (for unfiled view) */}
-          {isAdmin && isUnfiledView && onBulkMove && (
+          {/* Move to Folder button */}
+          {isAdmin && onBulkMove && (
             <button
               onClick={handleBulkMove}
               className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
             >
               <MoveIcon />
-              Move to Folder
+              Move
             </button>
           )}
 
