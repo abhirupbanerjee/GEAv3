@@ -25,7 +25,7 @@ import DocumentList from '@/components/documents/DocumentList'
 import UploadModal from '@/components/documents/UploadModal'
 import EditModal from '@/components/documents/EditModal'
 import CreateFolderModal from '@/components/documents/CreateFolderModal'
-import RenameFolderModal from '@/components/documents/RenameFolderModal'
+import EditFolderModal from '@/components/documents/EditFolderModal'
 import BulkTagsModal from '@/components/documents/BulkTagsModal'
 import { Document, FolderNode, DocumentSortBy } from '@/types/documents'
 
@@ -274,20 +274,31 @@ export default function DocumentsPage() {
     setShowRenameFolderModal(true)
   }
 
-  // Save renamed folder
-  const handleSaveRenameFolder = async (folderId: number, newName: string) => {
+  // Save folder changes (rename and/or move)
+  const handleSaveEditFolder = async (
+    folderId: number,
+    newName: string,
+    newParentId: number | null | undefined
+  ) => {
+    const body: { name: string; parent_id?: number | null } = { name: newName }
+
+    // Only include parent_id if it's being changed
+    if (newParentId !== undefined) {
+      body.parent_id = newParentId
+    }
+
     const res = await fetch(`/api/admin/documents/folders/${folderId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newName }),
+      body: JSON.stringify(body),
     })
     const data = await res.json()
 
     if (!data.success) {
-      throw new Error(data.error || 'Failed to rename folder')
+      throw new Error(data.error || 'Failed to update folder')
     }
 
-    setSuccessMessage('Folder renamed')
+    setSuccessMessage(newParentId !== undefined ? 'Folder moved' : 'Folder renamed')
     setTimeout(() => setSuccessMessage(''), 3000)
     fetchFolders()
     fetchDocuments()
@@ -367,11 +378,24 @@ export default function DocumentsPage() {
   const handleUploadFolder = async (data: {
     files: File[]
     folderPaths: Record<string, string>
+    parentFolderId: number | null
+    parentFolderPath: string | null
     tags: string[]
     visibility: 'all_staff' | 'admin_only'
   }) => {
+    // Prepend parent folder path to all folder paths if a parent is selected
+    let modifiedFolderPaths = data.folderPaths
+    if (data.parentFolderPath) {
+      modifiedFolderPaths = {}
+      for (const [fileName, path] of Object.entries(data.folderPaths)) {
+        modifiedFolderPaths[fileName] = path
+          ? `${data.parentFolderPath}/${path}`
+          : data.parentFolderPath
+      }
+    }
+
     // First, create folders
-    const uniquePaths = [...new Set(Object.values(data.folderPaths))].filter(Boolean)
+    const uniquePaths = [...new Set(Object.values(modifiedFolderPaths))].filter(Boolean)
 
     if (uniquePaths.length > 0) {
       // Build all cumulative paths
@@ -404,7 +428,7 @@ export default function DocumentsPage() {
     for (const file of data.files) {
       formData.append('files', file)
     }
-    formData.append('folder_paths', JSON.stringify(data.folderPaths))
+    formData.append('folder_paths', JSON.stringify(modifiedFolderPaths))
     formData.append('tags', JSON.stringify(data.tags))
     formData.append('visibility', data.visibility)
 
@@ -716,14 +740,15 @@ export default function DocumentsPage() {
         onSave={handleSaveFolder}
       />
 
-      <RenameFolderModal
+      <EditFolderModal
         isOpen={showRenameFolderModal}
         folder={renamingFolder}
+        folders={folders}
         onClose={() => {
           setShowRenameFolderModal(false)
           setRenamingFolder(null)
         }}
-        onSave={handleSaveRenameFolder}
+        onSave={handleSaveEditFolder}
       />
 
       <BulkTagsModal

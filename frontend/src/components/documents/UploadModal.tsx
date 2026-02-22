@@ -29,6 +29,8 @@ interface UploadModalProps {
   onUploadFolder: (data: {
     files: File[]
     folderPaths: Record<string, string>
+    parentFolderId: number | null
+    parentFolderPath: string | null
     tags: string[]
     visibility: 'all_staff' | 'admin_only'
   }) => Promise<void>
@@ -58,6 +60,7 @@ export default function UploadModal({
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [selectedFolderId, setSelectedFolderId] = useState<number | null>(null)
+  const [parentFolderId, setParentFolderId] = useState<number | null>(null)
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [visibility, setVisibility] = useState<'all_staff' | 'admin_only'>('all_staff')
@@ -78,6 +81,7 @@ export default function UploadModal({
       setTitle('')
       setDescription('')
       setSelectedFolderId(null)
+      setParentFolderId(null)
       setTags([])
       setTagInput('')
       setVisibility('all_staff')
@@ -184,9 +188,16 @@ export default function UploadModal({
           }))
         )
 
+        // Get parent folder path if selected
+        const parentFolderPath = parentFolderId
+          ? flatFolders.find(f => f.id === parentFolderId)?.path || null
+          : null
+
         await onUploadFolder({
           files: selectedFiles,
           folderPaths,
+          parentFolderId,
+          parentFolderPath,
           tags,
           visibility,
         })
@@ -201,11 +212,11 @@ export default function UploadModal({
   }
 
   // Flatten folders for dropdown
-  const flattenFolders = (nodes: FolderNode[], prefix = ''): { id: number; label: string }[] => {
-    const result: { id: number; label: string }[] = []
+  const flattenFolders = (nodes: FolderNode[], prefix = ''): { id: number; label: string; path: string }[] => {
+    const result: { id: number; label: string; path: string }[] = []
     for (const node of nodes) {
       const label = prefix ? `${prefix} / ${node.name}` : node.name
-      result.push({ id: node.id, label })
+      result.push({ id: node.id, label, path: node.folder_path })
       if (node.children.length > 0) {
         result.push(...flattenFolders(node.children, label))
       }
@@ -383,6 +394,30 @@ export default function UploadModal({
                     )}
                   </div>
                 )}
+
+                {/* Parent folder selector */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Upload Into (Parent Folder)
+                  </label>
+                  <select
+                    value={parentFolderId || ''}
+                    onChange={(e) => setParentFolderId(e.target.value ? parseInt(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">Root (No parent folder)</option>
+                    {flatFolders
+                      .filter(f => f.path.split('/').length < 3) // Only show folders that can have children (max depth 3)
+                      .map((f) => (
+                        <option key={f.id} value={f.id}>
+                          {f.label}
+                        </option>
+                      ))}
+                  </select>
+                  <p className="mt-1 text-xs text-gray-500">
+                    The uploaded folder structure will be created inside this folder
+                  </p>
+                </div>
               </>
             )}
 
