@@ -27,6 +27,7 @@ import {
   getServiceRequestEntityId,
   getDTAAdminRoleCode,
   getThresholdSettings,
+  getPublicHelpdeskSettings,
 } from '@/lib/settings';
 
 // NEW: Valid requester categories (from new tickets.requester_category field)
@@ -482,6 +483,9 @@ if (needsTicket) {
 // ============================================
 // RESPONSE: Success
 // ============================================
+    // Check if public helpdesk is enabled
+    const { enabled: helpdeskEnabled } = await getPublicHelpdeskSettings();
+
     return NextResponse.json({
       success: true,
       feedback_id: feedbackId,
@@ -490,7 +494,8 @@ if (needsTicket) {
       ticket: ticketInfo.created ? {
         ticketNumber: ticketInfo.ticketNumber,
         reason: ticketInfo.reason,
-        created: true 
+        created: true,
+        showTrackingButton: helpdeskEnabled
       } : undefined,
       metadata: {
         requester_category_validation: body.recipient_group ? 'passed' : 'not_provided',

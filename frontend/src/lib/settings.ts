@@ -777,6 +777,28 @@ export async function getCitizenLoginSettings(): Promise<{
   }
 }
 
+/**
+ * Get public helpdesk configuration
+ * Used to determine if public ticket tracking is enabled
+ */
+export async function getPublicHelpdeskSettings(): Promise<{
+  enabled: boolean;
+}> {
+  try {
+    const enabled = await getSetting<boolean>('PUBLIC_HELPDESK_ENABLED', true);
+
+    return {
+      enabled: enabled === true || enabled === 'true',
+    };
+  } catch (error) {
+    console.error('Error fetching public helpdesk settings:', error);
+    // Default to enabled if error (fail open for backward compatibility)
+    return {
+      enabled: true,
+    };
+  }
+}
+
 export default {
   getSetting,
   getSettings,
@@ -796,4 +818,5 @@ export default {
   getAnalyticsCacheSettings,
   getTwilioSettings,
   getCitizenLoginSettings,
+  getPublicHelpdeskSettings,
 };

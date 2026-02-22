@@ -377,13 +377,22 @@ Rating scale:
 
 ### 6.3 Submitting Feedback (Without Login)
 
-You can also submit feedback without logging in:
+You can also submit feedback without logging in using the public feedback page:
 
 1. Click **"Feedback"** in the main navigation
-2. Follow the same steps as above
-3. Optionally provide your contact information for follow-up
+2. Find your service using:
+   - **Filter dropdowns** (Entity, Life Event, Category) to browse services, OR
+   - **Search box** to search by service name or keywords
+3. Click **"Give Feedback"** on the service card
+4. Rate the service (1-5 stars for each question)
+5. Add comments and provide contact information (optional)
+6. Check "file as grievance" if needed
+7. Submit your feedback
 
-**Note:** Feedback submitted without login is not linked to your Citizen Portal account.
+**Note:**
+- The public feedback page offers additional filter options for browsing services
+- Feedback submitted without login is not linked to your Citizen Portal account
+- For more details on the public feedback interface, see the Anonymous User Manual
 
 ### 6.4 What Happens After Submission?
 

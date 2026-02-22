@@ -460,6 +460,199 @@ curl "https://gea.your-domain.com/api/feedback/search?q=work"
 
 ---
 
+### 2. Service Discovery and Filtering
+
+#### GET /api/public/services
+
+Browse and filter government services with comprehensive metadata.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| entity_id | string | No | Filter by government entity/department ID |
+| life_event | string | No | Filter by life event (e.g., having_a_baby, starting_business) |
+| category | string | No | Filter by service category (e.g., health, education, digital) |
+| search | string | No | Search in service name, description, and ID (case-insensitive, ILIKE) |
+| delivery_channel | string | No | Filter by delivery channel (e.g., online, in_person) |
+| target_consumer | string | No | Filter by target consumer type |
+| include_inactive | boolean | No | Include inactive services (default: false) |
+
+**Response includes full service details AND metadata for filter options.**
+
+**Example Request - Search:**
+```
+GET /api/public/services?search=passport
+```
+
+**Example Request - Filtered by Entity:**
+```
+GET /api/public/services?entity_id=ENT-DTA-001
+```
+
+**Example Request - Combined Filters:**
+```
+GET /api/public/services?entity_id=ENT-DTA-001&life_event=starting_business&search=license
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "count": 12,
+  "services": [
+    {
+      "service_id": "SVC-IMM-001",
+      "service_name": "Passport Application",
+      "service_description": "Apply for a new Grenadian passport",
+      "service_category": "immigration_passports_and_travel",
+      "entity_id": "ENT-IMM-001",
+      "entity_name": "Immigration Department",
+      "life_events": ["traveling_abroad", "getting_married"],
+      "delivery_channel": ["in_person", "online"],
+      "target_consumers": ["citizen", "visitor"],
+      "is_active": true,
+      "created_at": "2025-01-15T10:00:00Z",
+      "updated_at": "2026-02-20T14:30:00Z"
+    }
+  ],
+  "metadata": {
+    "categories": [
+      {
+        "value": "immigration_passports_and_travel",
+        "label": "Immigration, Passports And Travel",
+        "description": "Services related to immigration and travel documents"
+      }
+    ],
+    "life_events": [
+      {
+        "value": "traveling_abroad",
+        "label": "Traveling Abroad",
+        "description": "Planning international travel",
+        "category": "travel_and_mobility"
+      }
+    ],
+    "delivery_channels": [
+      {
+        "value": "online",
+        "label": "Online",
+        "description": "Available through web portal"
+      }
+    ],
+    "service_consumers": [
+      {
+        "value": "citizen",
+        "label": "Citizen",
+        "description": "Grenadian citizens"
+      }
+    ],
+    "entities": [
+      {
+        "value": "ENT-IMM-001",
+        "label": "Immigration Department"
+      }
+    ]
+  }
+}
+```
+
+**Example cURL:**
+```bash
+curl "https://gea.your-domain.com/api/public/services?entity_id=ENT-DTA-001&search=digital"
+```
+
+**Notes:**
+- All filters use AND logic (all must match)
+- Search uses PostgreSQL ILIKE for case-insensitive partial matching
+- Metadata includes ALL available filter options for building filter UI
+- Results are limited to active services by default
+
+---
+
+#### GET /api/public/services/metadata
+
+Get entity-specific filter metadata for cascading filter dropdowns.
+
+**Purpose:** When a user selects an entity filter, fetch only the life events and categories that are available for that entity's services. This prevents "No results" dead ends.
+
+**Query Parameters:**
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| entity_id | string | Yes | Government entity/department ID to filter by |
+
+**Example Request:**
+```
+GET /api/public/services/metadata?entity_id=ENT-DTA-001
+```
+
+**Success Response (200 OK):**
+```json
+{
+  "success": true,
+  "entity_id": "ENT-DTA-001",
+  "total_services": 8,
+  "filters": {
+    "life_events": [
+      {
+        "value": "starting_business",
+        "label": "Starting A Business",
+        "description": "Starting your own business or company",
+        "category": "business_and_employment",
+        "service_count": 5
+      },
+      {
+        "value": "getting_digital_services",
+        "label": "Getting Digital Services",
+        "description": "Accessing government digital services",
+        "category": "digital_and_technology",
+        "service_count": 3
+      }
+    ],
+    "categories": [
+      {
+        "value": "digital",
+        "label": "Digital",
+        "description": "Digital transformation services",
+        "service_count": 6
+      },
+      {
+        "value": "business",
+        "label": "Business",
+        "description": "Business registration and licensing",
+        "service_count": 2
+      }
+    ]
+  }
+}
+```
+
+**Usage Example:**
+1. User selects "Digital Transformation Agency" from Entity dropdown
+2. Frontend calls `/api/public/services/metadata?entity_id=ENT-DTA-001`
+3. Life Events dropdown updates to show only: "Starting A Business (5)", "Getting Digital Services (3)"
+4. Categories dropdown updates to show only: "Digital (6)", "Business (2)"
+5. User can no longer select incompatible combinations
+
+**Benefits:**
+- Prevents "No results found" frustration
+- Service counts guide users to popular options
+- Auto-clears incompatible filter selections
+- Improves user experience and service discovery
+
+**Example cURL:**
+```bash
+curl "https://gea.your-domain.com/api/public/services/metadata?entity_id=ENT-DTA-001"
+```
+
+**Notes:**
+- Returns empty arrays if no services exist for the entity
+- Service counts help users make informed filter choices
+- Frontend should fall back to full metadata on error
+- Designed for use in cascading/dependent filter UI patterns
+
+---
+
 #### GET /api/feedback/stats
 
 Comprehensive feedback statistics and analytics.

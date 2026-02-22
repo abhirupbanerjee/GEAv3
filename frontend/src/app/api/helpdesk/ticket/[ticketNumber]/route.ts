@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
+import { getPublicHelpdeskSettings } from '@/lib/settings';
 
 export async function GET(
   request: NextRequest,
@@ -15,6 +16,18 @@ export async function GET(
 ) {
   const { ticketNumber } = await params;
   try {
+    // Check if public helpdesk is enabled
+    const { enabled } = await getPublicHelpdeskSettings();
+
+    if (!enabled) {
+      return NextResponse.json(
+        {
+          error: 'Service unavailable',
+          message: 'Public ticket tracking is currently disabled. Please log in to the citizen portal to view your tickets.',
+        },
+        { status: 503 }
+      );
+    }
 
     // Validate ticket number format (YYYYMM-XXXXXX)
     const ticketNumberRegex = /^\d{6}-\d{6}$/;

@@ -6,6 +6,7 @@ interface TicketInfo {
   created: boolean;
   ticketNumber?: string;
   reason?: string;
+  showTrackingButton?: boolean;
 }
 
 interface SuccessMessageProps {
@@ -74,7 +75,7 @@ export default function SuccessMessage({
           </div>
 
           {/* Ticket Information - NEW */}
-          {ticket?.created && (
+          {ticket?.created && ticket.showTrackingButton !== false && (
             <div className="mt-6 pt-6 border-t border-gray-200">
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <div className="flex items-start">

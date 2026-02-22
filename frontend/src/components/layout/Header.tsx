@@ -37,6 +37,7 @@ interface BrandingSettings {
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isCitizenAuth, setIsCitizenAuth] = useState(false)
+  const [isHelpdeskEnabled, setIsHelpdeskEnabled] = useState(true)
   const [branding, setBranding] = useState<BrandingSettings>({
     siteName: 'EA Portal',
     siteLogo: '',
@@ -81,6 +82,14 @@ export default function Header() {
       .catch((err) => console.error('Failed to load branding:', err))
   }, [])
 
+  // Check if public helpdesk is enabled
+  useEffect(() => {
+    fetch('/api/helpdesk/status')
+      .then((res) => res.json())
+      .then((data) => setIsHelpdeskEnabled(data.enabled ?? true))
+      .catch(() => setIsHelpdeskEnabled(true)) // Default to enabled on error
+  }, [])
+
   // Don't render on citizen routes - citizen portal has its own header
   if (isCitizenRoute) {
     return null
@@ -89,8 +98,11 @@ export default function Header() {
   // User is authenticated if they have either NextAuth session or citizen session
   const isAuthenticated = !!session || isCitizenAuth
 
-  // Filter navigation items based on auth state
+  // Filter navigation items based on auth state and feature flags
   const visibleNavItems = navigationItems.filter((item) => {
+    // Filter out helpdesk if disabled
+    if (item.href === '/helpdesk' && !isHelpdeskEnabled) return false
+
     if (item.authRequired === false && isAuthenticated) return false // Hide from logged-in
     if (item.authRequired === true && !isAuthenticated) return false // Hide from anonymous
     return true

@@ -191,10 +191,51 @@ Submit feedback after you have:
 - Click **"Feedback"** in the main navigation menu
 - Or navigate to the portal and select "Submit Feedback"
 
-**Step 2: Select the Service**
-- Use the search box to find the service you received
-- Type the service name or department
-- Select the correct **Ministry/Department/Agency** and **Service** from the dropdown
+**Step 2: Find Your Service**
+
+You have two ways to find the service:
+
+**Option A: Browse by Filters** (Recommended if you're not sure of the exact service name)
+
+1. **Select Government Entity** (optional)
+   - Choose the ministry, department, or agency you interacted with
+   - Example: "Digital Transformation Agency"
+   - When you select an entity, the other filters update to show only applicable options
+
+2. **Select Life Event** (optional)
+   - Choose what you were doing when you used the service
+   - Examples: "Starting a Business", "Having a Baby", "Getting Married"
+   - Shows the number of available services in parentheses: "Starting School (5)"
+
+3. **Select Service Category** (optional)
+   - Choose the type of service
+   - Examples: "Health", "Education", "Digital Services", "Licensing"
+   - Shows the number of available services in parentheses: "Health Services (12)"
+
+4. **View Results**
+   - Service cards appear below showing matching services
+   - Each card displays:
+     - Service name and description
+     - Government entity providing the service
+     - Service category and life events
+   - Click **"Give Feedback"** on the service card to select it
+
+**Filter Tips:**
+- Filters work together - selecting an entity shows only life events and categories available from that entity
+- Service counts help you find the right options
+- Click "Clear All" to start over with your filter selections
+- If a selected filter becomes unavailable (e.g., you change entities), it will be automatically cleared
+
+**Option B: Search by Name**
+
+- Use the search box to find the service directly
+- Type the service name, department, or keywords (minimum 2 characters)
+- Examples: "passport", "business registration", "birth certificate"
+- Service cards appear below showing matching results
+- Click **"Give Feedback"** on the service card to select it
+
+**Combine Filters and Search:**
+You can use both filters AND search together to narrow down results. For example, select "Entity: Health Ministry" and search "vaccine" to find vaccination services specifically from the Health Ministry.
 
 **Step 3: Select Your Category**
 
@@ -657,7 +698,7 @@ A: Yes! The portal is fully mobile-friendly and works on all modern smartphones 
 ### Feedback Questions
 
 **Q: What if I don't know the exact service name?**
-A: Use the Services directory to browse and find the service, or search using keywords. You can also describe the service in your feedback comments.
+A: Use the filter dropdowns to browse services by government entity, life event, or category. For example, select "Life Event: Having a Baby" to see all services related to new parents. You can also search using keywords, or browse the Services directory. Service counts show you how many services match each filter option.
 
 **Q: Can I submit feedback for multiple services?**
 A: Yes, but submit separate feedback for each service to help departments track specific service quality.
@@ -748,13 +789,16 @@ If you have suggestions for improving this user manual:
 ### How to Submit Feedback
 
 1. Click **"Feedback"** in navigation
-2. Search and select the service
-3. Choose your category
-4. Rate 1-5 stars (5 questions)
-5. Add comments (optional)
-6. Provide contact info (optional)
-7. Check "grievance" if needed
-8. Click **"Submit"**
+2. Find your service using:
+   - **Filters** (Entity, Life Event, Category) OR
+   - **Search** (type service name/keywords)
+3. Click **"Give Feedback"** on the service card
+4. Choose your category (Citizen, Business, etc.)
+5. Rate 1-5 stars (5 questions)
+6. Add comments (optional)
+7. Provide contact info (optional)
+8. Check "grievance" if needed
+9. Click **"Submit"**
 
 ### How to File a Grievance
 

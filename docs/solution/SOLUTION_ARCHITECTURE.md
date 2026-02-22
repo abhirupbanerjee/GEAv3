@@ -451,7 +451,10 @@ User → OAuth Provider → Callback → Email Check → Session Creation → Da
 
 **API Endpoints:**
 - `POST /api/feedback/submit` - Submit feedback
-- `GET /api/feedback/services` - List services for dropdown
+- `GET /api/public/services` - Service discovery with filtering (entity, life event, category, search)
+- `GET /api/public/services/metadata` - Entity-specific metadata for cascading filters
+- `GET /api/feedback/search` - Fuzzy search services by name/description
+- `GET /api/feedback/popular-services` - Popular services (top rated, most reviewed)
 
 **Validation Rules:**
 - Comment: 10-500 characters

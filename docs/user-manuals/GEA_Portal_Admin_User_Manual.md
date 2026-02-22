@@ -904,6 +904,8 @@ To effectively interpret feedback analytics, admins should understand what citiz
    - Citizens access directly from portal homepage
    - No account/login required
    - Anonymous submissions allowed
+   - Service selection via filters (Entity, Life Event, Category) or search
+   - Cascading filters update dynamically based on entity selection
    - 5-10 minute completion time
 
 2. **QR Code Scanning**:
