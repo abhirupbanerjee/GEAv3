@@ -154,11 +154,11 @@ export default function PopularServices({ onServiceSelect }: PopularServicesProp
       </div>
 
       {/* Services Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {services.map((service) => (
           <div
             key={service.service_id}
-            className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-200 p-4 flex flex-col"
+            className="bg-white rounded-lg shadow-md hover:shadow-xl transition-shadow duration-200 p-5 flex flex-col"
           >
             {/* Service Name with Popular Badge */}
             <div className="flex items-start gap-2 mb-1">
@@ -198,7 +198,7 @@ export default function PopularServices({ onServiceSelect }: PopularServicesProp
 
             {/* Category Badge */}
             {service.service_category && (
-              <div className="mb-3">
+              <div className="mb-4">
                 <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded">
                   {formatCategoryLabel(service.service_category)}
                 </span>
@@ -208,9 +208,9 @@ export default function PopularServices({ onServiceSelect }: PopularServicesProp
             {/* Give Feedback Button */}
             <button
               onClick={() => onServiceSelect(service)}
-              className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
+              className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
               </svg>
               Give Feedback

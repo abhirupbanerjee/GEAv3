@@ -3,9 +3,9 @@
 import { NextResponse } from 'next/server'
 import { pool } from '@/lib/db'
 
-// Cache popular services for 1 hour (3600 seconds)
-// Since popular services are based on 90-day feedback data, they don't need real-time updates
-export const revalidate = 3600
+// Cache popular services for 24 hours (86400 seconds)
+// Since popular services are based on 90-day feedback data, they don't need hourly updates
+export const revalidate = 86400
 
 export async function GET() {
   try {
@@ -41,7 +41,7 @@ export async function GET() {
       ORDER BY
         feedback_count DESC,
         avg_satisfaction DESC NULLS LAST
-      LIMIT 8
+      LIMIT 3
     `
 
     const result = await pool.query(query)
