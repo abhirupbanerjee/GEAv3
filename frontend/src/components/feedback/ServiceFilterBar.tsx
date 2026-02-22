@@ -7,6 +7,7 @@ interface FilterOption {
   label: string
   description?: string
   category?: string
+  service_count?: number
 }
 
 interface ServiceFilterBarProps {
@@ -24,10 +25,26 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
   const [lifeEvents, setLifeEvents] = useState<FilterOption[]>([])
   const [categories, setCategories] = useState<FilterOption[]>([])
 
+  // State for entity-specific filtered options
+  const [filteredLifeEvents, setFilteredLifeEvents] = useState<FilterOption[]>([])
+  const [filteredCategories, setFilteredCategories] = useState<FilterOption[]>([])
+  const [isLoadingDependentFilters, setIsLoadingDependentFilters] = useState(false)
+
   // Fetch filter options from API on mount
   useEffect(() => {
     fetchFilterOptions()
   }, [])
+
+  // Fetch entity-specific metadata when entity filter changes
+  useEffect(() => {
+    if (filters.entity_id) {
+      fetchEntitySpecificMetadata(filters.entity_id)
+    } else {
+      // Reset to all options when entity deselected
+      setFilteredLifeEvents(lifeEvents)
+      setFilteredCategories(categories)
+    }
+  }, [filters.entity_id, lifeEvents, categories])
 
   const fetchFilterOptions = async () => {
     try {
@@ -36,9 +53,17 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
 
       if (response.ok) {
         const data = await response.json()
-        setEntities(data.metadata.entities || [])
-        setLifeEvents(data.metadata.life_events || [])
-        setCategories(data.metadata.categories || [])
+        const entities = data.metadata.entities || []
+        const allLifeEvents = data.metadata.life_events || []
+        const allCategories = data.metadata.categories || []
+
+        setEntities(entities)
+        setLifeEvents(allLifeEvents)
+        setCategories(allCategories)
+
+        // Initialize filtered lists to all options
+        setFilteredLifeEvents(allLifeEvents)
+        setFilteredCategories(allCategories)
       } else {
         console.error('Failed to fetch filter options')
       }
@@ -46,6 +71,48 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
       console.error('Error fetching filter options:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const fetchEntitySpecificMetadata = async (entityId: string) => {
+    setIsLoadingDependentFilters(true)
+    try {
+      const response = await fetch(`/api/public/services/metadata?entity_id=${entityId}`)
+
+      if (response.ok) {
+        const data = await response.json()
+        const entityLifeEvents = data.filters.life_events || []
+        const entityCategories = data.filters.categories || []
+
+        setFilteredLifeEvents(entityLifeEvents)
+        setFilteredCategories(entityCategories)
+
+        // Auto-clear incompatible selections
+        if (filters.life_event && !entityLifeEvents.find((le: FilterOption) => le.value === filters.life_event)) {
+          onFilterChange({
+            ...filters,
+            life_event: null
+          })
+        }
+        if (filters.category && !entityCategories.find((c: FilterOption) => c.value === filters.category)) {
+          onFilterChange({
+            ...filters,
+            category: null
+          })
+        }
+      } else {
+        console.error('Failed to fetch entity-specific metadata')
+        // Fallback to all options on error
+        setFilteredLifeEvents(lifeEvents)
+        setFilteredCategories(categories)
+      }
+    } catch (error) {
+      console.error('Error fetching entity-specific metadata:', error)
+      // Fallback to all options on error
+      setFilteredLifeEvents(lifeEvents)
+      setFilteredCategories(categories)
+    } finally {
+      setIsLoadingDependentFilters(false)
     }
   }
 
@@ -123,21 +190,25 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
         <div>
           <label htmlFor="lifeevent-filter" className="block text-sm font-medium text-gray-700 mb-2">
             Life Event
+            {isLoadingDependentFilters && (
+              <span className="ml-2 text-xs text-gray-500">(Updating...)</span>
+            )}
           </label>
           <select
             id="lifeevent-filter"
             value={filters.life_event || ''}
             onChange={(e) => handleFilterChange('life_event', e.target.value)}
-            disabled={loading}
+            disabled={loading || isLoadingDependentFilters}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="">All Life Events</option>
             {loading ? (
               <option disabled>Loading...</option>
             ) : (
-              lifeEvents.map((event) => (
+              (filters.entity_id ? filteredLifeEvents : lifeEvents).map((event) => (
                 <option key={event.value} value={event.value}>
                   {event.label}
+                  {filters.entity_id && event.service_count ? ` (${event.service_count})` : ''}
                 </option>
               ))
             )}
@@ -148,21 +219,25 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
         <div>
           <label htmlFor="category-filter" className="block text-sm font-medium text-gray-700 mb-2">
             Service Category
+            {isLoadingDependentFilters && (
+              <span className="ml-2 text-xs text-gray-500">(Updating...)</span>
+            )}
           </label>
           <select
             id="category-filter"
             value={filters.category || ''}
             onChange={(e) => handleFilterChange('category', e.target.value)}
-            disabled={loading}
+            disabled={loading || isLoadingDependentFilters}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
           >
             <option value="">All Categories</option>
             {loading ? (
               <option disabled>Loading...</option>
             ) : (
-              categories.map((category) => (
+              (filters.entity_id ? filteredCategories : categories).map((category) => (
                 <option key={category.value} value={category.value}>
                   {category.label}
+                  {filters.entity_id && category.service_count ? ` (${category.service_count})` : ''}
                 </option>
               ))
             )}

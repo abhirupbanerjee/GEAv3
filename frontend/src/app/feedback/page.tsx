@@ -212,14 +212,14 @@ function FeedbackPageContent() {
     fetchPopularServiceIds()
   }, [])
 
-  // Fetch filtered services when filters change
+  // Fetch filtered services when filters or search query change
   useEffect(() => {
     if (hasActiveFilters()) {
       fetchFilteredServices()
     } else {
       setBrowseServices([])
     }
-  }, [filters])
+  }, [filters, searchQuery])
 
   const hasActiveFilters = (): boolean => {
     return !!(filters.entity_id || filters.life_event || filters.category || searchQuery.trim())
@@ -232,6 +232,7 @@ function FeedbackPageContent() {
       if (filters.entity_id) params.append('entity_id', filters.entity_id)
       if (filters.life_event) params.append('life_event', filters.life_event)
       if (filters.category) params.append('category', filters.category)
+      if (searchQuery.trim()) params.append('search', searchQuery)
 
       const res = await fetch(`/api/public/services?${params}`)
       const data = await res.json()
