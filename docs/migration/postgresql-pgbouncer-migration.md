@@ -2,11 +2,12 @@
 
 **GEA Portal v3 - Database Infrastructure Assessment**
 
-**Document Version:** 1.0
+**Document Version:** 1.1
 **Created:** February 22, 2026
-**Status:** Assessment Complete - Well Positioned
+**Updated:** February 22, 2026
+**Status:** PgBouncer Security Patch Applied - Well Positioned
 **Current PostgreSQL:** 16-alpine (16.12)
-**Current PgBouncer:** v1.23.1-p3
+**Current PgBouncer:** v1.25.1-p0 ✅ (Updated Feb 22, 2026)
 
 ---
 
@@ -19,14 +20,14 @@ This document provides a comprehensive assessment of the GEA Portal's PostgreSQL
 | Component | Current Version | Latest Stable | EOL Date | Status |
 |-----------|-----------------|---------------|----------|--------|
 | **PostgreSQL** | 16-alpine | 18.2 | Nov 2028 | Excellent - 2.5+ years support |
-| **PgBouncer** | 1.23.1-p3 | 1.25.1 | N/A | Good - Security update available |
+| **PgBouncer** | 1.25.1-p0 ✅ | 1.25.1 | N/A | Up to date - CVE-2025-12819 fixed |
 
 ### Recommendation Summary
 
 | Component | Urgency | Action |
 |-----------|---------|--------|
 | PostgreSQL 16 → 17/18 | Low | Optional upgrade Q4 2026 |
-| PgBouncer 1.23.1 → 1.25.1 | Medium | Update for CVE-2025-12819 fix |
+| PgBouncer 1.25.1-p0 | ✅ Done | Security patch applied Feb 22, 2026 |
 
 ---
 
@@ -847,4 +848,5 @@ AUTH_TYPE=scram-sha-256
 **Next Review Date:** August 2026
 
 **Change Log:**
+- v1.1 (Feb 22, 2026): **PgBouncer 1.25.1-p0 security patch applied** - CVE-2025-12819 fixed
 - v1.0 (Feb 22, 2026): Initial assessment document

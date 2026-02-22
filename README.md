@@ -6,21 +6,53 @@
 
 A modern, full-stack web platform supporting digital transformation initiatives across Ministries, Departments, and Agencies (MDAs). Built with Next.js 16, PostgreSQL, and containerized with Docker for seamless deployment.
 
+**Status:** ✅ Production-ready | **Version:** 3.3.0
+
 ---
 
-## 🎯 What's This?
+## Objectives
 
-Complete digital portal system with:
+The Grenada EA Portal aims to:
+
+1. **Centralize Government Service Information** - Provide a single source of truth for all government services, requirements, and processes across MDAs
+2. **Enable Citizen Feedback Collection** - Capture real-time feedback on government services to drive continuous improvement
+3. **Streamline Grievance Management** - Offer transparent ticketing and tracking for citizen complaints and service requests
+4. **Support Data-Driven Decision Making** - Deliver analytics and insights to administrators for evidence-based policy improvements
+5. **Facilitate Digital Transformation** - Serve as the foundation for Grenada's e-government initiatives and enterprise architecture
+
+---
+
+## Benefits
+
+### For Citizens
+- **Single Access Point** - One portal to find all government service information and requirements
+- **Feedback Mechanism** - Voice opinions on service quality through structured ratings
+- **Transparent Tracking** - Monitor ticket and grievance status with real-time updates
+- **Personal Dashboard** - View feedback history, analytics, and manage all interactions in one place
+
+### For Government
+- **Improved Service Delivery** - Identify underperforming services through feedback analytics
+- **Reduced Administrative Burden** - Automated ticket routing and SLA tracking
+- **Data Visibility** - Aggregated statistics across entities and services for reporting
+- **Scalable Infrastructure** - Containerized deployment that grows with demand
+
+### For Administrators
+- **Comprehensive Management** - Single interface for users, entities, services, and settings
+- **Configurable Settings** - Runtime-adjustable parameters without code changes
+- **Audit Trail** - Complete logging of administrative actions
+- **Multi-Entity Support** - Manage multiple ministries and agencies from one platform
+
+---
+
+## What's Included
+
 - **Service Feedback System** - 5-point rating with auto-grievance creation
-- **Citizen Portal** - SMS OTP authentication, personal dashboard, feedback history, ticket/grievance management, analytics **NEW**
+- **Citizen Portal** - SMS OTP authentication, personal dashboard, feedback history, ticket/grievance management
 - **Native Ticketing System** - Citizen grievances and EA service requests with SLA tracking
 - **Admin Portal** - Ticket management, analytics, and master data administration
 - **Staff Portal** - Entity-specific access for ministry/department officers
 - **AI Chatbot Assistant** - Embedded chatbot (Azure Cloud hosted, can be enabled/disabled)
-- **AI Bot Integration** - Centralized bot inventory and iframe-based chat interface
 - **OAuth Authentication** - Google & Microsoft sign-in for staff/admin + SMS OTP for citizens
-
-**Status:** ✅ Production-ready | **Version:** 3.2.0 (Citizen Portal + Multi-Entity Service Requests + Admin Settings)
 
 ---
 
@@ -49,7 +81,7 @@ Complete digital portal system with:
 | **Docker Compose** | v5.0.1 | Plugin version |
 | **Node.js** | 22 (container) | Alpine-based image |
 | **PostgreSQL** | 16-alpine | Database container |
-| **PgBouncer** | v1.23.1-p3 | Connection pooling (edoburu/pgbouncer) |
+| **PgBouncer** | v1.25.1-p0 | Connection pooling (edoburu/pgbouncer) |
 | **Redis** | 7.4.4-alpine | Analytics caching |
 | **Traefik** | v3.6 | Reverse proxy + SSL (supports Docker 29 API) |
 
@@ -73,11 +105,11 @@ docker compose up -d feedback_db
 ./database/99-consolidated-setup.sh --reload
 
 # Option B: Manual initialization (production - no test data)
-./database/01-init-db.sh
+./database/scripts/01-init-db.sh
 ./database/scripts/11-load-master-data.sh
 
 # 4. Set up OAuth authentication
-./database/04-nextauth-users.sh
+./database/scripts/04-nextauth-users.sh
 ADMIN_EMAIL="admin@gov.gd" ADMIN_NAME="Admin Name" ./database/scripts/05-add-initial-admin.sh
 
 # 5. Deploy application
@@ -111,83 +143,86 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 ### System Architecture Diagram
 
 ```
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                              EXTERNAL SERVICES                                  │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │
-│  │    Google    │  │  Microsoft   │  │   SendGrid   │  │ Let's Encrypt│         │
-│  │    OAuth     │  │    OAuth     │  │    Email     │  │     SSL      │         │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘         │
-└─────────┼─────────────────┼─────────────────┼─────────────────┼─────────────────┘
-          │                 │                 │                 │
-          ▼                 ▼                 ▼                 ▼
-┌─────────────────────────────────────────────────────────────────────────────────┐
-│                                   USERS                                         │
-│     ┌──────────┐          ┌──────────┐          ┌──────────┐                    │
-│     │ Citizens │          │  Staff   │          │  Admins  │                    │
-│     │ (Public) │          │ (Entity) │          │  (Full)  │                    │
-│     └────┬─────┘          └────┬─────┘          └────┬─────┘                    │
-└──────────┼─────────────────────┼─────────────────────┼──────────────────────────┘
-           │                     │                     │
-           └─────────────────────┼─────────────────────┘
-                                 │ HTTPS (443)
-                                 ▼
-┌───────────────────────────────────────────────────────────────────────────────-──┐
-│                          DOCKER NETWORK (geav3_network)                          │
-│                                                                                  │
-│  ┌─────────────────────────────────────────────────────────────────────────-──┐  │
-│  │                         TRAEFIK (Reverse Proxy)                            │  │
-│  │                    • SSL Termination (Let's Encrypt)                       │  │
-│  │                    • HTTP → HTTPS Redirect                                 │  │
-│  │                    • Rate Limiting (/api/external/*)                       │  │
-│  │                    Ports: 80 (HTTP), 443 (HTTPS)                           │  │
-│  └─────────────────────────────────┬──────────────────────────────────────-───┘  │
-│                                    │ Port 3000                                   │
-│                                    ▼                                             │
-│  ┌───────────────────────────────────────────────────────────────────────────┐   │
-│  │                        FRONTEND (Next.js 16)                               │  │
-│  │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐             │  │
-│  │  │   Public Pages  │  │   Admin Portal  │  │   Staff Portal  │             │  │
-│  │  │  • Home/About   │  │  • Dashboard    │  │  • Entity View  │             │  │
-│  │  │  • Feedback     │  │  • Tickets      │  │  • Tickets      │             │  │
-│  │  │  • Helpdesk     │  │  • Analytics    │  │  • Feedback     │             │  │
-│  │  └─────────────────┘  └─────────────────┘  └─────────────────┘             │  │
-│  │  ┌─────────────────────────────────────────────────────────────────────┐   │  │
-│  │  │                      API Routes (74+ endpoints)                     │   │  │
-│  │  │  • /api/auth/*       • /api/feedback/*    • /api/tickets/*          │   │  │
-│  │  │  • /api/admin/*      • /api/managedata/*  • /api/external/*         │   │  │
-│  │  └─────────────────────────────────────────────────────────────────────┘   │  │
-│  │  ┌─────────────────────────────────────────────────────────────────────┐   │  │
-│  │  │                      NextAuth v4 (Authentication)                   │   │  │
-│  │  │        • OAuth (Google/Microsoft) • JWT Sessions (2hr)              │   │  │
-│  │  └─────────────────────────────────────────────────────────────────────┘   │  │
-│  └──────────────────────────┬───────────────────────────┬────────────────────-┘  │
-│                             │                           │                        │
-│              ┌──────────────┴───────────────┐           │                        │
-│              │                              │           │                        │
-│              ▼                              ▼           ▼                        │
-│  ┌───────────────────────┐    ┌───────────────────────────────────────────────-┐ │
-│  │        REDIS          │    │                  PGBOUNCER                     │ │
-│  │   (Analytics Cache)   │    │             (Connection Pooling)               │ │
-│  │   • Dashboard Stats   │    │   • Pool Mode: Transaction                     │ │
-│  │   • Rate Limiting     │    │   • Max Connections: 200                       │ │
-│  │   Port: 6379          │    │   Port: 5432                                   │ │
-│  └───────────────────────┘    └─────────────────────┬─────────────────────────-┘ │
-│                                                     │                            │
-│                                                     ▼                            │
-│                               ┌─────────────────────────────────────────────────┐│
-│                               │              POSTGRESQL 16                      ││
-│                               │         (Primary Data Store)                    ││
-│                               │   • 30 Tables (master data, transactions)       ││
-│                               │   • 44+ Indexes                                 ││
-│                               │   • Auth, Audit, Feedback, Tickets              ││
-│                               │   Port: 5432                                    ││
-│                               └─────────────────────────────────────────────────┘│
-│                                                                                  │
-│  ┌────────────────────────────────────────────────────────────────────────────-┐ │
-│  │                            DOCKER VOLUMES                                   │ │
-│  │  • traefik_acme (SSL Certs)  • feedback_db_data (DB)  • redis_data (Cache)  │ │
-│  └─────────────────────────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────────────────────-┘
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                                 EXTERNAL SERVICES                                    │
+│  ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐ ┌────────────┐          │
+│  │   Google   │ │ Microsoft  │ │  Twilio    │ │  SendGrid  │ │Let's Encrypt│         │
+│  │   OAuth    │ │   OAuth    │ │  SMS OTP   │ │   Email    │ │    SSL     │          │
+│  └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘ └─────┬──────┘          │
+└────────┼──────────────┼──────────────┼──────────────┼──────────────┼─────────────────┘
+         │              │              │              │              │
+         ▼              ▼              ▼              ▼              ▼
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                                      USERS                                           │
+│   ┌───────────┐    ┌───────────┐    ┌───────────┐    ┌───────────┐                   │
+│   │ Anonymous │    │ Citizens  │    │   Staff   │    │  Admins   │                   │
+│   │ (Public)  │    │ (SMS OTP) │    │  (OAuth)  │    │  (OAuth)  │                   │
+│   └─────┬─────┘    └─────┬─────┘    └─────┬─────┘    └─────┬─────┘                   │
+└─────────┼────────────────┼────────────────┼────────────────┼─────────────────────────┘
+          │                │                │                │
+          └────────────────┴────────────────┴────────────────┘
+                                    │ HTTPS (443)
+                                    ▼
+┌──────────────────────────────────────────────────────────────────────────────────────┐
+│                           DOCKER NETWORK (geav3_network)                             │
+│                                                                                      │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                          TRAEFIK (Reverse Proxy)                               │  │
+│  │                     • SSL Termination (Let's Encrypt)                          │  │
+│  │                     • HTTP → HTTPS Redirect                                    │  │
+│  │                     • Rate Limiting (/api/external/*)                          │  │
+│  │                     Ports: 80 (HTTP), 443 (HTTPS)                              │  │
+│  └───────────────────────────────────┬────────────────────────────────────────────┘  │
+│                                      │ Port 3000                                     │
+│                                      ▼                                               │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                          FRONTEND (Next.js 16)                                 │  │
+│  │  ┌───────────────┐ ┌───────────────┐ ┌───────────────┐ ┌───────────────┐       │  │
+│  │  │ Public Pages  │ │Citizen Portal │ │ Staff Portal  │ │ Admin Portal  │       │  │
+│  │  │ • Home/About  │ │ • Dashboard   │ │ • Entity View │ │ • Dashboard   │       │  │
+│  │  │ • Feedback    │ │ • My Tickets  │ │ • Tickets     │ │ • All Tickets │       │  │
+│  │  │ • Helpdesk    │ │ • Grievances  │ │ • Feedback    │ │ • Analytics   │       │  │
+│  │  │               │ │ • Analytics   │ │               │ │ • Settings    │       │  │
+│  │  └───────────────┘ └───────────────┘ └───────────────┘ └───────────────┘       │  │
+│  │  ┌──────────────────────────────────────────────────────────────────────────┐  │  │
+│  │  │                       API Routes (114+ endpoints)                        │  │  │
+│  │  │  /api/auth/*      /api/citizen/*    /api/feedback/*    /api/tickets/*    │  │  │
+│  │  │  /api/admin/*     /api/public/*     /api/settings/*    /api/external/*   │  │  │
+│  │  └──────────────────────────────────────────────────────────────────────────┘  │  │
+│  │  ┌──────────────────────────────────────────────────────────────────────────┐  │  │
+│  │  │                         Authentication Layer                             │  │  │
+│  │  │    NextAuth v4 (OAuth)           │      Citizen Auth (SMS OTP)           │  │  │
+│  │  │    • Google/Microsoft            │      • Twilio Verify                  │  │  │
+│  │  │    • JWT Sessions (2hr)          │      • Device Trust (30 days)         │  │  │
+│  │  └──────────────────────────────────────────────────────────────────────────┘  │  │
+│  └─────────────────────────────┬────────────────────────┬─────────────────────────┘  │
+│                                │                        │                            │
+│               ┌────────────────┴─────────────┐          │                            │
+│               │                              │          │                            │
+│               ▼                              ▼          ▼                            │
+│  ┌─────────────────────────┐   ┌─────────────────────────────────────────────────┐   │
+│  │         REDIS           │   │                   PGBOUNCER                     │   │
+│  │    (Analytics Cache)    │   │              (Connection Pooling)               │   │
+│  │    • Dashboard Stats    │   │    • Pool Mode: Transaction                     │   │
+│  │    • Session Data       │   │    • Max Connections: 200                       │   │
+│  │    Port: 6379           │   │    Port: 5432                                   │   │
+│  └─────────────────────────┘   └────────────────────────┬────────────────────────┘   │
+│                                                         │                            │
+│                                                         ▼                            │
+│                                ┌─────────────────────────────────────────────────┐   │
+│                                │               POSTGRESQL 16                     │   │
+│                                │          (Primary Data Store)                   │   │
+│                                │    • 33+ Tables (master, transactions, auth)    │   │
+│                                │    • 44+ Indexes                                │   │
+│                                │    • Citizens, Feedback, Tickets, Audit         │   │
+│                                │    Port: 5432                                   │   │
+│                                └─────────────────────────────────────────────────┘   │
+│                                                                                      │
+│  ┌────────────────────────────────────────────────────────────────────────────────┐  │
+│  │                              DOCKER VOLUMES                                    │  │
+│  │  traefik_acme (SSL)  feedback_db_data (DB)  redis_data (Cache)  gea_backups   │  │
+│  └────────────────────────────────────────────────────────────────────────────────┘  │
+└──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Data Flow
@@ -219,7 +254,7 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 |-----------|-----------|---------|-----------|
 | **Frontend** | Next.js 16 (App Router) | Main portal & admin UI | `frontend` |
 | **Database** | PostgreSQL 16-alpine | Data storage & user management | `feedback_db` |
-| **Connection Pool** | PgBouncer v1.23.1 | Database connection pooling | `pgbouncer` |
+| **Connection Pool** | PgBouncer v1.25.1 | Database connection pooling | `pgbouncer` |
 | **Cache** | Redis 7.4.4-alpine | Analytics caching | `redis` |
 | **Reverse Proxy** | Traefik v3.6 | SSL termination & routing | `traefik` |
 | **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | (in frontend) |
@@ -231,7 +266,7 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 NAMES         IMAGE                            STATUS                    PORTS
 frontend      geav3-frontend                   Up X minutes              3000/tcp
 feedback_db   postgres:16-alpine               Up X minutes (healthy)    5432/tcp
-pgbouncer     edoburu/pgbouncer:v1.23.1-p3     Up X minutes (healthy)    5432/tcp
+pgbouncer     edoburu/pgbouncer:v1.25.1-p0     Up X minutes (healthy)    5432/tcp
 redis         redis:7.4.4-alpine               Up X minutes (healthy)    6379/tcp
 traefik       traefik:v3.6                     Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
 ```
@@ -261,152 +296,37 @@ traefik       traefik:v3.6                     Up X minutes              0.0.0.0
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 gogeaportal/v3/
+├── README.md                 # This file
+├── .env.example              # Environment template
+├── docker-compose.yml        # Service orchestration
+├── traefik.yml               # Reverse proxy config
 │
-├── 📄 Documentation
-│   ├── README.md                          # This file
-│   ├── z-index-review.md                  # Z-index hierarchy & modal portal guide
-│   ├── .env.example                       # Environment template
-│   └── docs/
-│       ├── index.md                       # Complete documentation index
-│       ├── setup/                         # Setup & Installation Guides
-│       │   ├── VM_SETUP_GUIDE.md          # New VM deployment guide
-│       │   ├── FRESH_INSTALLATION_MANUAL.md  # Fresh installation guide
-│       │   └── TECH_STACK_UPGRADE_ROADMAP.md  # Technology upgrade roadmap
-│       ├── solution/                      # Solution Architecture & References
-│       │   ├── SOLUTION_ARCHITECTURE.md   # System architecture overview
-│       │   ├── API_REFERENCE.md           # All API endpoints
-│       │   ├── DATABASE_REFERENCE.md      # Database schema & setup
-│       │   ├── AUTHENTICATION.md          # OAuth setup & configuration
-│       │   ├── USER_MANAGEMENT.md         # User roles & permissions
-│       │   ├── EMAIL_NOTIFICATIONS.md     # Email system configuration
-│       │   ├── AI_BOT_INTEGRATION.md      # AI chatbot configuration
-│       │   └── DOCKER_VERSION_UPDATE_PLAN.md  # Docker upgrade plan
-│       ├── developer-guides/              # Developer Guidelines
-│       │   ├── UI_MODIFICATION_GUIDE.md   # UI development guide
-│       │   ├── API_DEVELOPMENT_PATTERNS.md  # API development patterns
-│       │   ├── DATABASE_QUERY_PATTERNS.md  # Database operations guide
-│       │   ├── TESTING_GUIDE.md           # Testing procedures
-│       │   ├── ERROR_HANDLING_PATTERNS.md  # Error handling guide
-│       │   └── ../z-index-review.md       # Z-index & React Portal patterns (root)
-│       ├── user-manuals/                  # User Documentation
-│       │   ├── GEA_Portal_Master_User_Manual.md  # Master index
-│       │   ├── GEA_Portal_Anonymous_User_Manual.md  # Public users
-│       │   ├── GEA_Portal_Citizen_User_Manual.md  # Registered citizens
-│       │   ├── GEA_Portal_Staff_User_Manual.md  # MDA staff
-│       │   └── GEA_Portal_Admin_User_Manual.md  # Administrators
-│       └── infra/                         # Infrastructure Documentation
-│           └── infra_sizing_quick_reference.md  # Capacity planning
+├── docs/                     # Documentation
+│   ├── index.md              # Complete documentation index
+│   ├── setup/                # VM & installation guides
+│   ├── solution/             # Architecture & API references
+│   ├── developer-guides/     # Development patterns
+│   ├── user-manuals/         # End-user documentation
+│   └── migration/            # Upgrade guides
 │
-├── 🗄️ Database
-│   └── database/
-│       ├── README.md                      # Complete DBA guide
-│       ├── 99-consolidated-setup.sh       # Main orchestrator (--reload, --verify, etc.)
-│       ├── config.sh                      # Shared configuration
-│       ├── 01-init-db.sh                  # Main database initialization
-│       ├── 04-nextauth-users.sh           # Authentication tables setup
-│       ├── scripts/
-│       │   ├── 05-add-initial-admin.sh    # Add first admin user
-│       │   ├── 10-clear-all-data.sh       # Clear all data
-│       │   ├── 11-load-master-data.sh     # Load production master data
-│       │   ├── 12-generate-synthetic-data.sh  # Generate test data
-│       │   └── 13-verify-master-data.sh   # Comprehensive data verification
-│       ├── lib/                           # Shared functions
-│       ├── sql/                           # SQL templates
-│       └── master-data/                   # Production data files
+├── database/                 # Database scripts
+│   ├── 99-consolidated-setup.sh  # Main setup orchestrator
+│   ├── scripts/              # Init, seed, and maintenance scripts
+│   ├── sql/                  # SQL templates
+│   └── master-data/          # Production data files
 │
-├── ⚙️ Configuration Files
-│   ├── .env.example                       # Environment variables template
-│   ├── .env                               # Your config (create from template)
-│   ├── docker-compose.yml                 # Service orchestration
-│   └── traefik.yml                        # Reverse proxy config
-│
-└── 🎨 Frontend Application
-    └── frontend/
-        ├── Dockerfile                     # Multi-stage production build
-        ├── package.json                   # Dependencies
-        ├── next.config.js                 # Next.js configuration
-        ├── tailwind.config.js             # Tailwind CSS config
-        ├── tsconfig.json                  # TypeScript config
-        │
-        ├── public/
-        │   ├── images/                    # Static images
-        │   ├── api/                       # OpenAPI specifications
-        │   │   ├── dashboard.yaml         # Dashboard API spec
-        │   │   ├── tickets.yaml           # Tickets API spec
-        │   │   ├── feedback.yaml          # Feedback API spec
-        │   │   ├── grievances.yaml        # Grievances API spec
-        │   │   └── service-requirements.yaml  # Service requirements spec
-        │   ├── openapi.yaml               # Combined OpenAPI specification
-        │   ├── bot-api-prompt.md          # Bot API integration guide
-        │   ├── bot-api-functions.json     # Function calling schemas
-        │   ├── bot-api-tools-openai.json  # OpenAI tools format
-        │   ├── bot-api-prompts/           # Domain-specific bot prompts
-        │   │   ├── dashboard.md
-        │   │   ├── feedback.md
-        │   │   ├── grievances.md
-        │   │   ├── tickets.md
-        │   │   └── service-requirements.md
-        │   └── config/
-        │       └── bots-config.json       # AI bot inventory
-        │
-        └── src/
-            ├── app/
-            │   ├── api/                   # API Routes (74+ endpoints)
-            │   │   ├── auth/              # NextAuth endpoints
-            │   │   ├── content/           # Page context API (for AI bot)
-            │   │   ├── feedback/          # Service feedback APIs
-            │   │   ├── tickets/           # Public ticket APIs
-            │   │   ├── helpdesk/          # Ticket lookup APIs
-            │   │   ├── admin/             # Admin management APIs
-            │   │   ├── managedata/        # Master data CRUD
-            │   │   └── external/          # External API (bot/integration access)
-            │   │       ├── dashboard/     # Aggregated statistics
-            │   │       ├── tickets/       # Ticket queries with PII masking
-            │   │       ├── feedback/      # Feedback record queries
-            │   │       ├── grievances/    # Grievance queries
-            │   │       └── services/      # Service requirements
-            │   │
-            │   ├── layout.tsx             # Root layout
-            │   ├── page.tsx               # Home page
-            │   ├── about/                 # About page
-            │   ├── auth/                  # Sign-in & error pages
-            │   ├── admin/                 # Admin portal (protected)
-            │   ├── staff/                 # Staff portal (entity-specific)
-            │   ├── helpdesk/              # Public ticket lookup
-            │   └── feedback/              # Feedback forms
-            │
-            ├── components/                # React components
-            │   ├── ChatBot.tsx            # AI chatbot iframe component
-            │   ├── layout/                # Header, Footer, Navigation
-            │   ├── home/                  # Homepage components
-            │   └── admin/                 # Admin UI components
-            │
-            ├── providers/                 # React Context providers
-            │
-            ├── hooks/                     # Custom React hooks
-            │
-            ├── types/                     # TypeScript type definitions
-            │
-            ├── lib/                       # Utilities & configurations
-            │   ├── auth.ts                # NextAuth configuration
-            │   ├── db.ts                  # Database connection pool
-            │   ├── db/                    # Database helpers
-            │   ├── schemas/               # Zod validation schemas
-            │   ├── utils/                 # Helper functions
-            │   ├── admin-auth.ts          # Authorization helpers
-            │   └── piiMask.ts             # PII masking for External API
-            │
-            ├── config/
-            │   ├── env.ts                 # Environment configuration
-            │   ├── content.ts             # Static content
-            │   └── navigation.ts          # Navigation items
-            │
-            └── middleware.ts              # Route protection & auth
+└── frontend/                 # Next.js application
+    ├── src/app/              # Pages and API routes (114+ endpoints)
+    ├── src/components/       # React components
+    ├── src/lib/              # Utilities and database helpers
+    └── public/               # Static assets and OpenAPI specs
 ```
+
+**For detailed structure, see:** [docs/index.md](docs/index.md)
 
 ---
 
@@ -564,7 +484,7 @@ docker compose up -d
 
 ### Database Management
 
-**For complete database management guide, see:** [database/README.md](database/README.md)
+**For complete database management guide, see:** [database/DB_README.md](database/DB_README.md)
 
 ```bash
 # Fresh setup (new VM)
@@ -618,13 +538,14 @@ UPDATE users SET is_active=false WHERE email='user@example.com';"
 
 ### Docker Volumes
 
-Production uses 3 active volumes:
+Production uses 4 active volumes:
 
 | Volume | Purpose | Typical Size |
 |--------|---------|--------------|
 | `traefik_acme` | SSL certificates (Let's Encrypt) | ~1 MB |
 | `feedback_db_data` | PostgreSQL data | ~70 MB |
 | `redis_data` | Redis cache persistence | ~10 MB |
+| `gea_backups` | Database backups | Variable |
 
 ```bash
 # Check volume usage
@@ -846,8 +767,8 @@ The chatbot is embedded as a simple iframe. Configuration is managed via:
 - `CHATBOT_ENABLED` - System setting to enable/disable
 - `CHATBOT_URL` - URL of the chatbot application
 
-**Complete Documentation:**
-- [AI Bot Integration Guide](docs/solution/AI_BOT_INTEGRATION.md) - Configuration, troubleshooting, and bot inventory management
+**Configuration:**
+The chatbot is managed via Admin Settings → Integrations. See [SOLUTION_ARCHITECTURE.md](docs/solution/SOLUTION_ARCHITECTURE.md) for architecture details.
 
 ---
 
@@ -879,199 +800,13 @@ export const navigationItems: NavItem[] = [
 
 ```bash
 docker compose up -d --build frontend
-```
-
----
-
-## 🎨 UI Development Patterns
-
-### Z-Index Hierarchy
-
-The application uses a **standardized z-index scale** to ensure proper layering of UI elements:
-
-```
-z-[102] - Modal Content (dialog boxes)          ← Highest
-z-[101] - Modal Overlays (dark background)
-z-[100] - ChatBot container
-z-50    - Dropdown menus (user profile, settings)
-z-40    - Header, Footer, Sidebar
-z-30    - Citizen Portal header
-z-20    - Tooltips
-z-10    - Autocomplete dropdowns
-z-0     - Main content area
-relative - Default elements                      ← Lowest
-```
-
-### React Portals for Modals
-
-All modals use **React Portals** (`createPortal` from `react-dom`) to render at the document body level, bypassing CSS stacking contexts:
-
-```typescript
-// BaseModal implementation
-'use client';
-import { createPortal } from 'react-dom';
-
-export function BaseModal({ isOpen, children }: ModalProps) {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    return () => setMounted(false);
-  }, []);
-
-  if (!isOpen || !mounted) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[101]">{children}</div>,
-    document.body
-  );
-}
-```
-
-**Why portals are required:**
-- Modals rendered inline get trapped in parent CSS stacking contexts
-- Even with high z-index values (z-[999]), they can't appear above elements like header
-- Portals render directly as children of `<body>`, bypassing all stacking contexts
-
-**For complete developer guide, see:** [z-index-review.md](z-index-review.md)
-
----
-
-## 🐛 Troubleshooting
-
-### Services won't start
-```bash
-# Check logs
-docker compose logs frontend
-docker compose logs feedback_db
-
-# Verify .env file exists
-cat .env
-
-# Check ports aren't in use
-netstat -tuln | grep -E '80|443'
-```
-
-### SSL certificate issues
-```bash
-# Check Traefik logs
-docker compose logs traefik
-
-# Verify DNS
-dig +short gea.your-domain.com
-
-# Force certificate refresh
-rm -f traefik_acme/acme.json
-docker compose restart traefik
-```
-
-### Database connection errors
-```bash
-# Check database is running
-docker compose ps feedback_db
-
-# Test connection
-docker exec -it feedback_db psql -U feedback_user -d feedback -c "SELECT 1"
-
-# Restart database
-docker compose restart feedback_db
-```
-
-### Authentication issues
-```bash
-# Verify user exists
-docker exec -it feedback_db psql -U feedback_user -d feedback -c "
-SELECT email, is_active FROM users WHERE email='user@example.com';"
-
-# Check OAuth configuration
-docker exec frontend env | grep -E "NEXTAUTH|GOOGLE|MICROSOFT"
-
-# View auth logs
-docker compose logs frontend | grep -i "nextauth"
-```
-
----
-
-## 📈 Monitoring
-
-### Health Checks
-
-```bash
-# Service status
-docker compose ps
-
-# Resource usage
-docker stats
-
-# Disk usage
-du -sh ./
-df -h
-
-# Docker disk usage
-docker system df
-
-# Database size
-docker exec -it feedback_db psql -U feedback_user -d feedback -c "
-SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
-```
-
-### Key Metrics to Watch
-- Container health status
-- Database disk space (grows with documents/tickets)
-- Memory usage (especially during peak hours)
-- SSL certificate expiry (auto-renews 30 days before)
-- Failed login attempts (check audit logs)
-
----
-
-## ✅ Pre-Deployment Checklist
-
-Before going live:
-
-**Configuration:**
-- [ ] Environment variables configured in `.env` (~62 variables)
-- [ ] Strong passwords generated for database
-- [ ] NextAuth secret generated (`openssl rand -base64 32`)
-- [ ] Admin session secret generated
-- [ ] OAuth credentials obtained (Google/Microsoft)
-- [ ] SendGrid API key configured
-
-**Infrastructure:**
-- [ ] DNS records configured for domain
-- [ ] Ports 80 and 443 available
-- [ ] Firewall rules configured (Azure NSG or UFW)
-- [ ] Docker and Docker Compose installed
-- [ ] Sufficient disk space (50GB+ recommended)
-
-**Database:**
-- [ ] Database initialized (`99-consolidated-setup.sh --fresh`)
-- [ ] Master data loaded (`99-consolidated-setup.sh --reload`)
-- [ ] Authentication tables created (`04-nextauth-users.sh`)
-- [ ] Admin user added (`database/scripts/05-add-initial-admin.sh`)
-- [ ] Data integrity verified (`99-consolidated-setup.sh --verify`)
-- [ ] Backup strategy configured
-
-**Automated Testing (CI/CD):**
-- [ ] Tests pass: `cd frontend && npm run test:run` (121 tests)
-- [ ] ESLint passes: `npm run lint` (0 errors)
-- [ ] TypeScript compiles: `npx tsc --noEmit` (0 errors)
-- [ ] GitHub Actions workflow passes on PR
-
-**Manual Testing:**
-- [ ] All containers running: `docker compose ps`
-- [ ] Frontend accessible via HTTPS
-- [ ] SSL certificate issued successfully
-- [ ] OAuth sign-in working (Google/Microsoft)
-- [ ] Admin portal accessible
-- [ ] Ticket submission working
-- [ ] Email notifications sending
 
 ---
 
 ## 📊 Project Statistics
 
 ### Current Implementation
-- **Total API Endpoints:** 74+ (public + admin + auth + context + external)
+- **Total API Endpoints:** 114+ (public + admin + auth + citizen + context + external)
 - **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
 - **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
@@ -1079,7 +814,7 @@ Before going live:
 - **Environment Variables:** ~63 configurable options (includes EXTERNAL_API_KEY)
 - **Lines of Code:** ~23,000+
 - **Docker Services:** 5 (Traefik, PostgreSQL, PgBouncer, Redis, Frontend)
-- **Docker Volumes:** 3 active (`traefik_acme`, `feedback_db_data`, `redis_data`)
+- **Docker Volumes:** 4 active (`traefik_acme`, `feedback_db_data`, `redis_data`, `gea_backups`)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
 - **AI Integration:** Embedded chatbot (Azure Cloud) + External API for bot data access
 - **Admin Settings Tabs:** 7 (System, Authentication, Integrations, Business Rules, Performance, Content, Service Providers)
@@ -1108,10 +843,6 @@ Before going live:
 
 ---
 
-**Last Updated:** January 2026 | **Version:** 3.2.0 | **Status:** ✅ Production Ready
+**Last Updated:** February 2026 | **Version:** 3.3.0 | **Status:** ✅ Production Ready
 
 **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)
-
-
-
-Commit attribution verification.

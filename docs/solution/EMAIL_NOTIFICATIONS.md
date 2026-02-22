@@ -5,7 +5,7 @@
 The GEA Portal uses SendGrid for all transactional email notifications. This document provides a comprehensive overview of all email notification features, triggers, templates, and configuration.
 
 **Document Version:** 2.0
-**Last Updated:** January 19, 2026
+**Last Updated:** February 22, 2026
 
 ---
 
@@ -843,7 +843,7 @@ sendgrid_enabled      | true                | false | 2026-01-19 10:00:00 | admi
 ---
 
 **Document Version:** 2.0
-**Last Updated:** January 19, 2026
+**Last Updated:** February 22, 2026
 
 ---
 

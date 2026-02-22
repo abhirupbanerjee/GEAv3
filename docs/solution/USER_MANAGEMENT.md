@@ -1644,6 +1644,6 @@ Admins can manage 100+ configurable settings organized into 9 major categories. 
 
 ---
 
-**Last Updated:** 2026-01-19
-**Version:** 4.0
+**Last Updated:** 2026-02-22
+**Version:** 4.1
 **Maintainer:** Digital Transformation Agency

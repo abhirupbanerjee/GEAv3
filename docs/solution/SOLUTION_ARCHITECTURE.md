@@ -1,10 +1,10 @@
 # GEA Portal v3 - Solution Architecture
 
-**Document Version:** 1.5
-**Last Updated:** January 19, 2026
+**Document Version:** 1.6
+**Last Updated:** February 22, 2026
 **System Version:** Phase 3.3.0 (Citizen Auth + System Settings + Enhanced Features)
 **Status:** ✅ Production Ready
-**Infrastructure:** Azure Standard_D2s_v4 (8GB RAM, Premium SSD)
+**Infrastructure:** Azure Standard_B2s (4GB RAM, 2 vCPUs, Ubuntu 24.04.3 LTS)
 
 ---
 
@@ -43,7 +43,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 | Metric | Value |
 |--------|-------|
 | **Database Tables** | 40+ tables (master data, transactional, auth, settings, audit) |
-| **API Endpoints** | 85+ RESTful endpoints |
+| **API Endpoints** | 114+ RESTful endpoints |
 | **External API Endpoints** | 5 (dashboard, tickets, feedback, grievances, service-requirements) |
 | **OAuth Providers** | Google, Microsoft Azure AD |
 | **Citizen Authentication** | Twilio SMS OTP (passwordless phone-based) |
@@ -58,7 +58,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 - **Frontend:** Next.js 16 (React, TypeScript, Tailwind CSS)
 - **Backend:** Next.js API Routes (Node.js 22)
 - **Database:** PostgreSQL 16-alpine
-- **Connection Pool:** PgBouncer v1.23.1 (transaction mode)
+- **Connection Pool:** PgBouncer v1.25.1 (transaction mode)
 - **Cache:** Redis 7.4.4-alpine (analytics caching)
 - **Authentication:** NextAuth v4 with OAuth (admin/staff) + Twilio Verify SMS OTP (citizens)
 - **Settings Encryption:** AES-256-GCM for sensitive values
@@ -116,8 +116,8 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
                  │  POSTGRESQL  │
                  │   16-alpine  │
                  ├──────────────┤
-                 │ • 30 Tables  │
-                 │ • 44+ IDX    │
+                 │ • 40+ Tables │
+                 │ • 60+ IDX    │
                  │ • JSONB      │
                  └──────────────┘
 ```
@@ -220,7 +220,7 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 │  └──────────┬─────────────────────────────┬───────────────┘    │
 │             │                             │                      │
 │  ┌──────────▼──────────┐      ┌──────────▼──────────┐          │
-│  │  REDIS (7.4.4-alpine)│      │ PGBOUNCER (v1.23.1) │          │
+│  │  REDIS (7.4.4-alpine)│      │ PGBOUNCER (v1.25.1) │          │
 │  │  • Port 6379         │      │ • Port 5432         │          │
 │  │  • Volume: redis_data│      │ • Transaction mode  │          │
 │  │  • 256MB max memory  │      │ • 200 max clients   │          │
@@ -235,7 +235,7 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 │                           └───────────────────────────────┘     │
 │                                                                  │
 │  NETWORK: geav3_network (bridge)                                │
-│  VOLUMES: traefik_acme, feedback_db_data, redis_data            │
+│  VOLUMES: traefik_acme, feedback_db_data, redis_data, gea_backups│
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -342,7 +342,7 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 | **Framework** | Next.js | 16.x | React framework with SSR/SSG |
 | **UI Library** | React | 18.x | Component-based UI |
 | **Language** | TypeScript | 5.x | Type-safe JavaScript |
-| **Styling** | Tailwind CSS | 3.x | Utility-first CSS framework |
+| **Styling** | Tailwind CSS | 4.x | Utility-first CSS framework |
 | **UI Components** | shadcn/ui | Latest | Pre-built accessible components |
 | **Forms** | React Hook Form | 7.x | Form validation & handling |
 | **State Management** | React Context | Built-in | Global state (sessions) |
@@ -358,7 +358,7 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 | **Database** | PostgreSQL | 16 | Relational database |
 | **DB Driver** | node-postgres (pg) | 8.x | PostgreSQL client |
 | **Authentication** | NextAuth.js | 4.x | OAuth authentication |
-| **Validation** | Zod | 3.x | Schema validation |
+| **Validation** | Zod | 4.x | Schema validation |
 | **Email** | SendGrid API | 7.x | Transactional emails |
 
 ### Infrastructure Technology
@@ -369,7 +369,7 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 | **Orchestration** | Docker Compose | v5.0+ | Multi-container management |
 | **Reverse Proxy** | Traefik | v3.6 | Load balancing & SSL |
 | **Database** | PostgreSQL | 16-alpine | Relational database |
-| **Connection Pool** | PgBouncer | v1.23.1-p3 | Database connection pooling |
+| **Connection Pool** | PgBouncer | v1.25.1-p0 | Database connection pooling |
 | **Cache** | Redis | 7.4.4-alpine | Analytics caching |
 | **SSL** | Let's Encrypt | - | Free SSL certificates |
 | **Version Control** | Git | 2.x | Source code management |
@@ -1092,7 +1092,7 @@ services:
       retries: 5
 
   pgbouncer:
-    image: edoburu/pgbouncer:v1.23.1-p3
+    image: edoburu/pgbouncer:v1.25.1-p0
     environment:
       - DATABASE_URL=postgres://${FEEDBACK_DB_USER}:${FEEDBACK_DB_PASSWORD}@feedback_db:5432/${FEEDBACK_DB_NAME}
       - POOL_MODE=transaction
@@ -1138,6 +1138,7 @@ volumes:
   traefik_acme:
   feedback_db_data:
   redis_data:
+  gea_backups:
 
 networks:
   geav3_network:
@@ -1490,12 +1491,13 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-**Document Version:** 1.5
-**Last Updated:** January 19, 2026
+**Document Version:** 1.6
+**Last Updated:** February 22, 2026
 **Maintained By:** GEA Portal Development Team
 **System Version:** Phase 3.3.0 (Citizen Auth + System Settings + Enhanced Features)
 
 **Change Log:**
+- v1.6 (Feb 22, 2026): Updated API endpoints (114+), corrected infrastructure specs (B2s 4GB), added gea_backups volume, updated Tailwind CSS (4.x) and Zod (4.x) versions, updated database indexes (60+)
 - v1.5 (Jan 19, 2026): Added Citizen Portal & Authentication Component (Twilio SMS OTP), System Settings Management Component (9 categories, AES-256-GCM encryption), updated database tables (30→40+), added new API endpoints, updated metrics (85+ endpoints, 100+ settings)
-- v1.4 (Jan 19, 2026): Added infrastructure specifications (D2s_v4), updated capacity metrics, noted B→D series upgrade
+- v1.4 (Jan 19, 2026): Added infrastructure specifications, updated capacity metrics
 - v1.3 (Jan 2026): Added Redis caching and PgBouncer connection pooling documentation

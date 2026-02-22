@@ -1,7 +1,7 @@
 # GEA Portal v3 - API Reference
 
-**Document Version:** 3.5
-**Last Updated:** January 19, 2026
+**Document Version:** 3.6
+**Last Updated:** February 22, 2026
 **API Base URL:** `https://gea.your-domain.com` (Production)
 **Framework:** Next.js 16 App Router
 **Authentication:** NextAuth v4 with OAuth (Google, Microsoft) + Twilio SMS OTP (Citizens)
@@ -58,10 +58,10 @@ The GEA Portal v3 uses **Next.js 16 App Router API Routes** for all backend func
 | Framework | Next.js 16 (App Router) |
 | Runtime | Node.js 22 |
 | Database | PostgreSQL 16-alpine |
-| Connection Pooling | PgBouncer v1.23.1 (200 max clients, 20 pool size) |
+| Connection Pooling | PgBouncer v1.25.1 (200 max clients, 20 pool size) |
 | Cache | Redis 7.4.4-alpine (analytics caching) |
 | Database Driver | node-postgres (pg) v8.x |
-| Validation | Zod schemas v3.x |
+| Validation | Zod schemas v4.x |
 | Admin/Staff Auth | NextAuth v4 with OAuth (Google, Microsoft) |
 | Citizen Auth | Twilio Verify SMS OTP (passwordless) |
 | Authorization | Role-based (Admin, Staff, Citizen, Public) + Entity filtering |
@@ -4598,8 +4598,8 @@ const RATE_LIMITS = {
 
 ---
 
-**Document Version:** 3.5
-**Last Updated:** January 19, 2026
+**Document Version:** 3.6
+**Last Updated:** February 22, 2026
 **Maintained By:** GEA Portal Development Team
 
 ---

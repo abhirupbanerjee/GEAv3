@@ -1,9 +1,9 @@
 # GEA Portal v3 - Database Architecture Reference
 
-**Document Version:** 11.0
-**Last Updated:** January 19, 2026
+**Document Version:** 11.1
+**Last Updated:** February 22, 2026
 **Database:** PostgreSQL 16-alpine
-**Connection Pool:** PgBouncer v1.23.1
+**Connection Pool:** PgBouncer v1.25.1
 **Cache:** Redis 7.4.4-alpine
 **Schema Version:** Production-Aligned v11.0 (40+ tables)
 
@@ -2540,8 +2540,8 @@ EOF
 
 ---
 
-**Document Version:** 11.0
-**Last Updated:** January 19, 2026
+**Document Version:** 11.1
+**Last Updated:** February 22, 2026
 **Schema Version:** Production-Aligned v11.0 (40+ tables)
 
 ---

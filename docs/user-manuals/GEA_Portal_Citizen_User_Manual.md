@@ -383,6 +383,7 @@ You can also submit feedback without logging in using the public feedback page:
 2. Find your service using:
    - **Filter dropdowns** (Entity, Life Event, Category) to browse services, OR
    - **Search box** to search by service name or keywords
+   - **Tip:** Filters work together dynamically—selecting any filter updates the others to show only relevant options
 3. Click **"Give Feedback"** on the service card
 4. Rate the service (1-5 stars for each question)
 5. Add comments and provide contact information (optional)
@@ -390,7 +391,7 @@ You can also submit feedback without logging in using the public feedback page:
 7. Submit your feedback
 
 **Note:**
-- The public feedback page offers additional filter options for browsing services
+- The public feedback page uses cascading filters—selecting a Life Event shows only relevant Categories, and vice versa
 - Feedback submitted without login is not linked to your Citizen Portal account
 - For more details on the public feedback interface, see the Anonymous User Manual
 

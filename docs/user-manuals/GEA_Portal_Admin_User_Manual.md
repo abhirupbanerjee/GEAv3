@@ -905,7 +905,7 @@ To effectively interpret feedback analytics, admins should understand what citiz
    - No account/login required
    - Anonymous submissions allowed
    - Service selection via filters (Entity, Life Event, Category) or search
-   - Cascading filters update dynamically based on entity selection
+   - Cascading filters update dynamically—selecting any filter narrows options in other filters (e.g., selecting a Life Event shows only relevant Categories, and vice versa)
    - 5-10 minute completion time
 
 2. **QR Code Scanning**:

@@ -35,16 +35,16 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
     fetchFilterOptions()
   }, [])
 
-  // Fetch entity-specific metadata when entity filter changes
+  // Fetch filtered metadata when any filter changes (cascading filters)
   useEffect(() => {
-    if (filters.entity_id) {
-      fetchEntitySpecificMetadata(filters.entity_id)
+    if (filters.entity_id || filters.life_event || filters.category) {
+      fetchFilteredMetadata(filters)
     } else {
-      // Reset to all options when entity deselected
+      // Reset to all options when all filters cleared
       setFilteredLifeEvents(lifeEvents)
       setFilteredCategories(categories)
     }
-  }, [filters.entity_id, lifeEvents, categories])
+  }, [filters.entity_id, filters.life_event, filters.category, lifeEvents, categories])
 
   const fetchFilterOptions = async () => {
     try {
@@ -74,40 +74,49 @@ export default function ServiceFilterBar({ filters, onFilterChange }: ServiceFil
     }
   }
 
-  const fetchEntitySpecificMetadata = async (entityId: string) => {
+  const fetchFilteredMetadata = async (currentFilters: typeof filters) => {
     setIsLoadingDependentFilters(true)
     try {
-      const response = await fetch(`/api/public/services/metadata?entity_id=${entityId}`)
+      // Build query string with all active filters
+      const params = new URLSearchParams()
+      if (currentFilters.entity_id) params.append('entity_id', currentFilters.entity_id)
+      if (currentFilters.life_event) params.append('life_event', currentFilters.life_event)
+      if (currentFilters.category) params.append('category', currentFilters.category)
+
+      const response = await fetch(`/api/public/services/metadata?${params.toString()}`)
 
       if (response.ok) {
         const data = await response.json()
-        const entityLifeEvents = data.filters.life_events || []
-        const entityCategories = data.filters.categories || []
+        const filteredLifeEventsList = data.filters.life_events || []
+        const filteredCategoriesList = data.filters.categories || []
 
-        setFilteredLifeEvents(entityLifeEvents)
-        setFilteredCategories(entityCategories)
+        setFilteredLifeEvents(filteredLifeEventsList)
+        setFilteredCategories(filteredCategoriesList)
 
         // Auto-clear incompatible selections
-        if (filters.life_event && !entityLifeEvents.find((le: FilterOption) => le.value === filters.life_event)) {
-          onFilterChange({
-            ...filters,
-            life_event: null
-          })
+        const filtersToUpdate: Partial<typeof filters> = {}
+        if (currentFilters.life_event && !filteredLifeEventsList.find((le: FilterOption) => le.value === currentFilters.life_event)) {
+          filtersToUpdate.life_event = null
         }
-        if (filters.category && !entityCategories.find((c: FilterOption) => c.value === filters.category)) {
+        if (currentFilters.category && !filteredCategoriesList.find((c: FilterOption) => c.value === currentFilters.category)) {
+          filtersToUpdate.category = null
+        }
+
+        // Only update if there are incompatible selections to clear
+        if (Object.keys(filtersToUpdate).length > 0) {
           onFilterChange({
-            ...filters,
-            category: null
+            ...currentFilters,
+            ...filtersToUpdate
           })
         }
       } else {
-        console.error('Failed to fetch entity-specific metadata')
+        console.error('Failed to fetch filtered metadata')
         // Fallback to all options on error
         setFilteredLifeEvents(lifeEvents)
         setFilteredCategories(categories)
       }
     } catch (error) {
-      console.error('Error fetching entity-specific metadata:', error)
+      console.error('Error fetching filtered metadata:', error)
       // Fallback to all options on error
       setFilteredLifeEvents(lifeEvents)
       setFilteredCategories(categories)

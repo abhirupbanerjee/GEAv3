@@ -3,9 +3,9 @@
 ## Document Overview
 This roadmap outlines the strategic plan for upgrading key technologies in the GoGeaPortal v3 project. Each major upgrade has been analyzed for breaking changes, migration complexity, and optimal timing.
 
-**Last Updated:** 2026-01-17
-**Status:** In Progress (Next.js 16, Node.js 22, Tailwind 4 completed; next-auth v5 deferred)
-**Risk Level:** Medium (React 19 pending Q4 2026)
+**Last Updated:** 2026-02-22
+**Status:** In Progress (Next.js 16.1.6, Node.js 22, Tailwind 4, security patches completed; next-auth v5 deferred)
+**Risk Level:** Low (all security patches applied; React 19 pending Q4 2026)
 
 ---
 
@@ -41,6 +41,29 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
 | Docker 28.x | EOL | ❌ EOL since Nov 2025 |
 | Docker 27.x | EOL | ❌ EOL since early 2025 |
 | Traefik v3.6 | Current | ✅ Latest minor, actively supported |
+
+---
+
+## ✅ Security Patches Applied (February 22, 2026)
+
+### Critical Security Updates
+
+| Component | From | To | CVE Fixed | Severity |
+|-----------|------|-----|-----------|----------|
+| **Next.js** | 16.1.2 | 16.1.6 | CVE-2025-55184 | High (DoS in RSC) |
+| **Next.js** | 16.1.2 | 16.1.6 | CVE-2025-55183 | Medium (Source exposure) |
+| **PgBouncer** | v1.23.1-p3 | v1.25.1-p0 | CVE-2025-12819 | Critical (SQL injection) |
+
+### Verification
+- [x] Next.js 16.1.6 deployed and tested
+- [x] PgBouncer v1.25.1-p0 deployed and verified healthy
+- [x] All containers running correctly
+- [x] Build successful with no errors
+- [x] Migration documentation updated
+
+### Reference Documentation
+- [Next.js, React & Node.js Migration Guide](../migration/nextjs-nodejs-migration.md)
+- [PostgreSQL & PgBouncer Migration Guide](../migration/postgresql-pgbouncer-migration.md)
 
 ---
 
@@ -721,15 +744,16 @@ $ npm run build
 
 ## 📝 Notes
 
-### Current Stable Configuration (Updated January 17, 2026)
+### Current Stable Configuration (Updated February 22, 2026)
 ```json
 {
   "node": "22-alpine",
-  "next": "16.1.3",
-  "react": "18.3.1",
+  "next": "16.1.6",
+  "react": "18.3.0",
   "tailwindcss": "4.1.0",
   "typescript": "5.9.3",
   "postgres": "16-alpine",
+  "pgbouncer": "v1.25.1-p0",
   "docker": "29.1.5",
   "traefik": "v3.6.7",
   "swr": "2.3.8",
@@ -766,7 +790,17 @@ $ npm run build
 
 ---
 
-**Document Status:** 📋 In Progress (Next.js 16, Node.js 22, Tailwind 4 completed; next-auth v5 deferred)
-**Next Review Date:** 2026-02-01
+**Document Status:** 📋 In Progress (Next.js 16.1.6, Node.js 22, Tailwind 4, security patches completed; next-auth v5 deferred)
+**Next Review Date:** 2026-08-01
 **Owner:** Development Team
-**Last Updated:** 2026-01-17
+**Last Updated:** 2026-02-22
+
+---
+
+## 📚 Related Documentation
+
+For detailed migration guides and assessments, see:
+
+- **[NextAuth Migration Guide](../migration/auth-migration.md)** - NextAuth v4 → v5 assessment (deferred to Q3-Q4 2026)
+- **[Next.js, React & Node.js Migration Guide](../migration/nextjs-nodejs-migration.md)** - Version timelines and upgrade paths
+- **[PostgreSQL & PgBouncer Migration Guide](../migration/postgresql-pgbouncer-migration.md)** - Database infrastructure upgrades

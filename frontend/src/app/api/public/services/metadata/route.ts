@@ -1,5 +1,5 @@
 // API: /api/public/services/metadata
-// Returns filtered metadata (life_events, categories) for specific entity
+// Returns filtered metadata (life_events, categories) based on active filters
 // Supports cascading filters in feedback page
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -12,9 +12,11 @@ export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const entity_id = searchParams.get('entity_id')
+    const life_event = searchParams.get('life_event')
+    const category = searchParams.get('category')
 
-    // If no entity_id specified, return empty (frontend will use full metadata)
-    if (!entity_id) {
+    // If no filters specified, return empty (frontend will use full metadata)
+    if (!entity_id && !life_event && !category) {
       return NextResponse.json({
         success: true,
         filters: {
@@ -25,7 +27,23 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Get distinct life_events for this entity with service counts
+    // Build dynamic WHERE conditions for life_events query
+    // Life events should be filtered by: entity_id, category
+    const leConditions: string[] = ['s.is_active = TRUE', 'le.is_active = TRUE']
+    const leParams: any[] = []
+    let leParamIndex = 1
+
+    if (entity_id) {
+      leConditions.push(`s.entity_id = $${leParamIndex}`)
+      leParams.push(entity_id)
+      leParamIndex++
+    }
+    if (category) {
+      leConditions.push(`s.service_category = $${leParamIndex}`)
+      leParams.push(category)
+      leParamIndex++
+    }
+
     const lifeEventsQuery = `
       SELECT
         le.value,
@@ -35,15 +53,28 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT s.service_id)::int as service_count
       FROM life_events le
       JOIN service_master s ON le.value = ANY(s.life_events)
-      WHERE
-        s.entity_id = $1
-        AND s.is_active = TRUE
-        AND le.is_active = TRUE
+      WHERE ${leConditions.join(' AND ')}
       GROUP BY le.value, le.label, le.description, le.category
       ORDER BY service_count DESC, le.label
     `
 
-    // Get distinct categories for this entity with service counts
+    // Build dynamic WHERE conditions for categories query
+    // Categories should be filtered by: entity_id, life_event
+    const catConditions: string[] = ['s.is_active = TRUE', 'sc.is_active = TRUE']
+    const catParams: any[] = []
+    let catParamIndex = 1
+
+    if (entity_id) {
+      catConditions.push(`s.entity_id = $${catParamIndex}`)
+      catParams.push(entity_id)
+      catParamIndex++
+    }
+    if (life_event) {
+      catConditions.push(`$${catParamIndex} = ANY(s.life_events)`)
+      catParams.push(life_event)
+      catParamIndex++
+    }
+
     const categoriesQuery = `
       SELECT
         sc.value,
@@ -52,26 +83,43 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT s.service_id)::int as service_count
       FROM service_categories sc
       JOIN service_master s ON sc.value = s.service_category
-      WHERE
-        s.entity_id = $1
-        AND s.is_active = TRUE
-        AND sc.is_active = TRUE
+      WHERE ${catConditions.join(' AND ')}
       GROUP BY sc.value, sc.label, sc.description
       ORDER BY service_count DESC, sc.label
     `
 
-    // Get total services for this entity
+    // Build dynamic WHERE conditions for total services query
+    const totalConditions: string[] = ['is_active = TRUE']
+    const totalParams: any[] = []
+    let totalParamIndex = 1
+
+    if (entity_id) {
+      totalConditions.push(`entity_id = $${totalParamIndex}`)
+      totalParams.push(entity_id)
+      totalParamIndex++
+    }
+    if (life_event) {
+      totalConditions.push(`$${totalParamIndex} = ANY(life_events)`)
+      totalParams.push(life_event)
+      totalParamIndex++
+    }
+    if (category) {
+      totalConditions.push(`service_category = $${totalParamIndex}`)
+      totalParams.push(category)
+      totalParamIndex++
+    }
+
     const totalServicesQuery = `
       SELECT COUNT(*)::int as count
       FROM service_master
-      WHERE entity_id = $1 AND is_active = TRUE
+      WHERE ${totalConditions.join(' AND ')}
     `
 
     // Execute all queries in parallel
     const [lifeEventsResult, categoriesResult, totalServicesResult] = await Promise.all([
-      pool.query(lifeEventsQuery, [entity_id]),
-      pool.query(categoriesQuery, [entity_id]),
-      pool.query(totalServicesQuery, [entity_id])
+      pool.query(lifeEventsQuery, leParams),
+      pool.query(categoriesQuery, catParams),
+      pool.query(totalServicesQuery, totalParams)
     ])
 
     return NextResponse.json({
@@ -81,7 +129,11 @@ export async function GET(request: NextRequest) {
         categories: categoriesResult.rows
       },
       total_services: totalServicesResult.rows[0]?.count || 0,
-      entity_id: entity_id
+      filters_applied: {
+        entity_id,
+        life_event,
+        category
+      }
     })
   } catch (error) {
     console.error('Error fetching metadata:', error)

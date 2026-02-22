@@ -27,7 +27,7 @@
 ## 🌟 Key Features
 
 ### Phase 1: Portal Foundation
-- ✅ Next.js 14 App Router with TypeScript
+- ✅ Next.js 16 App Router with TypeScript
 - ✅ Tailwind CSS responsive design
 - ✅ Docker containerization with Traefik reverse proxy
 - ✅ Automated SSL certificates (Let's Encrypt)
@@ -53,7 +53,7 @@
 - ✅ Master data management (entities, services, QR codes)
 - ✅ Admin-configurable system settings (~53 settings)
 - ✅ Admin ticket management dashboard
-- ✅ Comprehensive API (43+ endpoints)
+- ✅ Comprehensive API (114+ endpoints)
 - ✅ External API for bot/integration access (API key auth)
 - ✅ OpenAPI specifications for external endpoints
 - ✅ PII masking for external data access
@@ -82,18 +82,19 @@
 ### Frontend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Next.js | 14.x | React framework with App Router |
+| Next.js | 16.1.6 | React framework with App Router |
 | TypeScript | 5.x | Type-safe development |
-| Tailwind CSS | 3.x | Utility-first CSS framework |
-| React | 18.x | UI library |
-| Zod | 3.x | Schema validation |
+| Tailwind CSS | 4.1.0 | Utility-first CSS framework |
+| React | 18.3.0 | UI library |
+| Zod | 4.x | Schema validation |
 | NextAuth | 4.x | OAuth authentication |
 
 ### Backend
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| Next.js API Routes | 14.x | RESTful API endpoints |
-| PostgreSQL | 16.11 | Primary database |
+| Next.js API Routes | 16.x | RESTful API endpoints |
+| PostgreSQL | 16-alpine | Primary database |
+| PgBouncer | v1.25.1 | Connection pooling |
 | node-postgres (pg) | 8.x | Database driver |
 | SendGrid | Latest | Email notifications |
 | NextAuth | 4.x | Authentication & session management |
@@ -123,80 +124,145 @@
 ```
 gogeaportal/v3/
 │
-├── 📄 Documentation
-│   ├── docs/
-│   │   ├── index.md                 ← This file - Main index
-│   │   ├── DATABASE_REFERENCE.md    ← Database architecture & setup
-│   │   └── API_REFERENCE.md         ← API endpoints specification
-│   ├── README.md                    ← Project overview
-│   └── .env.example                 ← Environment template
+├── 📄 Root Files
+│   ├── README.md                          # Project overview with quick start
+│   ├── .env.example                       # Environment variables template
+│   ├── docker-compose.yml                 # Service orchestration (5 containers)
+│   └── traefik.yml                        # Reverse proxy configuration
 │
-├── 🗄️ Database
-│   ├── database/
-│   │   ├── 99-consolidated-setup.sh ← Main setup script (recommended)
-│   │   └── scripts/
-│   │       ├── 01-init-db.sh        ← Database initialization
-│   │       ├── 04-nextauth-users.sh ← Auth tables setup
-│   │       ├── 11-load-master-data.sh ← Production data
-│   │       ├── 12-generate-synthetic-data.sh ← Test data
-│   │       └── 13-verify-master-data.sh ← Data verification
+├── 📚 Documentation (docs/)
+│   ├── index.md                           # This file - Complete documentation index
+│   ├── setup/                             # Setup & Installation Guides
+│   │   ├── VM_SETUP_GUIDE.md              # New VM deployment guide
+│   │   ├── FRESH_INSTALLATION_MANUAL.md   # Fresh installation guide
+│   │   └── TECH_STACK_UPGRADE_ROADMAP.md  # Technology upgrade roadmap
+│   ├── solution/                          # Solution Architecture & References
+│   │   ├── SOLUTION_ARCHITECTURE.md       # System architecture overview
+│   │   ├── API_REFERENCE.md               # All API endpoints (114+)
+│   │   ├── DATABASE_REFERENCE.md          # Database schema (33+ tables)
+│   │   ├── AUTHENTICATION.md              # OAuth setup & configuration
+│   │   ├── USER_MANAGEMENT.md             # User roles & permissions
+│   │   └── EMAIL_NOTIFICATIONS.md         # Email system configuration
+│   ├── developer-guides/                  # Developer Guidelines
+│   │   ├── UI_MODIFICATION_GUIDE.md       # UI development guide
+│   │   ├── API_DEVELOPMENT_PATTERNS.md    # API development patterns
+│   │   ├── DATABASE_QUERY_PATTERNS.md     # Database operations guide
+│   │   ├── TESTING_GUIDE.md               # Testing procedures
+│   │   ├── ERROR_HANDLING_PATTERNS.md     # Error handling guide
+│   │   ├── ADMIN_GUIDE.md                 # Administrator guide
+│   │   └── z-index-review.md              # Z-index & React Portal patterns
+│   ├── user-manuals/                      # User Documentation
+│   │   ├── GEA_Portal_Master_User_Manual.md   # Master index
+│   │   ├── GEA_Portal_Anonymous_User_Manual.md # Public users
+│   │   ├── GEA_Portal_Citizen_User_Manual.md   # Registered citizens
+│   │   ├── GEA_Portal_Staff_User_Manual.md     # MDA staff
+│   │   └── GEA_Portal_Admin_User_Manual.md     # Administrators
+│   ├── migration/                         # Migration & Upgrade Guides
+│   │   ├── README.md                      # Migration index
+│   │   ├── auth-migration.md              # NextAuth v4 → v5 migration plan
+│   │   ├── nextjs-nodejs-migration.md     # Next.js, React & Node.js upgrades
+│   │   └── postgresql-pgbouncer-migration.md  # Database upgrades
+│   └── infra/                             # Infrastructure Documentation
+│       └── infra_sizing_quick_reference.md  # Capacity planning
 │
-├── ⚙️ Configuration Files
-│   ├── .env.example                 ← Environment template
-│   ├── .env                         ← Your config (create from .env.example)
-│   ├── .gitignore                   ← Git exclusions
-│   ├── docker-compose.yml           ← Service orchestration
-│   └── traefik.yml                  ← Reverse proxy config
+├── 🗄️ Database (database/)
+│   ├── DB_README.md                       # Complete DBA guide
+│   ├── 99-consolidated-setup.sh           # Main orchestrator (--reload, --verify, etc.)
+│   ├── config.sh                          # Shared configuration
+│   ├── scripts/
+│   │   ├── 00-master-init.sh              # Master initialization script
+│   │   ├── 01-init-db.sh                  # Database schema initialization
+│   │   ├── 04-nextauth-users.sh           # Authentication tables setup
+│   │   ├── 05-add-initial-admin.sh        # Add first admin user
+│   │   ├── 10-clear-all-data.sh           # Clear all data
+│   │   ├── 11-load-master-data.sh         # Load production master data
+│   │   ├── 12-generate-synthetic-data.sh  # Generate test data
+│   │   ├── 13-verify-master-data.sh       # Comprehensive data verification
+│   │   └── 16-create-system-settings.sh   # System settings initialization
+│   ├── lib/                               # Shared shell functions
+│   ├── sql/                               # SQL templates
+│   └── master-data/                       # Production CSV data files
 │
-└── 🎨 Frontend Application
-    └── frontend/
-        ├── Dockerfile               ← Multi-stage build
-        ├── nginx.conf               ← Web server config
-        ├── package.json             ← Dependencies
-        ├── next.config.js           ← Next.js config
-        ├── tailwind.config.js       ← Tailwind config
-        ├── tsconfig.json            ← TypeScript config
+└── 🎨 Frontend Application (frontend/)
+    ├── Dockerfile                         # Multi-stage production build
+    ├── package.json                       # Dependencies
+    ├── next.config.js                     # Next.js configuration
+    ├── tailwind.config.js                 # Tailwind CSS config
+    ├── tsconfig.json                      # TypeScript config
+    │
+    ├── public/
+    │   ├── images/                        # Static images (logos, icons)
+    │   ├── api/                           # OpenAPI specifications
+    │   │   ├── dashboard.yaml             # Dashboard API spec
+    │   │   ├── tickets.yaml               # Tickets API spec
+    │   │   ├── feedback.yaml              # Feedback API spec
+    │   │   ├── grievances.yaml            # Grievances API spec
+    │   │   └── service-requirements.yaml  # Service requirements spec
+    │   ├── openapi.yaml                   # Combined OpenAPI specification
+    │   ├── bot-api-prompt.md              # Bot API integration guide
+    │   ├── bot-api-functions.json         # Function calling schemas
+    │   └── config/
+    │       └── bots-config.json           # AI bot inventory
+    │
+    └── src/
+        ├── app/
+        │   ├── api/                       # API Routes (114+ endpoints)
+        │   │   ├── auth/                  # NextAuth endpoints
+        │   │   ├── citizen/               # Citizen portal APIs
+        │   │   ├── content/               # Page context API (for AI bot)
+        │   │   ├── feedback/              # Service feedback APIs
+        │   │   ├── tickets/               # Public ticket APIs
+        │   │   ├── helpdesk/              # Ticket lookup APIs
+        │   │   ├── admin/                 # Admin management APIs
+        │   │   ├── managedata/            # Master data CRUD
+        │   │   ├── public/                # Public data APIs
+        │   │   ├── settings/              # Settings APIs
+        │   │   └── external/              # External API (bot/integration access)
+        │   │       ├── dashboard/         # Aggregated statistics
+        │   │       ├── tickets/           # Ticket queries with PII masking
+        │   │       ├── feedback/          # Feedback record queries
+        │   │       ├── grievances/        # Grievance queries
+        │   │       └── services/          # Service requirements
+        │   │
+        │   ├── layout.tsx                 # Root layout
+        │   ├── page.tsx                   # Home page
+        │   ├── about/                     # About page
+        │   ├── auth/                      # Sign-in & error pages
+        │   ├── admin/                     # Admin portal (protected)
+        │   ├── citizen/                   # Citizen portal (authenticated)
+        │   ├── staff/                     # Staff portal (entity-specific)
+        │   ├── helpdesk/                  # Public ticket lookup
+        │   └── feedback/                  # Feedback forms
         │
-        ├── public/
-        │   └── images/              ← Static images
+        ├── components/                    # React components
+        │   ├── ChatBot.tsx                # AI chatbot iframe component
+        │   ├── layout/                    # Header, Footer, Navigation
+        │   ├── home/                      # Homepage components
+        │   ├── feedback/                  # Feedback form components
+        │   ├── citizen/                   # Citizen portal components
+        │   └── admin/                     # Admin UI components
         │
-        └── src/
-            ├── app/
-            │   ├── api/             ← API Routes (43+ endpoints)
-            │   │   ├── feedback/    ← Feedback APIs
-            │   │   ├── tickets/     ← Ticket APIs
-            │   │   ├── helpdesk/    ← Helpdesk APIs
-            │   │   ├── admin/       ← Admin auth APIs
-            │   │   ├── managedata/  ← Master data CRUD APIs
-            │   │   ├── content/     ← Page context APIs
-            │   │   └── external/    ← External API (bot/integration)
-            │   │
-            │   ├── layout.tsx       ← Root layout
-            │   ├── page.tsx         ← Home page
-            │   ├── about/           ← About page
-            │   ├── admin/           ← Admin portal
-            │   ├── helpdesk/        ← Public ticket lookup
-            │   └── feedback/        ← Feedback forms
-            │
-            ├── components/          ← React components
-            │   ├── layout/          ← Header, Footer
-            │   └── home/            ← Homepage components
-            │
-            ├── lib/                 ← Utilities
-            │   ├── db.ts            ← Database connection
-            │   ├── db/              ← Database helpers
-            │   │   └── tickets.ts   ← Ticket operations
-            │   ├── schemas/         ← Zod validation schemas
-            │   ├── utils/           ← Helper functions
-            │   ├── validation.ts    ← Input validation
-            │   └── admin-auth.ts    ← Admin authentication
-            │
-            ├── config/
-            │   ├── env.ts           ← Environment config
-            │   ├── content.ts       ← Static content
-            │   └── navigation.ts    ← Navigation items
-            │
-            └── middleware.ts        ← Route protection
+        ├── providers/                     # React Context providers
+        │
+        ├── hooks/                         # Custom React hooks
+        │
+        ├── types/                         # TypeScript type definitions
+        │
+        ├── lib/                           # Utilities & configurations
+        │   ├── auth.ts                    # NextAuth configuration
+        │   ├── db.ts                      # Database connection pool
+        │   ├── db/                        # Database helpers
+        │   ├── schemas/                   # Zod validation schemas
+        │   ├── utils/                     # Helper functions
+        │   ├── admin-auth.ts              # Authorization helpers
+        │   └── piiMask.ts                 # PII masking for External API
+        │
+        ├── config/
+        │   ├── env.ts                     # Environment configuration
+        │   ├── content.ts                 # Static content
+        │   └── navigation.ts              # Navigation items
+        │
+        └── middleware.ts                  # Route protection & auth
 ```
 
 ---
@@ -243,6 +309,14 @@ gogeaportal/v3/
 | Document | Purpose | Read Time |
 |----------|---------|-----------|
 | [infra/infra_sizing_quick_reference.md](infra/infra_sizing_quick_reference.md) | Infrastructure sizing and capacity planning | 15 min |
+
+### Migration & Upgrade Guides
+| Document | Purpose | Read Time |
+|----------|---------|-----------|
+| [migration/README.md](migration/README.md) | **Migration index** - Overview and current status | 10 min |
+| [migration/auth-migration.md](migration/auth-migration.md) | NextAuth v4 → Auth.js v5 migration assessment | 30 min |
+| [migration/nextjs-nodejs-migration.md](migration/nextjs-nodejs-migration.md) | Next.js, React & Node.js upgrade paths | 30 min |
+| [migration/postgresql-pgbouncer-migration.md](migration/postgresql-pgbouncer-migration.md) | PostgreSQL & PgBouncer upgrade guide | 25 min |
 
 ### Reference Documentation
 | File | Purpose |
@@ -783,14 +857,14 @@ docker system prune -a
 ## 📊 Project Statistics
 
 ### Current Implementation (Phase 2b + Authentication + External API)
-- **Total API Endpoints:** 43+ (feedback, tickets, helpdesk, admin, master data, auth, content, external)
+- **Total API Endpoints:** 114+ (feedback, tickets, helpdesk, admin, citizen, master data, auth, content, external)
 - **Public API Endpoints:** 6 (health, categories, helpdesk status)
 - **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
 - **Database Tables:** 30 (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
 - **Lines of Code:** ~23,000+
-- **Docker Services:** 3 (Traefik, PostgreSQL, Frontend)
+- **Docker Services:** 5 (Traefik, PostgreSQL, PgBouncer, Redis, Frontend)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
 - **OpenAPI Specs:** 6 YAML files for bot/integration access
 - **Build Time:** ~3-5 minutes (first build)
@@ -811,7 +885,7 @@ docker system prune -a
 ## 🎓 Learning Resources
 
 ### Technology Documentation
-- **Next.js 14:** https://nextjs.org/docs
+- **Next.js 16:** https://nextjs.org/docs
 - **PostgreSQL 16:** https://www.postgresql.org/docs/16/
 - **NextAuth v4:** https://next-auth.js.org/
 - **Docker:** https://docs.docker.com/

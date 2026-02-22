@@ -221,10 +221,13 @@ You have two ways to find the service:
    - Click **"Give Feedback"** on the service card to select it
 
 **Filter Tips:**
-- Filters work together - selecting an entity shows only life events and categories available from that entity
-- Service counts help you find the right options
-- Click "Clear All" to start over with your filter selections
-- If a selected filter becomes unavailable (e.g., you change entities), it will be automatically cleared
+- **Cascading Filters:** All filters work together dynamically:
+  - Selecting an **Entity** updates Life Events and Categories to show only options with services from that entity
+  - Selecting a **Life Event** updates Categories to show only categories that have services for that life event
+  - Selecting a **Category** updates Life Events to show only life events that have services in that category
+- Service counts in parentheses (e.g., "Health Services (12)") help you find the right options
+- Click "Clear All" to reset all filters and see all options again
+- If a selected filter becomes unavailable due to another selection, it will be automatically cleared
 
 **Option B: Search by Name**
 
@@ -700,7 +703,7 @@ A: Yes! The portal is fully mobile-friendly and works on all modern smartphones 
 ### Feedback Questions
 
 **Q: What if I don't know the exact service name?**
-A: Use the filter dropdowns to browse services by government entity, life event, or category. For example, select "Life Event: Having a Baby" to see all services related to new parents. You can also search using keywords, or browse the Services directory. Service counts show you how many services match each filter option.
+A: Use the filter dropdowns to browse services by government entity, life event, or category. For example, select "Life Event: Having a Baby" to see all services related to new parents. The filters update dynamically—selecting one filter narrows down the options in the other filters, making it easier to find what you need. Service counts in parentheses show you how many services match each option. You can also search using keywords, or browse the Services directory.
 
 **Q: Can I submit feedback for multiple services?**
 A: Yes, but submit separate feedback for each service to help departments track specific service quality.
