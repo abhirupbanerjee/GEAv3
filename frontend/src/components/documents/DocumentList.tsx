@@ -92,6 +92,17 @@ const CloseIcon = () => (
   </svg>
 )
 
+const MoveIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+    />
+  </svg>
+)
+
 const FileIcon = ({ extension }: { extension: string }) => {
   const colorMap: Record<string, string> = {
     pdf: 'text-red-500',
@@ -131,6 +142,7 @@ interface DocumentListProps {
   isLoading: boolean
   isAdmin: boolean
   isTrashView?: boolean
+  isUnfiledView?: boolean
   onSearch: (query: string) => void
   onSort: (sortBy: DocumentSortBy) => void
   onPageChange: (page: number) => void
@@ -143,6 +155,7 @@ interface DocumentListProps {
   onBulkAddTags?: (documentIds: number[]) => void
   onBulkDelete?: (documentIds: number[]) => void
   onBulkDownload?: (documentIds: number[]) => void
+  onBulkMove?: (documentIds: number[]) => void
   // Bulk trash actions
   onBulkRestore?: (documentIds: number[]) => void
   onBulkPermanentDelete?: (documentIds: number[]) => void
@@ -162,6 +175,7 @@ export default function DocumentList({
   isLoading,
   isAdmin,
   isTrashView = false,
+  isUnfiledView = false,
   onSearch,
   onSort,
   onPageChange,
@@ -173,6 +187,7 @@ export default function DocumentList({
   onBulkAddTags,
   onBulkDelete,
   onBulkDownload,
+  onBulkMove,
   onBulkRestore,
   onBulkPermanentDelete,
 }: DocumentListProps) {
@@ -257,6 +272,12 @@ export default function DocumentList({
       onBulkPermanentDelete(Array.from(selectedIds))
       setSelectedIds(new Set())
       setShowBulkPermanentDeleteConfirm(false)
+    }
+  }
+
+  const handleBulkMove = () => {
+    if (onBulkMove && selectedIds.size > 0) {
+      onBulkMove(Array.from(selectedIds))
     }
   }
 
@@ -345,6 +366,17 @@ export default function DocumentList({
             <CloseIcon />
           </button>
           <div className="flex-1" />
+
+          {/* Move to Folder button (for unfiled view) */}
+          {isAdmin && isUnfiledView && onBulkMove && (
+            <button
+              onClick={handleBulkMove}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <MoveIcon />
+              Move to Folder
+            </button>
+          )}
 
           {/* Add Tags button */}
           {isAdmin && onBulkAddTags && (

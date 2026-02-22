@@ -120,14 +120,15 @@ export default function UploadModal({
     }
 
     // Extract folder paths from webkitRelativePath
+    // Use index as key to handle duplicate filenames in different folders
     const paths: Record<string, string> = {}
-    files.forEach((file) => {
+    files.forEach((file, index) => {
       const relativePath = (file as File & { webkitRelativePath?: string }).webkitRelativePath || ''
       const parts = relativePath.split('/')
       if (parts.length > 1) {
         // Remove filename, keep folder path
         const folderPath = parts.slice(0, -1).join('/')
-        paths[file.name] = folderPath
+        paths[index.toString()] = folderPath
       }
     })
 
@@ -383,7 +384,7 @@ export default function UploadModal({
                   <div className="max-h-40 overflow-y-auto border border-gray-200 rounded-lg p-2">
                     {selectedFiles.slice(0, 10).map((file, i) => (
                       <div key={i} className="text-sm py-1 text-gray-600 truncate">
-                        {folderPaths[file.name] ? `${folderPaths[file.name]}/` : ''}
+                        {folderPaths[i.toString()] ? `${folderPaths[i.toString()]}/` : ''}
                         {file.name}
                       </div>
                     ))}

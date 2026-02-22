@@ -27,6 +27,7 @@ import EditModal from '@/components/documents/EditModal'
 import CreateFolderModal from '@/components/documents/CreateFolderModal'
 import EditFolderModal from '@/components/documents/EditFolderModal'
 import BulkTagsModal from '@/components/documents/BulkTagsModal'
+import BulkMoveModal from '@/components/documents/BulkMoveModal'
 import { Document, FolderNode, DocumentSortBy } from '@/types/documents'
 
 // ============================================================================
@@ -56,6 +57,7 @@ export default function DocumentsPage() {
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
   const [showRenameFolderModal, setShowRenameFolderModal] = useState(false)
   const [showBulkTagsModal, setShowBulkTagsModal] = useState(false)
+  const [showBulkMoveModal, setShowBulkMoveModal] = useState(false)
   const [editingDocument, setEditingDocument] = useState<Document | null>(null)
   const [createFolderParentId, setCreateFolderParentId] = useState<number | null>(null)
   const [renamingFolder, setRenamingFolder] = useState<FolderNode | null>(null)
@@ -384,11 +386,12 @@ export default function DocumentsPage() {
     visibility: 'all_staff' | 'admin_only'
   }) => {
     // Prepend parent folder path to all folder paths if a parent is selected
+    // Keys are file indices (to handle duplicate filenames in different folders)
     let modifiedFolderPaths = data.folderPaths
     if (data.parentFolderPath) {
       modifiedFolderPaths = {}
-      for (const [fileName, path] of Object.entries(data.folderPaths)) {
-        modifiedFolderPaths[fileName] = path
+      for (const [fileIndex, path] of Object.entries(data.folderPaths)) {
+        modifiedFolderPaths[fileIndex] = path
           ? `${data.parentFolderPath}/${path}`
           : data.parentFolderPath
       }
@@ -493,6 +496,30 @@ export default function DocumentsPage() {
     }
 
     setSuccessMessage(`Tags added to ${result.updated} document(s)`)
+    setTimeout(() => setSuccessMessage(''), 3000)
+    fetchDocuments()
+  }
+
+  // Handle bulk move
+  const handleBulkMove = (documentIds: number[]) => {
+    setBulkSelectedIds(documentIds)
+    setShowBulkMoveModal(true)
+  }
+
+  // Save bulk move
+  const handleSaveBulkMove = async (folderId: number | null) => {
+    const res = await fetch('/api/admin/documents/bulk', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document_ids: bulkSelectedIds, folder_id: folderId }),
+    })
+    const result = await res.json()
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to move documents')
+    }
+
+    setSuccessMessage(`${result.moved} document(s) moved`)
     setTimeout(() => setSuccessMessage(''), 3000)
     fetchDocuments()
   }
@@ -693,6 +720,7 @@ export default function DocumentsPage() {
             isLoading={loading}
             isAdmin={isAdmin}
             isTrashView={selectedFolderId === 'trash'}
+            isUnfiledView={selectedFolderId === 'unfiled'}
             onSearch={handleSearch}
             onSort={handleSort}
             onPageChange={setPage}
@@ -704,6 +732,7 @@ export default function DocumentsPage() {
             onBulkAddTags={isAdmin ? handleBulkAddTags : undefined}
             onBulkDelete={isAdmin ? handleBulkDelete : undefined}
             onBulkDownload={handleBulkDownload}
+            onBulkMove={isAdmin ? handleBulkMove : undefined}
             onBulkRestore={isAdmin ? handleBulkRestore : undefined}
             onBulkPermanentDelete={isAdmin ? handleBulkPermanentDelete : undefined}
           />
@@ -759,6 +788,17 @@ export default function DocumentsPage() {
           setBulkSelectedIds([])
         }}
         onSave={handleSaveBulkTags}
+      />
+
+      <BulkMoveModal
+        isOpen={showBulkMoveModal}
+        documentCount={bulkSelectedIds.length}
+        folders={folders}
+        onClose={() => {
+          setShowBulkMoveModal(false)
+          setBulkSelectedIds([])
+        }}
+        onSave={handleSaveBulkMove}
       />
     </div>
   )

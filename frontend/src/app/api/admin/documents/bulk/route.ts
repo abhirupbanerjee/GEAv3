@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
     let uploaded = 0
     let failed = 0
 
-    for (const file of files) {
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i]
       try {
         // Validate individual file
         const fileValidation = await validateDocumentFile(file)
@@ -121,8 +122,9 @@ export async function POST(request: NextRequest) {
           continue
         }
 
-        // Get folder for this file
-        const folderPathKey = folderPaths[file.name] || ''
+        // Get folder for this file using index as key
+        // (handles duplicate filenames in different folders)
+        const folderPathKey = folderPaths[i.toString()] || ''
         let folderInfo = folderCache.get(folderPathKey)
 
         if (!folderInfo && folderPathKey) {
@@ -365,6 +367,126 @@ export async function DELETE(request: NextRequest) {
     console.error('Error in bulk delete:', error)
     return NextResponse.json(
       { error: 'Failed to delete documents' },
+      { status: 500 }
+    )
+  }
+}
+
+// ============================================================================
+// PUT - Bulk move documents to a folder
+// ============================================================================
+
+export async function PUT(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Check authorization (admin only)
+    if (session.user.roleType !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    // Parse request body
+    const body = await request.json()
+    const { document_ids, folder_id } = body as {
+      document_ids: number[]
+      folder_id: number | null
+    }
+
+    // Validate document_ids
+    if (!Array.isArray(document_ids) || document_ids.length === 0) {
+      return NextResponse.json({ error: 'document_ids must be a non-empty array' }, { status: 400 })
+    }
+
+    if (document_ids.length > 100) {
+      return NextResponse.json({ error: 'Cannot move more than 100 documents at once' }, { status: 400 })
+    }
+
+    // Get target folder info
+    let targetFolderPath = 'unfiled'
+    if (folder_id !== null) {
+      const folderResult = await pool.query<{ id: number; folder_path: string }>(
+        'SELECT id, folder_path FROM doc_folders WHERE id = $1 AND is_active = true',
+        [folder_id]
+      )
+
+      if (folderResult.rows.length === 0) {
+        return NextResponse.json({ error: 'Target folder not found' }, { status: 404 })
+      }
+
+      targetFolderPath = folderResult.rows[0].folder_path
+    }
+
+    // Get documents to move
+    const docsResult = await pool.query<{
+      id: number
+      stored_file_name: string
+      file_path: string
+      folder_id: number | null
+    }>(
+      `SELECT id, stored_file_name, file_path, folder_id
+       FROM documents
+       WHERE id = ANY($1::int[]) AND is_active = true`,
+      [document_ids]
+    )
+
+    if (docsResult.rows.length === 0) {
+      return NextResponse.json({ error: 'No documents found' }, { status: 404 })
+    }
+
+    let moved = 0
+    let failed = 0
+
+    // Move each document
+    for (const doc of docsResult.rows) {
+      try {
+        const oldFilePath = doc.file_path
+        const newFilePath = path.join(targetFolderPath, doc.stored_file_name)
+
+        // Move file on disk
+        const oldDiskPath = path.join(UPLOAD_ROOT, oldFilePath)
+        const newDiskPath = path.join(UPLOAD_ROOT, newFilePath)
+
+        // Create target directory if needed
+        const targetDir = path.join(UPLOAD_ROOT, targetFolderPath)
+        if (!existsSync(targetDir)) {
+          await mkdir(targetDir, { recursive: true })
+        }
+
+        // Move file if it exists
+        if (existsSync(oldDiskPath)) {
+          const { rename } = await import('fs/promises')
+          await rename(oldDiskPath, newDiskPath)
+        }
+
+        // Update database
+        await pool.query(
+          `UPDATE documents
+           SET folder_id = $1, file_path = $2
+           WHERE id = $3`,
+          [folder_id, newFilePath, doc.id]
+        )
+
+        moved++
+      } catch (err) {
+        console.error(`Error moving document ${doc.id}:`, err)
+        failed++
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      moved,
+      failed,
+      message: `${moved} document(s) moved to ${folder_id === null ? 'Unfiled' : 'folder'}`,
+    })
+  } catch (error) {
+    console.error('Error in bulk move:', error)
+    return NextResponse.json(
+      { error: 'Failed to move documents' },
       { status: 500 }
     )
   }
