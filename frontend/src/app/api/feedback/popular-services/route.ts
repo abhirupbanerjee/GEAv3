@@ -3,7 +3,9 @@
 import { NextResponse } from 'next/server'
 import { pool } from '@/lib/db'
 
-export const dynamic = 'force-dynamic'
+// Cache popular services for 1 hour (3600 seconds)
+// Since popular services are based on 90-day feedback data, they don't need real-time updates
+export const revalidate = 3600
 
 export async function GET() {
   try {
@@ -17,9 +19,9 @@ export async function GET() {
         e.entity_name,
         e.unique_entity_id as entity_id,
         s.life_events,
-        COUNT(DISTINCT f.feedback_id) as feedback_count,
-        ROUND(AVG(f.q5_overall_satisfaction)::numeric, 2) as avg_satisfaction,
-        COUNT(CASE WHEN f.grievance_flag = TRUE THEN 1 END) as grievance_count,
+        COUNT(DISTINCT f.feedback_id)::int as feedback_count,
+        ROUND(AVG(f.q5_overall_satisfaction)::numeric, 2)::float as avg_satisfaction,
+        COUNT(CASE WHEN f.grievance_flag = TRUE THEN 1 END)::int as grievance_count,
         MAX(f.created_at) as last_feedback_date
       FROM service_master s
       JOIN entity_master e ON s.entity_id = e.unique_entity_id
