@@ -75,6 +75,23 @@ const RestoreIcon = () => (
   </svg>
 )
 
+const TagIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+    />
+  </svg>
+)
+
+const CloseIcon = () => (
+  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+)
+
 const FileIcon = ({ extension }: { extension: string }) => {
   const colorMap: Record<string, string> = {
     pdf: 'text-red-500',
@@ -122,6 +139,13 @@ interface DocumentListProps {
   onDelete: (document: Document) => void
   onRestore?: (document: Document) => void
   onPermanentDelete?: (document: Document) => void
+  // Bulk actions
+  onBulkAddTags?: (documentIds: number[]) => void
+  onBulkDelete?: (documentIds: number[]) => void
+  onBulkDownload?: (documentIds: number[]) => void
+  // Bulk trash actions
+  onBulkRestore?: (documentIds: number[]) => void
+  onBulkPermanentDelete?: (documentIds: number[]) => void
 }
 
 // ============================================================================
@@ -146,11 +170,95 @@ export default function DocumentList({
   onDelete,
   onRestore,
   onPermanentDelete,
+  onBulkAddTags,
+  onBulkDelete,
+  onBulkDownload,
+  onBulkRestore,
+  onBulkPermanentDelete,
 }: DocumentListProps) {
   const [deleteConfirmId, setDeleteConfirmId] = useState<number | null>(null)
   const [permanentDeleteConfirmId, setPermanentDeleteConfirmId] = useState<number | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set())
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false)
+  const [showBulkPermanentDeleteConfirm, setShowBulkPermanentDeleteConfirm] = useState(false)
 
   const totalPages = Math.ceil(total / limit)
+  const hasSelection = selectedIds.size > 0
+  const allSelected = documents.length > 0 && documents.every(doc => selectedIds.has(doc.id))
+  const someSelected = documents.some(doc => selectedIds.has(doc.id)) && !allSelected
+
+  // Toggle single selection
+  const toggleSelect = (docId: number) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(docId)) {
+        next.delete(docId)
+      } else {
+        next.add(docId)
+      }
+      return next
+    })
+  }
+
+  // Toggle select all (current page)
+  const toggleSelectAll = () => {
+    if (allSelected) {
+      // Deselect all on current page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        documents.forEach(doc => next.delete(doc.id))
+        return next
+      })
+    } else {
+      // Select all on current page
+      setSelectedIds(prev => {
+        const next = new Set(prev)
+        documents.forEach(doc => next.add(doc.id))
+        return next
+      })
+    }
+  }
+
+  // Clear selection
+  const clearSelection = () => {
+    setSelectedIds(new Set())
+  }
+
+  // Handle bulk actions
+  const handleBulkAddTags = () => {
+    if (onBulkAddTags && selectedIds.size > 0) {
+      onBulkAddTags(Array.from(selectedIds))
+    }
+  }
+
+  const handleBulkDelete = () => {
+    if (onBulkDelete && selectedIds.size > 0) {
+      onBulkDelete(Array.from(selectedIds))
+      setSelectedIds(new Set())
+      setShowBulkDeleteConfirm(false)
+    }
+  }
+
+  const handleBulkDownload = () => {
+    if (onBulkDownload && selectedIds.size > 0) {
+      onBulkDownload(Array.from(selectedIds))
+    }
+  }
+
+  const handleBulkRestore = () => {
+    if (onBulkRestore && selectedIds.size > 0) {
+      onBulkRestore(Array.from(selectedIds))
+      setSelectedIds(new Set())
+    }
+  }
+
+  const handleBulkPermanentDelete = () => {
+    if (onBulkPermanentDelete && selectedIds.size > 0) {
+      onBulkPermanentDelete(Array.from(selectedIds))
+      setSelectedIds(new Set())
+      setShowBulkPermanentDeleteConfirm(false)
+    }
+  }
 
   // Format relative date
   const formatDate = (dateString: string) => {
@@ -223,6 +331,135 @@ export default function DocumentList({
         </select>
       </div>
 
+      {/* Bulk action bar - Normal view */}
+      {hasSelection && !isTrashView && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border-b border-blue-200">
+          <span className="text-sm font-medium text-blue-700">
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={clearSelection}
+            className="p-1 text-blue-500 hover:text-blue-700 hover:bg-blue-100 rounded"
+            title="Clear selection"
+          >
+            <CloseIcon />
+          </button>
+          <div className="flex-1" />
+
+          {/* Add Tags button */}
+          {isAdmin && onBulkAddTags && (
+            <button
+              onClick={handleBulkAddTags}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <TagIcon />
+              Add Tags
+            </button>
+          )}
+
+          {/* Download button */}
+          {onBulkDownload && (
+            <button
+              onClick={handleBulkDownload}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-700 bg-white border border-blue-300 rounded-lg hover:bg-blue-50 transition-colors"
+            >
+              <DownloadIcon />
+              Download
+            </button>
+          )}
+
+          {/* Delete button */}
+          {isAdmin && onBulkDelete && (
+            <>
+              {showBulkDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-red-600">Delete {selectedIds.size} files?</span>
+                  <button
+                    onClick={handleBulkDelete}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600"
+                  >
+                    Yes, Delete
+                  </button>
+                  <button
+                    onClick={() => setShowBulkDeleteConfirm(false)}
+                    className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowBulkDeleteConfirm(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <TrashIcon />
+                  Delete
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Bulk action bar - Trash view */}
+      {hasSelection && isTrashView && isAdmin && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-amber-50 border-b border-amber-200">
+          <span className="text-sm font-medium text-amber-700">
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={clearSelection}
+            className="p-1 text-amber-500 hover:text-amber-700 hover:bg-amber-100 rounded"
+            title="Clear selection"
+          >
+            <CloseIcon />
+          </button>
+          <div className="flex-1" />
+
+          {/* Restore button */}
+          {onBulkRestore && (
+            <button
+              onClick={handleBulkRestore}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-green-700 bg-white border border-green-300 rounded-lg hover:bg-green-50 transition-colors"
+            >
+              <RestoreIcon />
+              Restore
+            </button>
+          )}
+
+          {/* Permanently Delete button */}
+          {onBulkPermanentDelete && (
+            <>
+              {showBulkPermanentDeleteConfirm ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-red-600 font-medium">Permanently delete {selectedIds.size} files?</span>
+                  <button
+                    onClick={handleBulkPermanentDelete}
+                    className="px-3 py-1.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+                  >
+                    Yes, Delete Forever
+                  </button>
+                  <button
+                    onClick={() => setShowBulkPermanentDeleteConfirm(false)}
+                    className="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setShowBulkPermanentDeleteConfirm(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 bg-white border border-red-300 rounded-lg hover:bg-red-50 transition-colors"
+                >
+                  <TrashIcon />
+                  Delete Permanently
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
       {/* Document list */}
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (
@@ -254,6 +491,19 @@ export default function DocumentList({
           <table className="w-full">
             <thead className="bg-gray-50 sticky top-0">
               <tr>
+                {/* Checkbox column */}
+                <th className="w-10 px-4 py-3">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected
+                    }}
+                    onChange={toggleSelectAll}
+                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    title={allSelected ? 'Deselect all' : 'Select all'}
+                  />
+                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Document
                 </th>
@@ -276,7 +526,19 @@ export default function DocumentList({
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {documents.map((doc) => (
-                <tr key={doc.id} className="hover:bg-gray-50">
+                <tr
+                  key={doc.id}
+                  className={`hover:bg-gray-50 ${selectedIds.has(doc.id) ? 'bg-blue-50' : ''}`}
+                >
+                  {/* Checkbox */}
+                  <td className="w-10 px-4 py-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(doc.id)}
+                      onChange={() => toggleSelect(doc.id)}
+                      className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                    />
+                  </td>
                   {/* Document name */}
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">

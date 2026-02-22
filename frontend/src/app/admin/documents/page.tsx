@@ -26,6 +26,7 @@ import UploadModal from '@/components/documents/UploadModal'
 import EditModal from '@/components/documents/EditModal'
 import CreateFolderModal from '@/components/documents/CreateFolderModal'
 import RenameFolderModal from '@/components/documents/RenameFolderModal'
+import BulkTagsModal from '@/components/documents/BulkTagsModal'
 import { Document, FolderNode, DocumentSortBy } from '@/types/documents'
 
 // ============================================================================
@@ -54,9 +55,11 @@ export default function DocumentsPage() {
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCreateFolderModal, setShowCreateFolderModal] = useState(false)
   const [showRenameFolderModal, setShowRenameFolderModal] = useState(false)
+  const [showBulkTagsModal, setShowBulkTagsModal] = useState(false)
   const [editingDocument, setEditingDocument] = useState<Document | null>(null)
   const [createFolderParentId, setCreateFolderParentId] = useState<number | null>(null)
   const [renamingFolder, setRenamingFolder] = useState<FolderNode | null>(null)
+  const [bulkSelectedIds, setBulkSelectedIds] = useState<number[]>([])
 
   const isAdmin = session?.user?.roleType === 'admin'
   const limit = 50
@@ -446,6 +449,131 @@ export default function DocumentsPage() {
     fetchDocuments()
   }
 
+  // Handle bulk add tags
+  const handleBulkAddTags = (documentIds: number[]) => {
+    setBulkSelectedIds(documentIds)
+    setShowBulkTagsModal(true)
+  }
+
+  // Save bulk tags
+  const handleSaveBulkTags = async (tags: string[]) => {
+    const res = await fetch('/api/admin/documents/bulk', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ document_ids: bulkSelectedIds, tags }),
+    })
+    const result = await res.json()
+
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to add tags')
+    }
+
+    setSuccessMessage(`Tags added to ${result.updated} document(s)`)
+    setTimeout(() => setSuccessMessage(''), 3000)
+    fetchDocuments()
+  }
+
+  // Handle bulk delete
+  const handleBulkDelete = async (documentIds: number[]) => {
+    try {
+      const res = await fetch('/api/admin/documents/bulk', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_ids: documentIds }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSuccessMessage(`${data.deleted} document(s) moved to trash`)
+        setTimeout(() => setSuccessMessage(''), 3000)
+        fetchDocuments()
+      } else {
+        setError(data.error || 'Failed to delete documents')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch {
+      setError('Failed to delete documents')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  // Handle bulk download
+  const handleBulkDownload = async (documentIds: number[]) => {
+    try {
+      const res = await fetch('/api/admin/documents/bulk/download', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_ids: documentIds }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || 'Download failed')
+      }
+
+      const blob = await res.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `documents-${Date.now()}.zip`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to download documents')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  // Handle bulk restore from trash
+  const handleBulkRestore = async (documentIds: number[]) => {
+    try {
+      const res = await fetch('/api/admin/documents/bulk/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_ids: documentIds }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSuccessMessage(`${data.restored} document(s) restored`)
+        setTimeout(() => setSuccessMessage(''), 3000)
+        fetchDocuments()
+      } else {
+        setError(data.error || 'Failed to restore documents')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch {
+      setError('Failed to restore documents')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
+  // Handle bulk permanent delete
+  const handleBulkPermanentDelete = async (documentIds: number[]) => {
+    try {
+      const res = await fetch('/api/admin/documents/bulk?permanent=true', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_ids: documentIds }),
+      })
+      const data = await res.json()
+
+      if (data.success) {
+        setSuccessMessage(`${data.deleted} document(s) permanently deleted`)
+        setTimeout(() => setSuccessMessage(''), 3000)
+        fetchDocuments()
+      } else {
+        setError(data.error || 'Failed to delete documents')
+        setTimeout(() => setError(''), 5000)
+      }
+    } catch {
+      setError('Failed to delete documents')
+      setTimeout(() => setError(''), 5000)
+    }
+  }
+
   // Get parent folder name for create modal
   const getParentFolderName = (parentId: number | null): string | null => {
     if (!parentId) return null
@@ -549,6 +677,11 @@ export default function DocumentsPage() {
             onDelete={handleDelete}
             onRestore={handleRestore}
             onPermanentDelete={handlePermanentDelete}
+            onBulkAddTags={isAdmin ? handleBulkAddTags : undefined}
+            onBulkDelete={isAdmin ? handleBulkDelete : undefined}
+            onBulkDownload={handleBulkDownload}
+            onBulkRestore={isAdmin ? handleBulkRestore : undefined}
+            onBulkPermanentDelete={isAdmin ? handleBulkPermanentDelete : undefined}
           />
         </div>
       </div>
@@ -591,6 +724,16 @@ export default function DocumentsPage() {
           setRenamingFolder(null)
         }}
         onSave={handleSaveRenameFolder}
+      />
+
+      <BulkTagsModal
+        isOpen={showBulkTagsModal}
+        documentCount={bulkSelectedIds.length}
+        onClose={() => {
+          setShowBulkTagsModal(false)
+          setBulkSelectedIds([])
+        }}
+        onSave={handleSaveBulkTags}
       />
     </div>
   )

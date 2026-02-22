@@ -1,9 +1,11 @@
 /**
- * GEA Portal - Bulk Document Upload API
+ * GEA Portal - Bulk Document Operations API
  *
  * POST /api/admin/documents/bulk - Upload multiple files from folder upload
+ * PATCH /api/admin/documents/bulk - Add tags to multiple documents
+ * DELETE /api/admin/documents/bulk - Delete multiple documents
  *
- * Handles batch uploads from folder structure with folder path mappings.
+ * Handles batch operations on documents.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -222,6 +224,147 @@ export async function POST(request: NextRequest) {
     console.error('Error in bulk upload:', error)
     return NextResponse.json(
       { error: 'Failed to process bulk upload' },
+      { status: 500 }
+    )
+  }
+}
+
+// ============================================================================
+// PATCH - Add tags to multiple documents
+// ============================================================================
+
+export async function PATCH(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Check authorization (admin only)
+    if (session.user.roleType !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    // Parse request body
+    const body = await request.json()
+    const { document_ids, tags } = body
+
+    // Validate document_ids
+    if (!Array.isArray(document_ids) || document_ids.length === 0) {
+      return NextResponse.json({ error: 'document_ids must be a non-empty array' }, { status: 400 })
+    }
+
+    if (document_ids.length > 100) {
+      return NextResponse.json({ error: 'Cannot update more than 100 documents at once' }, { status: 400 })
+    }
+
+    // Validate tags
+    if (!Array.isArray(tags) || tags.length === 0) {
+      return NextResponse.json({ error: 'tags must be a non-empty array' }, { status: 400 })
+    }
+
+    const tagsValidation = validateTags(tags)
+    if (!tagsValidation.valid) {
+      return NextResponse.json({ error: tagsValidation.error }, { status: 400 })
+    }
+
+    // Update documents - append new tags to existing tags (avoiding duplicates)
+    const result = await pool.query(
+      `UPDATE documents
+       SET tags = (
+         SELECT array_agg(DISTINCT tag)
+         FROM unnest(tags || $1::text[]) AS tag
+       )
+       WHERE id = ANY($2::int[]) AND is_active = true
+       RETURNING id`,
+      [tags, document_ids]
+    )
+
+    return NextResponse.json({
+      success: true,
+      updated: result.rowCount,
+      message: `Tags added to ${result.rowCount} document(s)`,
+    })
+  } catch (error) {
+    console.error('Error adding bulk tags:', error)
+    return NextResponse.json(
+      { error: 'Failed to add tags' },
+      { status: 500 }
+    )
+  }
+}
+
+// ============================================================================
+// DELETE - Bulk delete documents (soft delete or permanent)
+// ============================================================================
+
+export async function DELETE(request: NextRequest) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Check authorization (admin only)
+    if (session.user.roleType !== 'admin') {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    // Check for permanent delete flag
+    const { searchParams } = new URL(request.url)
+    const isPermanent = searchParams.get('permanent') === 'true'
+
+    // Parse request body
+    const body = await request.json()
+    const { document_ids } = body
+
+    // Validate document_ids
+    if (!Array.isArray(document_ids) || document_ids.length === 0) {
+      return NextResponse.json({ error: 'document_ids must be a non-empty array' }, { status: 400 })
+    }
+
+    if (document_ids.length > 100) {
+      return NextResponse.json({ error: 'Cannot delete more than 100 documents at once' }, { status: 400 })
+    }
+
+    let result
+
+    if (isPermanent) {
+      // Permanent delete - only from trash (is_active = false)
+      result = await pool.query(
+        `DELETE FROM documents
+         WHERE id = ANY($1::int[]) AND is_active = false
+         RETURNING id`,
+        [document_ids]
+      )
+
+      return NextResponse.json({
+        success: true,
+        deleted: result.rowCount,
+        message: `${result.rowCount} document(s) permanently deleted`,
+      })
+    } else {
+      // Soft delete documents
+      result = await pool.query(
+        `UPDATE documents
+         SET is_active = false, deleted_at = NOW()
+         WHERE id = ANY($1::int[]) AND is_active = true
+         RETURNING id`,
+        [document_ids]
+      )
+
+      return NextResponse.json({
+        success: true,
+        deleted: result.rowCount,
+        message: `${result.rowCount} document(s) moved to trash`,
+      })
+    }
+  } catch (error) {
+    console.error('Error in bulk delete:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete documents' },
       { status: 500 }
     )
   }
