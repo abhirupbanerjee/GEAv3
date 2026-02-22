@@ -14,7 +14,7 @@ const navigationItems = [
   { label: 'About', href: '/about', authRequired: null },
   { label: 'Services', href: '/services', authRequired: null },
   { label: 'Feedback', href: '/feedback', authRequired: false },
-  { label: 'Helpdesk', href: '/helpdesk', authRequired: false },
+  { label: 'Helpdesk', href: '/helpdesk', authRequired: null },
 ]
 
 // Default Grenada flag SVG as fallback
