@@ -1116,7 +1116,7 @@ export default function QRCodeManager() {
                   <option key={lt.value} value={lt.value}>{lt.label}</option>
                 ))}
               </select>
-              {!!editingQR ? (
+              {editingQR ? (
                 <FiLock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
               ) : (
                 <FiChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />

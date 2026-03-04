@@ -84,7 +84,7 @@ export default function ChatBot() {
   // Initial fetch on mount
   useEffect(() => {
     fetchChatbotSettings(true) // Initial load
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [])  
 
   // Poll for settings updates every 60 seconds
   useEffect(() => {

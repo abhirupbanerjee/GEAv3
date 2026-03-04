@@ -219,7 +219,7 @@ const insertResult = await executeQuery<TicketCreationResult>(
       [ticketData.priority || 'medium']
     )
     
-    let slaData: {
+    const slaData: {
       target_resolution_time: string | null
       priority: string
       estimated_days: number | null

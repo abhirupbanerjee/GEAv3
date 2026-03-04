@@ -53,7 +53,22 @@ This roadmap outlines the strategic plan for upgrading key technologies in the G
 | **Next.js** | 16.1.2 | 16.1.6 | CVE-2025-55184 | High (DoS in RSC) |
 | **Next.js** | 16.1.2 | 16.1.6 | CVE-2025-55183 | Medium (Source exposure) |
 | **PgBouncer** | v1.23.1-p3 | v1.25.1-p0 | CVE-2025-12819 | Critical (SQL injection) |
+azureuser@gea:~/GEAv3$ # Get exact traefik version
+docker exec traefik traefik version
 
+# Get exact postgres version  
+docker exec feedback_db psql --version
+
+# Get node version from frontend
+docker exec frontend node --version
+Version:      3.6.7
+Codename:     ramequin
+Go version:   go1.24.11
+Built:        2026-01-14T14:04:03Z
+OS/Arch:      linux/amd64
+psql (PostgreSQL) 16.11
+v22.22.0
+azureuser@gea:~/GEAv3$ 
 ### Verification
 - [x] Next.js 16.1.6 deployed and tested
 - [x] PgBouncer v1.25.1-p0 deployed and verified healthy

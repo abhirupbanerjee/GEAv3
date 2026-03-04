@@ -11,6 +11,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getCitizenLoginSettings } from '@/lib/settings';
 import { normalizePhone, isValidE164 } from '@/lib/twilio';
 import { verifyCitizenPassword, performLogin } from '@/lib/citizen-auth';
+import { config } from '@/config/env';
 
 export async function POST(request: NextRequest) {
   try {
@@ -55,7 +56,7 @@ export async function POST(request: NextRequest) {
             error: 'account_blocked',
             message: authResult.message,
             blockReason: authResult.blockReason,
-            contact: 'support@gea.gov.gd',
+            contact: config.SUPPORT_EMAIL,
           },
           { status: 403 }
         );

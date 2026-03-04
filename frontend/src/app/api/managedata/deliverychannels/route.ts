@@ -7,7 +7,7 @@ import { pool } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 // GET - List all delivery channels
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session) {

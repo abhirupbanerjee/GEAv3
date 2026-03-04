@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Check if citizen exists
     let citizen = await findCitizenByPhone(normalizedPhone);
-    let isNewUser = false;
+    const isNewUser = false;
 
     if (!citizen) {
       // Create new citizen record

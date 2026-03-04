@@ -19,10 +19,8 @@ info:
     email: admin@dta.gov.gd
 
 servers:
-  - url: https://gea.abhirup.app
-    description: Production server
   - url: https://gea.gov.gd
-    description: Government production server
+    description: Production server (Government of Grenada)
 
 security:
   - ApiKeyAuth: []

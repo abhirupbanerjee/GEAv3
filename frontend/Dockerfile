@@ -2,7 +2,7 @@
 # STAGE 1: Build Next.js Application
 # ============================================
 
-FROM node:22-alpine AS builder
+FROM node:22.22.0-alpine AS builder
 WORKDIR /app
 
 # Build arguments (existing)
@@ -95,7 +95,7 @@ RUN npm run build
 # ============================================
 # STAGE 2: Production Runtime
 # ============================================
-FROM node:22-alpine AS runner
+FROM node:22.22.0-alpine AS runner
 WORKDIR /app
 
 # Install PostgreSQL client for database backup/restore operations

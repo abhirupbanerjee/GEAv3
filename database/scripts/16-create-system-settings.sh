@@ -222,7 +222,7 @@ WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Email' LIMI
 -- Category: INTEGRATIONS - Chatbot
 INSERT INTO system_settings (setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
 SELECT * FROM (VALUES
-    ('CHATBOT_URL', 'https://policybot.abhirup.app/e/llk3fp4tzqhxihim', 'url', 'INTEGRATIONS', 'Chatbot', 'Chatbot URL', 'URL for the embedded chatbot widget', '', true, 10),
+    ('CHATBOT_URL', '', 'url', 'INTEGRATIONS', 'Chatbot', 'Chatbot URL', 'URL for the embedded chatbot widget (configure in Admin Portal)', '', true, 10),
     ('CHATBOT_ENABLED', 'true', 'boolean', 'INTEGRATIONS', 'Chatbot', 'Enable Chatbot', 'Show the chatbot widget on the portal', 'true', true, 11)
 ) AS v(setting_key, setting_value, setting_type, category, subcategory, display_name, description, default_value, is_runtime, sort_order)
 WHERE NOT EXISTS (SELECT 1 FROM system_settings WHERE subcategory = 'Chatbot' LIMIT 1);

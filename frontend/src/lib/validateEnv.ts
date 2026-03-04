@@ -40,8 +40,6 @@ export function validateEnvironment() {
     console.warn('⚠️ Optional features disabled (missing env vars):', missingOptional);
   }
 
-  console.log('✅ Environment validation passed');
-
   // Return config for use in app
   return config;
 }

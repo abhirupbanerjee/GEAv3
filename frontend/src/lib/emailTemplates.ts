@@ -3,6 +3,8 @@
 // Email Templates for Phase 2b
 // ============================================
 
+import { config } from '@/config/env';
+
 export function getGrievanceConfirmationEmail(
   ticketNumber: string,
   serviceName: string,
@@ -242,7 +244,7 @@ export function getFeedbackSubmittedTemplate(
             
             <div class="footer">
               <p>This is an automated message from the Government of Grenada Enterprise Architecture Portal.</p>
-              <p>If you have urgent questions, please contact: alerts.dtahelpdesk@gmail.com</p>
+              <p>If you have urgent questions, please contact: ${config.SUPPORT_EMAIL}</p>
               <p style="margin-top: 20px; color: #9ca3af;">© Government of Grenada - All Rights Reserved</p>
             </div>
           </div>
@@ -339,7 +341,7 @@ export function getServiceRequestStatusChangeEmail(
 
             <div class="footer">
               <p>This is an automated notification. Please do not reply to this email.</p>
-              <p>For assistance, contact: alerts.dtahelpdesk@gmail.com</p>
+              <p>For assistance, contact: ${config.SUPPORT_EMAIL}</p>
               <p style="margin-top: 20px; color: #9ca3af;">© Government of Grenada - All Rights Reserved</p>
             </div>
           </div>

@@ -21,7 +21,8 @@ entryPoints:
 certificatesResolvers:
   letsencrypt:
     acme:
-      email: mailabhirupbanerjee@gmail.com
+      # IMPORTANT: Change this to your admin email for Let's Encrypt certificate notifications
+      email: admin@gov.gd
       storage: /acme/acme.json
       httpChallenge:
         entryPoint: web

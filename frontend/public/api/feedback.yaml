@@ -5,8 +5,8 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://gea.abhirup.app
-    description: Production
+  - url: https://gea.gov.gd
+    description: Production (Government of Grenada)
 
 security:
   - ApiKeyAuth: []

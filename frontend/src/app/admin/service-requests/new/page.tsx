@@ -242,11 +242,6 @@ export default function NewServiceRequestPage() {
           .split(',')
           .map((ext) => ext.trim().toLowerCase());
 
-        // Debug logging
-        console.log('File extension:', fileExt);
-        console.log('Allowed extensions:', allowedExtensions);
-        console.log('Match found:', allowedExtensions.includes(fileExt));
-
         // Check if file extension is allowed (compare without dots)
         if (!allowedExtensions.includes(fileExt)) {
           alert(

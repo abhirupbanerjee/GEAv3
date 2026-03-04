@@ -7,7 +7,7 @@ import { pool } from '@/lib/db'
 export const dynamic = 'force-dynamic'
 
 // GET - List all life events
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions)

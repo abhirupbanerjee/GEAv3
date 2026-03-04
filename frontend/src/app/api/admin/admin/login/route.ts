@@ -24,7 +24,6 @@ export async function POST(request: NextRequest) {
     const isValid = await verifyPassword(password)
 
     if (!isValid) {
-      console.log('[Login API] Invalid password attempt')
       return NextResponse.json(
         { error: 'Invalid password' },
         { status: 401 }
@@ -33,9 +32,7 @@ export async function POST(request: NextRequest) {
 
     // Create session
     await createSession()
-    
-    console.log('[Login API] Login successful, session created')
-    
+
     return NextResponse.json(
       { success: true },
       { status: 200 }

@@ -197,7 +197,7 @@ export function validateFolderName(name: string): { valid: boolean; error?: stri
   }
 
   // Allow letters, numbers, spaces, and hyphens only
-  if (!/^[a-zA-Z0-9\s\-]+$/.test(name)) {
+  if (!/^[a-zA-Z0-9\s-]+$/.test(name)) {
     return {
       valid: false,
       error: 'Folder name can only contain letters, numbers, spaces, and hyphens',

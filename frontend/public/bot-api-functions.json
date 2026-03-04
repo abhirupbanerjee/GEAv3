@@ -212,7 +212,7 @@
       ]
     }
   ],
-  "api_base_url": "https://gea.abhirup.app/api/external",
+  "api_base_url": "https://gea.gov.gd/api/external",
   "authentication": {
     "type": "api_key",
     "header": "X-API-Key"

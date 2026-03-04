@@ -33,6 +33,7 @@ import { FcGoogle } from 'react-icons/fc';
 import { FiPhone, FiLock, FiUser, FiMail, FiArrowLeft, FiCheck, FiEye, FiEyeOff } from 'react-icons/fi';
 import PhoneInput from '@/components/citizen/PhoneInput';
 import OtpInput from '@/components/citizen/OtpInput';
+import { clientEnv } from '@/config/env-client';
 
 type CitizenStep = 'phone' | 'otp' | 'register' | 'password';
 type LoginMethod = 'otp' | 'password';
@@ -292,7 +293,7 @@ function SignInContent() {
           setBlockedInfo({
             blocked: true,
             reason: data.blockReason || 'Your account has been blocked.',
-            contact: data.contact || 'support@gea.gov.gd',
+            contact: data.contact || clientEnv.supportEmail,
           });
           return;
         }

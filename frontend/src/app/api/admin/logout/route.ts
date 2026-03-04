@@ -11,9 +11,7 @@ import { destroySession } from '@/lib/admin-auth'
 export async function POST() {
   try {
     await destroySession()
-    
-    console.log('[Logout API] Session destroyed')
-    
+
     return NextResponse.json(
       { success: true },
       { status: 200 }

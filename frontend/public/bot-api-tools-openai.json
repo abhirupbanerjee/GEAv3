@@ -140,7 +140,7 @@
     }
   ],
   "api_config": {
-    "base_url": "https://gea.abhirup.app/api/external",
+    "base_url": "https://gea.gov.gd/api/external",
     "auth_header": "X-API-Key",
     "endpoint_mappings": {
       "get_dashboard_stats": { "method": "GET", "path": "/dashboard" },

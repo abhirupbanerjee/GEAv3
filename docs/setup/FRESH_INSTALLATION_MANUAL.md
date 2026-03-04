@@ -2,8 +2,8 @@
 
 **Complete Step-by-Step Guide for First-Time Installation**
 
-**Version:** 1.4
-**Last Updated:** February 22, 2026
+**Version:** 1.5
+**Last Updated:** February 28, 2026
 **Status:** Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3
 
@@ -22,7 +22,9 @@
    - [Step 5: Configure DNS](#step-5-configure-dns)
    - [Step 6: Build and Deploy](#step-6-build-and-deploy)
    - [Step 7: Initialize Database](#step-7-initialize-database)
+   - [Step 7.5: Seed Lookup Tables](#step-75-seed-lookup-tables)
    - [Step 8: Load Master Data Only](#step-8-load-master-data-only)
+   - [Step 8.5: Update Services with Life Events](#step-85-update-services-with-life-events-and-delivery-channels)
    - [Step 9: Create Admin User](#step-9-create-admin-user)
    - [Step 10: Verify Deployment](#step-10-verify-deployment)
 5. [Post-Installation Configuration](#post-installation-configuration)
@@ -37,7 +39,7 @@ This manual provides complete instructions for performing a **fresh installation
 
 ✅ Set up all infrastructure components (Docker, PostgreSQL, Next.js, Traefik)
 ✅ Initialize the database schema (44 tables, 60+ indexes)
-✅ Load **master data only** (entities, services, service attachments)
+✅ Load **master data only** (68 entities, 172 services, 181 service attachments)
 ✅ Load **system settings** (75 configurable admin settings)
 ✅ Create initial admin user(s)
 ✅ Configure OAuth authentication
@@ -299,12 +301,14 @@ Docker Compose version v5.0.x
 
 #### EOL Information
 
-| Component | Version | Support Status |
-|-----------|---------|----------------|
-| Docker 29.x | Current | ✅ Actively supported |
-| Docker 28.x | EOL | ❌ EOL since Nov 2025 |
-| Docker 27.x | EOL | ❌ EOL since early 2025 |
-| Traefik v3.6 | Current | ✅ Latest minor, actively supported |
+| Component | Version | Tag/Image | Support Status |
+|-----------|---------|-----------|----------------|
+| Docker 29.x | Current | - | ✅ Actively supported |
+| Traefik | 3.6.7 | `traefik:v3.6.7` | ✅ Pinned |
+| PostgreSQL | 16.11 | `postgres:16.11-alpine` | ✅ Pinned |
+| Node.js | 22.22.0 | `node:22.22.0-alpine` | ✅ Pinned |
+| Redis | 7.4.4 | `redis:7.4.4-alpine` | ✅ Pinned |
+| PgBouncer | 1.25.1 | `edoburu/pgbouncer:v1.25.1-p0` | ✅ Pinned |
 
 ```bash
 # Test Docker
@@ -409,6 +413,10 @@ openssl rand -base64 32
 # Generate external API key (copy this output)
 echo "=== EXTERNAL API KEY ==="
 openssl rand -hex 32
+
+# Generate IP salt for rate limiting (copy this output)
+echo "=== IP SALT ==="
+openssl rand -hex 16
 ```
 
 **Save these generated values** - you'll need them in the next step.
@@ -522,13 +530,20 @@ EXTERNAL_API_KEY=<paste-your-external-api-key>        # OPTIONAL
 # Leave empty to disable external API access
 ```
 
+##### I. Security Configuration (REQUIRED)
+
+```bash
+# IP salt for rate limiting (paste generated salt from step 4.2)
+IP_SALT=<paste-your-generated-ip-salt>                    # REQUIRED
+```
+
 ##### J. File Upload and Rate Limiting (Keep Defaults)
 
 ```bash
 # File upload limits
-MAX_FILE_SIZE=5242880                    # 5MB per file
-MAX_TOTAL_UPLOAD_SIZE=26214400          # 25MB total per submission
-ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,gif,doc,docx,xls,xlsx
+MAX_FILE_SIZE=10097152                   # 10MB per file
+MAX_TOTAL_UPLOAD_SIZE=50242880          # 50MB total per submission
+ALLOWED_FILE_TYPES=pdf,jpg,jpeg,png,doc,docx,xlsx,xls
 
 # Rate limiting (submissions per hour per IP)
 FEEDBACK_RATE_LIMIT=60
@@ -638,10 +653,12 @@ sleep 15
 
 **Expected output:**
 ```
-[+] Running 4/4
+[+] Running 6/6
  ✔ Network geav3_network    Created
  ✔ Container traefik        Started
  ✔ Container feedback_db    Started
+ ✔ Container redis          Started
+ ✔ Container pgbouncer      Started
  ✔ Container frontend       Started
 ```
 
@@ -657,10 +674,15 @@ docker compose ps
 NAME          STATUS                    PORTS
 frontend      Up X minutes              3000/tcp
 feedback_db   Up X minutes (healthy)    5432/tcp
+redis         Up X minutes (healthy)    6379/tcp
+pgbouncer     Up X minutes (healthy)    5432/tcp
 traefik       Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
 ```
 
-All containers should show **"Up"** status. Database should show **"(healthy)"**.
+All containers should show **"Up"** status with health checks:
+- `feedback_db`: (healthy) - PostgreSQL ready to accept connections
+- `redis`: (healthy) - Redis cache operational
+- `pgbouncer`: (healthy) - Connection pool ready
 
 #### 6.4 Monitor Logs
 
@@ -781,6 +803,36 @@ UNION ALL SELECT 'user_roles', COUNT(*) FROM user_roles;
 
 ---
 
+### Step 7.5: Seed Lookup Tables
+
+Before loading master data, seed the lookup tables required for service catalog features (life events, delivery channels, etc.).
+
+#### 7.5.1 Run Lookup Table Scripts
+
+```bash
+# Navigate to database scripts directory
+cd ~/GEAv3/database/scripts
+
+# Seed life events and service categories
+./29-create-categories-and-lifeevents-tables.sh
+
+# Seed delivery channels and service consumers
+./30-create-delivery-channels-and-service-consumers.sh
+```
+
+**Expected counts after running:**
+
+| Lookup Table | Count |
+|--------------|-------|
+| life_events | 29 |
+| service_categories | 53 |
+| delivery_channels | 9 |
+| service_consumers | 7 |
+
+**Note:** These lookup tables must be seeded before Step 8 (Load Master Data). Without them, services will have empty life_events[], delivery_channel[], and target_consumers[] arrays.
+
+---
+
 ### Step 8: Load Master Data Only
 
 This step loads **only master data** (entities, services, service attachments). No feedback, grievances, or tickets will be loaded.
@@ -818,7 +870,7 @@ The `--clear` flag ensures any sample data is removed before loading production 
   ✓ Loaded 68 entities from CSV
 
 ▶ Step 4: Loading service_master...
-  ✓ Loaded 169 services from CSV
+  ✓ Loaded 172 services from CSV
 
 ▶ Step 5: Loading service_attachments...
   ✓ Loaded 181 attachment requirements from CSV
@@ -833,7 +885,7 @@ The `--clear` flag ensures any sample data is removed before loading production 
 
 Record counts:
   Entities: 68
-  Services: 169
+  Services: 172
   Service Attachments: 181
 
 ✓ MASTER DATA LOAD COMPLETE
@@ -855,7 +907,7 @@ cd ~/GEAv3/database/scripts
 
 ✓ Master Data Counts:
   Entities: 68
-  Services: 169
+  Services: 172
   Service Attachments: 181
 
 ✓ Entity Types Distribution:
@@ -895,6 +947,34 @@ UNION ALL SELECT 'EA Service Requests', COUNT(*) FROM ea_service_requests;
 ```
 
 All counts should be **0** (zero).
+
+---
+
+### Step 8.5: Update Services with Life Events and Delivery Channels
+
+After loading the base master data, update services with life events, delivery channels, and target consumers.
+
+```bash
+# Navigate to database scripts directory
+cd ~/GEAv3/database/scripts
+
+# Update services with life events and delivery channels
+./31-update-service-master-data.sh
+```
+
+**Expected output:**
+```
+╔═══════════════════════════════════════════════════════════════════╗
+║   GEA PORTAL - UPDATE SERVICE MASTER DATA                         ║
+╚═══════════════════════════════════════════════════════════════════╝
+
+▶ Updating services with life events, delivery channels, and target consumers...
+  ✓ Updated 168 services with enriched data
+
+✓ SERVICE DATA UPDATE COMPLETE
+```
+
+**Note:** This step populates the life_events[], delivery_channel[], and target_consumers[] arrays for services using the lookup tables seeded in Step 7.5.
 
 ---
 
@@ -1070,7 +1150,7 @@ If successful, you should see:
 2. Navigate to **Azure Active Directory** → **App registrations**
 3. Click **New registration**
 4. Name: `GEA Portal`
-5. Redirect URI: `https://gea.your-domain.com/api/auth/callback/azure-ad`
+5. Redirect URI: `https://gea.your-domain.com/api/auth/callback/microsoft-entra-id`
 6. Register the application
 7. Go to **Certificates & secrets** → Create new client secret
 8. Copy **Application (client) ID**, **Client Secret**, and **Directory (tenant) ID**
@@ -1082,7 +1162,116 @@ If successful, you should see:
    ```
 10. Restart frontend container
 
-### 2. Configure Automated Backups
+### 2. Configure Citizen Portal (Optional)
+
+If you want to allow citizens to login via phone number (SMS OTP):
+
+#### 2.1 Enable Citizen Login
+
+1. Navigate to **Admin Portal** → **Settings** → **Authentication** → **Citizen Login**
+2. Toggle **"Enable Citizen Login"** to ON
+
+#### 2.2 Configure Twilio SMS
+
+1. Sign up at [Twilio](https://www.twilio.com/)
+2. Create a **Verify Service** in Twilio Console:
+   - Go to: https://console.twilio.com/us1/develop/verify/services
+   - Click "Create Service"
+   - Name it (e.g., "GEA Portal")
+   - Copy the **Service SID** (starts with `VA`)
+3. Add credentials in Admin Portal → Settings → Authentication:
+   - **Twilio Account SID** (starts with `AC`) - found in Twilio Console dashboard
+   - **Twilio Auth Token** - found in Twilio Console dashboard
+   - **Twilio Verify Service SID** (starts with `VA`)
+
+#### 2.3 Configure Allowed Countries
+
+- Default: Grenada (+1-473)
+- Optionally enable other Caribbean or international numbers in Admin Settings
+
+**Note:** Citizen login is **disabled by default**. When enabled, citizens can:
+- Register with phone number + OTP verification
+- Login with OTP (first time) or password (returning users)
+- Access citizen-specific portal features
+
+### 3. Update Default Email Addresses
+
+> **IMPORTANT:** The database initialization scripts create system settings with default placeholder email addresses. These must be updated after installation.
+
+#### 3.1 Update via Admin Portal (Online - No Restart Required)
+
+Login to Admin Portal at `https://gea.your-domain.com/admin` and navigate to:
+
+**Settings → Contact:**
+| Setting | Default Value | Update To |
+|---------|---------------|-----------|
+| Service Admin Email | `alerts.dtahelpdesk@gmail.com` | Your admin notification email |
+| About Page Contact Email | `gogdtaservices@gmail.com` | Your public contact email |
+
+**Settings → Email (if SendGrid configured):**
+| Setting | Default Value | Update To |
+|---------|---------------|-----------|
+| Sender Email | `alerts.dtahelpdesk@gmail.com` | Your verified SendGrid sender |
+
+#### 3.2 Update Backend Files (Server - Requires Restart)
+
+These files contain hardcoded defaults and should be updated on the server:
+
+**Let's Encrypt Email** - `~/GEAv3/traefik.yml` line 25:
+```bash
+nano ~/GEAv3/traefik.yml
+# Change: email: admin@gov.gd
+# To: email: your-admin@your-domain.com
+docker compose restart traefik
+```
+
+**Support Email in .env** - `~/GEAv3/.env`:
+```bash
+nano ~/GEAv3/.env
+# Add/update:
+SUPPORT_EMAIL=support@your-domain.com
+NEXT_PUBLIC_SUPPORT_EMAIL=support@your-domain.com
+docker compose restart frontend
+```
+
+#### 3.3 Database Script Defaults (Reference Only)
+
+These files contain default values used during initial database setup. They do NOT need to be changed after installation (use Admin Portal instead), but are listed here for reference:
+
+| File | Default Emails | Purpose |
+|------|----------------|---------|
+| `database/scripts/16-create-system-settings.sh` | `alerts.dtahelpdesk@gmail.com`, `gogdtaservices@gmail.com` | Initial system settings |
+| `database/scripts/05-add-initial-admin.sh` | `gogdtaservices@gmail.com` | Default admin email (script prompts for override) |
+
+### 4. Hardcoded Domain: gea.gov.gd
+
+> **Note:** The domain `gea.gov.gd` is hardcoded in certain files. This is intentional because it is the **final production domain** for the Government of Grenada EA Portal.
+
+#### Why is it hardcoded?
+
+1. **OpenAPI/Bot API specs** are publicly served static files that external chatbots and integrations fetch directly - they need the actual production URL, not environment variables
+2. **Fallback values** in code provide sensible defaults when environment variables aren't set
+3. This is a **single-deployment government system** - the domain will not change
+
+#### If You Need to Change the Domain (Future Reference)
+
+If deploying to a different domain, update these files:
+
+| Location | File(s) | What to Change |
+|----------|---------|----------------|
+| **OpenAPI Specs** | `frontend/public/api/*.yaml` | `servers.url` field |
+| **Bot API Specs** | `frontend/public/bot-api-*.json` | `base_url` field |
+| **Main OpenAPI** | `frontend/public/openapi.yaml` | `servers.url` field |
+| **Client Config** | `frontend/src/config/env-client.ts` | Fallback URLs (lines 12, 21, 28, 31) |
+| **User Manuals** | `docs/user-manuals/*.md` | URL references |
+
+After changing these files, rebuild the frontend:
+```bash
+docker compose build frontend
+docker compose up -d frontend
+```
+
+### 5. Configure Automated Backups
 
 ```bash
 # Create backup directory
@@ -1126,7 +1315,7 @@ crontab -e
 0 2 * * * /home/$(whoami)/backup-gea.sh >> /home/$(whoami)/backup.log 2>&1
 ```
 
-### 3. Configure Monitoring (Optional)
+### 6. Configure Monitoring (Optional)
 
 ```bash
 # Create monitoring script
@@ -1162,7 +1351,7 @@ chmod +x ~/monitor-gea.sh
 ~/monitor-gea.sh
 ```
 
-### 4. Set Up Log Rotation
+### 7. Set Up Log Rotation
 
 ```bash
 # Create logrotate configuration
@@ -1182,7 +1371,7 @@ EOF
 sudo logrotate -f /etc/logrotate.d/gea-portal
 ```
 
-### 5. Enable System Monitoring
+### 8. Enable System Monitoring
 
 ```bash
 # Install htop for system monitoring
@@ -1416,18 +1605,23 @@ docker compose restart frontend
 | `GOOGLE_CLIENT_SECRET` | Yes | Google OAuth secret | `<from Google>` |
 | `ADMIN_PASSWORD` | Yes | Admin login password | `<strong password>` |
 | `ADMIN_SESSION_SECRET` | Yes | Admin session encryption | `<generated>` |
+| `IP_SALT` | Yes | Salt for IP hashing (rate limiting) | `<generated>` |
 | `EXTERNAL_API_KEY` | No | External API access | `<generated or empty>` |
 
 > **Note:** SendGrid variables are optional. When not configured, email notifications are disabled but the application works normally.
 
 ### Appendix B: Database Schema Overview
 
-**33 Tables Organized by Category:**
+**44 Tables Organized by Category:**
 
-**Master Data (7 tables):**
+**Master Data (11 tables):**
 - `entity_master` - Government entities (68 entities)
-- `service_master` - Government services (169 services)
+- `service_master` - Government services (172 services)
 - `service_attachments` - Document requirements (181 attachments)
+- `life_events` - Life event categories (29 events)
+- `service_categories` - Service categorization (53 categories)
+- `delivery_channels` - Service delivery methods (9 channels)
+- `service_consumers` - Target consumer types (7 types)
 - `priority_levels` - Priority definitions
 - `ticket_status` - Ticket workflow states
 - `ticket_categories` - Ticket categorization
@@ -1453,7 +1647,7 @@ docker compose restart frontend
 - `user_audit_log` - User activity audit
 
 **Admin Settings (3 tables):**
-- `system_settings` - Admin-configurable application settings (~40 settings)
+- `system_settings` - Admin-configurable application settings (75 settings)
 - `settings_audit_log` - Settings change history
 - `leadership_contacts` - Dynamic leadership contacts for About page
 
@@ -1553,18 +1747,30 @@ SELECT pg_size_pretty(pg_database_size('feedback'));
 | Docker volumes | `/var/lib/docker/volumes/` | Persistent data |
 | Container logs | `/var/lib/docker/containers/` | Application logs |
 
-### Appendix F: Port Mappings
+### Appendix F: Docker Volumes
+
+| Volume | Purpose |
+|--------|---------|
+| `feedback_db_data` | PostgreSQL data persistence |
+| `redis_data` | Redis cache persistence |
+| `traefik_acme` | Let's Encrypt SSL certificates |
+| `gea_backups` | Database backup storage |
+| `documents_data` | Document repository uploads |
+
+### Appendix G: Port Mappings
 
 | Service | Internal Port | External Port | Protocol | Purpose |
 |---------|---------------|---------------|----------|---------|
 | Traefik | - | 80 | HTTP | HTTP → HTTPS redirect |
 | Traefik | - | 443 | HTTPS | SSL termination |
 | Frontend | 3000 | - | HTTP | Next.js application |
-| PostgreSQL | 5432 | - | TCP | Database access |
+| PostgreSQL | 5432 | - | TCP | Database (direct access) |
+| PgBouncer | 5432 | - | TCP | Connection pooler |
+| Redis | 6379 | - | TCP | Cache server |
 
 All services communicate via the `geav3_network` Docker bridge network.
 
-### Appendix G: Security Checklist
+### Appendix H: Security Checklist
 
 Post-installation security review:
 
@@ -1579,7 +1785,7 @@ Post-installation security review:
 - [ ] System updates configured (unattended-upgrades)
 - [ ] Admin users use strong OAuth accounts
 - [ ] SendGrid API key has minimal required permissions
-- [ ] Rate limiting configured (default: 3-5 per hour)
+- [ ] Rate limiting configured (default: 60/hour feedback/grievance, 10/hour EA)
 - [ ] External API key secured (if enabled)
 - [ ] Docker containers run as non-root users
 
@@ -1645,13 +1851,22 @@ After completing the fresh installation:
 
 ---
 
-**Document Version:** 1.3
-**Last Updated:** February 22, 2026
+**Document Version:** 1.5
+**Last Updated:** February 28, 2026
 **Status:** Production Ready
 **Maintained By:** GEA Portal Development Team
 
 **Change Log:**
-- v1.4 (Feb 22, 2026): Synced with production (44 tables, 75 settings, 68 entities, 169 services, 181 attachments)
+- v1.5 (Feb 28, 2026):
+  - Pinned Docker versions (Traefik 3.6.7, PostgreSQL 16.11, Node.js 22.22.0)
+  - Added redis and pgbouncer service documentation
+  - Added Steps 7.5 (seed lookup tables) and 8.5 (update service data)
+  - Added Citizen Portal authentication (Twilio SMS OTP)
+  - Updated service count (169→172), file limits (10MB/50MB)
+  - Added volume mounts appendix
+  - Added Section 3 (Post-Installation): Update default email addresses (Admin Portal + backend files)
+  - Added Section 4 (Post-Installation): Hardcoded domain explanation and change guide
+- v1.4 (Feb 22, 2026): Synced with production (44 tables, 75 settings, 68 entities, 172 services, 181 attachments)
 - v1.3 (Feb 22, 2026): Updated PostgreSQL 15→16, updated settings count (40→53), added Public Helpdesk toggle feature
 - v1.2 (Jan 19, 2026): Updated VM requirements to 8GB RAM minimum, added Premium SSD recommendations, noted D-series for consistent performance
 - v1.1 (Jan 14, 2026): Initial production manual

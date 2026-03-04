@@ -9,24 +9,27 @@
 
 export const clientEnv = {
   // Base URLs
-  frontendUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://gea.abhirup.app',
-  
+  frontendUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://gea.gov.gd',
+
   // Site Information
   siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'Government of Grenada - EA Portal',
   siteShortName: process.env.NEXT_PUBLIC_SITE_SHORT_NAME || 'Government of Grenada',
-  
+
   // Feedback URLs
-  feedbackQRBaseUrl: process.env.NEXT_PUBLIC_FRONTEND_URL 
+  feedbackQRBaseUrl: process.env.NEXT_PUBLIC_FRONTEND_URL
     ? `${process.env.NEXT_PUBLIC_FRONTEND_URL}/feedback/qr`
-    : 'https://gea.abhirup.app/feedback/qr',
-  
+    : 'https://gea.gov.gd/feedback/qr',
+
   // Environment
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',
-  
-  // Domain info (useful for .gov.gd migration)
-  domain: process.env.NEXT_PUBLIC_BASE_DOMAIN || 'abhirup.app',
-  
+
+  // Domain info
+  domain: process.env.NEXT_PUBLIC_BASE_DOMAIN || 'gov.gd',
+
+  // Contact Info
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@gov.gd',
+
 } as const
 
 // Helper function to generate QR feedback URL

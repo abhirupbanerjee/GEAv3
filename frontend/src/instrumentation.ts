@@ -10,22 +10,16 @@
 export async function register() {
   // Only run on Node.js server (not edge runtime)
   if (process.env.NEXT_RUNTIME === 'nodejs') {
-    console.log('[Instrumentation] Server starting up...')
-
     try {
       // Dynamic import to ensure this only runs server-side
       const { initBackupScheduler } = await import('./lib/backup-scheduler')
       const { ensureBackupDir } = await import('./lib/backup')
 
       // Ensure backup directory exists
-      console.log('[Instrumentation] Ensuring backup directory exists...')
       ensureBackupDir()
 
       // Initialize backup scheduler
-      console.log('[Instrumentation] Initializing backup scheduler...')
       await initBackupScheduler()
-
-      console.log('[Instrumentation] Server initialization complete')
     } catch (error) {
       // Log error but don't crash the server if scheduler fails
       console.error('[Instrumentation] Failed to initialize backup scheduler:', error)
