@@ -37,6 +37,7 @@ ARG ALLOWED_FILE_TYPES
 ARG EA_SERVICE_RATE_LIMIT
 ARG GRIEVANCE_RATE_LIMIT
 ARG API_BASE_URL
+ARG SUPPORT_EMAIL
 ARG NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID=AGY-005
 ARG NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME="Digital Transformation Agency"
 
@@ -75,6 +76,7 @@ RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
     echo "  SENDGRID_FROM_EMAIL: '${SENDGRID_FROM_EMAIL}'," >> src/config/env.ts && \
     echo "  SENDGRID_FROM_NAME: '${SENDGRID_FROM_NAME}'," >> src/config/env.ts && \
     echo "  SERVICE_ADMIN_EMAIL: '${SERVICE_ADMIN_EMAIL}'," >> src/config/env.ts && \
+    echo "  SUPPORT_EMAIL: '${SUPPORT_EMAIL}'," >> src/config/env.ts && \
     echo "  MAX_FILE_SIZE: ${MAX_FILE_SIZE}," >> src/config/env.ts && \
     echo "  MAX_TOTAL_UPLOAD_SIZE: ${MAX_TOTAL_UPLOAD_SIZE}," >> src/config/env.ts && \
     echo "  ALLOWED_FILE_TYPES: '${ALLOWED_FILE_TYPES}'," >> src/config/env.ts && \

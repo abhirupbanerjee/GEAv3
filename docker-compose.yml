@@ -124,6 +124,7 @@ services:
         
         # NEW - Phase 2b: Service Admin
         - SERVICE_ADMIN_EMAIL=${SERVICE_ADMIN_EMAIL}
+        - SUPPORT_EMAIL=${SUPPORT_EMAIL}
         
         # NEW - Phase 2b: File Upload
         - MAX_FILE_SIZE=${MAX_FILE_SIZE}
