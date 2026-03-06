@@ -1,4 +1,5 @@
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 import './globals.css'
 import Header from '@/components/layout/Header'
 import Footer from '@/components/layout/Footer'
@@ -43,13 +44,19 @@ export async function generateMetadata(): Promise<Metadata> {
   }
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const headersList = await headers()
+  const nonce = headersList.get('x-nonce') || ''
+
   return (
     <html lang="en">
+      <head>
+        <meta name="csp-nonce" content={nonce} />
+      </head>
       <body>
         <DynamicFavicon />
         <SessionProvider>

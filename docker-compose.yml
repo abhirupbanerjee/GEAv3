@@ -204,6 +204,13 @@ services:
       - "traefik.http.routers.frontend.tls.certresolver=letsencrypt"
       - "traefik.http.services.frontend.loadbalancer.server.port=3000"
 
+      # HSTS - Strict Transport Security (set at TLS termination point)
+      - "traefik.http.middlewares.security-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.security-headers.headers.stsIncludeSubdomains=true"
+      - "traefik.http.middlewares.security-headers.headers.stsPreload=true"
+      - "traefik.http.middlewares.security-headers.headers.forceSTSHeader=true"
+      - "traefik.http.routers.frontend.middlewares=security-headers"
+
       # Rate limiting for external API (100 requests/hour with burst of 20)
       - "traefik.http.middlewares.external-api-ratelimit.ratelimit.average=100"
       - "traefik.http.middlewares.external-api-ratelimit.ratelimit.burst=20"
@@ -213,7 +220,7 @@ services:
       - "traefik.http.routers.external-api.rule=Host(`${FRONTEND_DOMAIN}`) && PathPrefix(`/api/external/`)"
       - "traefik.http.routers.external-api.entrypoints=websecure"
       - "traefik.http.routers.external-api.tls.certresolver=letsencrypt"
-      - "traefik.http.routers.external-api.middlewares=external-api-ratelimit"
+      - "traefik.http.routers.external-api.middlewares=external-api-ratelimit,security-headers"
       - "traefik.http.routers.external-api.service=frontend"
       - "traefik.http.routers.external-api.priority=200"
 

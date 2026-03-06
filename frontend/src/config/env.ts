@@ -38,6 +38,6 @@ export const config = {
 
   // Contact Info
   ABOUT_CONTACT_EMAIL: process.env.NEXT_PUBLIC_ABOUT_CONTACT_EMAIL || 'contact@example.com',
-  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || 'support@gov.gd',
+  SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || 'support@abhirup.app',
   COPYRIGHT_YEAR: process.env.NEXT_PUBLIC_COPYRIGHT_YEAR || new Date().getFullYear().toString(),
 }

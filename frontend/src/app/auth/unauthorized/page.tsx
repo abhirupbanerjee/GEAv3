@@ -99,10 +99,10 @@ function UnauthorizedContent() {
                   <span>
                     <strong>Contact your administrator</strong> at{' '}
                     <a
-                      href="mailto:admin@dta.gov.gd"
+                      href="mailto:admin@dta.abhirup.app"
                       className="text-blue-600 hover:text-blue-700 underline"
                     >
-                      admin@dta.gov.gd
+                      admin@dta.abhirup.app
                     </a>{' '}
                     to request access
                   </span>
@@ -165,10 +165,10 @@ function UnauthorizedContent() {
                 <br />
                 Email:{' '}
                 <a
-                  href="mailto:admin@dta.gov.gd"
+                  href="mailto:admin@dta.abhirup.app"
                   className="underline hover:text-blue-900"
                 >
-                  admin@dta.gov.gd
+                  admin@dta.abhirup.app
                 </a>
               </p>
             </div>

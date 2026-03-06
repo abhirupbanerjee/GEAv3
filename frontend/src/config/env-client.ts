@@ -9,7 +9,7 @@
 
 export const clientEnv = {
   // Base URLs
-  frontendUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://gea.gov.gd',
+  frontendUrl: process.env.NEXT_PUBLIC_FRONTEND_URL || 'https://gea.abhirup.app',
 
   // Site Information
   siteName: process.env.NEXT_PUBLIC_SITE_NAME || 'Government of Grenada - EA Portal',
@@ -18,17 +18,17 @@ export const clientEnv = {
   // Feedback URLs
   feedbackQRBaseUrl: process.env.NEXT_PUBLIC_FRONTEND_URL
     ? `${process.env.NEXT_PUBLIC_FRONTEND_URL}/feedback/qr`
-    : 'https://gea.gov.gd/feedback/qr',
+    : 'https://gea.abhirup.app/feedback/qr',
 
   // Environment
   isDevelopment: process.env.NODE_ENV === 'development',
   isProduction: process.env.NODE_ENV === 'production',
 
   // Domain info
-  domain: process.env.NEXT_PUBLIC_BASE_DOMAIN || 'gov.gd',
+  domain: process.env.NEXT_PUBLIC_BASE_DOMAIN || 'abhirup.app',
 
   // Contact Info
-  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@gov.gd',
+  supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL || 'support@abhirup.app',
 
 } as const
 

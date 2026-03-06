@@ -16,10 +16,10 @@ info:
   version: 1.0.0
   contact:
     name: Digital Transformation Agency
-    email: admin@dta.gov.gd
+    email: admin@dta.abhirup.app
 
 servers:
-  - url: https://gea.gov.gd
+  - url: https://gea.abhirup.app
     description: Production server (Government of Grenada)
 
 security:
