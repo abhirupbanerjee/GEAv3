@@ -32,7 +32,7 @@ export default function ChatBot() {
   const containerRef = useRef<HTMLDivElement>(null)
   const resizeStartPos = useRef({ x: 0, y: 0, width: 0, height: 0 })
   const pathname = usePathname()
-  const { context } = useChatContext()
+  const { getContext } = useChatContext()
 
   // Fetch chatbot settings from API with cache busting
   const fetchChatbotSettings = useCallback((isInitialLoad = false) => {
@@ -204,25 +204,26 @@ export default function ChatBot() {
   }, [size, isResizing])
 
   // ──────────────────────────────────────────────────────────────────────────
-  // Send context when iframe loads or context changes
+  // Send current context when iframe loads or chatbot opens
+  // (Ongoing context updates are handled by ChatContextProvider directly)
   // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     if (isOpen && iframeLoaded && iframeRef.current?.contentWindow && chatbotSettings.url) {
       const message = {
         type: 'CONTEXT_UPDATE',
-        context: context,
+        context: getContext(),
       }
 
       try {
         const botOrigin = new URL(chatbotSettings.url).origin
         iframeRef.current.contentWindow.postMessage(message, botOrigin)
-        console.log('[ChatBot] Sent context on load/change')
+        console.log('[ChatBot] Sent context on load')
       } catch (error) {
         console.error('[ChatBot] Failed to send context:', error)
       }
     }
-  }, [isOpen, iframeLoaded, context, chatbotSettings.url])
+  }, [isOpen, iframeLoaded, getContext, chatbotSettings.url])
 
   // ──────────────────────────────────────────────────────────────────────────
   // Handle iframe load

@@ -7,7 +7,7 @@
  *   - Welcome message and portal introduction
  *   - Quick access links to key administrative functions
  *   - Quick stats cards showing system overview metrics
- *   - Navigation to Analytics, Master Data, Tickets, and AI Bots
+ *   - Navigation to Analytics, Master Data, and Tickets
  * @tips
  *   - This is your home base after logging in to the admin portal
  *   - Quick stats provide real-time system health overview
@@ -18,7 +18,6 @@
  *   - /admin/managedata: Master Data - Manage entities, services, and QR codes
  *   - /admin/service-requests: Service Requests - View and manage EA service requests
  *   - /admin/tickets: Tickets - View and manage support tickets
- *   - /admin/ai-inventory: AI Bots - Configure AI bot integrations
  *   - /admin/users: Users - Manage user accounts and permissions
  * @permissions
  *   - staff: Access to home dashboard with entity-specific data
@@ -65,12 +64,6 @@ export default function AdminHomePage() {
                 <span className="mr-2">🎫</span>
                 <div>
                   <strong>Submit Tickets:</strong> Submit support tickets on behalf of citizens
-                </div>
-              </li>
-              <li className="flex items-start">
-                <span className="mr-2">🤖</span>
-                <div>
-                  <strong>AI Inventory:</strong> Configure and monitor AI bot integrations
                 </div>
               </li>
             </ul>

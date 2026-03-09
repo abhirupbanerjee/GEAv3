@@ -11,11 +11,13 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import ServiceSearch from '@/components/feedback/ServiceSearch';
+import ServiceFilterBar from '@/components/feedback/ServiceFilterBar';
 import ServiceResultsGrid from '@/components/feedback/ServiceResultsGrid';
+import PopularServices from '@/components/feedback/PopularServices';
 import RatingQuestions from '@/components/feedback/RatingQuestions';
-import { FiArrowLeft, FiLoader, FiCheck, FiExternalLink, FiAlertCircle } from 'react-icons/fi';
+import SuccessMessage from '@/components/feedback/SuccessMessage';
+import { FiArrowLeft, FiLoader, FiCheck, FiAlertCircle } from 'react-icons/fi';
 
 interface Service {
   service_id: string;
@@ -72,8 +74,17 @@ function CitizenFeedbackContent() {
 
   // Search functionality
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<Service[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+
+  // Filter state for browsing services
+  const [filters, setFilters] = useState({
+    entity_id: null as string | null,
+    life_event: null as string | null,
+    category: null as string | null,
+  });
+  const [browseServices, setBrowseServices] = useState<Service[]>([]);
+  const [isLoadingServices, setIsLoadingServices] = useState(false);
+  const [popularServiceIds, setPopularServiceIds] = useState<Set<string>>(new Set());
+  const [submittedAt, setSubmittedAt] = useState<string>('');
 
   // Handle pre-filled service from URL parameters
   useEffect(() => {
@@ -108,34 +119,62 @@ function CitizenFeedbackContent() {
     }
   }, [searchParams, selectedService]);
 
-  // Handle search query changes
-  useEffect(() => {
-    if (searchQuery.length >= 2) {
-      setIsSearching(true);
-      const params = new URLSearchParams({ search: searchQuery });
+  const hasActiveFilters = (): boolean => {
+    return !!(filters.entity_id || filters.life_event || filters.category || searchQuery.trim());
+  };
 
-      fetch(`/api/public/services?${params}`)
-        .then((res) => res.json())
-        .then((data) => {
-          setSearchResults(data.services || []);
-        })
-        .catch((error) => {
-          console.error('Error searching services:', error);
-          setSearchResults([]);
-        })
-        .finally(() => {
-          setIsSearching(false);
-        });
-    } else {
-      setSearchResults([]);
+  const fetchFilteredServices = async () => {
+    setIsLoadingServices(true);
+    try {
+      const params = new URLSearchParams();
+      if (filters.entity_id) params.append('entity_id', filters.entity_id);
+      if (filters.life_event) params.append('life_event', filters.life_event);
+      if (filters.category) params.append('category', filters.category);
+      if (searchQuery.trim()) params.append('search', searchQuery);
+
+      const res = await fetch(`/api/public/services?${params}`);
+      const data = await res.json();
+      setBrowseServices(data.services || []);
+    } catch (error) {
+      console.error('Error fetching services:', error);
+      setBrowseServices([]);
+    } finally {
+      setIsLoadingServices(false);
     }
-  }, [searchQuery]);
+  };
+
+  // Fetch popular service IDs on mount
+  useEffect(() => {
+    const fetchPopularServiceIds = async () => {
+      try {
+        const res = await fetch('/api/feedback/popular-services');
+        const data = await res.json();
+        if (data.success && data.services) {
+          const ids = new Set<string>(data.services.map((s: any) => s.service_id as string));
+          setPopularServiceIds(ids);
+        }
+      } catch (error) {
+        console.error('Error fetching popular service IDs:', error);
+      }
+    };
+    fetchPopularServiceIds();
+  }, []);
+
+  // Fetch filtered services when filters or search query change
+  useEffect(() => {
+    if (hasActiveFilters()) {
+      fetchFilteredServices();
+    } else {
+      setBrowseServices([]);
+    }
+  }, [filters, searchQuery]);
 
   // Handle service selection from search results
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
     setSearchQuery('');
-    setSearchResults([]);
+    setFilters({ entity_id: null, life_event: null, category: null });
+    setBrowseServices([]);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -158,7 +197,9 @@ function CitizenFeedbackContent() {
     setTicketInfo(null);
     setQrCodeId(null);
     setSearchQuery('');
-    setSearchResults([]);
+    setSubmittedAt('');
+    setFilters({ entity_id: null, life_event: null, category: null });
+    setBrowseServices([]);
   };
 
   // Validate form
@@ -227,6 +268,7 @@ function CitizenFeedbackContent() {
       }
 
       setFeedbackId(data.feedback_id);
+      setSubmittedAt(data.submitted_at);
       if (data.ticket) {
         setTicketInfo(data.ticket);
       }
@@ -245,58 +287,12 @@ function CitizenFeedbackContent() {
   // Success state
   if (submitSuccess) {
     return (
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <FiCheck className="w-8 h-8 text-green-600" />
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            Thank You for Your Feedback!
-          </h1>
-          <p className="text-gray-600 mb-6">
-            Your feedback has been submitted successfully. Reference ID:{' '}
-            <span className="font-mono font-semibold">FB-{feedbackId}</span>
-          </p>
-
-          {ticketInfo?.created && (
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 text-left">
-              <div className="flex items-start gap-3">
-                <FiAlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-blue-900">
-                    Ticket Created: {ticketInfo.ticketNumber}
-                  </h3>
-                  <p className="text-sm text-blue-700 mt-1">
-                    {ticketInfo.reason}
-                  </p>
-                  <Link
-                    href={`/citizen/tickets`}
-                    className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mt-2"
-                  >
-                    View in My Tickets
-                    <FiExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={resetForm}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Submit Another
-            </button>
-            <Link
-              href="/citizen"
-              className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              Back to Home
-            </Link>
-          </div>
-        </div>
-      </div>
+      <SuccessMessage
+        feedbackId={feedbackId!}
+        submittedAt={submittedAt}
+        ticket={ticketInfo}
+        onSubmitAnother={resetForm}
+      />
     );
   }
 
@@ -358,19 +354,35 @@ function CitizenFeedbackContent() {
               </h2>
             </div>
 
+            {/* Filter Bar */}
+            <ServiceFilterBar
+              filters={filters}
+              onFilterChange={setFilters}
+            />
+
+            <div className="my-6 text-center text-gray-500 text-sm">
+              ── OR ──
+            </div>
+
             {/* Search Input */}
             <ServiceSearch onSearchChange={setSearchQuery} />
 
-            {/* Search Results */}
-            {searchQuery.length >= 2 && (
+            {/* Results Grid (when filters or search active) */}
+            {hasActiveFilters() && (
               <div className="mt-6">
                 <ServiceResultsGrid
-                  services={searchResults}
-                  loading={isSearching}
+                  services={browseServices}
+                  loading={isLoadingServices}
                   onServiceSelect={handleServiceSelect}
-                  hasActiveFilters={searchQuery.length >= 2}
+                  hasActiveFilters={hasActiveFilters()}
+                  popularServiceIds={popularServiceIds}
                 />
               </div>
+            )}
+
+            {/* Popular Services (when no filters active) */}
+            {!hasActiveFilters() && (
+              <PopularServices onServiceSelect={handleServiceSelect} />
             )}
           </div>
         )}
@@ -391,7 +403,6 @@ function CitizenFeedbackContent() {
                 onClick={() => {
                   setSelectedService(null);
                   setSearchQuery('');
-                  setSearchResults([]);
                 }}
                 className="text-sm text-green-700 hover:text-green-900 underline"
               >

@@ -211,6 +211,7 @@ function SidebarMenuItem({
     <div className="relative group">
       <Link
         href={item.href}
+        prefetch={false}
         onClick={(e) => e.stopPropagation()}
         className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
         aria-label={isCollapsed ? item.label : undefined}
@@ -307,7 +308,7 @@ const navigationItems: NavigationItem[] = [
     label: 'Documents',
     href: '/admin/documents',
     icon: <DocumentsIcon />,
-    requiredRole: null,  // Both admin and staff can access
+    requiredRole: 'admin',
   },
   {
     label: 'Tickets',
@@ -339,7 +340,6 @@ const navigationItems: NavigationItem[] = [
       { label: 'Content', tabKey: 'CONTENT' },
       { label: 'Admin Management', tabKey: 'USER_MANAGEMENT' },
       { label: 'Service Providers', tabKey: 'SERVICE_PROVIDERS' },
-      { label: 'AI Bots', tabKey: 'AI_BOTS', href: '/admin/ai-inventory' },
       { label: 'Backups', tabKey: 'DATABASE' },
     ],
   },

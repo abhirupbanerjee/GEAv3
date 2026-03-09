@@ -3,9 +3,10 @@
 import React, {
   createContext,
   useContext,
-  useState,
   useCallback,
   useEffect,
+  useRef,
+  useMemo,
   ReactNode
 } from 'react';
 import { usePathname } from 'next/navigation';
@@ -26,7 +27,9 @@ import type {
 // ============================================================================
 
 interface ChatContextValue {
-  /** Current full context state */
+  /** Get the current context snapshot (always returns latest) */
+  getContext: () => PageContext;
+  /** Current context snapshot (value at last render - prefer getContext() for latest) */
   context: PageContext;
 
   /** Set modal state */
@@ -70,7 +73,7 @@ interface ChatContextProviderProps {
 export function ChatContextProvider({ children }: ChatContextProviderProps) {
   const pathname = usePathname();
   const { data: session, status } = useSession();
-  const [chatbotUrl, setChatbotUrl] = useState<string>(config.CHATBOT_URL);
+  const chatbotUrlRef = useRef<string>(config.CHATBOT_URL);
 
   // Fetch chatbot URL from database on mount
   useEffect(() => {
@@ -78,12 +81,11 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
       .then((res) => res.json())
       .then((data) => {
         if (data.url) {
-          setChatbotUrl(data.url);
+          chatbotUrlRef.current = data.url;
         }
       })
       .catch((err) => {
         console.error('[ChatContext] Failed to load chatbot URL:', err);
-        // Keep using fallback from config
       });
   }, []);
 
@@ -92,7 +94,6 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
     if (status === 'loading') return null;
 
     if (!session?.user) {
-      // Unauthenticated user
       return {
         id: 'guest',
         role: 'public',
@@ -100,7 +101,6 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
       };
     }
 
-    // Authenticated user
     const user = session.user as any;
     return {
       id: user.id || user.email || 'unknown',
@@ -118,8 +118,11 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
     };
   }, [session, status]);
 
-  // Initialize context state
-  const [context, setContext] = useState<PageContext>({
+  // ──────────────────────────────────────────────────────────────────────────
+  // Context stored in ref (no re-renders on update)
+  // ──────────────────────────────────────────────────────────────────────────
+
+  const contextRef = useRef<PageContext>({
     route: pathname,
     user: getUserContext(),
     timestamp: Date.now(),
@@ -131,14 +134,11 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
   // ──────────────────────────────────────────────────────────────────────────
 
   const sendContextToBot = useCallback((newContext: PageContext) => {
-    // Find the chatbot iframe by title
     const iframe = document.querySelector(
       'iframe[title="Grenada AI Assistant"]'
     ) as HTMLIFrameElement | null;
 
     if (!iframe?.contentWindow) {
-      // Iframe not mounted yet, that's OK
-      console.log('[ChatContext] Iframe not found, skipping postMessage');
       return;
     }
 
@@ -148,9 +148,7 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
         context: newContext,
       };
 
-      // Get the AI Bot origin from database settings (with fallback to config)
-      const botOrigin = new URL(chatbotUrl).origin;
-
+      const botOrigin = new URL(chatbotUrlRef.current).origin;
       iframe.contentWindow.postMessage(message, botOrigin);
 
       console.log('[ChatContext] Sent:', newContext.changeType, {
@@ -168,128 +166,79 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
     } catch (error) {
       console.error('[ChatContext] Failed to send:', error);
     }
-  }, [chatbotUrl]);
+  }, []);
+
+  // Helper: update ref and send to bot (no React re-render)
+  const updateContext = useCallback((updater: (prev: PageContext) => PageContext) => {
+    const newContext = updater(contextRef.current);
+    contextRef.current = newContext;
+    sendContextToBot(newContext);
+  }, [sendContextToBot]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Handle Session Changes
   // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setContext(prev => {
-      const newContext: PageContext = {
+    if (status !== 'loading') {
+      updateContext(prev => ({
         ...prev,
         user: getUserContext(),
         timestamp: Date.now(),
-        changeType: prev.changeType, // Keep current change type
-      };
-
-      // Only send if session has loaded (not during initial loading)
-      if (status !== 'loading') {
-        setTimeout(() => sendContextToBot(newContext), 0);
-      }
-
-      return newContext;
-    });
-  }, [session, status, getUserContext, sendContextToBot]);
+        changeType: prev.changeType,
+      }));
+    }
+  }, [session, status, getUserContext, updateContext]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Handle Route Changes (Navigation)
+  // No longer calls setState — writes to ref only, avoiding tree re-render
   // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
-    setContext(prev => {
-      const newContext: PageContext = {
-        // Keep custom context if on same base route
-        custom: prev.route.split('/')[1] === pathname.split('/')[1]
-          ? prev.custom
-          : undefined,
-        // Reset modal and edit on navigation
-        route: pathname,
-        user: prev.user, // Keep user context
-        modal: null,
-        edit: null,
-        // Keep tab if navigating within same section
-        tab: prev.tab,
-        form: null,
-        timestamp: Date.now(),
-        changeType: 'navigation',
-      };
-
-      // Send after state update
-      setTimeout(() => sendContextToBot(newContext), 0);
-
-      return newContext;
-    });
-  }, [pathname, sendContextToBot]);
+    updateContext(prev => ({
+      custom: prev.route.split('/')[1] === pathname.split('/')[1]
+        ? prev.custom
+        : undefined,
+      route: pathname,
+      user: prev.user,
+      modal: null,
+      edit: null,
+      tab: prev.tab,
+      form: null,
+      timestamp: Date.now(),
+      changeType: 'navigation',
+    }));
+  }, [pathname, updateContext]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Context Update Methods
   // ──────────────────────────────────────────────────────────────────────────
 
   const setModal = useCallback((modal: ModalContext | null) => {
-    setContext(prev => {
-      const newContext: PageContext = {
-        ...prev,
-        modal,
-        timestamp: Date.now(),
-        changeType: 'modal',
-      };
-      sendContextToBot(newContext);
-      return newContext;
-    });
-  }, [sendContextToBot]);
+    updateContext(prev => ({ ...prev, modal, timestamp: Date.now(), changeType: 'modal' }));
+  }, [updateContext]);
 
   const setEdit = useCallback((edit: EditContext | null) => {
-    setContext(prev => {
-      const newContext: PageContext = {
-        ...prev,
-        edit,
-        timestamp: Date.now(),
-        changeType: 'edit',
-      };
-      sendContextToBot(newContext);
-      return newContext;
-    });
-  }, [sendContextToBot]);
+    updateContext(prev => ({ ...prev, edit, timestamp: Date.now(), changeType: 'edit' }));
+  }, [updateContext]);
 
   const setTab = useCallback((tab: TabContext) => {
-    setContext(prev => {
-      const newContext: PageContext = {
-        ...prev,
-        tab,
-        timestamp: Date.now(),
-        changeType: 'tab',
-      };
-      sendContextToBot(newContext);
-      return newContext;
-    });
-  }, [sendContextToBot]);
+    updateContext(prev => ({ ...prev, tab, timestamp: Date.now(), changeType: 'tab' }));
+  }, [updateContext]);
 
   const setForm = useCallback((form: FormContext | null) => {
-    setContext(prev => {
-      const newContext: PageContext = {
-        ...prev,
-        form,
-        timestamp: Date.now(),
-        changeType: 'form',
-      };
-      sendContextToBot(newContext);
-      return newContext;
-    });
-  }, [sendContextToBot]);
+    updateContext(prev => ({ ...prev, form, timestamp: Date.now(), changeType: 'form' }));
+  }, [updateContext]);
 
   const setCustom = useCallback((custom: Record<string, any>) => {
-    setContext(prev => {
-      const newContext: PageContext = {
-        ...prev,
-        custom: { ...prev.custom, ...custom },
-        timestamp: Date.now(),
-        changeType: 'custom',
-      };
-      sendContextToBot(newContext);
-      return newContext;
-    });
-  }, [sendContextToBot]);
+    updateContext(prev => ({
+      ...prev,
+      custom: { ...prev.custom, ...custom },
+      timestamp: Date.now(),
+      changeType: 'custom',
+    }));
+  }, [updateContext]);
 
   // ──────────────────────────────────────────────────────────────────────────
   // Helper Methods
@@ -346,12 +295,15 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
     setForm(null);
   }, [setForm]);
 
+  const getContext = useCallback(() => contextRef.current, []);
+
   // ──────────────────────────────────────────────────────────────────────────
-  // Provide Context
+  // Provide Context (stable value — no re-renders on context changes)
   // ──────────────────────────────────────────────────────────────────────────
 
-  const value: ChatContextValue = {
-    context,
+  const value: ChatContextValue = useMemo(() => ({
+    context: contextRef.current,
+    getContext,
     setModal,
     setEdit,
     setTab,
@@ -364,7 +316,9 @@ export function ChatContextProvider({ children }: ChatContextProviderProps) {
     switchTab,
     updateFormProgress,
     clearForm,
-  };
+  }), [getContext, setModal, setEdit, setTab, setForm, setCustom,
+       openModal, closeModal, startEditing, stopEditing,
+       switchTab, updateFormProgress, clearForm]);
 
   return (
     <ChatContext.Provider value={value}>
