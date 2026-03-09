@@ -183,8 +183,8 @@ function SignInContent() {
         }));
         setCitizenStep('register');
       } else {
-        // Existing user - logged in, redirect
-        router.push('/citizen');
+        // Existing user - logged in, redirect (full reload to ensure cookies are read fresh)
+        window.location.href = '/citizen';
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
@@ -244,8 +244,8 @@ function SignInContent() {
         return;
       }
 
-      // Registered and logged in - redirect
-      router.push('/citizen');
+      // Registered and logged in - redirect (full reload to ensure cookies are read fresh)
+      window.location.href = '/citizen';
     } catch (error) {
       console.error('Error registering:', error);
       setCitizenError('Registration failed');
@@ -301,7 +301,7 @@ function SignInContent() {
         return;
       }
 
-      router.push('/citizen');
+      window.location.href = '/citizen';
     } catch (error) {
       console.error('Error logging in:', error);
       setCitizenError('Login failed');
@@ -584,7 +584,7 @@ function SignInContent() {
                       )}
                     </button>
                   ) : (
-                    <div className="space-y-4">
+                    <form onSubmit={handlePasswordLogin} className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Password
@@ -619,7 +619,7 @@ function SignInContent() {
                       </label>
 
                       <button
-                        onClick={handlePasswordLogin}
+                        type="submit"
                         disabled={citizenLoading || !citizenState.phone || !citizenState.password}
                         className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:bg-blue-300 disabled:cursor-not-allowed"
                       >
@@ -651,7 +651,7 @@ function SignInContent() {
                           Forgot password? Use OTP instead
                         </button>
                       </div>
-                    </div>
+                    </form>
                   )}
 
                   <p className="text-xs text-gray-500 text-center">
