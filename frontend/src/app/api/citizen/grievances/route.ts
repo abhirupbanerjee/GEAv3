@@ -26,17 +26,15 @@ export async function GET(_request: NextRequest) {
       `SELECT
         g.grievance_id,
         g.grievance_number,
-        g.title,
-        g.description,
+        g.grievance_subject,
+        g.grievance_description,
         g.status,
-        g.priority,
         g.entity_id,
-        e.name as entity_name,
-        g.feedback_id,
+        e.entity_name,
         g.created_at,
         g.updated_at
       FROM grievance_tickets g
-      LEFT JOIN entities e ON g.entity_id = e.entity_id
+      LEFT JOIN entity_master e ON g.entity_id = e.unique_entity_id
       WHERE g.submitter_id = $1
         AND g.submitter_type = 'citizen'
       ORDER BY g.created_at DESC
@@ -46,16 +44,16 @@ export async function GET(_request: NextRequest) {
 
     const grievances = result.rows.map((row) => ({
       id: row.grievance_id,
-      grievanceNumber: row.grievance_number || `GRV-${row.grievance_id.substring(0, 8).toUpperCase()}`,
-      subject: row.title || 'Grievance',
-      description: row.description || '',
+      grievanceNumber: row.grievance_number || `GRV-${row.grievance_id}`,
+      subject: row.grievance_subject || 'Grievance',
+      description: row.grievance_description || '',
       status: row.status || 'open',
       statusColor: getStatusColor(row.status || 'open'),
-      priority: formatPriority(row.priority),
-      priorityColor: getPriorityColor(row.priority || 'medium'),
+      priority: 'Medium',
+      priorityColor: getPriorityColor('medium'),
       entityName: row.entity_name || 'Unknown Entity',
-      source: row.feedback_id ? 'escalated_feedback' : 'direct',
-      feedbackId: row.feedback_id ? `FB-${row.feedback_id.substring(0, 8).toUpperCase()}` : null,
+      source: 'direct',
+      feedbackId: null,
       createdAt: formatDate(row.created_at),
       updatedAt: formatDate(row.updated_at),
     }));

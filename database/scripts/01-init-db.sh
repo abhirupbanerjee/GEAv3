@@ -464,6 +464,18 @@ CREATE TABLE IF NOT EXISTS grievance_attachments (
 
 CREATE INDEX IF NOT EXISTS idx_grievance_attachment ON grievance_attachments(grievance_id);
 
+CREATE TABLE IF NOT EXISTS grievance_activity (
+    activity_id SERIAL PRIMARY KEY,
+    grievance_id INTEGER NOT NULL REFERENCES grievance_tickets(grievance_id) ON DELETE CASCADE,
+    activity_type VARCHAR(50) NOT NULL,
+    comment TEXT,
+    created_by VARCHAR(255),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    visible_to_citizen BOOLEAN DEFAULT FALSE
+);
+
+CREATE INDEX IF NOT EXISTS idx_grievance_activity_grievance ON grievance_activity(grievance_id);
+
 -- ============================================================================
 -- EA SERVICE REQUEST TABLES
 -- ============================================================================

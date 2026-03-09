@@ -31,17 +31,15 @@ export async function GET(
       `SELECT
         g.grievance_id,
         g.grievance_number,
-        g.title,
-        g.description,
+        g.grievance_subject,
+        g.grievance_description,
         g.status,
-        g.priority,
         g.entity_id,
-        e.name as entity_name,
-        g.feedback_id,
+        e.entity_name,
         g.created_at,
         g.updated_at
       FROM grievance_tickets g
-      LEFT JOIN entities e ON g.entity_id = e.entity_id
+      LEFT JOIN entity_master e ON g.entity_id = e.unique_entity_id
       WHERE g.grievance_id = $1
         AND g.submitter_id = $2
         AND g.submitter_type = 'citizen'`,
@@ -57,45 +55,55 @@ export async function GET(
 
     const row = grievanceResult.rows[0];
 
-    // Query visible activities
-    const activitiesResult = await pool.query(
-      `SELECT
-        activity_id,
-        activity_type,
-        comment,
-        created_by,
-        created_at,
-        visible_to_citizen
-      FROM grievance_activity
-      WHERE grievance_id = $1
-        AND (
-          activity_type != 'internal_note'
-          OR visible_to_citizen = TRUE
-        )
-      ORDER BY created_at ASC`,
-      [id]
-    );
+    // Query visible activities (table may not have data yet)
+    let activities: Array<{
+      id: string | number;
+      type: string;
+      message: string;
+      timestamp: string;
+      user: string | undefined;
+    }> = [];
 
-    const activities = activitiesResult.rows.map((activity) => ({
-      id: activity.activity_id,
-      type: activity.activity_type === 'internal_note' && activity.visible_to_citizen
-        ? 'admin_comment'
-        : activity.activity_type,
-      message: activity.comment || getActivityMessage(activity.activity_type),
-      timestamp: formatDateTime(activity.created_at),
-      user: (activity.activity_type === 'internal_note' || activity.activity_type === 'admin_comment')
-        ? 'Grievance Committee'
-        : undefined,
-    }));
+    try {
+      const activitiesResult = await pool.query(
+        `SELECT
+          activity_id,
+          activity_type,
+          comment,
+          created_by,
+          created_at,
+          visible_to_citizen
+        FROM grievance_activity
+        WHERE grievance_id = $1
+          AND (
+            activity_type != 'internal_note'
+            OR visible_to_citizen = TRUE
+          )
+        ORDER BY created_at ASC`,
+        [id]
+      );
+
+      activities = activitiesResult.rows.map((activity) => ({
+        id: activity.activity_id,
+        type: activity.activity_type === 'internal_note' && activity.visible_to_citizen
+          ? 'admin_comment'
+          : activity.activity_type,
+        message: activity.comment || getActivityMessage(activity.activity_type),
+        timestamp: formatDateTime(activity.created_at),
+        user: (activity.activity_type === 'internal_note' || activity.activity_type === 'admin_comment')
+          ? 'Grievance Committee'
+          : undefined,
+      }));
+    } catch {
+      // grievance_activity table may not exist yet — continue with empty activities
+    }
 
     // Add initial activity if none exist
     if (activities.length === 0) {
       activities.push({
         id: 'initial',
-        type: row.feedback_id ? 'escalation' : 'status_change',
-        message: row.feedback_id
-          ? `Grievance created from escalated feedback`
-          : 'Grievance submitted',
+        type: 'status_change',
+        message: 'Grievance submitted',
         timestamp: formatDateTime(row.created_at),
         user: undefined,
       });
@@ -103,16 +111,16 @@ export async function GET(
 
     const grievance = {
       id: row.grievance_id,
-      grievanceNumber: row.grievance_number || `GRV-${row.grievance_id.substring(0, 8).toUpperCase()}`,
-      subject: row.title || 'Grievance',
-      description: row.description || '',
+      grievanceNumber: row.grievance_number || `GRV-${row.grievance_id}`,
+      subject: row.grievance_subject || 'Grievance',
+      description: row.grievance_description || '',
       status: row.status || 'open',
       statusColor: getStatusColor(row.status || 'open'),
-      priority: formatPriority(row.priority),
-      priorityColor: getPriorityColor(row.priority || 'medium'),
+      priority: 'Medium',
+      priorityColor: getPriorityColor('medium'),
       entityName: row.entity_name || 'Unknown Entity',
-      source: row.feedback_id ? 'escalated_feedback' : 'direct',
-      feedbackId: row.feedback_id ? `FB-${row.feedback_id.substring(0, 8).toUpperCase()}` : null,
+      source: 'direct',
+      feedbackId: null,
       createdAt: formatDateTime(row.created_at),
       updatedAt: formatDateTime(row.updated_at),
       activities,

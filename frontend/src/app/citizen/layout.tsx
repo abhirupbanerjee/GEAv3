@@ -42,7 +42,7 @@ const navigation = [
   { name: 'My Profile', href: '/citizen/profile', icon: FiUser },
   { name: 'Analytics', href: '/citizen/analytics', icon: FiBarChart2 },
   { name: 'Tickets', href: '/citizen/tickets', icon: FiFileText },
-  { name: 'Feedback', href: '/citizen/feedback/submit', icon: FiMessageSquare },
+  { name: 'Feedback', href: '/citizen/feedback', icon: FiMessageSquare },
 ];
 
 export default function CitizenLayout({
