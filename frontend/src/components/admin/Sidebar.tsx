@@ -374,7 +374,8 @@ function SidebarContent() {
 
     // Only update session when transitioning FROM non-admin TO admin
     if (nowInAdmin && !wasInAdmin) {
-      updateSession()
+      // Defer session refresh to avoid interfering with navigation transition
+      setTimeout(() => updateSession(), 100)
     }
 
     prevPathRef.current = pathname
@@ -382,14 +383,15 @@ function SidebarContent() {
 
   // Auto-expand parent when navigating to a child route
   useEffect(() => {
-    navigationItems.forEach(item => {
-      if (item.children && pathname === item.href) {
-        setExpandedItems(prev => {
-          if (prev.includes(item.href)) return prev
-          return [...prev, item.href]
-        })
-      }
-    })
+    const itemToExpand = navigationItems.find(
+      item => item.children && pathname === item.href
+    )
+    if (itemToExpand) {
+      setExpandedItems(prev => {
+        if (prev.includes(itemToExpand.href)) return prev
+        return [...prev, itemToExpand.href]
+      })
+    }
   }, [pathname])
 
 

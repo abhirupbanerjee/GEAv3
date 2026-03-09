@@ -11,7 +11,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import {
   FiHome,
@@ -50,7 +50,6 @@ export default function CitizenLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const [user, setUser] = useState<CitizenUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -91,7 +90,7 @@ export default function CitizenLayout({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Check authentication
+  // Check authentication — run once on mount, not on every navigation
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -99,21 +98,21 @@ export default function CitizenLayout({
         const data = await res.json();
 
         if (!data.authenticated) {
-          router.push('/auth/signin');
+          window.location.href = '/auth/signin';
           return;
         }
 
         setUser(data.citizen);
       } catch (error) {
         console.error('Auth check failed:', error);
-        router.push('/auth/signin');
+        window.location.href = '/auth/signin';
       } finally {
         setLoading(false);
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, []);
 
   const toggleSidebarCollapse = () => {
     const newState = !sidebarCollapsed;
@@ -125,10 +124,9 @@ export default function CitizenLayout({
     setLoggingOut(true);
     try {
       await fetch('/api/citizen/auth/logout', { method: 'POST' });
-      router.push('/auth/signin');
+      window.location.href = '/auth/signin';
     } catch (error) {
       console.error('Logout failed:', error);
-    } finally {
       setLoggingOut(false);
     }
   };
@@ -301,6 +299,7 @@ export default function CitizenLayout({
               <Link
                 key={item.name}
                 href={item.href}
+                prefetch={false}
                 onClick={() => setSidebarOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors ${
                   isActive
