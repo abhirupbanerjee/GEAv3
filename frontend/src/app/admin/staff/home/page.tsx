@@ -24,7 +24,6 @@
 
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
-import Link from 'next/link';
 
 interface EntityInfo {
   entity_name: string;
@@ -179,12 +178,12 @@ export default function StaffHomePage() {
             <h3 className="text-lg font-semibold text-gray-900">
               Requests Received
             </h3>
-            <Link
+            <a
               href="/admin/service-requests?view=received"
               className="text-blue-600 hover:text-blue-800 text-sm font-medium"
             >
               View All →
-            </Link>
+            </a>
           </div>
 
           {/* Quick Stats */}
@@ -209,7 +208,7 @@ export default function StaffHomePage() {
               <h4 className="text-sm font-medium text-gray-700 mb-3">Recent Requests</h4>
               <div className="space-y-2">
                 {recentReceivedRequests.slice(0, 3).map((request, index) => (
-                  <Link
+                  <a
                     key={index}
                     href={`/admin/service-requests?search=${request.request_number}`}
                     className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -230,7 +229,7 @@ export default function StaffHomePage() {
                     }`}>
                       {request.status.replace('_', ' ')}
                     </span>
-                  </Link>
+                  </a>
                 ))}
               </div>
             </div>
@@ -248,7 +247,7 @@ export default function StaffHomePage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Received Requests - Only for service providers */}
           {isServiceProvider && (
-            <Link
+            <a
               href="/admin/service-requests?view=received"
               className="flex items-center p-4 bg-green-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
             >
@@ -261,10 +260,10 @@ export default function StaffHomePage() {
                 <h4 className="font-semibold text-gray-900">Requests Received</h4>
                 <p className="text-sm text-gray-600">Manage incoming service requests</p>
               </div>
-            </Link>
+            </a>
           )}
 
-          <Link
+          <a
             href="/admin/service-requests"
             className="flex items-center p-4 bg-blue-50 border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors"
           >
@@ -277,9 +276,9 @@ export default function StaffHomePage() {
               <h4 className="font-semibold text-gray-900">View Service Requests</h4>
               <p className="text-sm text-gray-600">Browse and track all service requests</p>
             </div>
-          </Link>
+          </a>
 
-          <Link
+          <a
             href="/admin/service-requests/analytics"
             className="flex items-center p-4 bg-purple-50 border border-purple-200 rounded-lg hover:bg-purple-100 transition-colors"
           >
@@ -292,7 +291,7 @@ export default function StaffHomePage() {
               <h4 className="font-semibold text-gray-900">View Analytics</h4>
               <p className="text-sm text-gray-600">See trends and insights</p>
             </div>
-          </Link>
+          </a>
         </div>
       </div>
     </div>

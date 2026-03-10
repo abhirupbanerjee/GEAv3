@@ -11,7 +11,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   FiMessageSquare,
   FiPlus,
@@ -236,14 +235,14 @@ export default function CitizenFeedbackPage() {
                           {feedback.createdAt}
                         </span>
                         {feedback.grievanceId && (
-                          <Link
+                          <a
                             href={`/citizen/grievances/${feedback.grievanceId}`}
                             className="flex items-center gap-1 text-red-600 hover:text-red-700"
                           >
                             <FiAlertTriangle className="w-3 h-3" />
                             View Grievance
                             <FiChevronRight className="w-3 h-3" />
-                          </Link>
+                          </a>
                         )}
                       </div>
                     </div>
@@ -274,9 +273,9 @@ export default function CitizenFeedbackPage() {
           <p className="text-sm text-green-700 mt-1">
             Your feedback helps improve government services. If you have a serious concern
             that isn&apos;t being addressed, you can{' '}
-            <Link href="/citizen/grievances" className="underline hover:no-underline">
+            <a href="/citizen/grievances" className="underline hover:no-underline">
               file a grievance
-            </Link>
+            </a>
             .
           </p>
         </div>

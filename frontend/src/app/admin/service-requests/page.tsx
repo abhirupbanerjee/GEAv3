@@ -42,7 +42,6 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import RequestStats from '@/components/admin/service-requests/RequestStats';
 import RequestTable from '@/components/admin/service-requests/RequestTable';
 import { config } from '@/config/env';
@@ -271,7 +270,7 @@ function ServiceRequestsContent() {
         </div>
         {/* Only staff can create new requests - hide in received view */}
         {session?.user?.roleType === 'staff' && currentView === 'submitted' && (
-          <Link
+          <a
             href="/admin/service-requests/new"
             className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-sm transition-colors"
           >
@@ -279,7 +278,7 @@ function ServiceRequestsContent() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span>New Request</span>
-          </Link>
+          </a>
         )}
       </div>
 

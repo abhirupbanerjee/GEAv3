@@ -14,7 +14,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 import {
   FiUser,
   FiMail,
@@ -382,26 +381,26 @@ export default function CitizenRegisterPage() {
 
           {/* Back to Sign In */}
           <div className="mt-6 text-center">
-            <Link
+            <a
               href="/auth/signin"
               className="inline-flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900"
             >
               <FiArrowLeft className="w-4 h-4" />
               Back to Sign In
-            </Link>
+            </a>
           </div>
         </div>
 
         {/* Terms */}
         <p className="mt-4 text-center text-xs text-gray-500">
           By creating an account, you agree to the{' '}
-          <Link href="/terms" className="text-blue-600 hover:underline">
+          <a href="/terms" className="text-blue-600 hover:underline">
             Terms of Service
-          </Link>{' '}
+          </a>{' '}
           and{' '}
-          <Link href="/privacy" className="text-blue-600 hover:underline">
+          <a href="/privacy" className="text-blue-600 hover:underline">
             Privacy Policy
-          </Link>
+          </a>
           .
         </p>
       </div>

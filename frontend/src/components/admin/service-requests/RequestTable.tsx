@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
 
 interface ServiceRequest {
   request_id: number;
@@ -210,12 +209,12 @@ export default function RequestTable({
               requests.map((request) => (
                 <tr key={request.request_id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Link
+                    <a
                       href={`/admin/service-requests/${request.request_id}`}
                       className="text-blue-600 hover:text-blue-800 font-medium"
                     >
                       {request.request_number}
-                    </Link>
+                    </a>
                   </td>
                   <td className="hidden sm:table-cell px-6 py-4">
                     <div className="text-sm text-gray-900">{request.service_name}</div>

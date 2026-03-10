@@ -11,7 +11,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   FiAlertTriangle,
   FiClock,
@@ -181,7 +180,7 @@ export default function CitizenGrievancesPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {grievances.map((grievance) => (
-              <Link
+              <a
                 key={grievance.id}
                 href={`/citizen/grievances/${grievance.id}`}
                 className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group"
@@ -224,7 +223,7 @@ export default function CitizenGrievancesPage() {
                   </div>
                 </div>
                 <FiChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
-              </Link>
+              </a>
             ))}
           </div>
         )}

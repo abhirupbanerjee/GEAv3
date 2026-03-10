@@ -46,7 +46,6 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import Link from 'next/link';
 
 interface ServiceRequest {
   request_id: number;
@@ -341,12 +340,12 @@ export default function ServiceRequestDetailPage() {
               >
                 Try Again
               </button>
-              <Link
+              <a
                 href="/admin/service-requests"
                 className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
               >
                 Back to Service Requests
-              </Link>
+              </a>
             </div>
           </div>
         </div>
@@ -360,12 +359,12 @@ export default function ServiceRequestDetailPage() {
         <div className="text-center max-w-md">
           <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-6 py-4 rounded-lg">
             <p className="mb-4">No request data available.</p>
-            <Link
+            <a
               href="/admin/service-requests"
               className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 inline-block"
             >
               Back to Service Requests
-            </Link>
+            </a>
           </div>
         </div>
       </div>
@@ -376,7 +375,7 @@ export default function ServiceRequestDetailPage() {
     <div className="max-w-6xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <Link
+        <a
           href="/admin/service-requests"
           className="text-blue-600 hover:text-blue-800 flex items-center mb-4"
         >
@@ -384,7 +383,7 @@ export default function ServiceRequestDetailPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Service Requests
-        </Link>
+        </a>
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{request.request_number}</h1>

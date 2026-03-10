@@ -10,7 +10,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   FiBarChart2,
   FiFileText,
@@ -74,7 +73,7 @@ export default function CitizenHome() {
       {/* Navigation Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Analytics Card */}
-        <Link
+        <a
           href="/citizen/analytics"
           className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-blue-300 transition-all"
         >
@@ -89,10 +88,10 @@ export default function CitizenHome() {
             View Analytics
             <FiArrowRight className="w-4 h-4" />
           </span>
-        </Link>
+        </a>
 
         {/* Tickets Card */}
-        <Link
+        <a
           href="/citizen/tickets"
           className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-green-300 transition-all"
         >
@@ -107,10 +106,10 @@ export default function CitizenHome() {
             View Tickets
             <FiArrowRight className="w-4 h-4" />
           </span>
-        </Link>
+        </a>
 
         {/* Give Feedback Card */}
-        <Link
+        <a
           href="/citizen/feedback/submit"
           className="group bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md hover:border-purple-300 transition-all"
         >
@@ -125,7 +124,7 @@ export default function CitizenHome() {
             Submit Feedback
             <FiArrowRight className="w-4 h-4" />
           </span>
-        </Link>
+        </a>
       </div>
 
       {/* Help Text */}

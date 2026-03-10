@@ -1,4 +1,3 @@
-import Link from 'next/link';
 
 export default function HelpdeskDisabled() {
   return (
@@ -52,7 +51,7 @@ export default function HelpdeskDisabled() {
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
                   </svg>
-                  <span>If you have a citizen account, <Link href="/citizen/login" className="text-blue-600 hover:underline font-medium">log in here</Link> to view your tickets</span>
+                  <span>If you have a citizen account, <a href="/citizen/login" className="text-blue-600 hover:underline font-medium">log in here</a> to view your tickets</span>
                 </li>
                 <li className="flex items-start">
                   <svg className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -66,18 +65,18 @@ export default function HelpdeskDisabled() {
 
           {/* Action Buttons */}
           <div className="mt-8 flex flex-col sm:flex-row gap-4">
-            <Link
+            <a
               href="/feedback"
               className="flex-1 text-center px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
             >
               Submit Feedback
-            </Link>
-            <Link
+            </a>
+            <a
               href="/"
               className="flex-1 text-center px-6 py-3 bg-white hover:bg-gray-50 text-gray-700 font-semibold rounded-lg border-2 border-gray-300 transition-colors"
             >
               Return Home
-            </Link>
+            </a>
           </div>
         </div>
       </div>

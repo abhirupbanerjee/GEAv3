@@ -12,7 +12,6 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
 import {
   FiArrowLeft,
   FiClock,
@@ -189,13 +188,13 @@ export default function CitizenGrievanceDetailPage() {
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <Link
+      <a
         href="/citizen/grievances"
         className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
       >
         <FiArrowLeft className="w-4 h-4" />
         Back to Grievances
-      </Link>
+      </a>
 
       {/* Grievance Header */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

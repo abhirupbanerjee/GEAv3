@@ -11,7 +11,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   FiFileText,
   FiClock,
@@ -239,12 +238,12 @@ export default function CitizenTicketsPage() {
                 : 'Try selecting a different filter.'}
             </p>
             {statusFilter === 'all' && entityFilter === 'all' && (
-              <Link
+              <a
                 href="/citizen/feedback/submit"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 Give Feedback
-              </Link>
+              </a>
             )}
           </div>
         ) : (

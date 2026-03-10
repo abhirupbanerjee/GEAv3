@@ -42,7 +42,6 @@
 import { useSession } from 'next-auth/react';
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { config } from '@/config/env';
 
 interface Service {
@@ -384,7 +383,7 @@ export default function NewServiceRequestPage() {
     <div className="max-w-4xl mx-auto">
       {/* Header */}
       <div className="mb-6">
-        <Link
+        <a
           href="/admin/service-requests"
           className="text-blue-600 hover:text-blue-800 flex items-center mb-4"
         >
@@ -392,7 +391,7 @@ export default function NewServiceRequestPage() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           Back to Service Requests
-        </Link>
+        </a>
         <h1 className="text-3xl font-bold text-gray-900">New Service Request</h1>
         <p className="text-gray-600 mt-1">
           Submit a request for services
@@ -632,12 +631,12 @@ export default function NewServiceRequestPage() {
 
         {/* Submit Buttons */}
         <div className="flex items-center justify-end space-x-4">
-          <Link
+          <a
             href="/admin/service-requests"
             className="px-6 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
           >
             Cancel
-          </Link>
+          </a>
           <button
             type="submit"
             disabled={loading}
