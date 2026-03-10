@@ -12,7 +12,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import Link from 'next/link';
+// Link import removed - using <a> tags to bypass Next.js Link navigation bug
+// See: https://github.com/vercel/next.js/discussions/57565
 import {
   FiHome,
   FiFileText,
@@ -166,7 +167,7 @@ export default function CitizenLayout({
               >
                 <FiMenu className="w-6 h-6" />
               </button>
-              <Link href="/citizen" className="flex items-center gap-2">
+              <a href="/citizen" className="flex items-center gap-2">
                 <div className="h-8 w-8 bg-gradient-to-br from-blue-600 to-green-600 rounded-lg flex items-center justify-center">
                   <svg
                     className="h-5 w-5 text-white"
@@ -186,7 +187,7 @@ export default function CitizenLayout({
                   <span className="font-semibold text-gray-900">GEA Portal</span>
                   <span className="hidden sm:inline text-xs text-gray-500 ml-2">Citizen Services</span>
                 </div>
-              </Link>
+              </a>
             </div>
 
             {/* Right: User dropdown */}
@@ -296,7 +297,7 @@ export default function CitizenLayout({
             const Icon = item.icon;
 
             return (
-              <Link
+              <a
                 key={item.name}
                 href={item.href}
                 onClick={() => setSidebarOpen(false)}
@@ -310,7 +311,7 @@ export default function CitizenLayout({
                 <Icon className="w-5 h-5 flex-shrink-0" />
                 <span className={sidebarCollapsed ? 'lg:hidden' : ''}>{item.name}</span>
                 {isActive && !sidebarCollapsed && <FiChevronRight className="w-4 h-4 ml-auto hidden lg:block" />}
-              </Link>
+              </a>
             );
           })}
         </nav>

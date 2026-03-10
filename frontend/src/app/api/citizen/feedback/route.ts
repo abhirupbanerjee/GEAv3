@@ -26,19 +26,16 @@ export async function GET(_request: NextRequest) {
       `SELECT
         f.feedback_id,
         f.entity_id,
-        e.name as entity_name,
+        e.entity_name,
         f.service_id,
-        s.name as service_name,
-        f.rating,
-        f.feedback_type,
-        f.comments,
-        f.is_grievance,
-        f.created_at,
-        g.grievance_id
+        s.service_name,
+        f.q5_overall_satisfaction as rating,
+        f.comment_text,
+        f.grievance_flag,
+        f.created_at
       FROM service_feedback f
-      LEFT JOIN entities e ON f.entity_id = e.entity_id
-      LEFT JOIN services s ON f.service_id = s.service_id
-      LEFT JOIN grievance_tickets g ON g.feedback_id = f.feedback_id
+      LEFT JOIN entity_master e ON f.entity_id = e.unique_entity_id
+      LEFT JOIN service_master s ON f.service_id = s.service_id
       WHERE f.submitter_id = $1
         AND f.submitter_type = 'citizen'
       ORDER BY f.created_at DESC
@@ -47,23 +44,18 @@ export async function GET(_request: NextRequest) {
     );
 
     const feedbackList = result.rows.map((row) => {
-      let status = 'received';
-      if (row.grievance_id) {
-        status = 'grievance_created';
-      } else if (row.is_grievance) {
-        status = 'reviewed';
-      }
+      const status = row.grievance_flag ? 'reviewed' : 'received';
 
       return {
         id: row.feedback_id,
-        feedbackId: `FB-${row.feedback_id.substring(0, 8).toUpperCase()}`,
+        feedbackId: `FB-${String(row.feedback_id).padStart(6, '0')}`,
         entityName: row.entity_name || 'Unknown Entity',
         serviceName: row.service_name || 'General Service',
         rating: row.rating || 0,
-        feedbackType: row.feedback_type || 'general',
-        comment: row.comments || '',
+        feedbackType: 'general' as const,
+        comment: row.comment_text || '',
         status,
-        grievanceId: row.grievance_id || null,
+        grievanceId: null,
         createdAt: formatDate(row.created_at),
       };
     });

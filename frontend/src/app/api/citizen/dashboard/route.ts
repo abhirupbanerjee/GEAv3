@@ -38,7 +38,7 @@ export async function GET(_request: NextRequest) {
     const feedbackStats = await pool.query(
       `SELECT
         COUNT(*) as total,
-        COUNT(*) FILTER (WHERE is_grievance = false OR is_grievance IS NULL) as pending
+        COUNT(*) FILTER (WHERE grievance_flag = false OR grievance_flag IS NULL) as pending
       FROM service_feedback
       WHERE submitter_id = $1::uuid
         AND submitter_type = 'citizen'`,
@@ -77,9 +77,9 @@ export async function GET(_request: NextRequest) {
       `SELECT
         f.feedback_id as id,
         'feedback' as type,
-        COALESCE(f.comments, 'Service Feedback') as title,
+        COALESCE(f.comment_text, 'Service Feedback') as title,
         CASE
-          WHEN f.is_grievance = true THEN 'Grievance'
+          WHEN f.grievance_flag = true THEN 'Grievance'
           ELSE 'Received'
         END as status,
         f.created_at

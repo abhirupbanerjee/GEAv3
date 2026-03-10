@@ -123,13 +123,13 @@ export default function CitizenFeedbackPage() {
             View feedback you&apos;ve submitted about government services
           </p>
         </div>
-        <Link
-          href="/feedback"
+        <a
+          href="/citizen/feedback/submit"
           className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
         >
           <FiPlus className="w-4 h-4" />
           Submit Feedback
-        </Link>
+        </a>
       </div>
 
       {/* Feedback Stats */}
@@ -182,13 +182,13 @@ export default function CitizenFeedbackPage() {
             <p className="text-gray-500 mb-6">
               Share your experience with government services
             </p>
-            <Link
-              href="/feedback"
+            <a
+              href="/citizen/feedback/submit"
               className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
             >
               <FiPlus className="w-4 h-4" />
               Submit Feedback
-            </Link>
+            </a>
           </div>
         ) : (
           <div className="divide-y divide-gray-100">

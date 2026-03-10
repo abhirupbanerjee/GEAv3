@@ -11,15 +11,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import {
   FiRefreshCw,
   FiMessageSquare,
   FiFileText,
   FiStar,
   FiLoader,
-  FiClock,
   FiAlertTriangle,
+  FiChevronRight,
 } from 'react-icons/fi';
 
 interface AnalyticsData {
@@ -35,14 +34,31 @@ interface AnalyticsData {
   cached?: boolean;
 }
 
-interface RecentItem {
+interface RecentFeedback {
   id: string;
-  type: 'ticket' | 'feedback' | 'grievance';
-  title: string;
+  entityName: string;
+  serviceName: string;
+  rating: number;
+  status: string;
+  createdAt: string;
+}
+
+interface RecentTicket {
+  id: string;
+  ticketNumber: string;
+  subject: string;
   status: string;
   statusColor: string;
-  date: string;
-  href: string;
+  createdAt: string;
+}
+
+interface RecentGrievance {
+  id: string;
+  grievanceNumber: string;
+  subject: string;
+  status: string;
+  statusColor: string;
+  createdAt: string;
 }
 
 const STATUS_COLORS: Record<string, string> = {
@@ -62,7 +78,9 @@ const RATING_COLORS: Record<number, string> = {
 
 export default function CitizenAnalyticsPage() {
   const [data, setData] = useState<AnalyticsData | null>(null);
-  const [recentItems, setRecentItems] = useState<RecentItem[]>([]);
+  const [recentFeedback, setRecentFeedback] = useState<RecentFeedback[]>([]);
+  const [recentTickets, setRecentTickets] = useState<RecentTicket[]>([]);
+  const [recentGrievances, setRecentGrievances] = useState<RecentGrievance[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -84,21 +102,35 @@ export default function CitizenAnalyticsPage() {
     }
   };
 
-  const fetchRecentActivity = async () => {
+  const fetchRecentItems = async () => {
     try {
-      const response = await fetch('/api/citizen/dashboard');
-      const result = await response.json();
-      if (result.success && result.recentItems) {
-        setRecentItems(result.recentItems);
+      const [fbRes, tkRes, grRes] = await Promise.all([
+        fetch('/api/citizen/feedback'),
+        fetch('/api/citizen/tickets'),
+        fetch('/api/citizen/grievances'),
+      ]);
+      const [fbData, tkData, grData] = await Promise.all([
+        fbRes.json(),
+        tkRes.json(),
+        grRes.json(),
+      ]);
+      if (fbData.success && fbData.feedback) {
+        setRecentFeedback(fbData.feedback.slice(0, 5));
+      }
+      if (tkData.success && tkData.tickets) {
+        setRecentTickets(tkData.tickets.slice(0, 5));
+      }
+      if (grData.success && grData.grievances) {
+        setRecentGrievances(grData.grievances.slice(0, 5));
       }
     } catch (error) {
-      console.error('Failed to fetch recent activity:', error);
+      console.error('Failed to fetch recent items:', error);
     }
   };
 
   useEffect(() => {
     fetchAnalytics();
-    fetchRecentActivity();
+    fetchRecentItems();
   }, []);
 
   const handleRefresh = () => {
@@ -261,44 +293,143 @@ export default function CitizenAnalyticsPage() {
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+      {/* Recent Activity — Three Columns */}
+      <div>
         <h2 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        {recentItems.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <FiClock className="w-8 h-8 mx-auto mb-2 text-gray-400" />
-            <p>No recent activity</p>
-            <p className="text-sm mt-1">Your tickets and feedback will appear here</p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {recentItems.map((item) => (
-              <Link
-                key={`${item.type}-${item.id}`}
-                href={item.href}
-                className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:border-gray-200 hover:bg-gray-50 transition-colors"
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Recent Feedback */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <FiMessageSquare className="w-4 h-4 text-green-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Recent Feedback</h3>
+            </div>
+            {recentFeedback.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <FiMessageSquare className="w-6 h-6 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No feedback yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentFeedback.map((item) => (
+                  <a
+                    key={item.id}
+                    href="/citizen/feedback"
+                    className="block p-3 border border-gray-100 rounded-lg hover:border-green-200 hover:bg-green-50/30 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {item.entityName} - {item.serviceName}
+                    </p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <div className="flex items-center gap-0.5">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <FiStar
+                            key={star}
+                            className={`w-3 h-3 ${star <= item.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-500">{item.createdAt}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+            {recentFeedback.length > 0 && (
+              <a
+                href="/citizen/feedback"
+                className="flex items-center justify-center gap-1 mt-4 text-sm text-green-600 hover:text-green-700 font-medium"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    item.type === 'ticket' ? 'bg-blue-100' :
-                    item.type === 'feedback' ? 'bg-green-100' : 'bg-red-100'
-                  }`}>
-                    {item.type === 'ticket' && <FiFileText className="w-4 h-4 text-blue-600" />}
-                    {item.type === 'feedback' && <FiMessageSquare className="w-4 h-4 text-green-600" />}
-                    {item.type === 'grievance' && <FiAlertTriangle className="w-4 h-4 text-red-600" />}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900 text-sm">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.date}</p>
-                  </div>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded-full ${item.statusColor}`}>
-                  {item.status}
-                </span>
-              </Link>
-            ))}
+                View All <FiChevronRight className="w-4 h-4" />
+              </a>
+            )}
           </div>
-        )}
+
+          {/* Recent Tickets */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <FiFileText className="w-4 h-4 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Recent Tickets</h3>
+            </div>
+            {recentTickets.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <FiFileText className="w-6 h-6 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No tickets yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentTickets.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`/citizen/tickets/${item.id}`}
+                    className="block p-3 border border-gray-100 rounded-lg hover:border-blue-200 hover:bg-blue-50/30 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-gray-900 truncate">{item.subject}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${item.statusColor}`}>
+                        {item.status}
+                      </span>
+                      <span className="text-xs text-gray-500">{item.createdAt}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+            {recentTickets.length > 0 && (
+              <a
+                href="/citizen/tickets"
+                className="flex items-center justify-center gap-1 mt-4 text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                View All <FiChevronRight className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+
+          {/* Recent Grievances */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                <FiAlertTriangle className="w-4 h-4 text-red-600" />
+              </div>
+              <h3 className="font-semibold text-gray-900">Recent Grievances</h3>
+            </div>
+            {recentGrievances.length === 0 ? (
+              <div className="text-center py-6 text-gray-500">
+                <FiAlertTriangle className="w-6 h-6 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No grievances yet</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {recentGrievances.map((item) => (
+                  <a
+                    key={item.id}
+                    href={`/citizen/grievances/${item.id}`}
+                    className="block p-3 border border-gray-100 rounded-lg hover:border-red-200 hover:bg-red-50/30 transition-colors"
+                  >
+                    <p className="text-sm font-medium text-gray-900 truncate">{item.subject}</p>
+                    <div className="flex items-center justify-between mt-1.5">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${item.statusColor}`}>
+                        {item.status}
+                      </span>
+                      <span className="text-xs text-gray-500">{item.createdAt}</span>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+            {recentGrievances.length > 0 && (
+              <a
+                href="/citizen/grievances"
+                className="flex items-center justify-center gap-1 mt-4 text-sm text-red-600 hover:text-red-700 font-medium"
+              >
+                View All <FiChevronRight className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Cache indicator */}
