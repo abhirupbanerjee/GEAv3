@@ -250,7 +250,7 @@ export default function CitizenTicketsPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {filteredTickets.map((ticket) => (
-              <Link
+              <a
                 key={ticket.id}
                 href={`/citizen/tickets/${ticket.id}`}
                 className="flex items-center justify-between p-4 hover:bg-gray-50 transition-colors group"
@@ -284,7 +284,7 @@ export default function CitizenTicketsPage() {
                   </div>
                 </div>
                 <FiChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 flex-shrink-0" />
-              </Link>
+              </a>
             ))}
           </div>
         )}

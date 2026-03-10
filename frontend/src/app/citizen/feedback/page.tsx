@@ -16,7 +16,6 @@ import {
   FiMessageSquare,
   FiPlus,
   FiClock,
-  FiCheckCircle,
   FiLoader,
   FiChevronRight,
   FiAlertTriangle,
@@ -80,9 +79,12 @@ const renderStars = (rating: number) => {
   );
 };
 
+const PAGE_SIZE = 10;
+
 export default function CitizenFeedbackPage() {
   const [feedbackList, setFeedbackList] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     const loadFeedback = async () => {
@@ -161,14 +163,17 @@ export default function CitizenFeedbackPage() {
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <FiCheckCircle className="w-5 h-5 text-green-600" />
+            <div className="w-10 h-10 bg-yellow-100 rounded-full flex items-center justify-center">
+              <FiStar className="w-5 h-5 text-yellow-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {feedbackList.filter((f) => !f.grievanceFlag).length}
+                {feedbackList.length > 0
+                  ? (feedbackList.reduce((sum, f) => sum + f.rating, 0) / feedbackList.length).toFixed(1)
+                  : '-'}
+                <span className="text-lg font-normal text-gray-500">/5</span>
               </p>
-              <p className="text-sm text-gray-600">Received</p>
+              <p className="text-sm text-gray-600">Avg Rating</p>
             </div>
           </div>
         </div>
@@ -192,8 +197,9 @@ export default function CitizenFeedbackPage() {
             </a>
           </div>
         ) : (
+          <>
           <div className="divide-y divide-gray-100">
-            {feedbackList.map((feedback) => {
+            {feedbackList.slice(0, visibleCount).map((feedback) => {
               const statusDisplay = getStatusDisplay(feedback.status);
               return (
                 <div
@@ -209,11 +215,13 @@ export default function CitizenFeedbackPage() {
                         <span className="text-xs font-mono text-gray-500">
                           {feedback.feedbackId}
                         </span>
-                        <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${statusDisplay.color}`}
-                        >
-                          {statusDisplay.label}
-                        </span>
+                        {feedback.grievanceFlag && (
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${statusDisplay.color}`}
+                          >
+                            {statusDisplay.label}
+                          </span>
+                        )}
                         {renderStars(feedback.rating)}
                       </div>
                       <p className="font-medium text-gray-900">
@@ -244,6 +252,17 @@ export default function CitizenFeedbackPage() {
               );
             })}
           </div>
+          {visibleCount < feedbackList.length && (
+            <div className="p-4 border-t border-gray-100">
+              <button
+                onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                className="w-full py-2.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+              >
+                View More ({feedbackList.length - visibleCount} remaining)
+              </button>
+            </div>
+          )}
+          </>
         )}
       </div>
 

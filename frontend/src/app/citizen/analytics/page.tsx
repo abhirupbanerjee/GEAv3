@@ -333,10 +333,9 @@ export default function CitizenAnalyticsPage() {
             ) : (
               <div className="space-y-3">
                 {recentFeedback.map((item) => (
-                  <a
+                  <div
                     key={item.id}
-                    href="/citizen/feedback"
-                    className="block p-3 border border-gray-100 rounded-lg hover:border-green-200 hover:bg-green-50/30 transition-colors"
+                    className="p-3 border border-gray-100 rounded-lg"
                   >
                     <p className="text-sm font-medium text-gray-900 truncate">
                       {item.entityName} - {item.serviceName}
@@ -352,7 +351,7 @@ export default function CitizenAnalyticsPage() {
                       </div>
                       <span className="text-xs text-gray-500">{item.createdAt}</span>
                     </div>
-                  </a>
+                  </div>
                 ))}
               </div>
             )}
@@ -382,10 +381,9 @@ export default function CitizenAnalyticsPage() {
             ) : (
               <div className="space-y-3">
                 {recentTickets.map((item) => (
-                  <a
+                  <div
                     key={item.id}
-                    href={`/citizen/tickets/${item.id}`}
-                    className="block p-3 border border-gray-100 rounded-lg hover:border-blue-200 hover:bg-blue-50/30 transition-colors"
+                    className="p-3 border border-gray-100 rounded-lg"
                   >
                     <p className="text-sm font-medium text-gray-900 truncate">{item.subject}</p>
                     <div className="flex items-center justify-between mt-1.5">
@@ -394,7 +392,7 @@ export default function CitizenAnalyticsPage() {
                       </span>
                       <span className="text-xs text-gray-500">{item.createdAt}</span>
                     </div>
-                  </a>
+                  </div>
                 ))}
               </div>
             )}
@@ -424,10 +422,9 @@ export default function CitizenAnalyticsPage() {
             ) : (
               <div className="space-y-3">
                 {recentGrievances.map((item) => (
-                  <a
+                  <div
                     key={item.id}
-                    href={`/citizen/grievances/${item.id}`}
-                    className="block p-3 border border-gray-100 rounded-lg hover:border-red-200 hover:bg-red-50/30 transition-colors"
+                    className="p-3 border border-gray-100 rounded-lg"
                   >
                     <p className="text-sm font-medium text-gray-900 truncate">{item.subject}</p>
                     <div className="flex items-center justify-between mt-1.5">
@@ -436,7 +433,7 @@ export default function CitizenAnalyticsPage() {
                       </span>
                       <span className="text-xs text-gray-500">{item.createdAt}</span>
                     </div>
-                  </a>
+                  </div>
                 ))}
               </div>
             )}
