@@ -40,6 +40,7 @@ interface RecentFeedback {
   serviceName: string;
   rating: number;
   status: string;
+  grievanceFlag: boolean;
   createdAt: string;
 }
 
@@ -115,13 +116,32 @@ export default function CitizenAnalyticsPage() {
         grRes.json(),
       ]);
       if (fbData.success && fbData.feedback) {
-        setRecentFeedback(fbData.feedback.slice(0, 5));
+        // Separate regular feedback from grievance-flagged feedback
+        const allFeedback = fbData.feedback as RecentFeedback[];
+        setRecentFeedback(allFeedback.filter((f) => !f.grievanceFlag).slice(0, 5));
+
+        // Grievance-flagged feedback → shown in grievances column
+        const grievanceFeedback: RecentGrievance[] = allFeedback
+          .filter((f) => f.grievanceFlag)
+          .map((f) => ({
+            id: f.id,
+            grievanceNumber: '',
+            subject: `${f.entityName} - ${f.serviceName}`,
+            status: 'Grievance Flagged',
+            statusColor: 'bg-red-100 text-red-800',
+            createdAt: f.createdAt,
+          }));
+
+        // Merge with direct grievances
+        const directGrievances: RecentGrievance[] =
+          grData.success && grData.grievances ? grData.grievances : [];
+        const merged = [...directGrievances, ...grievanceFeedback].slice(0, 5);
+        setRecentGrievances(merged);
+      } else if (grData.success && grData.grievances) {
+        setRecentGrievances(grData.grievances.slice(0, 5));
       }
       if (tkData.success && tkData.tickets) {
         setRecentTickets(tkData.tickets.slice(0, 5));
-      }
-      if (grData.success && grData.grievances) {
-        setRecentGrievances(grData.grievances.slice(0, 5));
       }
     } catch (error) {
       console.error('Failed to fetch recent items:', error);

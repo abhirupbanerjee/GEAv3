@@ -44,7 +44,7 @@ export async function GET(_request: NextRequest) {
     );
 
     const feedbackList = result.rows.map((row) => {
-      const status = row.grievance_flag ? 'reviewed' : 'received';
+      const status = row.grievance_flag ? 'grievance_flagged' : 'received';
 
       return {
         id: row.feedback_id,
@@ -55,6 +55,7 @@ export async function GET(_request: NextRequest) {
         feedbackType: 'general' as const,
         comment: row.comment_text || '',
         status,
+        grievanceFlag: row.grievance_flag || false,
         grievanceId: null,
         createdAt: formatDate(row.created_at),
       };

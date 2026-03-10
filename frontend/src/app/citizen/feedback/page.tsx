@@ -33,7 +33,8 @@ interface Feedback {
   rating: number;
   feedbackType: 'positive' | 'negative' | 'suggestion';
   comment: string;
-  status: 'received' | 'reviewed' | 'grievance_created';
+  status: 'received' | 'grievance_flagged' | 'grievance_created';
+  grievanceFlag: boolean;
   grievanceId?: string;
   createdAt: string;
 }
@@ -42,8 +43,8 @@ const getStatusDisplay = (status: string) => {
   switch (status) {
     case 'received':
       return { label: 'Received', color: 'bg-blue-100 text-blue-800' };
-    case 'reviewed':
-      return { label: 'Reviewed', color: 'bg-green-100 text-green-800' };
+    case 'grievance_flagged':
+      return { label: 'Grievance Flagged', color: 'bg-red-100 text-red-800' };
     case 'grievance_created':
       return { label: 'Grievance Created', color: 'bg-red-100 text-red-800' };
     default:
@@ -147,27 +148,27 @@ export default function CitizenFeedbackPage() {
         </div>
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-              <FiCheckCircle className="w-5 h-5 text-green-600" />
-            </div>
-            <div>
-              <p className="text-2xl font-bold text-gray-900">
-                {feedbackList.filter((f) => f.status === 'reviewed').length}
-              </p>
-              <p className="text-sm text-gray-600">Reviewed</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
-          <div className="flex items-center gap-3">
             <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
               <FiAlertTriangle className="w-5 h-5 text-red-600" />
             </div>
             <div>
               <p className="text-2xl font-bold text-gray-900">
-                {feedbackList.filter((f) => f.status === 'grievance_created').length}
+                {feedbackList.filter((f) => f.grievanceFlag).length}
               </p>
-              <p className="text-sm text-gray-600">Escalated</p>
+              <p className="text-sm text-gray-600">Grievance Flagged</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+              <FiCheckCircle className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-gray-900">
+                {feedbackList.filter((f) => !f.grievanceFlag).length}
+              </p>
+              <p className="text-sm text-gray-600">Received</p>
             </div>
           </div>
         </div>
