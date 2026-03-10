@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { useState, useEffect, Suspense, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
@@ -174,7 +173,7 @@ function SidebarMenuItem({
                   ? pathname === child.href
                   : isSubItemActive(item.href, child.tabKey)
                 return (
-                  <Link
+                  <a
                     key={child.tabKey}
                     href={childHref}
                     className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
@@ -185,7 +184,7 @@ function SidebarMenuItem({
                   >
                     <SubItemIcon />
                     <span>{child.label}</span>
-                  </Link>
+                  </a>
                 )
               })}
             </div>
@@ -207,7 +206,7 @@ function SidebarMenuItem({
 
   return (
     <div className="relative group">
-      <Link
+      <a
         href={item.href}
         className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
         aria-label={isCollapsed ? item.label : undefined}
@@ -217,7 +216,7 @@ function SidebarMenuItem({
           {item.icon}
         </span>
         {!isCollapsed && <span>{item.label}</span>}
-      </Link>
+      </a>
 
       {isCollapsed && (
         <div className="hidden lg:group-hover:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-20 pointer-events-none">
