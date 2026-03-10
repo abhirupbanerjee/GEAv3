@@ -177,7 +177,6 @@ function SidebarMenuItem({
                   <Link
                     key={child.tabKey}
                     href={childHref}
-                    onClick={(e) => e.stopPropagation()}
                     className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
                       isChildActive
                         ? 'bg-blue-50 text-blue-700 font-medium'
@@ -210,7 +209,6 @@ function SidebarMenuItem({
     <div className="relative group">
       <Link
         href={item.href}
-        onClick={(e) => e.stopPropagation()}
         className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
         aria-label={isCollapsed ? item.label : undefined}
         title={isCollapsed ? item.label : undefined}
@@ -458,8 +456,11 @@ function SidebarContent() {
     <>
       {/* Sidebar - Always visible, icon-only when collapsed */}
       <div
-        onClick={() => {
-          if (isCollapsed) {
+        onClick={(e) => {
+          // Only expand sidebar when clicking the background area directly,
+          // not when clicking links or buttons (avoids needing stopPropagation on Links,
+          // which breaks Next.js navigation — see https://github.com/vercel/next.js/issues/45512)
+          if (isCollapsed && !(e.target as HTMLElement).closest('a, button')) {
             expandSidebar()
           }
         }}
