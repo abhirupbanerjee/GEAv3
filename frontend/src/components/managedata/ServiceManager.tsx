@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { FiChevronDown, FiLock } from 'react-icons/fi'
 import { ConfirmModal } from '@/components/common/ConfirmModal'
 import { EditFormModal } from '@/components/common/EditFormModal'
@@ -976,9 +977,11 @@ export default function ServiceManager() {
       </div>
 
       {/* Attachment Management Modal */}
-      {showAttachmentModal && selectedServiceForAttachments && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[101] p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      {showAttachmentModal && selectedServiceForAttachments && createPortal(
+        <div className="fixed inset-0 z-[101] overflow-y-auto">
+          <div className="fixed inset-0 z-[101] bg-gray-900 bg-opacity-60 transition-opacity" onClick={closeAttachmentModal} aria-hidden="true" />
+          <div className="flex min-h-full items-center justify-center p-4">
+          <div className="relative z-[102] bg-white rounded-lg shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
             {/* Modal Header */}
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
               <div>
@@ -1235,7 +1238,9 @@ export default function ServiceManager() {
               </button>
             </div>
           </div>
-        </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Deactivate/Activate Confirmation Modal */}
