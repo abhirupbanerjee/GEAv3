@@ -177,7 +177,6 @@ function SidebarMenuItem({
                   <Link
                     key={child.tabKey}
                     href={childHref}
-                    prefetch={false}
                     onClick={(e) => e.stopPropagation()}
                     className={`block flex items-center space-x-3 px-3 py-2 rounded-lg transition-all text-sm cursor-pointer select-none ${
                       isChildActive
@@ -211,7 +210,6 @@ function SidebarMenuItem({
     <div className="relative group">
       <Link
         href={item.href}
-        prefetch={false}
         onClick={(e) => e.stopPropagation()}
         className={`${baseClasses} ${isActive ? activeClasses : inactiveClasses}`}
         aria-label={isCollapsed ? item.label : undefined}
