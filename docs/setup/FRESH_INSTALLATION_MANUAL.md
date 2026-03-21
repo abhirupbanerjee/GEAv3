@@ -1612,12 +1612,13 @@ docker compose restart frontend
 
 ### Appendix B: Database Schema Overview
 
-**44 Tables Organized by Category:**
+**45 Tables Organized by Category:**
 
-**Master Data (11 tables):**
+**Master Data (12 tables):**
 - `entity_master` - Government entities (68 entities)
 - `service_master` - Government services (172 services)
 - `service_attachments` - Document requirements (181 attachments)
+- `ai_bots` - Registered AI/chatbot integrations
 - `life_events` - Life event categories (29 events)
 - `service_categories` - Service categorization (53 categories)
 - `delivery_channels` - Service delivery methods (9 channels)
@@ -1627,16 +1628,27 @@ docker compose restart frontend
 - `ticket_categories` - Ticket categorization
 - `grievance_status` - Grievance workflow states
 
-**Transactional Data (7 tables) - Empty after fresh install:**
+**Transactional Data (12 tables) - Empty after fresh install:**
 - `service_feedback` - Citizen feedback ratings
 - `grievance_tickets` - Grievance submissions
 - `grievance_attachments` - Grievance file attachments
+- `grievance_activity` - Grievance status change timeline
 - `tickets` - Unified ticketing system
 - `ticket_activity` - Ticket activity timeline
 - `ticket_attachments` - Ticket file attachments
+- `ticket_notes` - Internal staff notes on tickets
+- `sla_breaches` - SLA breach tracking
 - `ea_service_requests` - EA service requests
+- `ea_service_request_attachments` - EA service request file attachments
+- `ea_service_request_comments` - EA service request comments
 
-**Authentication (8 tables):**
+**Citizen Authentication (4 tables):**
+- `citizens` - Citizen accounts (phone-based, no passwords)
+- `citizen_otp` - OTP verification history
+- `citizen_sessions` - 24-hour session tokens
+- `citizen_trusted_devices` - 30-day trusted device tokens
+
+**Admin/Staff Authentication (8 tables):**
 - `users` - User accounts (created by OAuth)
 - `user_roles` - Role definitions (admin, staff, public)
 - `accounts` - OAuth provider data
@@ -1646,10 +1658,15 @@ docker compose restart frontend
 - `user_permissions` - Fine-grained permissions
 - `user_audit_log` - User activity audit
 
-**Admin Settings (3 tables):**
+**Admin Settings (4 tables):**
 - `system_settings` - Admin-configurable application settings (75 settings)
 - `settings_audit_log` - Settings change history
 - `leadership_contacts` - Dynamic leadership contacts for About page
+- `backup_audit_log` - Database backup/restore operation history
+
+**Documents (2 tables):**
+- `doc_folders` - Hierarchical folder structure for documents
+- `documents` - Uploaded documents with metadata and soft-delete
 
 **Security & Audit (2 tables):**
 - `submission_rate_limit` - Rate limiting
@@ -1851,12 +1868,15 @@ After completing the fresh installation:
 
 ---
 
-**Document Version:** 1.5
-**Last Updated:** February 28, 2026
+**Document Version:** 1.6
+**Last Updated:** March 2026
 **Status:** Production Ready
 **Maintained By:** GEA Portal Development Team
 
 **Change Log:**
+- v1.6 (March 2026):
+  - Updated Appendix B: 44 → 45 tables; added Citizen Auth (4), Documents (2), expanded Transactional (12), Admin Settings (4), Master Data (12)
+  - Updated table count references on lines 41 and 790 from 44 → 45
 - v1.5 (Feb 28, 2026):
   - Pinned Docker versions (Traefik 3.6.7, PostgreSQL 16.11, Node.js 22.22.0)
   - Added redis and pgbouncer service documentation

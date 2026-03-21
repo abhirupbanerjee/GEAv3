@@ -44,8 +44,10 @@ Every file containing hardcoded domain references that need to change between en
 
 These are publicly served files used by external chatbots and API integrations.
 
-| # | File | Line | Current Value |
-|---|------|------|---------------|
+> **Column meaning:** "Production Value" = the value these files must contain when deployed to `gea.gov.gd`. When on pre-production, these will show `gea.abhirup.app` instead.
+
+| # | File | Line | Production Value |
+|---|------|------|-----------------|
 | 1 | `frontend/public/bot-api-functions.json` | 215 | `"api_base_url": "https://gea.gov.gd/api/external"` |
 | 2 | `frontend/public/bot-api-tools-openai.json` | 143 | `"base_url": "https://gea.gov.gd/api/external"` |
 | 3 | `frontend/public/openapi.yaml` | 19 | `email: admin@dta.gov.gd` |
@@ -62,8 +64,8 @@ These are publicly served files used by external chatbots and API integrations.
 
 These use environment variables at build/runtime but have hardcoded fallbacks.
 
-| # | File | Line | Current Value |
-|---|------|------|---------------|
+| # | File | Line | Production Value |
+|---|------|------|-----------------|
 | 10 | `frontend/src/config/env-client.ts` | 12 | `process.env.NEXT_PUBLIC_FRONTEND_URL \|\| 'https://gea.gov.gd'` |
 | 11 | `frontend/src/config/env-client.ts` | 21 | `'https://gea.gov.gd/feedback/qr'` |
 | 12 | `frontend/src/config/env-client.ts` | 28 | `process.env.NEXT_PUBLIC_BASE_DOMAIN \|\| 'gov.gd'` |
@@ -79,8 +81,8 @@ These use environment variables at build/runtime but have hardcoded fallbacks.
 
 ### Category C: Infrastructure (1 file)
 
-| # | File | Line | Current Value |
-|---|------|------|---------------|
+| # | File | Line | Production Value |
+|---|------|------|-----------------|
 | 18 | `traefik.yml` | 25 | `email: admin@gov.gd` |
 
 **Rebuild required**: No — Traefik reads this file at container start. Restart Traefik after editing.
