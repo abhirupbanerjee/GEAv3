@@ -1,8 +1,8 @@
 # 📚 Grenada EA Portal v3 - Complete Documentation Index
 
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git
-**Version:** 3.3.0 (Public Helpdesk Toggle + Admin Settings)
-**Last Updated:** February 22, 2026
+**Version:** 3.3.0
+**Last Updated:** March 2026
 **Status:** ✅ Production Ready
 
 ---
@@ -41,7 +41,7 @@
 - ✅ Auto-grievance creation for low ratings (≤2.5)
 
 ### Phase 2b: Grievance & Ticketing System
-- ✅ PostgreSQL 16 database (33 tables, 44+ indexes)
+- ✅ PostgreSQL 16 database (45+ tables, 44+ indexes)
 - ✅ Citizen grievance submission with attachments
 - ✅ EA service request management (admin portal)
 - ✅ Native ticketing system with SLA tracking
@@ -50,13 +50,14 @@
 - ✅ IP-based rate limiting protection
 - ✅ Email notifications (SendGrid)
 - ✅ IP hashing for privacy (SHA256)
-- ✅ Master data management (entities, services, QR codes)
-- ✅ Admin-configurable system settings (~53 settings)
+- ✅ Master data management (entities, services, QR codes, categories, life events)
+- ✅ Admin-configurable system settings (100+ settings in 9 categories)
 - ✅ Admin ticket management dashboard
-- ✅ Comprehensive API (114+ endpoints)
+- ✅ Comprehensive API (122+ endpoints)
 - ✅ External API for bot/integration access (API key auth)
 - ✅ OpenAPI specifications for external endpoints
 - ✅ PII masking for external data access
+- ✅ Document management (folders, upload, download, soft delete)
 
 ### Phase 2c: Authentication & Authorization
 - ✅ NextAuth v4 with OAuth providers (Google, Microsoft)
@@ -93,7 +94,7 @@
 | Technology | Version | Purpose |
 |------------|---------|---------|
 | Next.js API Routes | 16.x | RESTful API endpoints |
-| PostgreSQL | 16-alpine | Primary database |
+| PostgreSQL | 16.11-alpine | Primary database |
 | PgBouncer | v1.25.1 | Connection pooling |
 | node-postgres (pg) | 8.x | Database driver |
 | SendGrid | Latest | Email notifications |
@@ -104,8 +105,8 @@
 |------------|---------|---------|
 | Docker | 29.x | Containerization (latest supported, Docker 27.x is EOL) |
 | Docker Compose | 5.0+ | Multi-container orchestration |
-| Traefik | 3.6 | Reverse proxy & SSL (supports Docker 29 API) |
-| PgBouncer | 1.23.1 | Database connection pooling |
+| Traefik | 3.6.7 | Reverse proxy & SSL (supports Docker 29 API) |
+| PgBouncer | 1.25.1 | Database connection pooling |
 | Redis | 7.4.4 | Analytics caching |
 
 > **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation.
@@ -138,8 +139,8 @@ gogeaportal/v3/
 │   │   └── TECH_STACK_UPGRADE_ROADMAP.md  # Technology upgrade roadmap
 │   ├── solution/                          # Solution Architecture & References
 │   │   ├── SOLUTION_ARCHITECTURE.md       # System architecture overview
-│   │   ├── API_REFERENCE.md               # All API endpoints (114+)
-│   │   ├── DATABASE_REFERENCE.md          # Database schema (33+ tables)
+│   │   ├── API_REFERENCE.md               # All API endpoints (122+)
+│   │   ├── DATABASE_REFERENCE.md          # Database schema (45+ tables)
 │   │   ├── AUTHENTICATION.md              # OAuth setup & configuration
 │   │   ├── USER_MANAGEMENT.md             # User roles & permissions
 │   │   └── EMAIL_NOTIFICATIONS.md         # Email system configuration
@@ -206,7 +207,7 @@ gogeaportal/v3/
     │
     └── src/
         ├── app/
-        │   ├── api/                       # API Routes (114+ endpoints)
+        │   ├── api/                       # API Routes (122+ endpoints)
         │   │   ├── auth/                  # NextAuth endpoints
         │   │   ├── citizen/               # Citizen portal APIs
         │   │   ├── content/               # Page context API (for AI bot)
@@ -856,21 +857,22 @@ docker system prune -a
 
 ## 📊 Project Statistics
 
-### Current Implementation (Phase 2b + Authentication + External API)
-- **Total API Endpoints:** 114+ (feedback, tickets, helpdesk, admin, citizen, master data, auth, content, external)
+### Current Implementation
+- **Total API Endpoints:** 122+ (feedback, tickets, helpdesk, admin, citizen, master data, auth, content, external, documents)
 - **Public API Endpoints:** 6 (health, categories, helpdesk status)
 - **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
-- **Database Tables:** 30 (master data, transactional, auth, audit)
+- **Database Tables:** 45+ (master data, transactional, auth, audit, documents, settings)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
 - **Lines of Code:** ~23,000+
 - **Docker Services:** 5 (Traefik, PostgreSQL, PgBouncer, Redis, Frontend)
+- **Docker Volumes:** 5 (`traefik_acme`, `feedback_db_data`, `redis_data`, `gea_backups`, `documents_data`)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
 - **OpenAPI Specs:** 6 YAML files for bot/integration access
 - **Build Time:** ~3-5 minutes (first build)
 - **Deployment Time:** ~10-15 minutes (first deployment)
 - **Memory Usage:** ~2GB (all services under load)
-- **Disk Usage:** ~3GB (including database with auth tables)
+- **Disk Usage:** ~13GB (including database, docker images, build cache)
 
 ### Test Data (when seeded)
 - **Entities:** 4
@@ -951,16 +953,18 @@ docker system prune -a
 - ✅ NextAuth integration (Google & Microsoft)
 - ✅ User management system with roles
 - ✅ Entity-based access control
-- ✅ Comprehensive API (35+ endpoints)
+- ✅ Comprehensive API (122+ endpoints)
 - ✅ Rate limiting protection
 - ✅ Email notifications via SendGrid
 - ✅ Audit logging system
 - ✅ AI bot inventory management
 - ✅ External API for bot/integration access
-
-### In Progress
-- 🔄 Staff portal (entity-specific access for MDAs)
-- 🔄 Advanced analytics dashboard with charts
+- ✅ Staff portal (entity-specific access for MDAs)
+- ✅ Advanced analytics dashboard with charts
+- ✅ Citizen portal (SMS OTP auth, dashboard, tickets, grievances, analytics)
+- ✅ Document management system (folders, upload, download, soft delete)
+- ✅ Database backup & restore with scheduling
+- ✅ Service categories, life events, delivery channels, service consumers
 
 ### Future Enhancements (Phase 3)
 - [ ] Ticket assignment workflow
@@ -975,7 +979,7 @@ docker system prune -a
 
 ---
 
-**Last Updated:** February 22, 2026
-**Version:** 3.3.0 (Public Helpdesk Toggle + Admin Settings)
+**Last Updated:** March 2026
+**Version:** 3.3.0
 **Status:** ✅ Production Ready
 **Repository:** https://github.com/abhirupbanerjee/GEAv3.git

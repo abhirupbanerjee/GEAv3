@@ -38,7 +38,7 @@
 This manual provides complete instructions for performing a **fresh installation** of the GEA Portal v3 on a new virtual machine. This installation will:
 
 ✅ Set up all infrastructure components (Docker, PostgreSQL, Next.js, Traefik)
-✅ Initialize the database schema (44 tables, 60+ indexes)
+✅ Initialize the database schema (45 tables, 60+ indexes)
 ✅ Load **master data only** (68 entities, 172 services, 181 service attachments)
 ✅ Load **system settings** (75 configurable admin settings)
 ✅ Create initial admin user(s)
@@ -787,7 +787,7 @@ docker exec -it feedback_db psql -U feedback_user -d feedback
 # List all tables
 \dt
 
-# Expected output: Should see 44 tables
+# Expected output: Should see 45 tables
 # entity_master, service_master, users, tickets, system_settings, leadership_contacts, etc.
 
 # Check table counts

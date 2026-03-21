@@ -43,7 +43,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 | Metric | Value |
 |--------|-------|
 | **Database Tables** | 40+ tables (master data, transactional, auth, settings, audit) |
-| **API Endpoints** | 114+ RESTful endpoints |
+| **API Endpoints** | 122+ RESTful endpoints |
 | **External API Endpoints** | 5 (dashboard, tickets, feedback, grievances, service-requirements) |
 | **OAuth Providers** | Google, Microsoft Azure AD |
 | **Citizen Authentication** | Twilio SMS OTP (passwordless phone-based) |
@@ -57,12 +57,12 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
 
 - **Frontend:** Next.js 16 (React, TypeScript, Tailwind CSS)
 - **Backend:** Next.js API Routes (Node.js 22)
-- **Database:** PostgreSQL 16-alpine
+- **Database:** PostgreSQL 16.11-alpine
 - **Connection Pool:** PgBouncer v1.25.1 (transaction mode)
 - **Cache:** Redis 7.4.4-alpine (analytics caching)
 - **Authentication:** NextAuth v4 with OAuth (admin/staff) + Twilio Verify SMS OTP (citizens)
 - **Settings Encryption:** AES-256-GCM for sensitive values
-- **Reverse Proxy:** Traefik v3.6 with automatic SSL
+- **Reverse Proxy:** Traefik v3.6.7 with automatic SSL
 - **Email:** SendGrid API
 - **SMS:** Twilio Verify API (citizen OTP)
 - **Deployment:** Docker Compose
@@ -80,7 +80,7 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
                          │ HTTPS (Port 443)
                          ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                    TRAEFIK REVERSE PROXY (v3.6)                      │
+│                    TRAEFIK REVERSE PROXY (v3.6.7)                    │
 │  • SSL Termination (Let's Encrypt)                                   │
 │  • Routing (gea.domain.com → frontend:3000)                         │
 │  • Load Balancing                                                    │
@@ -114,9 +114,9 @@ The **Government Enterprise Architecture (GEA) Portal v3** is a comprehensive ci
                          ▼
                  ┌──────────────┐
                  │  POSTGRESQL  │
-                 │   16-alpine  │
+                 │ 16.11-alpine │
                  ├──────────────┤
-                 │ • 40+ Tables │
+                 │ • 45+ Tables │
                  │ • 60+ IDX    │
                  │ • JSONB      │
                  └──────────────┘
@@ -205,7 +205,7 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 │                      DOCKER HOST SERVER                          │
 │                                                                  │
 │  ┌────────────────────────────────────────────────────────┐    │
-│  │  TRAEFIK CONTAINER (traefik:v3.6)                      │    │
+│  │  TRAEFIK CONTAINER (traefik:v3.6.7)                    │    │
 │  │  • Port 80/443 exposed                                  │    │
 │  │  • SSL Certificates (Let's Encrypt)                     │    │
 │  │  • Dashboard: traefik.gea.domain.com                   │    │
@@ -227,8 +227,8 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 │  └──────────────────────┘      └──────────┬──────────┘          │
 │                                           │                      │
 │                           ┌───────────────▼───────────────┐     │
-│                           │  DATABASE (postgres:16-alpine)│     │
-│                           │  • PostgreSQL 16-alpine       │     │
+│                           │ DATABASE (postgres:16.11-alpine)│   │
+│                           │  • PostgreSQL 16.11-alpine    │     │
 │                           │  • Port 5432 (internal)       │     │
 │                           │  • Volume: feedback_db_data   │     │
 │                           │  • Database: feedback         │     │
@@ -367,8 +367,8 @@ Admin → Settings Portal → 9 Category Tabs → Modify Values → Encryption (
 |----------|-----------|---------|---------|
 | **Containerization** | Docker | 29.x | Application containers (Docker 27.x EOL) |
 | **Orchestration** | Docker Compose | v5.0+ | Multi-container management |
-| **Reverse Proxy** | Traefik | v3.6 | Load balancing & SSL |
-| **Database** | PostgreSQL | 16-alpine | Relational database |
+| **Reverse Proxy** | Traefik | v3.6.7 | Load balancing & SSL |
+| **Database** | PostgreSQL | 16.11-alpine | Relational database |
 | **Connection Pool** | PgBouncer | v1.25.1-p0 | Database connection pooling |
 | **Cache** | Redis | 7.4.4-alpine | Analytics caching |
 | **SSL** | Let's Encrypt | - | Free SSL certificates |
@@ -1051,7 +1051,7 @@ const result = await pool.query(query, params)
 ```yaml
 services:
   traefik:
-    image: traefik:v3.6
+    image: traefik:v3.6.7
     ports:
       - "80:80"
       - "443:443"
@@ -1063,7 +1063,7 @@ services:
       - geav3_network
 
   feedback_db:
-    image: postgres:16-alpine
+    image: postgres:16.11-alpine
     environment:
       - POSTGRES_DB=feedback
       - POSTGRES_USER=feedback_user
@@ -1139,6 +1139,7 @@ volumes:
   feedback_db_data:
   redis_data:
   gea_backups:
+  documents_data:
 
 networks:
   geav3_network:
@@ -1491,12 +1492,13 @@ Frontend Frontend Frontend Frontend
 
 ---
 
-**Document Version:** 1.6
-**Last Updated:** February 22, 2026
+**Document Version:** 1.7
+**Last Updated:** March 2026
 **Maintained By:** GEA Portal Development Team
-**System Version:** Phase 3.3.0 (Citizen Auth + System Settings + Enhanced Features)
+**System Version:** Phase 3.4.0 (Documents Management + Infrastructure Updates)
 
 **Change Log:**
+- v1.7 (Mar 2026): Updated Traefik v3.6 → v3.6.7, added documents_data volume, updated API endpoints (114+ → 122+), updated database tables (40+ → 45), added Documents Management component
 - v1.6 (Feb 22, 2026): Updated API endpoints (114+), corrected infrastructure specs (B2s 4GB), added gea_backups volume, updated Tailwind CSS (4.x) and Zod (4.x) versions, updated database indexes (60+)
 - v1.5 (Jan 19, 2026): Added Citizen Portal & Authentication Component (Twilio SMS OTP), System Settings Management Component (9 categories, AES-256-GCM encryption), updated database tables (30→40+), added new API endpoints, updated metrics (85+ endpoints, 100+ settings)
 - v1.4 (Jan 19, 2026): Added infrastructure specifications, updated capacity metrics

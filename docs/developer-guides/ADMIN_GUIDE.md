@@ -93,10 +93,15 @@ These settings can be changed directly through the Admin UI and take effect imme
 1. Log in to the admin panel
 2. Navigate to **Settings** in the sidebar
 3. Choose the appropriate category:
-   - **System** - Technical configuration
-   - **Content** - Text and display settings
-   - **Email** - Email notification settings
-   - **Footer** - Footer links and copyright
+   - **System** - Technical configuration (session, rate limits, file sizes, backup schedule)
+   - **Authentication** - OAuth providers, session durations, OTP settings
+   - **Integrations** - Email (SendGrid), SMS (Twilio), external APIs
+   - **Business Rules** - Feedback thresholds, escalation rules, SLA settings
+   - **Performance** - Caching, Redis settings, query optimization
+   - **Content** - Text and display settings, welcome messages, footer
+   - **Admin Management** - Configure which entities can have admin users
+   - **Service Providers** - Configure entities that can receive service requests
+   - **Backups** - Backup and restore database, manage scheduled backups
 
 ### System Settings
 

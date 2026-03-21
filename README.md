@@ -49,7 +49,7 @@ The Grenada EA Portal aims to:
 - **Service Feedback System** - 5-point rating with auto-grievance creation
 - **Citizen Portal** - SMS OTP authentication, personal dashboard, feedback history, ticket/grievance management
 - **Native Ticketing System** - Citizen grievances and EA service requests with SLA tracking
-- **Admin Portal** - Ticket management, analytics, and master data administration
+- **Admin Portal** - Ticket management, analytics, document management, and master data administration
 - **Staff Portal** - Entity-specific access for ministry/department officers
 - **AI Chatbot Assistant** - Embedded chatbot (Azure Cloud hosted, can be enabled/disabled)
 - **OAuth Authentication** - Google & Microsoft sign-in for staff/admin + SMS OTP for citizens
@@ -80,10 +80,10 @@ The Grenada EA Portal aims to:
 | **Docker** | 29.1.5 | Latest supported (Docker 27.x is EOL) |
 | **Docker Compose** | v5.0.1 | Plugin version |
 | **Node.js** | 22 (container) | Alpine-based image |
-| **PostgreSQL** | 16-alpine | Database container |
+| **PostgreSQL** | 16.11-alpine | Database container |
 | **PgBouncer** | v1.25.1-p0 | Connection pooling (edoburu/pgbouncer) |
 | **Redis** | 7.4.4-alpine | Analytics caching |
-| **Traefik** | v3.6 | Reverse proxy + SSL (supports Docker 29 API) |
+| **Traefik** | v3.6.7 | Reverse proxy + SSL (supports Docker 29 API) |
 
 > **ℹ️ Version Info:** Docker 29.x is the current supported version. Traefik v3.6+ includes automatic Docker API version negotiation for full compatibility.
 
@@ -182,10 +182,11 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 │  │  │ • Home/About  │ │ • Dashboard   │ │ • Entity View │ │ • Dashboard   │       │  │
 │  │  │ • Feedback    │ │ • My Tickets  │ │ • Tickets     │ │ • All Tickets │       │  │
 │  │  │ • Helpdesk    │ │ • Grievances  │ │ • Feedback    │ │ • Analytics   │       │  │
-│  │  │               │ │ • Analytics   │ │               │ │ • Settings    │       │  │
+│  │  │ • Services    │ │ • Analytics   │ │               │ │ • Documents   │       │  │
+│  │  │               │ │               │ │               │ │ • Settings    │       │  │
 │  │  └───────────────┘ └───────────────┘ └───────────────┘ └───────────────┘       │  │
 │  │  ┌──────────────────────────────────────────────────────────────────────────┐  │  │
-│  │  │                       API Routes (114+ endpoints)                        │  │  │
+│  │  │                       API Routes (122+ endpoints)                        │  │  │
 │  │  │  /api/auth/*      /api/citizen/*    /api/feedback/*    /api/tickets/*    │  │  │
 │  │  │  /api/admin/*     /api/public/*     /api/settings/*    /api/external/*   │  │  │
 │  │  └──────────────────────────────────────────────────────────────────────────┘  │  │
@@ -212,7 +213,7 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 │                                ┌─────────────────────────────────────────────────┐   │
 │                                │               POSTGRESQL 16                     │   │
 │                                │          (Primary Data Store)                   │   │
-│                                │    • 33+ Tables (master, transactions, auth)    │   │
+│                                │    • 45+ Tables (master, transactions, auth)    │   │
 │                                │    • 44+ Indexes                                │   │
 │                                │    • Citizens, Feedback, Tickets, Audit         │   │
 │                                │    Port: 5432                                   │   │
@@ -221,6 +222,7 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 │  ┌────────────────────────────────────────────────────────────────────────────────┐  │
 │  │                              DOCKER VOLUMES                                    │  │
 │  │  traefik_acme (SSL)  feedback_db_data (DB)  redis_data (Cache)  gea_backups   │  │
+│  │  documents_data (Uploads)                                                      │  │
 │  └────────────────────────────────────────────────────────────────────────────────┘  │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -253,10 +255,10 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 | Component | Technology | Purpose | Container |
 |-----------|-----------|---------|-----------|
 | **Frontend** | Next.js 16 (App Router) | Main portal & admin UI | `frontend` |
-| **Database** | PostgreSQL 16-alpine | Data storage & user management | `feedback_db` |
+| **Database** | PostgreSQL 16.11-alpine | Data storage & user management | `feedback_db` |
 | **Connection Pool** | PgBouncer v1.25.1 | Database connection pooling | `pgbouncer` |
 | **Cache** | Redis 7.4.4-alpine | Analytics caching | `redis` |
-| **Reverse Proxy** | Traefik v3.6 | SSL termination & routing | `traefik` |
+| **Reverse Proxy** | Traefik v3.6.7 | SSL termination & routing | `traefik` |
 | **Authentication** | NextAuth v4 | OAuth (Google/Microsoft) | (in frontend) |
 
 ### Production Container Status
@@ -265,10 +267,10 @@ Ports:   22 (SSH), 80 (HTTP), 443 (HTTPS)
 # Expected output from: docker compose ps
 NAMES         IMAGE                            STATUS                    PORTS
 frontend      geav3-frontend                   Up X minutes              3000/tcp
-feedback_db   postgres:16-alpine               Up X minutes (healthy)    5432/tcp
+feedback_db   postgres:16.11-alpine            Up X minutes (healthy)    5432/tcp
 pgbouncer     edoburu/pgbouncer:v1.25.1-p0     Up X minutes (healthy)    5432/tcp
 redis         redis:7.4.4-alpine               Up X minutes (healthy)    6379/tcp
-traefik       traefik:v3.6                     Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
+traefik       traefik:v3.6.7                   Up X minutes              0.0.0.0:80->80/tcp, 0.0.0.0:443->443/tcp
 ```
 
 ### Technology Stack
@@ -289,7 +291,7 @@ traefik       traefik:v3.6                     Up X minutes              0.0.0.0
 
 **Infrastructure:**
 - Docker & Docker Compose
-- Traefik v3.6 (reverse proxy & SSL)
+- Traefik v3.6.7 (reverse proxy & SSL)
 - Let's Encrypt (auto-SSL)
 - PgBouncer (database connection pooling)
 - Redis (analytics caching)
@@ -320,7 +322,7 @@ gogeaportal/v3/
 │   └── master-data/          # Production data files
 │
 └── frontend/                 # Next.js application
-    ├── src/app/              # Pages and API routes (114+ endpoints)
+    ├── src/app/              # Pages and API routes (122+ endpoints)
     ├── src/components/       # React components
     ├── src/lib/              # Utilities and database helpers
     └── public/               # Static assets and OpenAPI specs
@@ -429,14 +431,13 @@ docker compose up -d --build
 
 For detailed configuration guidance, see [Administrator Guide](docs/developer-guides/ADMIN_GUIDE.md).
 
-### Removed Variables
+### Optional / Unused Variables
 
-The following variables have been removed as of v3.2.0:
-- `DMS_URL` - Unused
-- `GIT_URL` - Unused
-- `COPYRIGHT_YEAR` - Replaced by `FOOTER_COPYRIGHT_TEXT` in database
+The following variables exist in `.env.example` but are not actively used by the application code and can be omitted:
+- `DMS_URL` - No longer referenced in frontend
+- `GIT_URL` - No longer referenced in frontend
 
-If upgrading, remove these from your `.env` file.
+`COPYRIGHT_YEAR` / `NEXT_PUBLIC_COPYRIGHT_YEAR` remains in use as a build-time variable.
 
 ### Generate Secure Passwords
 
@@ -538,7 +539,7 @@ UPDATE users SET is_active=false WHERE email='user@example.com';"
 
 ### Docker Volumes
 
-Production uses 4 active volumes:
+Production uses 5 active volumes:
 
 | Volume | Purpose | Typical Size |
 |--------|---------|--------------|
@@ -546,6 +547,7 @@ Production uses 4 active volumes:
 | `feedback_db_data` | PostgreSQL data | ~70 MB |
 | `redis_data` | Redis cache persistence | ~10 MB |
 | `gea_backups` | Database backups | Variable |
+| `documents_data` | Uploaded documents (persistent) | Variable |
 
 ```bash
 # Check volume usage
@@ -605,7 +607,7 @@ sudo ufw enable
 - Tailwind CSS responsive design
 - Docker containerization with Traefik reverse proxy
 - Automated SSL certificates via Let's Encrypt
-- PostgreSQL 16 database (30 tables, 44+ indexes)
+- PostgreSQL 16 database (45+ tables, 44+ indexes)
 - Public portal pages (Home, About)
 
 ### Service Feedback & Analytics ✅
@@ -626,8 +628,17 @@ sudo ufw enable
 - Master data management (entities, services, QR codes)
 - Admin ticket management dashboard
 
+### Documents Management ✅
+- Hierarchical folder structure (up to 3 levels deep)
+- Upload individual files or entire folder structures (drag-and-drop)
+- Filter by folder, tags, and sort order
+- Download documents (all authenticated staff/admin users)
+- Edit document metadata — title, description, tags, folder, visibility (admin only)
+- Soft delete with restore capability (admin only)
+- Persistent storage via Docker volume (`documents_data`)
+
 ### Admin Settings ✅
-- **7 configuration tabs:** System, Authentication, Integrations, Business Rules, Performance, Content, Service Providers
+- **9 configuration tabs:** System, Authentication, Integrations, Business Rules, Performance, Content, Admin Management, Service Providers, Backups
 - Branding management (logo, favicon)
 - OAuth provider configuration
 - SendGrid email integration
@@ -635,6 +646,8 @@ sudo ufw enable
 - Rate limits and file upload settings
 - Leadership contacts management
 - Service provider entity management
+- Admin user entity assignments
+- Database backup & restore with scheduling
 
 ### Authentication & Authorization ✅
 - NextAuth v4 with OAuth providers (Google, Microsoft)
@@ -806,18 +819,18 @@ docker compose up -d --build frontend
 ## 📊 Project Statistics
 
 ### Current Implementation
-- **Total API Endpoints:** 114+ (public + admin + auth + citizen + context + external)
+- **Total API Endpoints:** 122+ (public + admin + auth + citizen + context + external)
 - **External API Endpoints:** 5 (dashboard, tickets, feedback, grievances, service-requirements)
-- **Database Tables:** 30 (master data, transactional, auth, audit)
+- **Database Tables:** 45+ (master data, transactional, auth, audit)
 - **Database Indexes:** 44+
 - **Foreign Keys:** 18+
-- **Environment Variables:** ~63 configurable options (includes EXTERNAL_API_KEY)
+- **Environment Variables:** ~51 configurable options (includes EXTERNAL_API_KEY)
 - **Lines of Code:** ~23,000+
 - **Docker Services:** 5 (Traefik, PostgreSQL, PgBouncer, Redis, Frontend)
-- **Docker Volumes:** 4 active (`traefik_acme`, `feedback_db_data`, `redis_data`, `gea_backups`)
+- **Docker Volumes:** 5 active (`traefik_acme`, `feedback_db_data`, `redis_data`, `gea_backups`, `documents_data`)
 - **Authentication Providers:** 2 (Google, Microsoft) + API Key (External API)
 - **AI Integration:** Embedded chatbot (Azure Cloud) + External API for bot data access
-- **Admin Settings Tabs:** 7 (System, Authentication, Integrations, Business Rules, Performance, Content, Service Providers)
+- **Admin Settings Tabs:** 9 (System, Authentication, Integrations, Business Rules, Performance, Content, Admin Management, Service Providers, Backups)
 - **OpenAPI Specs:** 6 YAML files for bot/integration access
 
 ### Production Resource Usage
@@ -843,6 +856,6 @@ docker compose up -d --build frontend
 
 ---
 
-**Last Updated:** February 2026 | **Version:** 3.3.0 | **Status:** ✅ Production Ready
+**Last Updated:** March 2026 | **Version:** 3.3.0 | **Status:** ✅ Production Ready
 
 **Production VM:** GoGEAPortalv3 (Azure Standard_B2s, Ubuntu 24.04.3 LTS, 4GB RAM, 2 vCPUs)

@@ -317,7 +317,7 @@ Answer five rating questions by selecting 1 to 5 stars for each:
 - **SAVE THIS NUMBER** - you'll need it to check your ticket status
 
 **Low Rating Automatic Escalation:**
-- If your average rating is **2.0 stars or lower**, the system automatically creates a grievance ticket
+- If your average rating is **2.5 stars or lower**, the system automatically creates a grievance ticket
 - This ensures serious complaints get proper attention
 
 ### 4.4 Submission Limits
@@ -356,7 +356,7 @@ File a grievance when:
 4. You'll receive a **Ticket Number** on the confirmation page
 
 **Method 2: Automatic Escalation**
-1. Submit feedback with low ratings (average ≤ 2.0 stars)
+1. Submit feedback with low ratings (average ≤ 2.5 stars)
 2. The system automatically creates a grievance
 3. You receive a ticket number on the confirmation page
 
@@ -809,7 +809,7 @@ If you have suggestions for improving this user manual:
 
 **Option 1:** Check "file as grievance" when submitting feedback
 
-**Option 2:** Give low ratings (≤2.0 average) - auto-creates grievance
+**Option 2:** Give low ratings (≤2.5 average) - auto-creates grievance
 
 **Result:** You receive a ticket number (YYYYMM-XXXXXX)
 

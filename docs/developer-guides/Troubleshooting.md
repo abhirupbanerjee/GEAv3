@@ -91,7 +91,7 @@ SELECT pg_size_pretty(pg_database_size('feedback')) AS database_size;"
 Before going live:
 
 **Configuration:**
-- [ ] Environment variables configured in `.env` (~62 variables)
+- [ ] Environment variables configured in `.env` (~51 variables)
 - [ ] Strong passwords generated for database
 - [ ] NextAuth secret generated (`openssl rand -base64 32`)
 - [ ] Admin session secret generated

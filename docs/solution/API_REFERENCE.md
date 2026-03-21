@@ -4545,7 +4545,7 @@ const RATE_LIMITS = {
 4. **Technology Stack Updates** ✅
    - Upgraded to Next.js 16 (from 14)
    - PostgreSQL 16-alpine (from 15)
-   - Added PgBouncer v1.23.1 for connection pooling
+   - Added PgBouncer v1.25.1 for connection pooling
    - Added Redis 7.4.4-alpine for analytics caching
    - Twilio Verify API for SMS OTP
    - Dual authentication systems (NextAuth + Custom Citizen Auth)

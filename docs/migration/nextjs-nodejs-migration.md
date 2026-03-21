@@ -99,11 +99,11 @@ Next.js follows semantic versioning with major releases approximately twice year
                            Feb 2026
                                 │
   ┌─────────────────────────────┴─────────────────────────────────────────────┐
-  │  GEA Portal on Next.js 16.1.2                                             │
-  │  • Current: v16.1.2                                                       │
-  │  • Latest Patch: v16.1.6 (security fixes)                                 │
+  │  GEA Portal on Next.js 16.1.6                                             │
+  │  • Current: v16.1.6 ✅ (Updated Feb 22, 2026 - CVE patches applied)       │
+  │  • Latest Patch: v16.1.6                                                  │
   │  • Remaining Support: ~1.5 years (until ~Oct 2027)                        │
-  │  • Action: Update to 16.1.6 for CVE patches                               │
+  │  • Status: Up to date ✅                                                   │
   └───────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -132,7 +132,7 @@ Next.js follows semantic versioning with major releases approximately twice year
 ```json
 {
   "dependencies": {
-    "next": "^16.1.2",
+    "next": "^16.1.6",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   }
@@ -141,7 +141,7 @@ Next.js follows semantic versioning with major releases approximately twice year
 
 | Dependency | Version | Latest | Status |
 |------------|---------|--------|--------|
-| next | ^16.1.2 | 16.1.6 | **Patch available** |
+| next | ^16.1.6 | 16.1.6 | **Up to date ✅** |
 | react | ^18.3.0 | 19.2.4 | **Major available** |
 | react-dom | ^18.3.0 | 19.2.4 | **Major available** |
 
@@ -326,13 +326,13 @@ export const config = {
 
 ## 3. Next.js Upgrade Assessment
 
-### 3.1 Current Version Analysis (16.1.2)
+### 3.1 Current Version Analysis (16.1.6 ✅)
 
 | Aspect | Status |
 |--------|--------|
 | Major Version | Latest (16) |
-| Patch Level | 16.1.2 (16.1.6 available) |
-| Security | **CVE patches needed** |
+| Patch Level | 16.1.6 ✅ (CVE-2025-55184, CVE-2025-55183 patched Feb 22, 2026) |
+| Security | **Up to date** |
 | Features | All stable features available |
 
 ### 3.2 Patch Update: 16.1.2 → 16.1.6

@@ -100,7 +100,7 @@ Docker              29.1.5          Supported
 
 ## Related Documentation
 
-- **[Tech Stack Upgrade Roadmap](../setup/TECH_STACK_UPGRADE_ROADMAP.md)** - Complete upgrade timeline and execution log
+- **[Tech Stack Upgrade Roadmap](./TECH_STACK_UPGRADE_ROADMAP.md)** - Complete upgrade timeline and execution log
 - **[Solution Architecture](../solution/SOLUTION_ARCHITECTURE.md)** - Current system architecture
 - **[Database Reference](../solution/DATABASE_REFERENCE.md)** - Database schema and configuration
 

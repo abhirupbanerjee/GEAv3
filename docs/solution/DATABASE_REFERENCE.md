@@ -2,10 +2,10 @@
 
 **Document Version:** 11.1
 **Last Updated:** February 22, 2026
-**Database:** PostgreSQL 16-alpine
+**Database:** PostgreSQL 16.11-alpine
 **Connection Pool:** PgBouncer v1.25.1
 **Cache:** Redis 7.4.4-alpine
-**Schema Version:** Production-Aligned v11.0 (40+ tables)
+**Schema Version:** Production-Aligned v11.2 (45 tables)
 
 ---
 
@@ -29,16 +29,17 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 40+ |
-| **Reference Data** | 7 (entities, services, priorities, statuses, categories, service_attachments, ai_bots) |
-| **Admin/Staff Auth & Users** | 8 (NextAuth OAuth) |
-| **Citizen Authentication** | 5 (citizens, citizen_sessions, citizen_trusted_devices, citizen_otp, citizen_account_blocks) |
-| **Feedback & Grievances** | 4 |
-| **EA Service Requests** | 3 |
-| **Tickets & Activity** | 4 |
+| **Tables** | 45 |
+| **Reference Data** | 7 (entity_master, service_master, priority_levels, grievance_status, ticket_status, service_attachments, ai_bots) |
+| **Admin/Staff Auth & Users** | 8 (user_roles, users, accounts, sessions, verification_tokens, entity_user_assignments, user_permissions, user_audit_log) |
+| **Citizen Authentication** | 4 (citizens, citizen_sessions, citizen_trusted_devices, citizen_otp) |
+| **Feedback & Grievances** | 5 (grievance_tickets, grievance_attachments, grievance_activity, service_feedback, qr_codes) |
+| **EA Service Requests** | 3 (ea_service_requests, ea_service_request_attachments, ea_service_request_comments) |
+| **Tickets & Activity** | 6 (tickets, ticket_activity, ticket_attachments, ticket_categories, ticket_notes, sla_breaches) |
 | **System & Settings** | 4 (system_settings, settings_audit_log, leadership_contacts, backup_audit_log) |
-| **Database Backups** | 2 (database_backups, backup_restore_history) |
-| **Security** | 3 (rate_limit, attempts, IP tracking) |
+| **Documents** | 2 (doc_folders, documents) |
+| **Service Consumers & Channels** | 4 (service_categories, life_events, delivery_channels, service_consumers) |
+| **Security** | 2 (submission_rate_limit, submission_attempts) |
 | **Foreign Keys** | 25+ |
 | **Indexes** | 60+ |
 | **Extensions** | 3 (uuid-ossp, pgcrypto, pg_trgm) |
@@ -2540,13 +2541,21 @@ EOF
 
 ---
 
-**Document Version:** 11.1
-**Last Updated:** February 22, 2026
-**Schema Version:** Production-Aligned v11.0 (40+ tables)
+**Document Version:** 11.2
+**Last Updated:** March 2026
+**Schema Version:** Production-Aligned v11.2 (45 tables)
 
 ---
 
 ## Changelog
+
+### v11.2 (March 2026)
+- Updated table count to 45 (accurate count from database scripts)
+- Added Documents tables: `doc_folders`, `documents`
+- Added `service_categories`, `life_events`, `delivery_channels`, `service_consumers` to table reference
+- Added `ticket_categories`, `ticket_notes`, `sla_breaches` to Tickets & Activity group
+- Corrected PostgreSQL image tag: `16-alpine` → `16.11-alpine`
+- Updated Quick Reference groupings to reflect actual schema
 
 ### v11.0 (January 19, 2026)
 - **Added 5 Citizen Authentication Tables:**

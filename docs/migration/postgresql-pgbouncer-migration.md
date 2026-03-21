@@ -6,7 +6,7 @@
 **Created:** February 22, 2026
 **Updated:** February 22, 2026
 **Status:** PgBouncer Security Patch Applied - Well Positioned
-**Current PostgreSQL:** 16-alpine (16.12)
+**Current PostgreSQL:** 16-alpine (16.11)
 **Current PgBouncer:** v1.25.1-p0 ✅ (Updated Feb 22, 2026)
 
 ---
@@ -58,7 +58,7 @@ The PostgreSQL Global Development Group supports each major version for **5 year
 |---------|----------|----------|--------------|--------|-------|
 | **18** | Sep 2025 | Nov 2030 | 18.2 | Active | Newest - Direct TLS, MERGE improvements |
 | **17** | Sep 2024 | Nov 2029 | 17.8 | Active | JSON_TABLE, incremental backup |
-| **16** | Sep 2023 | **Nov 2028** | **16.12** | **Active (Current)** | Logical replication, pg_stat_io |
+| **16** | Sep 2023 | **Nov 2028** | **16.11** | **Active (Current)** | Logical replication, pg_stat_io |
 | 15 | Oct 2022 | Nov 2027 | 15.16 | Active | MERGE command, jsonlog |
 | 14 | Sep 2021 | Nov 2026 | 14.21 | Active | Minimal upgrade path |
 | 13 | Sep 2020 | Nov 2025 | 13.23 | **EOL** | No longer supported |
@@ -85,7 +85,7 @@ The PostgreSQL Global Development Group supports each major version for **5 year
                                 │
   ┌─────────────────────────────┴─────────────────────────────────────────────┐
   │  GEA Portal on PostgreSQL 16                                              │
-  │  • Current: v16.12                                                        │
+  │  • Current: v16.11                                                        │
   │  • Remaining Support: ~2.7 years (until Nov 2028)                         │
   │  • Recommendation: No urgent upgrade needed                               │
   └───────────────────────────────────────────────────────────────────────────┘
@@ -161,7 +161,7 @@ CREATE EXTENSION IF NOT EXISTS "pg_trgm";     -- Trigram matching for full-text 
 | System | `system_settings`, `backup_audit_log`, `backup_settings` | Configuration |
 | Security | `submission_rate_limit`, `submission_attempts` | Rate limiting |
 
-**Total Tables:** ~35+ tables with comprehensive indexing
+**Total Tables:** 45 tables with comprehensive indexing
 
 ### 2.5 Connection Configuration
 
@@ -257,18 +257,20 @@ const pool = new Pool({
 | 1.25.0 | Nov 2025 | LDAP support, direct TLS, `transaction_timeout` | - |
 | 1.24.1 | 2025 | PAM fix | CVE-2025-2291 fix |
 | 1.24.0 | 2024 | PAM in HBA | - |
-| **1.23.1** | Aug 2024 | **Stability fixes (Current)** | - |
+| **1.23.1** | Aug 2024 | Stability fixes | - |
 | 1.23.0 | Jul 2024 | Safe SIGTERM shutdown, so_reuseport | - |
 | 1.22.1 | Mar 2024 | COPY FROM STDIN fixes | - |
 | 1.22.0 | Jan 2024 | Named prepared statements, DEALLOCATE ALL | - |
 
 ### Current vs Latest
 
-| Aspect | Current (1.23.1-p3) | Latest (1.25.1) | Gap |
-|--------|---------------------|-----------------|-----|
-| Release Date | Aug 2024 | Dec 2025 | ~16 months |
-| Security Patches | Up to date at release | CVE-2025-12819 fixed | **Update recommended** |
-| Features | Stable | LDAP, direct TLS, transaction_timeout | Nice to have |
+> **✅ Upgrade Complete (Feb 22, 2026):** Deployed version is now **v1.25.1-p0**. The table below reflects the state at the time this migration was planned.
+
+| Aspect | Was (1.23.1-p3) | Deployed (1.25.1-p0) | Status |
+|--------|-----------------|----------------------|--------|
+| Release Date | Aug 2024 | Dec 2025 | ✅ Current |
+| Security Patches | Outdated | CVE-2025-12819 fixed | ✅ Fixed |
+| Features | Stable | LDAP, direct TLS, transaction_timeout | ✅ Available |
 
 ### Sources
 - [PgBouncer Changelog](https://www.pgbouncer.org/changelog.html)
@@ -284,7 +286,7 @@ const pool = new Pool({
 
 ```yaml
 pgbouncer:
-  image: edoburu/pgbouncer:v1.23.1-p3
+  image: edoburu/pgbouncer:v1.25.1-p0
   container_name: pgbouncer
   restart: unless-stopped
   networks:
@@ -335,7 +337,7 @@ pgbouncer:
 │         ▼                                                               │
 │  ┌─────────────────────────────────────────────────────────────┐       │
 │  │                      PgBouncer                               │       │
-│  │                   (v1.23.1-p3)                               │       │
+│  │                   (v1.25.1-p0)                               │       │
 │  │  ┌────────────────────────────────────────────────────────┐ │       │
 │  │  │  Pool Mode: Transaction                                 │ │       │
 │  │  │  Max Clients: 200  →  Pool Size: 20  →  PostgreSQL     │ │       │
@@ -442,7 +444,7 @@ pgbouncer:
 docker exec feedback_db pg_dumpall -U feedback_user > backup_$(date +%Y%m%d).sql
 
 # 2. Update docker-compose.yml
-# Change: postgres:16-alpine → postgres:16.12-alpine (specific version)
+# Change: postgres:16-alpine → postgres:16.11-alpine (specific version)
 
 # 3. Recreate container (data persists in volume)
 docker compose up -d feedback_db

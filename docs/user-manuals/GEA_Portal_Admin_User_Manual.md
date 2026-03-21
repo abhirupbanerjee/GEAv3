@@ -2,8 +2,8 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 2.0
-**Last Updated:** January 19, 2026
+**Version:** 2.1
+**Last Updated:** March 2026
 **Audience:** Digital Transformation Agency (DTA) Administrators
 
 ---
@@ -22,6 +22,7 @@ This manual covers the following pages accessible to DTA administrators (require
 | **Analytics** | `/admin/analytics` | System-wide analytics with entity filtering |
 | **Service Requests** | `/admin/service-requests` | EA service request management |
 | **Service Request Analytics** | `/admin/service-requests/analytics` | Detailed service request metrics |
+| **Documents** | `/admin/documents` | Manage government policy documents and reference materials |
 | **AI Bots** | `/admin/ai-inventory` | Manage AI chatbot integrations |
 | **Settings** | `/admin/settings` | System configuration and service providers |
 
@@ -50,10 +51,11 @@ This manual covers the following pages accessible to DTA administrators (require
 7. [Analytics & Reporting](#7-analytics--reporting)
 8. [AI Bot Inventory](#8-ai-bot-inventory)
 9. [EA Service Requests](#9-ea-service-requests)
-10. [Settings](#10-settings)
-11. [System Administration](#11-system-administration)
-12. [Troubleshooting](#12-troubleshooting)
-13. [Appendices](#13-appendices)
+10. [Documents Management](#10-documents-management)
+11. [Settings](#11-settings)
+12. [System Administration](#12-system-administration)
+13. [Troubleshooting](#13-troubleshooting)
+14. [Appendices](#14-appendices)
 
 ---
 
@@ -80,6 +82,7 @@ DTA Administrators have the highest level of access:
 | View all analytics | ❌ | Own Entity | **All Entities** |
 | Manage AI bots | ❌ | ❌ | ✅ |
 | EA service requests | ❌ | ❌ | ✅ |
+| Manage documents | ❌ | View only | **Full CRUD** |
 
 ### 1.3 Key Responsibilities
 
@@ -134,6 +137,7 @@ If you are a new administrator:
 | `/admin/analytics` | Analytics |
 | `/admin/ai-inventory` | AI Bots |
 | `/admin/service-requests` | EA Service Requests |
+| `/admin/documents` | Documents Management |
 
 ---
 
@@ -171,6 +175,7 @@ The admin sidebar is organized in the following order:
 - **Users** - User management
 - **Services** - EA service requests
 - **Tickets** - All ticket management
+- **Documents** - Policy documents and reference materials
 - **Settings** - System configuration
   - AI Bots - Bot management
   - Backups - Database backup and restore
@@ -1134,11 +1139,150 @@ Requesters may attach:
 
 ---
 
-## 10. Settings
+## 10. Documents Management
+
+The Documents module (`/admin/documents`) provides a centralized repository for government policy documents, reference materials, and resources. Administrators have full CRUD access; staff users can view and download.
+
+### 10.1 Overview
+
+| Feature | Admin | Staff |
+|---------|-------|-------|
+| Browse documents and folders | ✅ | ✅ |
+| Download documents | ✅ | ✅ |
+| Upload documents | ✅ | ❌ |
+| Create / rename folders | ✅ | ❌ |
+| Edit document metadata | ✅ | ❌ |
+| Delete documents (soft delete) | ✅ | ❌ |
+| Restore deleted documents | ✅ | ❌ |
+
+### 10.2 Folder Structure
+
+Documents are organized in a **hierarchical folder system** (up to 3 levels deep):
+
+```
+Root
+├── Policies/
+│   ├── IT Policies/
+│   └── HR Policies/
+├── Standards/
+└── Reference Materials/
+```
+
+**Key characteristics:**
+- Folders can be created, renamed, and reorganized
+- Each document must belong to a folder
+- Folders are displayed in the left sidebar for navigation
+- Drag-and-drop is supported for reordering
+
+### 10.3 Uploading Documents
+
+**Step 1: Navigate to Documents**
+1. Click **Documents** in the admin sidebar
+2. The document library opens with the folder tree on the left
+
+**Step 2: Select a Folder**
+1. Click the target folder in the left panel
+2. The folder contents appear on the right
+
+**Step 3: Upload Files**
+1. Click the **Upload** button
+2. Select one or multiple files from your computer
+   - Or drag and drop files into the upload area
+3. For each file, optionally set:
+   - **Title** (defaults to filename)
+   - **Description**
+   - **Tags** (comma-separated for search/filtering)
+   - **Visibility** (`public` - visible to all authenticated users, or `private` - admin-only)
+4. Click **Confirm Upload**
+
+**Supported File Types:**
+PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, TXT, CSV, JPG, JPEG, PNG
+
+**Size Limits:**
+- Maximum 10 MB per file
+- Maximum 50 MB total per upload session
+
+### 10.4 Managing Folders
+
+**Create a folder:**
+1. Click **New Folder** in the folder panel
+2. Enter the folder name
+3. Select the parent folder (or Root for top-level)
+4. Click **Create**
+
+**Rename a folder:**
+1. Right-click the folder or click its options menu (⋯)
+2. Select **Rename**
+3. Enter the new name and confirm
+
+**Folder visibility:**
+- Folders inherit the visibility of their documents
+- Empty folders remain visible to admins only
+
+### 10.5 Editing Document Metadata
+
+1. Click on a document in the list
+2. Click **Edit** (pencil icon) — admin only
+3. Update any of:
+   - Title
+   - Description
+   - Tags
+   - Folder location
+   - Visibility (`public` / `private`)
+4. Click **Save**
+
+### 10.6 Downloading Documents
+
+All authenticated users (admin and staff) can download documents:
+
+1. Click on the document name or the **Download** button (↓)
+2. The file downloads to your local device
+3. Downloads are logged for audit purposes
+
+**Bulk Download:**
+1. Select multiple documents using the checkboxes
+2. Click **Bulk Download**
+3. A ZIP archive is created and downloaded automatically
+
+### 10.7 Deleting and Restoring Documents
+
+Documents use **soft delete** — they are hidden but recoverable.
+
+**Delete a document (admin only):**
+1. Click the document options menu (⋯)
+2. Select **Delete**
+3. Confirm the deletion
+4. The document is marked as deleted (hidden from normal view)
+
+**Restore a deleted document:**
+1. Enable **Show Deleted** toggle in the document list
+2. Deleted documents appear with a strikethrough
+3. Click **Restore** on the document
+4. The document reappears in the normal view
+
+### 10.8 Search and Filtering
+
+**Search:**
+- Use the search bar at the top to search by document title or description
+
+**Filter options:**
+- **By Folder** - Click any folder in the tree
+- **By Tag** - Click a tag badge to filter by that tag
+- **Sort** - By name, date uploaded, or size
+
+### 10.9 Storage
+
+Documents are stored in a persistent Docker volume (`documents_data`) which survives container restarts and upgrades. The storage path inside the container is `/app/public/uploads/documents`.
+
+> **Note:** When performing server migrations or backups, ensure the `documents_data` volume is included alongside the database backup.
+
+---
+
+## 11. Settings
 
 The Settings page (`/admin/settings`) provides comprehensive system configuration without requiring code changes or server restarts. All settings are stored in the database with encryption for sensitive values and full audit logging.
 
-### 10.1 Accessing Settings
+### 11.1 Accessing Settings
 
 1. Navigate to **Admin Portal** → **Settings**
 2. Settings are organized into 9 category tabs
@@ -1151,7 +1295,7 @@ The Settings page (`/admin/settings`) provides comprehensive system configuratio
 - Audit trail tracks all changes (who, when, why, from which IP)
 - Test functionality for Twilio SMS and SendGrid email
 
-### 10.2 Settings Categories Overview
+### 11.2 Settings Categories Overview
 
 The 9 settings categories provide control over every aspect of the portal:
 
@@ -1167,7 +1311,7 @@ The 9 settings categories provide control over every aspect of the portal:
 | **Service Providers** | Provider Entities | Configure which entities receive service requests |
 | **Database** | Backups, Restore, Schedule | Manual/automated backups, restore with safety backups |
 
-### 10.3 System Settings (Tab 1)
+### 11.3 System Settings (Tab 1)
 
 Configure basic portal settings under the **System** tab:
 
@@ -1193,7 +1337,7 @@ Configure basic portal settings under the **System** tab:
 4. Click "Save Changes"
 5. Logo/favicon changes apply immediately (no restart required)
 
-### 10.4 Authentication Settings (Tab 2)
+### 11.4 Authentication Settings (Tab 2)
 
 The **Authentication** tab manages sign-in methods for both admin/staff and citizens.
 
@@ -1295,7 +1439,7 @@ Configure which countries' phone numbers can register:
 - Government service portals requiring citizen authentication
 - Future: Citizen-facing e-services
 
-### 10.5 Integrations Settings (Tab 3)
+### 11.5 Integrations Settings (Tab 3)
 
 Configure third-party service integrations.
 
@@ -1358,7 +1502,7 @@ Control public access to ticket tracking without authentication:
 - Database script: `31-add-public-helpdesk-setting.sql`
 - API endpoint: `/api/helpdesk/status` (checks setting)
 
-### 10.6 Business Rules Settings (Tab 4)
+### 11.6 Business Rules Settings (Tab 4)
 
 #### Rate Limits
 
@@ -1398,7 +1542,7 @@ Configure file attachment constraints:
 | **Max Total Upload** | 5MB | 1MB-50MB | Maximum total per submission |
 | **Allowed File Types** | pdf,jpg,jpeg,png,doc,docx,xlsx,xls | - | Comma-separated extensions |
 
-### 10.7 Performance Settings (Tab 5)
+### 11.7 Performance Settings (Tab 5)
 
 Control Redis caching for analytics dashboard:
 
@@ -1416,7 +1560,7 @@ Control Redis caching for analytics dashboard:
 - Troubleshooting stale data issues
 - Prefer using "Refresh" button on dashboard instead
 
-### 10.8 Content Settings (Tab 6)
+### 11.8 Content Settings (Tab 6)
 
 #### Footer Links
 
@@ -1453,7 +1597,7 @@ Dynamically manage leadership contacts displayed on the About page:
 6. Drag to reorder if needed
 7. Toggle "Active" to control visibility
 
-### 10.9 User Management Settings (Tab 7)
+### 11.9 User Management Settings (Tab 7)
 
 Configure which entities are allowed to have admin users:
 
@@ -1472,7 +1616,7 @@ Configure which entities are allowed to have admin users:
 3. Save changes
 4. Only checked entities will appear in "Entity" dropdown when creating admin users
 
-### 10.10 Service Providers Settings (Tab 8)
+### 11.10 Service Providers Settings (Tab 8)
 
 The **Service Providers** tab controls which entities can receive service requests from other entities.
 
@@ -1489,7 +1633,7 @@ The **Service Providers** tab controls which entities can receive service reques
 **Default Configuration:**
 - DTA (AGY-005) is enabled as the default service provider
 
-### 10.11 Database Settings (Tab 9)
+### 11.11 Database Settings (Tab 9)
 
 The **Database** tab provides comprehensive backup and restore functionality directly from the admin interface.
 
@@ -1653,7 +1797,7 @@ The backup directory section displays (read-only):
 - Monitor "Total Size" to ensure adequate disk space
 - Consider retention policy if approaching storage limits
 
-### 10.12 Saving Settings Changes
+### 11.12 Saving Settings Changes
 
 **How to save changes:**
 1. Make changes to any settings on any tab
@@ -1681,9 +1825,9 @@ The backup directory section displays (read-only):
 
 ---
 
-## 11. System Administration
+## 12. System Administration
 
-### 11.1 System Health Monitoring
+### 12.1 System Health Monitoring
 
 Check system health regularly:
 
@@ -1703,7 +1847,7 @@ docker-compose logs -f feedback_db
 docker exec -it feedback_db psql -U feedback_user -d feedback -c "SELECT 1"
 ```
 
-### 11.2 Database Maintenance
+### 12.2 Database Maintenance
 
 **Backup Database:**
 ```bash
@@ -1716,17 +1860,17 @@ docker exec -it feedback_db psql -U feedback_user -d feedback -c "
 SELECT pg_size_pretty(pg_database_size('feedback'));"
 ```
 
-### 11.3 User Session Management
+### 12.3 User Session Management
 
 Sessions expire after **2 hours** of inactivity. No manual session management is typically required.
 
-### 11.4 Email Notification Configuration
+### 12.4 Email Notification Configuration
 
 Email notifications use SendGrid. Current configuration:
 - **Admin Email:** alerts.dtahelpdesk@gmail.com
 - Notifications sent for: New tickets, Status changes
 
-### 11.5 Rate Limiting
+### 12.5 Rate Limiting
 
 Current rate limits:
 - Feedback: 5/hour
@@ -1735,7 +1879,7 @@ Current rate limits:
 
 These protect against abuse while allowing legitimate use.
 
-### 11.6 Security Best Practices
+### 12.6 Security Best Practices
 
 **For Administrators:**
 - Use strong, unique passwords for OAuth accounts
@@ -1753,9 +1897,9 @@ These protect against abuse while allowing legitimate use.
 
 ---
 
-## 12. Troubleshooting
+## 13. Troubleshooting
 
-### 12.1 User Cannot Sign In
+### 13.1 User Cannot Sign In
 
 **Check:**
 1. Email exists in users table
@@ -1768,7 +1912,7 @@ These protect against abuse while allowing legitimate use.
 - Reactivate if inactive
 - Verify email matches exactly
 
-### 12.2 Missing Tickets
+### 13.2 Missing Tickets
 
 **Check:**
 1. Filter settings (may be filtering out tickets)
@@ -1780,7 +1924,7 @@ These protect against abuse while allowing legitimate use.
 - Verify entity assignment
 - Expand date range
 
-### 12.3 Email Notifications Not Sending
+### 13.3 Email Notifications Not Sending
 
 **Check:**
 1. SendGrid API key is valid
@@ -1792,7 +1936,7 @@ These protect against abuse while allowing legitimate use.
 - Check container logs for errors
 - Test API key manually
 
-### 12.4 Database Connection Errors
+### 13.4 Database Connection Errors
 
 **Check:**
 1. Database container is running
@@ -1805,7 +1949,7 @@ docker-compose restart feedback_db
 docker-compose restart frontend
 ```
 
-### 12.5 Performance Issues
+### 13.5 Performance Issues
 
 **Check:**
 1. Container resource usage: `docker stats`
@@ -1817,7 +1961,7 @@ docker-compose restart frontend
 - Optimize slow queries
 - Check server capacity
 
-### 12.6 SSL Certificate Issues
+### 13.6 SSL Certificate Issues
 
 **Check:**
 1. Certificate expiry date
@@ -1831,7 +1975,7 @@ docker-compose restart frontend
 
 ---
 
-## 13. Appendices
+## 14. Appendices
 
 ### Appendix A: Role Permissions Matrix
 
@@ -1944,8 +2088,9 @@ GROUP BY rating;
 
 ## Document Information
 
-**Document Version:** 2.0
+**Document Version:** 2.1
 **Published:** January 2026
+**Last Updated:** March 2026
 **Classification:** Internal Use - DTA Staff Only
 **© Government of Grenada - Digital Transformation Agency**
 
@@ -1953,11 +2098,31 @@ GROUP BY rating;
 
 ## Version History
 
+### Version 2.1 (March 2026)
+
+**Added:**
+
+**Documents Management (Section 10):**
+- New section covering the Documents module (`/admin/documents`)
+- Folder hierarchy management (create, rename, up to 3 levels)
+- File upload procedures with supported formats and size limits
+- Document metadata editing (title, description, tags, visibility, folder)
+- Soft delete and restore workflow
+- Bulk download via ZIP
+- Search and filter reference
+- Storage note for backups and migrations
+
+**Minor Updates:**
+- Added Documents to Applicable Portal Pages table and URL structure
+- Added Documents row to Administrator Role Overview matrix
+- Added Documents to Navigation Menu (section 3.2)
+- Renumbered sections: Settings → 11, System Administration → 12, Troubleshooting → 13, Appendices → 14
+
 ### Version 2.0 (January 19, 2026)
 
 **Major Updates:**
 
-**Settings (Section 10):**
+**Settings (Section 11):**
 - Complete rewrite with comprehensive 9-category documentation
 - Added detailed Citizen Login (Twilio SMS OTP) configuration guide
 - Documented Leadership Contacts feature

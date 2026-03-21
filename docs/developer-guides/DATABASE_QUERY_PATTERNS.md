@@ -32,9 +32,9 @@ This guide provides **database query patterns** specific to the GEA Portal. Foll
 
 | Metric | Value |
 |--------|-------|
-| **Database** | PostgreSQL 16 |
-| **Connection Pooling** | PgBouncer v1.23.1 (200 max clients, 20 pool size) |
-| **Total Tables** | 40+ |
+| **Database** | PostgreSQL 16.11-alpine |
+| **Connection Pooling** | PgBouncer v1.25.1-p0 (200 max clients, 20 pool size) |
+| **Total Tables** | 45 |
 | **Indexes** | 60+ |
 | **Direct Pool** | 20 max connections (via lib/db.ts) |
 
@@ -44,7 +44,7 @@ This guide provides **database query patterns** specific to the GEA Portal. Foll
 |----------|--------|
 | **Reference Data** | `entity_master`, `service_master`, `service_attachments` |
 | **Admin/Staff Auth** | `users`, `user_roles`, `accounts`, `sessions` |
-| **Citizen Auth** | `citizens`, `citizen_sessions`, `citizen_trusted_devices`, `citizen_otp`, `citizen_account_blocks` |
+| **Citizen Auth** | `citizens`, `citizen_sessions`, `citizen_trusted_devices`, `citizen_otp` |
 | **System Settings** | `system_settings`, `settings_audit_log`, `leadership_contacts` |
 | **Feedback** | `service_feedback`, `grievance_tickets` |
 | **Tickets** | `tickets`, `ticket_activity`, `ticket_notes` |

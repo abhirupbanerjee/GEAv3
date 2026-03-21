@@ -32,7 +32,7 @@ This guide provides **step-by-step patterns** for developing API endpoints in th
 
 ### 1.2 Prerequisites
 
-- Working knowledge of **TypeScript** and **Next.js 14** (App Router)
+- Working knowledge of **TypeScript** and **Next.js 16** (App Router)
 - Understanding of **REST API** principles
 - Familiarity with **PostgreSQL** and parameterized queries
 - Access to the codebase and local development environment

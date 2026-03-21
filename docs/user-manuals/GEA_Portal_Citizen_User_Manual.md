@@ -615,7 +615,7 @@ Grievances can be created in two ways:
 - A grievance is created immediately
 
 **Method 2: Automatic Escalation**
-- Submit feedback with low ratings (average ≤ 2.0 stars)
+- Submit feedback with low ratings (average ≤ 2.5 stars)
 - System automatically creates a grievance
 - You'll receive a grievance number on the confirmation page
 
@@ -773,7 +773,7 @@ A: Yes, use the "Forgot Password" option on the login page to reset your passwor
 A: Contact the DTA support team to request account deletion.
 
 **Q: What's the difference between feedback and a grievance?**
-A: Feedback is a rating and review of a service. A grievance is a formal complaint that requires follow-up and resolution. Low-rated feedback (≤ 2.0 average) is automatically escalated to a grievance.
+A: Feedback is a rating and review of a service. A grievance is a formal complaint that requires follow-up and resolution. Low-rated feedback (≤ 2.5 average) is automatically escalated to a grievance.
 
 ### Feedback Questions
 

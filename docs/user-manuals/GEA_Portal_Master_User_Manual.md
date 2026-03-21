@@ -667,8 +667,8 @@ Help us improve this documentation:
 | Master User Manual | 1.0 | January 2026 | Initial release |
 | Anonymous User Manual | 1.0 | January 2026 | Initial release |
 | Citizen User Manual | 2.1 | January 2026 | Profile management, password auth, grievances |
-| Staff User Manual | [Version] | [Date] | [Updates] |
-| Admin User Manual | [Version] | [Date] | [Updates] |
+| Staff User Manual | 1.2 | January 2026 | Staff portal, service requests, tickets |
+| Admin User Manual | 2.1 | March 2026 | Documents Management (Section 10), settings tabs updated |
 
 ### Update Schedule
 
@@ -680,6 +680,7 @@ Documentation is reviewed and updated:
 ### Change Log
 
 Track major documentation changes:
+- **March 2026** - Admin manual v2.1: Added Documents Management section, updated settings tabs
 - **January 2026** - Initial release of all manuals
 - **January 2026** - Citizen manual updated with new features
 - **January 2026** - Anonymous manual created

@@ -1,9 +1,9 @@
 # GEA Portal v3 - Infrastructure Sizing & Recommendations
 
-**Version:** 1.3
-**Date:** January 19, 2026
+**Version:** 1.4
+**Date:** March 2026
 **Status:** Production Operations Document
-**Last Reviewed:** January 19, 2026
+**Last Reviewed:** March 2026
 
 ---
 
@@ -38,9 +38,9 @@ This document provides infrastructure sizing recommendations for the GEA Portal 
 |-----------|---------|
 | Next.js 16.x Frontend | Web application |
 | PostgreSQL 16 | Primary database |
-| PgBouncer 1.23.x | Connection pooling |
+| PgBouncer v1.25.1 | Connection pooling |
 | Redis 7.4.x | Analytics caching |
-| Traefik v3.6 | Reverse proxy + SSL |
+| Traefik v3.6.7 | Reverse proxy + SSL |
 
 > **ℹ️ Version Info:** Docker 29.x is the current supported version (Docker 27.x is EOL). Traefik v3.6+ includes automatic Docker API version negotiation.
 
@@ -300,7 +300,7 @@ df -h
 │                                                              │
 │  ┌─────────┐    ┌─────────────┐    ┌───────────────┐        │
 │  │ Traefik │───▶│   Next.js   │───▶│   PgBouncer   │        │
-│  │  v3.6   │    │   16.x      │    │   v1.23.1     │        │
+│  │ v3.6.7  │    │   16.x      │    │   v1.25.1     │        │
 │  │  :443   │    │   :3000     │    │   :6432       │        │
 │  └────┬────┘    └──────┬──────┘    └───────┬───────┘        │
 │       │                │                   │                │
@@ -371,6 +371,7 @@ df -h
 | 1.1 | January 2026 | Added Docker version requirement, pricing disclaimers, clarified PgBouncer/Redis as future items |
 | 1.2 | January 19, 2026 | **Updated to reflect current deployment:** PostgreSQL 15→16, added version numbers for all components, updated architecture diagram to show deployed state (PgBouncer + Redis active), updated status tables to reflect completed infrastructure, revised pricing disclaimer |
 | 1.3 | January 19, 2026 | **Major infrastructure update:** Documented upgrade from B2s (4GB) to **D2s_v4 (8GB)** for consistent performance. Updated production specs to **16GB** (D2s_v5/D4s_v4). Revised cost estimates (~$80/month current, ~$150-170/month for 16GB). Updated all recommendations, scaling triggers, and migration procedures to reflect D-series deployment. Added infrastructure advantages comparison. |
+| 1.4 | March 2026 | Updated component versions: Traefik v3.6 → v3.6.7, PgBouncer v1.23.x → v1.25.1. Updated architecture diagram to match docker-compose.yml. |
 
 ---
 

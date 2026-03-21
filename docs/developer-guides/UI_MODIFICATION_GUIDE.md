@@ -2,8 +2,8 @@
 
 **Government of Grenada Enterprise Architecture Portal**
 
-**Version:** 1.1
-**Last Updated:** January 2026
+**Version:** 1.3
+**Last Updated:** January 20, 2026
 **Audience:** Frontend Developers, UI/UX Developers
 
 ---
@@ -69,7 +69,7 @@ This guide provides **step-by-step instructions** for common UI modification tas
 Before starting:
 
 - ✅ Working knowledge of **React** and **TypeScript**
-- ✅ Familiarity with **Next.js 14** (App Router)
+- ✅ Familiarity with **Next.js 16** (App Router)
 - ✅ Understanding of **Tailwind CSS**
 - ✅ Local development environment running
 - ✅ Access to the codebase
