@@ -180,6 +180,9 @@ services:
       # External API Access
       - EXTERNAL_API_KEY=${EXTERNAL_API_KEY}
 
+      # Chatbot CSP (needed at runtime for proxy.ts frame-src)
+      - CHATBOT_URL=${CHATBOT_URL}
+
       # Database backup configuration (direct PostgreSQL access, bypasses PgBouncer)
       - BACKUP_DB_HOST=feedback_db
       - BACKUP_DB_PORT=5432

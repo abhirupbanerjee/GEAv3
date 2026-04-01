@@ -1,12 +1,10 @@
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=abhirupbanerjee_GEAv3&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=abhirupbanerjee_GEAv3)
+
 
 # Grenada EA Portal v3
 
 **Enterprise Architecture Portal for the Government of Grenada**
 
 A modern, full-stack web platform supporting digital transformation initiatives across Ministries, Departments, and Agencies (MDAs). Built with Next.js 16, PostgreSQL, and containerized with Docker for seamless deployment.
-
-**Status:** ✅ Production-ready | **Version:** 3.3.0
 
 ---
 
@@ -431,13 +429,7 @@ docker compose up -d --build
 
 For detailed configuration guidance, see [Administrator Guide](docs/developer-guides/ADMIN_GUIDE.md).
 
-### Optional / Unused Variables
 
-The following variables exist in `.env.example` but are not actively used by the application code and can be omitted:
-- `DMS_URL` - No longer referenced in frontend
-- `GIT_URL` - No longer referenced in frontend
-
-`COPYRIGHT_YEAR` / `NEXT_PUBLIC_COPYRIGHT_YEAR` remains in use as a build-time variable.
 
 ### Generate Secure Passwords
 
