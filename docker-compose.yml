@@ -9,6 +9,7 @@ volumes:
   redis_data:
   gea_backups:
   documents_data:
+  branding_data:
 
 services:
   traefik:
@@ -117,21 +118,21 @@ services:
         - NEXT_PUBLIC_BASE_DOMAIN=${NEXT_PUBLIC_BASE_DOMAIN}
         - NEXT_PUBLIC_ABOUT_CONTACT_EMAIL=${NEXT_PUBLIC_ABOUT_CONTACT_EMAIL}
         - NEXT_PUBLIC_COPYRIGHT_YEAR=${NEXT_PUBLIC_COPYRIGHT_YEAR}
-        # NEW - Phase 2b: SendGrid
+        # SendGrid
         - SENDGRID_API_KEY=${SENDGRID_API_KEY}
         - SENDGRID_FROM_EMAIL=${SENDGRID_FROM_EMAIL}
         - SENDGRID_FROM_NAME=${SENDGRID_FROM_NAME}
         
-        # NEW - Phase 2b: Service Admin
+        # Service Admin
         - SERVICE_ADMIN_EMAIL=${SERVICE_ADMIN_EMAIL}
         - SUPPORT_EMAIL=${SUPPORT_EMAIL}
         
-        # NEW - Phase 2b: File Upload
+        # File Upload
         - MAX_FILE_SIZE=${MAX_FILE_SIZE}
         - MAX_TOTAL_UPLOAD_SIZE=${MAX_TOTAL_UPLOAD_SIZE}
         - ALLOWED_FILE_TYPES=${ALLOWED_FILE_TYPES}
         
-        # NEW - Phase 2b: Rate Limiting
+        # Rate Limiting
         - EA_SERVICE_RATE_LIMIT=${EA_SERVICE_RATE_LIMIT}
         - GRIEVANCE_RATE_LIMIT=${GRIEVANCE_RATE_LIMIT}
 
@@ -139,7 +140,7 @@ services:
         - NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID=${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_ID:-AGY-005}
         - NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME=${NEXT_PUBLIC_SERVICE_REQUEST_ENTITY_NAME:-"Digital Transformation Agency"}
 
-        # NEW - Phase 2b: API Base URLs
+        # API Base URLs
         - API_BASE_URL=${API_BASE_URL}
         - NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
     container_name: frontend
@@ -193,6 +194,7 @@ services:
     volumes:
       - gea_backups:/tmp/gea_backups
       - documents_data:/app/public/uploads/documents
+      - branding_data:/app/public/uploads/branding
 
     depends_on:
       feedback_db:
