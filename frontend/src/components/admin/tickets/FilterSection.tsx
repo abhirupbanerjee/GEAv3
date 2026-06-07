@@ -1,0 +1,303 @@
+/**
+ * FilterSection Component
+ *
+ * Provides filter controls for the ticket management dashboard
+ * Includes dropdowns for entity, service, status, priority, and search
+ *
+ * Role-based behavior:
+ * - Admin: Can see all entities and all services (filtered by selected entity)
+ * - Staff: Can only see their entity and services for that entity
+ */
+
+'use client'
+
+import React, { useState, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
+import type { TicketFilters } from '@/types/tickets'
+import type { Entity, Service } from '@/types/managedata'
+
+interface FilterSectionProps {
+  onFilterChange: (filters: TicketFilters) => void
+  currentFilters: TicketFilters
+}
+
+interface DropdownOption {
+  value: string
+  label: string
+}
+
+export function FilterSection({ onFilterChange, currentFilters }: FilterSectionProps) {
+  const { data: session } = useSession()
+  const [entities, setEntities] = useState<DropdownOption[]>([])
+  const [services, setServices] = useState<DropdownOption[]>([])
+  const [statuses, setStatuses] = useState<DropdownOption[]>([])
+  const [priorities, setPriorities] = useState<DropdownOption[]>([])
+  const [searchTerm, setSearchTerm] = useState(currentFilters.search || '')
+
+  const isAdmin = ['admin', 'reporting'].includes(session?.user?.roleType as string)
+  const userEntityId = session?.user?.entityId
+
+  // Fetch dropdown options on mount
+  useEffect(() => {
+    if (session) {
+      fetchEntities()
+      fetchStatuses()
+      fetchPriorities()
+    }
+  }, [session])
+
+  // Fetch services when entity changes (for admin) or on mount (for staff)
+  useEffect(() => {
+    if (session) {
+      if (isAdmin) {
+        // Admin: fetch services for selected entity or all services
+        fetchServices(currentFilters.entity_id || undefined)
+      } else if (userEntityId) {
+        // Staff: fetch services for their entity only
+        fetchServices(userEntityId)
+      }
+    }
+  }, [session, currentFilters.entity_id, isAdmin, userEntityId])
+
+  const fetchEntities = async () => {
+    try {
+      // For admin: fetch all entities
+      // For staff: fetch only their entity (API handles filtering via session)
+      const url = isAdmin ? '/api/managedata/entities?all=true' : '/api/managedata/entities'
+      const res = await fetch(url)
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setEntities(
+          data.map((e: Entity) => ({
+            value: e.unique_entity_id,
+            label: e.entity_name
+          }))
+        )
+      } else if (data.success && Array.isArray(data.data)) {
+        setEntities(
+          data.data.map((e: Entity) => ({
+            value: e.unique_entity_id,
+            label: e.entity_name
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Failed to fetch entities:', error)
+    }
+  }
+
+  const fetchServices = async (entityId?: string) => {
+    try {
+      const url = entityId
+        ? `/api/managedata/services?entity_id=${entityId}`
+        : '/api/managedata/services'
+      const res = await fetch(url)
+      const data = await res.json()
+      if (Array.isArray(data)) {
+        setServices(
+          data.map((s: Service) => ({
+            value: s.service_id,
+            label: s.service_name
+          }))
+        )
+      } else if (data.success && Array.isArray(data.data)) {
+        setServices(
+          data.data.map((s: Service) => ({
+            value: s.service_id,
+            label: s.service_name
+          }))
+        )
+      }
+    } catch (error) {
+      console.error('Failed to fetch services:', error)
+    }
+  }
+
+  const fetchStatuses = () => {
+    // Static statuses based on schema
+    setStatuses([
+      { value: '1', label: 'Open' },
+      { value: '2', label: 'In Progress' },
+      { value: '3', label: 'Resolved' },
+      { value: '4', label: 'Closed' }
+    ])
+  }
+
+  const fetchPriorities = () => {
+    // Static priorities based on schema
+    setPriorities([
+      { value: 'URGENT', label: 'Urgent' },
+      { value: 'HIGH', label: 'High' },
+      { value: 'MEDIUM', label: 'Medium' },
+      { value: 'LOW', label: 'Low' }
+    ])
+  }
+
+  const handleFilterChange = (key: keyof TicketFilters, value: string | null) => {
+    const newFilters = {
+      ...currentFilters,
+      [key]: value || null
+    }
+    onFilterChange(newFilters)
+  }
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value)
+  }
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    handleFilterChange('search', searchTerm || null)
+  }
+
+  const handleClearFilters = () => {
+    setSearchTerm('')
+    onFilterChange({
+      view: currentFilters.view,
+      entity_id: userEntityId || null,
+      service_id: null,
+      status: null,
+      priority: null,
+      search: null
+    })
+  }
+
+  const hasActiveFilters =
+    currentFilters.entity_id ||
+    currentFilters.service_id ||
+    currentFilters.status ||
+    currentFilters.priority ||
+    currentFilters.search
+
+  return (
+    <div className="space-y-4 mb-6">
+      {/* Filters Section */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Filters</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Entity Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Entity
+            </label>
+            {isAdmin ? (
+              <select
+                value={currentFilters.entity_id || ''}
+                onChange={(e) => handleFilterChange('entity_id', e.target.value || null)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                <option value="">All Entities</option>
+                {entities.map((entity) => (
+                  <option key={entity.value} value={entity.value}>
+                    {entity.label}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              <select
+                value={userEntityId || ''}
+                disabled
+                className="w-full px-3 py-2 border border-gray-300 rounded-md bg-gray-100 cursor-not-allowed"
+              >
+                {entities.map((entity) => (
+                  <option key={entity.value} value={entity.value}>
+                    {entity.label}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
+
+          {/* Service Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Service
+            </label>
+            <select
+              value={currentFilters.service_id || ''}
+              onChange={(e) => handleFilterChange('service_id', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Services</option>
+              {services.map((service) => (
+                <option key={service.value} value={service.value}>
+                  {service.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Status
+            </label>
+            <select
+              value={currentFilters.status || ''}
+              onChange={(e) => handleFilterChange('status', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Statuses</option>
+              {statuses.map((status) => (
+                <option key={status.value} value={status.value}>
+                  {status.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Priority Filter */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Priority
+            </label>
+            <select
+              value={currentFilters.priority || ''}
+              onChange={(e) => handleFilterChange('priority', e.target.value || null)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="">All Priorities</option>
+              {priorities.map((priority) => (
+                <option key={priority.value} value={priority.value}>
+                  {priority.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Clear Filters Button */}
+        {hasActiveFilters && (
+          <div className="flex justify-end mt-3">
+            <button
+              onClick={handleClearFilters}
+              className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Clear All Filters
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Search Section */}
+      <div className="bg-white rounded-lg shadow p-4">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Search</h3>
+        <form onSubmit={handleSearchSubmit} className="flex gap-2">
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={handleSearchChange}
+            placeholder="Search by ticket #, subject, requester name or email..."
+            className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          />
+          <button
+            type="submit"
+            className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition font-medium"
+          >
+            Search
+          </button>
+        </form>
+      </div>
+    </div>
+  )
+}

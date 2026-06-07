@@ -1,0 +1,11 @@
+{
+  "$comment": "Maps service names (service_master.service_name) to the list of agent ids allowed for them. Managed by the admin UI (Settings -> AI Agents). If a service name is not a key here, NO agents are available for service requests under that service.",
+  "byServiceName": {
+    "EA Portal Support Request": [
+      "testing",
+      "file-testing-agent",
+      "agentic-portal-testing"
+    ],
+    "IT Portfolio Review": []
+  }
+}
