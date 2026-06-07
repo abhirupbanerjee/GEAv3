@@ -126,6 +126,10 @@ RUN mkdir -p /tmp/gea_backups && \
     chmod 755 /tmp/gea_backups && \
     chown nextjs:nodejs /tmp/gea_backups
 
+# Pre-create runtime directory for AI agent registry / token writes
+RUN mkdir -p /app/runtime && \
+    chown nextjs:nodejs /app/runtime
+
 USER nextjs
 
 # Expose port
