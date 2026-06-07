@@ -1,0 +1,58 @@
+# ============================================
+# LOCAL DEVELOPMENT - Docker Services
+# ============================================
+# Runs PostgreSQL and Redis on alternate ports
+# to avoid conflicts with other local containers.
+#
+# Usage:
+#   docker compose -f docker-compose.local.yml up -d
+#   cd frontend && npm run dev
+# ============================================
+
+networks:
+  gea_local:
+    name: gea_local
+    driver: bridge
+
+volumes:
+  local_db_data:
+  local_redis_data:
+
+services:
+  feedback_db:
+    image: postgres:16.11-alpine
+    container_name: gea_local_db
+    restart: unless-stopped
+    networks:
+      - gea_local
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: feedback
+      POSTGRES_USER: feedback_user
+      POSTGRES_PASSWORD: localdev123
+    volumes:
+      - local_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U feedback_user -d feedback"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  redis:
+    image: redis:7.4.4-alpine
+    container_name: gea_local_redis
+    restart: unless-stopped
+    networks:
+      - gea_local
+    ports:
+      - "6380:6379"
+    volumes:
+      - local_redis_data:/data
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
