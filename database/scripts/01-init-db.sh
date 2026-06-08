@@ -796,6 +796,31 @@ CREATE INDEX IF NOT EXISTS idx_comment_attachments_comment ON ea_comment_attachm
 CREATE INDEX IF NOT EXISTS idx_comment_attachments_request ON ea_comment_attachments(request_id);
 
 -- ============================================================================
+-- AI AGENT OUTPUTS TABLE (v7.1)
+-- ============================================================================
+-- Persists downloadable files produced by AI agents (pdf, docx, xlsx, pptx,
+-- image, audio, etc.) for the (logged-in user, service request) pair.
+
+CREATE TABLE IF NOT EXISTS ai_agent_outputs (
+    id BIGSERIAL PRIMARY KEY,
+    user_id VARCHAR(255) NOT NULL,
+    user_email VARCHAR(255),
+    sr_number VARCHAR(50) NOT NULL,
+    agent_id VARCHAR(100) NOT NULL,
+    agent_name VARCHAR(255),
+    output_type VARCHAR(50) NOT NULL,
+    mime_type VARCHAR(255) NOT NULL,
+    filename VARCHAR(255) NOT NULL,
+    stored_path TEXT NOT NULL,
+    file_size BIGINT,
+    query_text TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_agent_outputs_user_sr ON ai_agent_outputs(user_id, sr_number, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_ai_agent_outputs_sr ON ai_agent_outputs(sr_number, created_at DESC);
+
+-- ============================================================================
 -- TICKET NOTES TABLE (v7.0)
 -- ============================================================================
 

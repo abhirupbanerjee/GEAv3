@@ -252,6 +252,34 @@ echo "  ✓ Public helpdesk setting added"
 echo ""
 
 # ============================================================================
+# STEP 12d: CREATE AI AGENT OUTPUTS TABLE
+# ============================================================================
+echo "▶ Step 12d: Creating AI agent outputs table..."
+echo ""
+
+if [ -f "$SCRIPTS_DIR/40-create-ai-agent-outputs-table.sh" ]; then
+    "$SCRIPTS_DIR/40-create-ai-agent-outputs-table.sh"
+    echo "  ✓ AI agent outputs table created"
+else
+    echo "  ⚠️  Script 40-create-ai-agent-outputs-table.sh not found - skipping"
+fi
+echo ""
+
+# ============================================================================
+# STEP 12e: CREATE COMMENT ATTACHMENTS TABLE
+# ============================================================================
+echo "▶ Step 12e: Creating comment attachments table..."
+echo ""
+
+if [ -f "$SCRIPTS_DIR/41-add-comment-attachments-table.sh" ]; then
+    "$SCRIPTS_DIR/41-add-comment-attachments-table.sh"
+    echo "  ✓ Comment attachments table created"
+else
+    echo "  ⚠️  Script 41-add-comment-attachments-table.sh not found - skipping"
+fi
+echo ""
+
+# ============================================================================
 # STEP 13: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -278,6 +306,8 @@ WHERE table_schema = 'public'
     'ea_service_requests',
     'ea_service_request_attachments',
     'ea_service_request_comments',
+    'ea_comment_attachments',
+    'ai_agent_outputs',
     'grievance_tickets',
     'tickets',
     'ticket_activity',
@@ -328,6 +358,8 @@ echo "📊 Summary:"
 echo "  ✓ Core schema created (all Phase 2b tables)"
 echo "  ✓ NextAuth authentication ready"
 echo "  ✓ Service request comments enabled"
+echo "  ✓ Comment file attachments enabled"
+echo "  ✓ AI agent outputs persistence enabled"
 echo "  ✓ File extensions support multiple formats"
 echo "  ✓ Reference data loaded"
 echo "  ✓ 27 EA service attachment requirements configured"

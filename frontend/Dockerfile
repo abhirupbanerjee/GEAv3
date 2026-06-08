@@ -54,7 +54,6 @@ RUN npm ci && \
 
 # Copy source code
 COPY . .
-COPY ./src/proxy.ts ./src/proxy.ts
 
 # Generate env.ts from build arguments (UPDATED)
 RUN echo "// Auto-generated during Docker build" > src/config/env.ts && \
