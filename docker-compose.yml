@@ -192,11 +192,19 @@ services:
       - BACKUP_DB_USER=${FEEDBACK_DB_USER}
       - BACKUP_DB_PASSWORD=${FEEDBACK_DB_PASSWORD}
 
+      # AI Agent registry paths
+      - AI_AGENT_REGISTRY_PATH=/app/runtime/ai-agents.json
+      - AI_AGENT_TOKENS_PATH=/app/runtime/.env.agents
+      - AI_AGENT_MAPPINGS_PATH=/app/runtime/ai-agent-mappings.json
+
     volumes:
       - gea_backups:/tmp/gea_backups
       - documents_data:/app/public/uploads/documents
       - branding_data:/app/public/uploads/branding
       - ai_agent_outputs_data:/app/public/uploads/ai-agent-outputs
+      - ./frontend/src/config/ai-agents.json:/app/runtime/ai-agents.json
+      - ./.env.agents:/app/runtime/.env.agents
+      - ./frontend/src/config/ai-agent-mappings.json:/app/runtime/ai-agent-mappings.json
 
     depends_on:
       feedback_db:
