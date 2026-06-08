@@ -99,14 +99,16 @@ export default function CitizenLayout({
         const data = await res.json();
 
         if (!data.authenticated) {
-          window.location.href = '/auth/signin';
+          const callbackUrl = window.location.pathname + window.location.search;
+          window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
           return;
         }
 
         setUser(data.citizen);
       } catch (error) {
         console.error('Auth check failed:', error);
-        window.location.href = '/auth/signin';
+        const callbackUrl = window.location.pathname + window.location.search;
+        window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`;
       } finally {
         setLoading(false);
       }

@@ -4,7 +4,7 @@
 // See: https://github.com/vercel/next.js/discussions/57565
 import Image from 'next/image'
 import { useState, useEffect } from 'react'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import UserProfileDropdown from './UserProfileDropdown'
 import { useSidebarState } from '@/hooks/useSidebarState'
@@ -46,6 +46,7 @@ export default function Header() {
     siteFavicon: '',
   })
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { data: session, status } = useSession()
   const { isCollapsed } = useSidebarState()
 
@@ -179,7 +180,7 @@ export default function Header() {
               </a>
             ) : status !== 'loading' ? (
               <a
-                href="/admin"
+                href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : ''))}`}
                 className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
               >
                 Login
@@ -258,7 +259,7 @@ export default function Header() {
                 </a>
               ) : status !== 'loading' ? (
                 <a
-                  href="/admin"
+                  href={`/auth/signin?callbackUrl=${encodeURIComponent(pathname + (searchParams?.toString() ? `?${searchParams.toString()}` : ''))}`}
                   className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium text-center"
                   onClick={() => setIsMenuOpen(false)}
                 >

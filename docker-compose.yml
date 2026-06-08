@@ -10,6 +10,7 @@ volumes:
   gea_backups:
   documents_data:
   branding_data:
+  ai_agent_outputs_data::
 
 services:
   traefik:
@@ -195,6 +196,7 @@ services:
       - gea_backups:/tmp/gea_backups
       - documents_data:/app/public/uploads/documents
       - branding_data:/app/public/uploads/branding
+      - ai_agent_outputs_data:/app/public/uploads/ai-agent-outputs
 
     depends_on:
       feedback_db:

@@ -34,6 +34,7 @@ import { FiPhone, FiLock, FiUser, FiMail, FiArrowLeft, FiCheck, FiEye, FiEyeOff 
 import PhoneInput from '@/components/citizen/PhoneInput';
 import OtpInput from '@/components/citizen/OtpInput';
 import { clientEnv } from '@/config/env-client';
+import { validateCallbackUrl } from '@/lib/callback-url';
 
 type CitizenStep = 'phone' | 'otp' | 'register' | 'password';
 type LoginMethod = 'otp' | 'password';
@@ -54,7 +55,9 @@ interface CitizenState {
 function SignInContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/admin';
+  const rawCallbackUrl = searchParams.get('callbackUrl');
+  const callbackUrl = validateCallbackUrl(rawCallbackUrl, '/admin');
+  const citizenCallbackUrl = validateCallbackUrl(rawCallbackUrl, '/citizen');
   const error = searchParams.get('error');
 
   // OAuth loading state
@@ -91,7 +94,7 @@ function SignInContent() {
           setCitizenEnabled(true);
           // If already authenticated via trusted device, redirect to citizen portal
           if (data.authenticated) {
-            router.push('/citizen');
+            router.push(citizenCallbackUrl);
           }
         }
       } catch {
@@ -184,7 +187,7 @@ function SignInContent() {
         setCitizenStep('register');
       } else {
         // Existing user - logged in, redirect (full reload to ensure cookies are read fresh)
-        window.location.href = '/citizen';
+        window.location.href = citizenCallbackUrl;
       }
     } catch (error) {
       console.error('Error verifying OTP:', error);
@@ -245,7 +248,7 @@ function SignInContent() {
       }
 
       // Registered and logged in - redirect (full reload to ensure cookies are read fresh)
-      window.location.href = '/citizen';
+      window.location.href = citizenCallbackUrl;
     } catch (error) {
       console.error('Error registering:', error);
       setCitizenError('Registration failed');
@@ -301,7 +304,7 @@ function SignInContent() {
         return;
       }
 
-      window.location.href = '/citizen';
+      window.location.href = citizenCallbackUrl;
     } catch (error) {
       console.error('Error logging in:', error);
       setCitizenError('Login failed');

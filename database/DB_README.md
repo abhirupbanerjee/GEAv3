@@ -570,6 +570,7 @@ LIMIT 10;
 
 | Version | Date | Changes |
 |---------|------|---------|
+| 9.3 | 2026-06-07 | Added ai_agent_outputs and ea_comment_attachments tables; Updated table count to 47 |
 | 9.2 | 2026-01-17 | Updated table count to 35; Verified against production (sla_breaches, ticket_notes) |
 | 9.1 | 2026-01-17 | Added system tables (ai_bots, system_settings, etc.) |
 | 9.0 | 2025-11-25 | Added --reload, --clear-data, --load-master flags; Reorganized directory structure; Auto-detect default sample data |
@@ -578,6 +579,6 @@ LIMIT 10;
 
 ---
 
-**Last Updated:** January 2026
+**Last Updated:** June 2026
 **Maintained By:** GEA Portal Development Team
-**Script Version:** 99-consolidated-setup.sh v9.2
+**Script Version:** 99-consolidated-setup.sh v9.3

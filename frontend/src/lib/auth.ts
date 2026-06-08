@@ -233,13 +233,28 @@ export const authOptions: NextAuthOptions = {
 
     /**
      * Redirect callback - Control post-login redirects
+     *
+     * Hardened against open-redirect attacks:
+     * - Rejects protocol-relative URLs (//evil.com)
+     * - Rejects scheme-like paths (/javascript:alert(1))
+     * - Only allows same-origin absolute URLs
      */
     async redirect({ url, baseUrl }) {
-      // Allow relative callback URLs
-      if (url.startsWith('/')) return `${baseUrl}${url}`;
+      // Allow relative callback URLs starting with '/' but not '//'
+      if (url.startsWith('/')) {
+        if (url.startsWith('//')) return baseUrl;
+        // Block scheme-like paths
+        const afterSlash = url.slice(1);
+        if (afterSlash.includes(':')) return baseUrl;
+        return `${baseUrl}${url}`;
+      }
 
-      // Allow callback URLs on the same origin
-      if (new URL(url).origin === baseUrl) return url;
+      // Allow callback URLs on the same origin only
+      try {
+        if (new URL(url).origin === baseUrl) return url;
+      } catch {
+        // Invalid URL — fall through to baseUrl
+      }
 
       return baseUrl;
     },

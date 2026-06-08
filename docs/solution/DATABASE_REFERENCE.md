@@ -5,7 +5,7 @@
 **Database:** PostgreSQL 16.11-alpine
 **Connection Pool:** PgBouncer v1.25.1
 **Cache:** Redis 7.4.4-alpine
-**Schema Version:** Production-Aligned v11.2 (45 tables)
+**Schema Version:** Production-Aligned v11.3 (47 tables)
 
 ---
 
@@ -29,12 +29,12 @@
 
 | Metric | Count |
 |--------|-------|
-| **Tables** | 45 |
+| **Tables** | 47 |
 | **Reference Data** | 7 (entity_master, service_master, priority_levels, grievance_status, ticket_status, service_attachments, ai_bots) |
 | **Admin/Staff Auth & Users** | 8 (user_roles, users, accounts, sessions, verification_tokens, entity_user_assignments, user_permissions, user_audit_log) |
 | **Citizen Authentication** | 4 (citizens, citizen_sessions, citizen_trusted_devices, citizen_otp) |
 | **Feedback & Grievances** | 5 (grievance_tickets, grievance_attachments, grievance_activity, service_feedback, qr_codes) |
-| **EA Service Requests** | 3 (ea_service_requests, ea_service_request_attachments, ea_service_request_comments) |
+| **EA Service Requests** | 4 (ea_service_requests, ea_service_request_attachments, ea_service_request_comments, ea_comment_attachments) |
 | **Tickets & Activity** | 6 (tickets, ticket_activity, ticket_attachments, ticket_categories, ticket_notes, sla_breaches) |
 | **System & Settings** | 4 (system_settings, settings_audit_log, leadership_contacts, backup_audit_log) |
 | **Documents** | 2 (doc_folders, documents) |
@@ -1047,7 +1047,67 @@ EOF
 
 ---
 
-### 14. tickets
+### 14. ea_comment_attachments
+
+**Purpose:** File attachments linked to service request comments
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| attachment_id | SERIAL | PRIMARY KEY | Auto-increment ID |
+| comment_id | INTEGER | FK → ea_service_request_comments, NOT NULL, ON DELETE CASCADE | Parent comment |
+| request_id | INTEGER | FK → ea_service_requests, NOT NULL, ON DELETE CASCADE | Parent request |
+| filename | VARCHAR(255) | NOT NULL | Original filename |
+| mimetype | VARCHAR(100) | NOT NULL | MIME type |
+| file_content | BYTEA | NOT NULL | Binary file data |
+| file_size | INTEGER | NOT NULL, CHECK (≤10MB) | Size in bytes |
+| uploaded_by | VARCHAR(255) | DEFAULT 'system' | Uploader email |
+| created_at | TIMESTAMP | DEFAULT NOW() | Upload time |
+
+**Indexes:**
+- PRIMARY KEY on `attachment_id`
+- INDEX on `comment_id` (FK)
+- INDEX on `request_id` (FK)
+
+**Validation:**
+- File size ≤ 10MB per file
+- Multiple files allowed per comment
+- Cascades delete when comment or request is deleted
+
+---
+
+### 15. ai_agent_outputs
+
+**Purpose:** Persisted downloadable files produced by AI agents
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| id | BIGSERIAL | PRIMARY KEY | Auto-increment ID |
+| user_id | VARCHAR(255) | NOT NULL | Session user ID |
+| user_email | VARCHAR(255) | | User email |
+| sr_number | VARCHAR(50) | NOT NULL | Service request number |
+| agent_id | VARCHAR(100) | NOT NULL | Agent registry ID |
+| agent_name | VARCHAR(255) | | Human-readable agent name |
+| output_type | VARCHAR(50) | NOT NULL | pdf, word, excel, image, etc. |
+| mime_type | VARCHAR(255) | NOT NULL | MIME type |
+| filename | VARCHAR(255) | NOT NULL | Original filename |
+| stored_path | TEXT | NOT NULL | Absolute path on disk |
+| file_size | BIGINT | | Size in bytes |
+| query_text | TEXT | | Original user query |
+| created_at | TIMESTAMPTZ | DEFAULT NOW() | Creation time |
+
+**Indexes:**
+- PRIMARY KEY on `id`
+- INDEX on `(user_id, sr_number, created_at DESC)`
+- INDEX on `(sr_number, created_at DESC)`
+
+**Storage:**
+- Files stored on disk under `public/uploads/ai-agent-outputs/`
+- Docker volume `ai_agent_outputs_data` persists across container rebuilds
+- Metadata in this table; no BYTEA storage
+
+---
+
+### 16. tickets
 
 **Purpose:** Unified ticketing system (replacing osTicket)
 
@@ -1947,6 +2007,9 @@ ea_service_requests (entity_id) → entity_master (unique_entity_id)
 ea_service_requests (priority) → priority_levels (priority_id)
 ea_service_request_attachments (request_id) → ea_service_requests (id) [ON DELETE CASCADE]
 ea_service_request_attachments (attachment_definition_id) → service_attachments (attachment_id)
+ea_service_request_comments (request_id) → ea_service_requests (request_id) [ON DELETE CASCADE]
+ea_comment_attachments (comment_id) → ea_service_request_comments (comment_id) [ON DELETE CASCADE]
+ea_comment_attachments (request_id) → ea_service_requests (request_id) [ON DELETE CASCADE]
 ```
 
 ### Ticket Flow
@@ -2543,7 +2606,7 @@ EOF
 
 **Document Version:** 11.2
 **Last Updated:** March 2026
-**Schema Version:** Production-Aligned v11.2 (45 tables)
+**Schema Version:** Production-Aligned v11.3 (47 tables)
 
 ---
 

@@ -775,6 +775,27 @@ CREATE INDEX IF NOT EXISTS idx_ea_comments_request ON ea_service_request_comment
 CREATE INDEX IF NOT EXISTS idx_ea_comments_created ON ea_service_request_comments(created_at DESC);
 
 -- ============================================================================
+-- COMMENT ATTACHMENTS TABLE (v7.1)
+-- ============================================================================
+-- Stores file attachments linked to ea_service_request_comments.
+
+CREATE TABLE IF NOT EXISTS ea_comment_attachments (
+    attachment_id SERIAL PRIMARY KEY,
+    comment_id INTEGER NOT NULL REFERENCES ea_service_request_comments(comment_id) ON DELETE CASCADE,
+    request_id INTEGER NOT NULL REFERENCES ea_service_requests(request_id) ON DELETE CASCADE,
+    filename VARCHAR(255) NOT NULL,
+    mimetype VARCHAR(100) NOT NULL,
+    file_content BYTEA NOT NULL,
+    file_size INTEGER NOT NULL,
+    uploaded_by VARCHAR(255) DEFAULT 'system',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT check_comment_file_size CHECK (file_size > 0 AND file_size <= 10485760)
+);
+
+CREATE INDEX IF NOT EXISTS idx_comment_attachments_comment ON ea_comment_attachments(comment_id);
+CREATE INDEX IF NOT EXISTS idx_comment_attachments_request ON ea_comment_attachments(request_id);
+
+-- ============================================================================
 -- TICKET NOTES TABLE (v7.0)
 -- ============================================================================
 

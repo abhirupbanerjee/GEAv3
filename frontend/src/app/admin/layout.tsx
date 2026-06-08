@@ -1,6 +1,6 @@
 'use client'
 
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useEffect, useRef } from 'react'
 import Sidebar from '@/components/admin/Sidebar'
@@ -28,6 +28,28 @@ function StaffRedirectGuard() {
   return null
 }
 
+// Redirects to sign-in when the NextAuth session expires while the user
+// is on an admin page. Middleware handles the initial request; this guard
+// handles stale tabs and mid-interaction session expiry.
+function UnauthenticatedRedirectGuard() {
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+  const { status } = useSession()
+  const redirectedRef = useRef(false)
+
+  useEffect(() => {
+    if (status === 'loading' || redirectedRef.current) return
+
+    if (status === 'unauthenticated') {
+      redirectedRef.current = true
+      const callbackUrl = pathname + (searchParams.toString() ? `?${searchParams.toString()}` : '')
+      window.location.href = `/auth/signin?callbackUrl=${encodeURIComponent(callbackUrl)}`
+    }
+  }, [status, pathname, searchParams])
+
+  return null
+}
+
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isLoginPage = pathname === '/admin'
@@ -39,6 +61,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gray-50 pt-16">
       <StaffRedirectGuard />
+      <UnauthenticatedRedirectGuard />
       <Sidebar />
       <AdminContentWrapper>
         {children}

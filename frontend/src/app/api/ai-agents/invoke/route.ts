@@ -7,8 +7,8 @@
 //        Content-Type: application/json
 //        Body: { agentId: string, query: string, outputType?: string }
 //
-//   2. multipart/form-data (for agents that accept a file alongside the query):
-//        fields: agentId, query, outputType, file
+//   2. multipart/form-data (for agents that accept files alongside the query):
+//        fields: agentId, query, outputType, files (multiple allowed)
 //
 // Async-capable agents (agent.async === true):
 //   The upstream is invoked with { async: true }. The route then polls
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
   let agentId: string | null = null;
   let query: string | null = null;
   let outputType: string | null = null;
-  let file: File | null = null;
+  const files: File[] = [];
 
   try {
     if (isMultipart) {
@@ -65,9 +65,11 @@ export async function POST(req: NextRequest) {
       agentId = form.get('agentId')?.toString() ?? null;
       query = form.get('query')?.toString() ?? null;
       outputType = form.get('outputType')?.toString() ?? null;
-      const f = form.get('file');
-      if (f && f instanceof File && f.size > 0) {
-        file = f;
+      const fileEntries = form.getAll('files');
+      for (const f of fileEntries) {
+        if (f instanceof File && f.size > 0) {
+          files.push(f);
+        }
       }
     } else {
       const body = await req.json();
@@ -91,7 +93,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Unknown agent: ${agentId}` }, { status: 404 });
   }
 
-  if (file && !agent.acceptsFile) {
+  if (files.length > 0 && !agent.acceptsFile) {
     return NextResponse.json(
       { error: `Agent "${agent.name}" does not accept file inputs` },
       { status: 400 },
@@ -144,66 +146,70 @@ export async function POST(req: NextRequest) {
   // example curl: { input: { query }, outputType }.
   let upstreamRes: Response;
   try {
-    if (file) {
-      // --- Step 1: upload file to derive a fileId ---
+    if (files.length > 0) {
+      // --- Step 1: upload each file to derive a fileId ---
       const uploadUrl = agent.endpoint.endsWith('/invoke')
         ? agent.endpoint.slice(0, -'/invoke'.length) + '/upload'
         : agent.endpoint.replace(/\/invoke(\/?$)/, '/upload$1');
 
-      const uploadFd = new FormData();
-      uploadFd.append('file', file, file.name);
+      const fileIds: string[] = [];
+      for (const file of files) {
+        const uploadFd = new FormData();
+        uploadFd.append('file', file, file.name);
 
-      let uploadRes: Response;
-      try {
-        uploadRes = await fetch(uploadUrl, {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${token}` },
-          body: uploadFd,
-        });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : 'Network error';
-        return NextResponse.json(
-          { error: `Upstream upload request failed: ${msg}` },
-          { status: 502 },
-        );
+        let uploadRes: Response;
+        try {
+          uploadRes = await fetch(uploadUrl, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+            body: uploadFd,
+          });
+        } catch (err) {
+          const msg = err instanceof Error ? err.message : 'Network error';
+          return NextResponse.json(
+            { error: `Upstream upload request failed for "${file.name}": ${msg}` },
+            { status: 502 },
+          );
+        }
+
+        const uploadText = await uploadRes.text();
+        if (!uploadRes.ok) {
+          return NextResponse.json(
+            {
+              error: `Agent upload returned HTTP ${uploadRes.status} for "${file.name}"`,
+              upstreamStatus: uploadRes.status,
+              upstreamBody: uploadText.slice(0, 4000),
+            },
+            { status: 502 },
+          );
+        }
+
+        let fileId: string | null = null;
+        try {
+          const parsed = JSON.parse(uploadText) as Record<string, unknown>;
+          const candidate =
+            (typeof parsed.fileId === 'string' && parsed.fileId) ||
+            (typeof parsed.id === 'string' && parsed.id) ||
+            (parsed.file && typeof (parsed.file as Record<string, unknown>).id === 'string'
+              ? ((parsed.file as Record<string, unknown>).id as string)
+              : null);
+          if (candidate) fileId = candidate;
+        } catch {
+          /* fall through */
+        }
+        if (!fileId) {
+          return NextResponse.json(
+            {
+              error: `Agent upload response missing fileId for "${file.name}"`,
+              upstreamBody: uploadText.slice(0, 4000),
+            },
+            { status: 502 },
+          );
+        }
+        fileIds.push(fileId);
       }
 
-      const uploadText = await uploadRes.text();
-      if (!uploadRes.ok) {
-        return NextResponse.json(
-          {
-            error: `Agent upload returned HTTP ${uploadRes.status}`,
-            upstreamStatus: uploadRes.status,
-            upstreamBody: uploadText.slice(0, 4000),
-          },
-          { status: 502 },
-        );
-      }
-
-      let fileId: string | null = null;
-      try {
-        const parsed = JSON.parse(uploadText) as Record<string, unknown>;
-        const candidate =
-          (typeof parsed.fileId === 'string' && parsed.fileId) ||
-          (typeof parsed.id === 'string' && parsed.id) ||
-          (parsed.file && typeof (parsed.file as Record<string, unknown>).id === 'string'
-            ? ((parsed.file as Record<string, unknown>).id as string)
-            : null);
-        if (candidate) fileId = candidate;
-      } catch {
-        /* fall through */
-      }
-      if (!fileId) {
-        return NextResponse.json(
-          {
-            error: 'Agent upload response missing fileId',
-            upstreamBody: uploadText.slice(0, 4000),
-          },
-          { status: 502 },
-        );
-      }
-
-      // --- Step 2: invoke with file reference ---
+      // --- Step 2: invoke with file references ---
       upstreamRes = await fetch(agent.endpoint, {
         method: 'POST',
         headers: {
@@ -215,7 +221,7 @@ export async function POST(req: NextRequest) {
           version: 1,
           outputType: upstreamOutput,
           async: useAsync,
-          files: [fileId],
+          files: fileIds,
         }),
       });
     } else {

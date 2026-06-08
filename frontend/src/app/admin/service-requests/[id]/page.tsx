@@ -68,6 +68,15 @@ interface ServiceRequest {
   created_by: string;
 }
 
+interface CommentAttachment {
+  attachment_id: number;
+  filename: string;
+  mimetype: string;
+  file_size: number;
+  uploaded_by: string;
+  created_at: string;
+}
+
 interface Comment {
   comment_id: number;
   comment_text: string;
@@ -78,6 +87,7 @@ interface Comment {
   created_by: string;
   created_at: string;
   is_visible_to_staff: boolean;
+  attachments: CommentAttachment[];
 }
 
 interface Attachment {
@@ -176,8 +186,10 @@ export default function ServiceRequestDetailPage() {
   const [newStatus, setNewStatus] = useState('');
   const [statusComment, setStatusComment] = useState('');
   const [newComment, setNewComment] = useState('');
+  const [commentFiles, setCommentFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [downloadingId, setDownloadingId] = useState<number | null>(null);
+  const [downloadingCommentAttachmentId, setDownloadingCommentAttachmentId] = useState<number | null>(null);
 
   // --- AI Agents state ---
   const [agents, setAgents] = useState<AiAgent[]>([]);
@@ -185,7 +197,7 @@ export default function ServiceRequestDetailPage() {
   const [agentsError, setAgentsError] = useState<string | null>(null);
   const [selectedAgentId, setSelectedAgentId] = useState('');
   const [agentQuery, setAgentQuery] = useState('');
-  const [agentFile, setAgentFile] = useState<File | null>(null);
+  const [agentFiles, setAgentFiles] = useState<File[]>([]);
   // When an agent accepts a file, the user can either upload from their PC
   // or pick one of this request's existing attachments.
   const [agentFileSource, setAgentFileSource] = useState<'upload' | 'attachment'>('upload');
@@ -384,7 +396,7 @@ export default function ServiceRequestDetailPage() {
   // Reset agent inputs when the selected agent changes.
   useEffect(() => {
     setAgentQuery('');
-    setAgentFile(null);
+    setAgentFiles([]);
     setAgentFileSource('upload');
     setAgentAttachmentId('');
     setAgentResponse(null);
@@ -546,7 +558,7 @@ export default function ServiceRequestDetailPage() {
       return;
     }
     if (selectedAgent.acceptsFile && selectedAgent.fileUpload?.required) {
-      if (agentFileSource === 'upload' && !agentFile) {
+      if (agentFileSource === 'upload' && agentFiles.length === 0) {
         setAgentRunError('This agent requires a file upload.');
         return;
       }
@@ -564,13 +576,13 @@ export default function ServiceRequestDetailPage() {
     setAgentJobStatus(null);
 
     try {
-      // Resolve the file to send: either the user's local upload, or — when
+      // Resolve the file(s) to send: either the user's local upload(s), or — when
       // the user picked an SR attachment — fetch it from the attachments API
       // and wrap the blob in a File so the rest of the flow is unchanged.
-      let fileToSend: File | null = null;
+      let filesToSend: File[] = [];
       if (selectedAgent.acceptsFile) {
         if (agentFileSource === 'upload') {
-          fileToSend = agentFile;
+          filesToSend = agentFiles;
         } else if (agentFileSource === 'attachment' && agentAttachmentId) {
           setAgentFetchingAttachment(true);
           try {
@@ -582,17 +594,18 @@ export default function ServiceRequestDetailPage() {
             }
             const blob = await resp.blob();
             const meta = attachments.find((a) => a.attachment_id === agentAttachmentId);
-            fileToSend = new File([blob], meta?.filename || 'attachment', {
+            const attachmentFile = new File([blob], meta?.filename || 'attachment', {
               type: meta?.mimetype || blob.type || 'application/octet-stream',
             });
             // Size check against the agent's per-file limit.
             const cfg = selectedAgent.fileUpload;
-            if (cfg && fileToSend.size > cfg.maxSizeMB * 1024 * 1024) {
+            if (cfg && attachmentFile.size > cfg.maxSizeMB * 1024 * 1024) {
               setAgentRunError(
-                `Attachment "${fileToSend.name}" exceeds the ${cfg.maxSizeMB} MB limit for this agent.`,
+                `Attachment "${attachmentFile.name}" exceeds the ${cfg.maxSizeMB} MB limit for this agent.`,
               );
               return;
             }
+            filesToSend = [attachmentFile];
           } finally {
             setAgentFetchingAttachment(false);
           }
@@ -600,12 +613,12 @@ export default function ServiceRequestDetailPage() {
       }
 
       let res: Response;
-      if (fileToSend && selectedAgent.acceptsFile) {
+      if (filesToSend.length > 0 && selectedAgent.acceptsFile) {
         const fd = new FormData();
         fd.append('agentId', selectedAgent.id);
         fd.append('query', agentQuery);
         fd.append('outputType', agentOutputType);
-        fd.append('file', fileToSend, fileToSend.name);
+        filesToSend.forEach((f) => fd.append('files', f, f.name));
         res = await fetch('/api/ai-agents/invoke', { method: 'POST', body: fd });
       } else {
         res = await fetch('/api/ai-agents/invoke', {
@@ -817,26 +830,28 @@ export default function ServiceRequestDetailPage() {
   };
 
   const handleAddComment = async () => {
-    if (!newComment.trim()) {
-      alert('Please enter a comment');
+    if (!newComment.trim() && commentFiles.length === 0) {
+      alert('Please enter a comment or attach a file');
       return;
     }
 
     setSubmitting(true);
     try {
+      const fd = new FormData();
+      fd.append('comment_text', newComment);
+      fd.append('comment_type', 'internal_note');
+      fd.append('is_visible_to_staff', 'true');
+      commentFiles.forEach((f) => fd.append('files', f, f.name));
+
       const response = await fetch(`/api/admin/service-requests/${requestId}/comments`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          comment_text: newComment,
-          comment_type: 'internal_note',
-          is_visible_to_staff: true,
-        }),
+        body: fd,
       });
 
       if (!response.ok) throw new Error('Failed to add comment');
 
       setNewComment('');
+      setCommentFiles([]);
       setShowAddComment(false);
       fetchComments();
     } catch (error) {
@@ -844,6 +859,32 @@ export default function ServiceRequestDetailPage() {
       console.error(error);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDownloadCommentAttachment = async (commentId: number, attachment: CommentAttachment) => {
+    setDownloadingCommentAttachmentId(attachment.attachment_id);
+    try {
+      const response = await fetch(
+        `/api/admin/service-requests/${requestId}/comments/${commentId}/attachments/${attachment.attachment_id}`
+      );
+      if (!response.ok) {
+        throw new Error('Failed to download file');
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = attachment.filename;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Download error:', error);
+      alert('Failed to download file');
+    } finally {
+      setDownloadingCommentAttachmentId(null);
     }
   };
 
@@ -1152,11 +1193,49 @@ export default function ServiceRequestDetailPage() {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Add an internal note..."
                 />
-                <div className="flex justify-end space-x-2 mt-2">
+                {/* File attachment input */}
+                <div className="mt-2">
+                  <input
+                    type="file"
+                    multiple
+                    onChange={(e) => {
+                      const files = Array.from(e.target.files || []);
+                      const maxSize = 10 * 1024 * 1024; // 10MB
+                      const oversized = files.find((f) => f.size > maxSize);
+                      if (oversized) {
+                        alert(`"${oversized.name}" exceeds the 10 MB limit.`);
+                        e.target.value = '';
+                        return;
+                      }
+                      setCommentFiles(files);
+                    }}
+                    className="block w-full text-sm text-gray-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Max 10 MB per file. You can attach multiple files.</p>
+                  {commentFiles.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {commentFiles.map((f, idx) => (
+                        <li key={`${f.name}-${idx}`} className="flex items-center justify-between text-xs text-gray-600 bg-white rounded px-2 py-1 border border-gray-200">
+                          <span className="truncate">{f.name} ({formatFileSize(f.size)})</span>
+                          <button
+                            type="button"
+                            onClick={() => setCommentFiles((prev) => prev.filter((_, i) => i !== idx))}
+                            className="ml-2 text-red-500 hover:text-red-700 shrink-0"
+                            title="Remove file"
+                          >
+                            ×
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div className="flex justify-end space-x-2 mt-3">
                   <button
                     onClick={() => {
                       setShowAddComment(false);
                       setNewComment('');
+                      setCommentFiles([]);
                     }}
                     className="px-3 py-1 text-sm text-gray-600 hover:text-gray-800"
                   >
@@ -1164,7 +1243,7 @@ export default function ServiceRequestDetailPage() {
                   </button>
                   <button
                     onClick={handleAddComment}
-                    disabled={submitting || !newComment.trim()}
+                    disabled={submitting || (!newComment.trim() && commentFiles.length === 0)}
                     className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50"
                   >
                     {submitting ? 'Adding...' : 'Add Comment'}
@@ -1202,6 +1281,47 @@ export default function ServiceRequestDetailPage() {
                       </div>
                     )}
                     <p className="text-sm text-gray-700">{comment.comment_text}</p>
+                    {/* Comment attachments */}
+                    {comment.attachments && comment.attachments.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {comment.attachments.map((att) => (
+                          <div
+                            key={att.attachment_id}
+                            className="flex items-center justify-between p-2 bg-white rounded border border-gray-200"
+                          >
+                            <div className="flex items-center space-x-2 min-w-0">
+                              {getFileIcon(att.mimetype)}
+                              <div className="min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{att.filename}</p>
+                                <p className="text-xs text-gray-500">{formatFileSize(att.file_size)}</p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => handleDownloadCommentAttachment(comment.comment_id, att)}
+                              disabled={downloadingCommentAttachmentId === att.attachment_id}
+                              className="flex items-center space-x-1 px-2 py-1 text-xs font-medium text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded disabled:opacity-50 shrink-0"
+                            >
+                              {downloadingCommentAttachmentId === att.attachment_id ? (
+                                <>
+                                  <svg className="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                  </svg>
+                                  <span>Downloading...</span>
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                  </svg>
+                                  <span>Download</span>
+                                </>
+                              )}
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                     <div className="mt-2 flex items-center justify-between text-xs text-gray-500">
                       <span>{comment.created_by}</span>
                       <span>{formatDate(comment.created_at)}</span>
@@ -1403,6 +1523,7 @@ export default function ServiceRequestDetailPage() {
                             <input
                               id="ai-file"
                               type="file"
+                              multiple
                               accept={
                                 selectedAgent.fileUpload?.allowedTypes
                                   .map((t) => FILE_TYPE_ACCEPT[t])
@@ -1410,16 +1531,24 @@ export default function ServiceRequestDetailPage() {
                                   .join(',') || undefined
                               }
                               onChange={(e) => {
-                                const f = e.target.files?.[0] ?? null;
+                                const files = Array.from(e.target.files || []);
                                 const cfg = selectedAgent.fileUpload;
-                                if (f && cfg && f.size > cfg.maxSizeMB * 1024 * 1024) {
-                                  setAgentRunError(`File exceeds the ${cfg.maxSizeMB} MB limit for this agent.`);
+                                const maxFiles = cfg?.maxFiles ?? 1;
+                                if (files.length > maxFiles) {
+                                  setAgentRunError(`This agent accepts at most ${maxFiles} file${maxFiles === 1 ? '' : 's'}.`);
                                   e.target.value = '';
-                                  setAgentFile(null);
+                                  setAgentFiles([]);
+                                  return;
+                                }
+                                const oversized = files.find((f) => cfg && f.size > cfg.maxSizeMB * 1024 * 1024);
+                                if (oversized && cfg) {
+                                  setAgentRunError(`"${oversized.name}" exceeds the ${cfg.maxSizeMB} MB limit for this agent.`);
+                                  e.target.value = '';
+                                  setAgentFiles([]);
                                   return;
                                 }
                                 setAgentRunError(null);
-                                setAgentFile(f);
+                                setAgentFiles(files);
                               }}
                               className="block w-full text-sm text-gray-700 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
@@ -1429,13 +1558,29 @@ export default function ServiceRequestDetailPage() {
                                 {selectedAgent.fileUpload.allowedTypes
                                   .map((t) => FILE_TYPE_LABEL[t] || t)
                                   .join(', ')}
-                                . Max {selectedAgent.fileUpload.maxSizeMB} MB.
+                                . Max {selectedAgent.fileUpload.maxSizeMB} MB
+                                {selectedAgent.fileUpload.maxFiles > 1 && `, up to ${selectedAgent.fileUpload.maxFiles} files`}
+                                .
                               </p>
                             )}
-                            {agentFile && (
-                              <p className="mt-1 text-xs text-gray-500">
-                                Selected: {agentFile.name} ({(agentFile.size / 1024).toFixed(1)} KB)
-                              </p>
+                            {agentFiles.length > 0 && (
+                              <ul className="mt-2 space-y-1">
+                                {agentFiles.map((f, idx) => (
+                                  <li key={`${f.name}-${idx}`} className="flex items-center justify-between text-xs text-gray-600 bg-gray-50 rounded px-2 py-1">
+                                    <span className="truncate">{f.name} ({(f.size / 1024).toFixed(1)} KB)</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAgentFiles((prev) => prev.filter((_, i) => i !== idx));
+                                      }}
+                                      className="ml-2 text-red-500 hover:text-red-700 shrink-0"
+                                      title="Remove file"
+                                    >
+                                      ×
+                                    </button>
+                                  </li>
+                                ))}
+                              </ul>
                             )}
                           </>
                         ) : (
@@ -1764,6 +1909,11 @@ export default function ServiceRequestDetailPage() {
                               No downloadable files generated yet for this service request.
                               Files (PDF, Word, Excel, PowerPoint, image, audio, etc.) you generate
                               with an agent will appear here.
+                            </p>
+                          )}
+                          {previousOutputsError && previousOutputs.length === 0 && (
+                            <p className="py-2 text-xs text-gray-500">
+                              Unable to load file history. Please try refreshing.
                             </p>
                           )}
                           {previousOutputs.length > 0 && (
