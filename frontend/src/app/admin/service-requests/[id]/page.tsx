@@ -201,7 +201,7 @@ export default function ServiceRequestDetailPage() {
   // When an agent accepts a file, the user can either upload from their PC
   // or pick one of this request's existing attachments.
   const [agentFileSource, setAgentFileSource] = useState<'upload' | 'attachment'>('upload');
-  const [agentAttachmentId, setAgentAttachmentId] = useState<number | ''>('');
+  const [agentAttachmentIds, setAgentAttachmentIds] = useState<number[]>([]);
   const [agentFetchingAttachment, setAgentFetchingAttachment] = useState(false);
   const [agentOutputType, setAgentOutputType] = useState('');
   const [agentRunning, setAgentRunning] = useState(false);
@@ -398,7 +398,7 @@ export default function ServiceRequestDetailPage() {
     setAgentQuery('');
     setAgentFiles([]);
     setAgentFileSource('upload');
-    setAgentAttachmentId('');
+    setAgentAttachmentIds([]);
     setAgentResponse(null);
     setAgentResponseRenderType('unknown');
     setAgentResponseFile(null);
@@ -562,7 +562,7 @@ export default function ServiceRequestDetailPage() {
         setAgentRunError('This agent requires a file upload.');
         return;
       }
-      if (agentFileSource === 'attachment' && !agentAttachmentId) {
+      if (agentFileSource === 'attachment' && agentAttachmentIds.length === 0) {
         setAgentRunError('Please pick an attachment to send to the agent.');
         return;
       }
@@ -583,29 +583,32 @@ export default function ServiceRequestDetailPage() {
       if (selectedAgent.acceptsFile) {
         if (agentFileSource === 'upload') {
           filesToSend = agentFiles;
-        } else if (agentFileSource === 'attachment' && agentAttachmentId) {
+        } else if (agentFileSource === 'attachment' && agentAttachmentIds.length > 0) {
           setAgentFetchingAttachment(true);
           try {
-            const resp = await fetch(
-              `/api/admin/service-requests/${requestId}/attachments/${agentAttachmentId}`,
-            );
-            if (!resp.ok) {
-              throw new Error(`Failed to load attachment (HTTP ${resp.status})`);
-            }
-            const blob = await resp.blob();
-            const meta = attachments.find((a) => a.attachment_id === agentAttachmentId);
-            const attachmentFile = new File([blob], meta?.filename || 'attachment', {
-              type: meta?.mimetype || blob.type || 'application/octet-stream',
-            });
-            // Size check against the agent's per-file limit.
             const cfg = selectedAgent.fileUpload;
-            if (cfg && attachmentFile.size > cfg.maxSizeMB * 1024 * 1024) {
-              setAgentRunError(
-                `Attachment "${attachmentFile.name}" exceeds the ${cfg.maxSizeMB} MB limit for this agent.`,
+            const loadedFiles: File[] = [];
+            for (const attId of agentAttachmentIds) {
+              const resp = await fetch(
+                `/api/admin/service-requests/${requestId}/attachments/${attId}`,
               );
-              return;
+              if (!resp.ok) {
+                throw new Error(`Failed to load attachment #${attId} (HTTP ${resp.status})`);
+              }
+              const blob = await resp.blob();
+              const meta = attachments.find((a) => a.attachment_id === attId);
+              const attachmentFile = new File([blob], meta?.filename || 'attachment', {
+                type: meta?.mimetype || blob.type || 'application/octet-stream',
+              });
+              if (cfg && attachmentFile.size > cfg.maxSizeMB * 1024 * 1024) {
+                setAgentRunError(
+                  `Attachment "${attachmentFile.name}" exceeds the ${cfg.maxSizeMB} MB limit for this agent.`,
+                );
+                return;
+              }
+              loadedFiles.push(attachmentFile);
             }
-            filesToSend = [attachmentFile];
+            filesToSend = loadedFiles;
           } finally {
             setAgentFetchingAttachment(false);
           }
@@ -1486,6 +1489,7 @@ export default function ServiceRequestDetailPage() {
                               checked={agentFileSource === 'upload'}
                               onChange={() => {
                                 setAgentFileSource('upload');
+                                setAgentAttachmentIds([]);
                                 setAgentRunError(null);
                               }}
                               className="h-3.5 w-3.5 text-blue-600"
@@ -1505,6 +1509,7 @@ export default function ServiceRequestDetailPage() {
                               disabled={attachments.length === 0}
                               onChange={() => {
                                 setAgentFileSource('attachment');
+                                setAgentFiles([]);
                                 setAgentRunError(null);
                               }}
                               className="h-3.5 w-3.5 text-blue-600"
@@ -1619,22 +1624,80 @@ export default function ServiceRequestDetailPage() {
                             }
                             return (
                               <>
-                                <select
-                                  value={agentAttachmentId}
-                                  onChange={(e) => {
-                                    const v = e.target.value;
-                                    setAgentAttachmentId(v ? Number(v) : '');
-                                    setAgentRunError(null);
-                                  }}
-                                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                                >
-                                  <option value="">-- Choose an attachment --</option>
-                                  {matching.map((a) => (
-                                    <option key={a.attachment_id} value={a.attachment_id}>
-                                      {a.filename} ({(a.file_size / 1024).toFixed(1)} KB)
-                                    </option>
-                                  ))}
-                                </select>
+                                <div className="max-h-48 overflow-y-auto border border-gray-300 rounded-lg divide-y divide-gray-100">
+                                  {matching.map((a) => {
+                                    const isSelected = agentAttachmentIds.includes(a.attachment_id);
+                                    const atLimit =
+                                      !isSelected &&
+                                      agentAttachmentIds.length >= (selectedAgent.fileUpload?.maxFiles ?? 1);
+                                    return (
+                                      <label
+                                        key={a.attachment_id}
+                                        className={`flex items-center gap-3 px-3 py-2 text-sm ${
+                                          atLimit ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
+                                        }`}
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={isSelected}
+                                          disabled={atLimit}
+                                          onChange={() => {
+                                            setAgentAttachmentIds((prev) =>
+                                              isSelected
+                                                ? prev.filter((id) => id !== a.attachment_id)
+                                                : [...prev, a.attachment_id],
+                                            );
+                                            setAgentRunError(null);
+                                          }}
+                                          className="h-4 w-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 shrink-0"
+                                        />
+                                        <span className="flex-1 truncate text-gray-700">
+                                          {a.filename}
+                                        </span>
+                                        <span className="text-xs text-gray-400 shrink-0">
+                                          {formatFileSize(a.file_size)}
+                                        </span>
+                                      </label>
+                                    );
+                                  })}
+                                </div>
+                                {matching.length > 1 && (
+                                  <div className="mt-1 flex items-center gap-2 text-xs">
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        const maxFiles = selectedAgent.fileUpload?.maxFiles ?? matching.length;
+                                        setAgentAttachmentIds(matching.slice(0, maxFiles).map((a) => a.attachment_id));
+                                        setAgentRunError(null);
+                                      }}
+                                      className="text-blue-600 hover:text-blue-800 font-medium"
+                                    >
+                                      Select all
+                                    </button>
+                                    <span className="text-gray-300">|</span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setAgentAttachmentIds([]);
+                                        setAgentRunError(null);
+                                      }}
+                                      className="text-gray-500 hover:text-gray-700 font-medium"
+                                    >
+                                      Clear all
+                                    </button>
+                                    <span className="ml-auto text-gray-500">
+                                      {agentAttachmentIds.length} of {matching.length} selected
+                                      {selectedAgent.fileUpload && selectedAgent.fileUpload.maxFiles > 1 && (
+                                        <span> (max {selectedAgent.fileUpload.maxFiles})</span>
+                                      )}
+                                    </span>
+                                  </div>
+                                )}
+                                {matching.length === 1 && (
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    1 attachment available.
+                                  </p>
+                                )}
                                 {selectedAgent.fileUpload && (
                                   <p className="mt-1 text-xs text-gray-500">
                                     Showing attachments that match:{' '}
