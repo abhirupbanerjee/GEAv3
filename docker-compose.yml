@@ -10,7 +10,7 @@ volumes:
   gea_backups:
   documents_data:
   branding_data:
-  ai_agent_outputs_data::
+  ai_agent_outputs_data:
 
 services:
   traefik:
