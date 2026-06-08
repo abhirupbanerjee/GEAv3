@@ -25,7 +25,7 @@ export async function GET() {
   if (!isAdmin(session)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-  return NextResponse.json({ mappings: getAllMappings() });
+  return NextResponse.json({ mappings: await getAllMappings() });
 }
 
 export async function PUT(req: NextRequest) {
@@ -46,7 +46,7 @@ export async function PUT(req: NextRequest) {
   }
 
   const incoming = body.mappings as Record<string, unknown>;
-  const validAgentIds = new Set(getAllAgents().map((a) => a.id));
+  const validAgentIds = new Set((await getAllAgents()).map((a) => a.id));
   const normalized: Record<string, string[]> = {};
 
   for (const [rawName, rawIds] of Object.entries(incoming)) {
@@ -73,13 +73,13 @@ export async function PUT(req: NextRequest) {
   }
 
   // Apply: delete entries no longer present, then upsert remaining.
-  const existing = getAllMappings();
+  const existing = await getAllMappings();
   for (const serviceName of Object.keys(existing)) {
-    if (!(serviceName in normalized)) deleteMapping(serviceName);
+    if (!(serviceName in normalized)) await deleteMapping(serviceName);
   }
   for (const [serviceName, ids] of Object.entries(normalized)) {
-    setMapping(serviceName, ids);
+    await setMapping(serviceName, ids);
   }
 
-  return NextResponse.json({ success: true, mappings: getAllMappings() });
+  return NextResponse.json({ success: true, mappings: await getAllMappings() });
 }

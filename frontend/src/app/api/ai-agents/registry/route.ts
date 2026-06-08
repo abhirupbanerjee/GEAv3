@@ -27,7 +27,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
   // Return everything except no tokens — tokens never leave the server.
-  const agents = getAllAgents().map((a) => ({
+  const agents = (await getAllAgents()).map((a) => ({
     id: a.id,
     name: a.name,
     description: a.description,
@@ -156,7 +156,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const def = addAgent({
+    const def = await addAgent({
       id,
       name,
       description,

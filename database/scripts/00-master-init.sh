@@ -280,6 +280,20 @@ fi
 echo ""
 
 # ============================================================================
+# STEP 12f: CREATE AI SERVICE AGENT TABLES
+# ============================================================================
+echo "▶ Step 12f: Creating AI service agent tables..."
+echo ""
+
+if [ -f "$SCRIPTS_DIR/42-create-ai-service-agents-tables.sh" ]; then
+    "$SCRIPTS_DIR/42-create-ai-service-agents-tables.sh"
+    echo "  ✓ AI service agent tables created"
+else
+    echo "  ⚠️  Script 42-create-ai-service-agents-tables.sh not found - skipping"
+fi
+echo ""
+
+# ============================================================================
 # STEP 13: VERIFICATION
 # ============================================================================
 echo "╔═══════════════════════════════════════════════════════════════════╗"
@@ -308,6 +322,9 @@ WHERE table_schema = 'public'
     'ea_service_request_comments',
     'ea_comment_attachments',
     'ai_agent_outputs',
+    'ai_service_agents',
+    'ai_service_agent_tokens',
+    'ai_service_agent_mappings',
     'grievance_tickets',
     'tickets',
     'ticket_activity',
@@ -360,6 +377,7 @@ echo "  ✓ NextAuth authentication ready"
 echo "  ✓ Service request comments enabled"
 echo "  ✓ Comment file attachments enabled"
 echo "  ✓ AI agent outputs persistence enabled"
+echo "  ✓ AI service agent registry (DB-backed) enabled"
 echo "  ✓ File extensions support multiple formats"
 echo "  ✓ Reference data loaded"
 echo "  ✓ 27 EA service attachment requirements configured"

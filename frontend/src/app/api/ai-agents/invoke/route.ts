@@ -88,7 +88,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'query is required' }, { status: 400 });
   }
 
-  const agent = getAgentById(agentId);
+  const agent = await getAgentById(agentId);
   if (!agent) {
     return NextResponse.json({ error: `Unknown agent: ${agentId}` }, { status: 404 });
   }
@@ -120,7 +120,7 @@ export async function POST(req: NextRequest) {
   const INLINE_OUTPUT_TYPES = new Set(['text', 'json', 'md']);
   const useAsync = agent.async === true && !INLINE_OUTPUT_TYPES.has(chosenOutput);
 
-  const token = getAgentToken(agent);
+  const token = await getAgentToken(agent);
   if (!token) {
     return NextResponse.json(
       {

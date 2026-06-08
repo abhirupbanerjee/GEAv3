@@ -34,12 +34,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'path is required' }, { status: 400 });
   }
 
-  const agent = getAgentById(agentId);
+  const agent = await getAgentById(agentId);
   if (!agent) {
     return NextResponse.json({ error: `Unknown agent: ${agentId}` }, { status: 404 });
   }
 
-  const token = getAgentToken(agent);
+  const token = await getAgentToken(agent);
   if (!token) {
     return NextResponse.json(
       { error: `Bearer token not configured for agent "${agent.name}"` },

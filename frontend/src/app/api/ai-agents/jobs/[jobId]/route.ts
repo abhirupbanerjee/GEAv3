@@ -55,10 +55,10 @@ export async function GET(
   const agentId = req.nextUrl.searchParams.get('agentId');
   if (!agentId) return NextResponse.json({ error: 'agentId query param is required' }, { status: 400 });
 
-  const agent = getAgentById(agentId);
+  const agent = await getAgentById(agentId);
   if (!agent) return NextResponse.json({ error: `Unknown agent: ${agentId}` }, { status: 404 });
 
-  const token = getAgentToken(agent);
+  const token = await getAgentToken(agent);
   if (!token) {
     return NextResponse.json(
       {

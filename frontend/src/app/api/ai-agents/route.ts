@@ -16,6 +16,6 @@ export async function GET(req: NextRequest) {
   }
 
   const serviceName = req.nextUrl.searchParams.get('serviceName');
-  const agents = serviceName ? getPublicAgentsForServiceName(serviceName) : getPublicAgents();
+  const agents = serviceName ? await getPublicAgentsForServiceName(serviceName) : await getPublicAgents();
   return NextResponse.json({ agents });
 }

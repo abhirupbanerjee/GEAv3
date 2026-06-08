@@ -821,6 +821,54 @@ CREATE INDEX IF NOT EXISTS idx_ai_agent_outputs_user_sr ON ai_agent_outputs(user
 CREATE INDEX IF NOT EXISTS idx_ai_agent_outputs_sr ON ai_agent_outputs(sr_number, created_at DESC);
 
 -- ============================================================================
+-- AI SERVICE AGENTS TABLE (v7.2)
+-- ============================================================================
+-- Stores AI service agent definitions (replaces file-based ai-agents.json).
+
+CREATE TABLE IF NOT EXISTS ai_service_agents (
+    id VARCHAR(100) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    endpoint TEXT NOT NULL,
+    accepts_file BOOLEAN NOT NULL DEFAULT FALSE,
+    file_upload JSONB,
+    output_types TEXT[] NOT NULL DEFAULT '{}',
+    default_output_type VARCHAR(50) NOT NULL,
+    async BOOLEAN NOT NULL DEFAULT FALSE,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_service_agents_active ON ai_service_agents(is_active);
+
+-- ============================================================================
+-- AI SERVICE AGENT TOKENS TABLE (v7.2)
+-- ============================================================================
+-- Stores encrypted bearer tokens (replaces .env.agents file).
+
+CREATE TABLE IF NOT EXISTS ai_service_agent_tokens (
+    agent_id VARCHAR(100) PRIMARY KEY REFERENCES ai_service_agents(id) ON DELETE CASCADE,
+    encrypted_token TEXT NOT NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ============================================================================
+-- AI SERVICE AGENT MAPPINGS TABLE (v7.2)
+-- ============================================================================
+-- Maps service names to allowed agent ids (replaces ai-agent-mappings.json).
+
+CREATE TABLE IF NOT EXISTS ai_service_agent_mappings (
+    service_name VARCHAR(255) NOT NULL,
+    agent_id VARCHAR(100) NOT NULL REFERENCES ai_service_agents(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (service_name, agent_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_ai_service_agent_mappings_service ON ai_service_agent_mappings(service_name);
+CREATE INDEX IF NOT EXISTS idx_ai_service_agent_mappings_agent ON ai_service_agent_mappings(agent_id);
+
+-- ============================================================================
 -- TICKET NOTES TABLE (v7.0)
 -- ============================================================================
 

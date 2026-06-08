@@ -30,7 +30,7 @@ export async function DELETE(
   const { id } = await params;
   if (!id) return NextResponse.json({ error: 'Agent id is required' }, { status: 400 });
 
-  const ok = removeAgent(id);
+  const ok = await removeAgent(id);
   if (!ok) return NextResponse.json({ error: 'Agent not found' }, { status: 404 });
   return NextResponse.json({ success: true });
 }
@@ -158,7 +158,7 @@ export async function PATCH(
   }
 
   try {
-    const updated = updateAgent(id, patch);
+    const updated = await updateAgent(id, patch);
     return NextResponse.json({
       success: true,
       agent: {

@@ -1,27 +1,19 @@
 /**
- * Server-only AI agent registry.
+ * Server-only AI agent registry — database-backed.
  *
- * - Reads agent definitions from a JSON file on disk at runtime so that
- *   newly registered agents (added via the admin UI) take effect without a
- *   rebuild. Path is configurable via AI_AGENT_REGISTRY_PATH (defaults to
- *   /app/runtime/ai-agents.json inside the container).
+ * Reads/writes agent definitions, encrypted bearer tokens, and service-name
+ * mappings from PostgreSQL tables so the registry survives container rebuilds
+ * and works across multiple frontend instances.
  *
- * - Resolves each agent's bearer token from:
- *     1. process.env[agent.tokenEnv]              (loaded from .env.agents at boot)
- *     2. parsed contents of AI_AGENT_TOKENS_PATH  (re-read each request)
- *     3. in-memory cache populated when agents are registered via the UI
- *        (so a brand-new agent works immediately, no container restart needed)
- *
- * - Provides addAgent/removeAgent which write back to disk so the registry
- *   and token file remain the source of truth. Writes are in-place
- *   (truncate + write) so bind-mounted single files keep their inode.
+ * Token resolution order:
+ *   1. process.env[agent.tokenEnv]  (env override, backward compatible)
+ *   2. ai_service_agent_tokens.encrypted_token (decrypted at runtime)
  *
  * This module must NEVER be imported from a client component.
  */
 
-import fs from 'fs';
-import path from 'path';
-import bundledDefaults from '@/config/ai-agents.json';
+import { executeQuery, withTransaction } from '@/lib/db';
+import { encryptValue, decryptValue } from '@/lib/settings-encryption';
 
 export const ALLOWED_FILE_TYPE_KEYS = [
   'pdf',
@@ -68,95 +60,88 @@ export interface PublicAgent {
   async?: boolean;
 }
 
-interface RegistryFile {
-  $comment?: string;
-  agents: AgentDefinition[];
+/** Convert a user-supplied agent id to a safe tokenEnv variable name. */
+export function tokenEnvNameFor(agentId: string): string {
+  const safe = agentId
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return `AI_AGENT_TOKEN_${safe || 'CUSTOM'}`;
 }
 
-const REGISTRY_PATH =
-  process.env.AI_AGENT_REGISTRY_PATH ||
-  path.join(process.cwd(), 'runtime', 'ai-agents.json');
+// ---------- DB row mappers ----------
 
-const TOKENS_PATH =
-  process.env.AI_AGENT_TOKENS_PATH ||
-  path.join(process.cwd(), 'runtime', '.env.agents');
-
-// In-memory token cache populated when an agent is registered via the UI.
-const tokenCache: Record<string, string> = {};
-
-function readRegistry(): RegistryFile {
-  try {
-    if (fs.existsSync(REGISTRY_PATH)) {
-      const raw = fs.readFileSync(REGISTRY_PATH, 'utf8');
-      const parsed = JSON.parse(raw);
-      if (parsed && Array.isArray(parsed.agents)) return parsed as RegistryFile;
-    }
-  } catch (err) {
-    console.error('[ai-agents] Failed to read registry, using bundled defaults:', err);
-  }
-  return bundledDefaults as unknown as RegistryFile;
+interface AgentRow {
+  id: string;
+  name: string;
+  description: string;
+  endpoint: string;
+  accepts_file: boolean;
+  file_upload: FileUploadConfig | null;
+  output_types: string[];
+  default_output_type: string;
+  async: boolean | null;
 }
 
-function writeRegistry(reg: RegistryFile): void {
-  const dir = path.dirname(REGISTRY_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(REGISTRY_PATH, JSON.stringify(reg, null, 2) + '\n', 'utf8');
+function rowToDefinition(row: AgentRow): AgentDefinition {
+  return {
+    id: row.id,
+    name: row.name,
+    description: row.description,
+    endpoint: row.endpoint,
+    tokenEnv: tokenEnvNameFor(row.id),
+    acceptsFile: row.accepts_file,
+    fileUpload: row.file_upload ?? undefined,
+    outputTypes: row.output_types,
+    defaultOutputType: row.default_output_type,
+    async: row.async === true,
+  };
 }
 
-function parseTokenFile(): Record<string, string> {
-  const out: Record<string, string> = {};
-  try {
-    if (!fs.existsSync(TOKENS_PATH)) return out;
-    const raw = fs.readFileSync(TOKENS_PATH, 'utf8');
-    for (const line of raw.split(/\r?\n/)) {
-      const trimmed = line.trim();
-      if (!trimmed || trimmed.startsWith('#')) continue;
-      const eq = trimmed.indexOf('=');
-      if (eq <= 0) continue;
-      const key = trimmed.slice(0, eq).trim();
-      let value = trimmed.slice(eq + 1).trim();
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
-      out[key] = value;
-    }
-  } catch (err) {
-    console.error('[ai-agents] Failed to parse tokens file:', err);
-  }
-  return out;
-}
-
-function writeTokenFile(map: Record<string, string>): void {
-  const dir = path.dirname(TOKENS_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-
-  const header =
-    '# AI Agent bearer tokens (server-side only).\n' +
-    '# Managed by the admin UI (Settings -> AI Agents). Manual edits also supported.\n' +
-    '# After editing manually, recreate the frontend container.\n\n';
-
-  const body = Object.entries(map)
-    .map(([k, v]) => `${k}=${v}`)
-    .join('\n');
-
-  fs.writeFileSync(TOKENS_PATH, header + body + '\n', 'utf8');
+function defToRow(def: AgentDefinition): AgentRow {
+  return {
+    id: def.id,
+    name: def.name,
+    description: def.description,
+    endpoint: def.endpoint,
+    accepts_file: def.acceptsFile,
+    file_upload: def.fileUpload ?? null,
+    output_types: def.outputTypes,
+    default_output_type: def.defaultOutputType,
+    async: def.async === true ? true : null,
+  };
 }
 
 // ---------- Public API ----------
 
-export function getAllAgents(): AgentDefinition[] {
-  return readRegistry().agents;
+export async function getAllAgents(): Promise<AgentDefinition[]> {
+  const res = await executeQuery<AgentRow>(
+    `SELECT id, name, description, endpoint, accepts_file, file_upload,
+            output_types, default_output_type, async
+     FROM ai_service_agents
+     WHERE is_active = TRUE
+     ORDER BY name`,
+    [],
+  );
+  return res.rows.map(rowToDefinition);
 }
 
-export function getAgentById(id: string): AgentDefinition | undefined {
-  return readRegistry().agents.find((a) => a.id === id);
+export async function getAgentById(
+  id: string,
+): Promise<AgentDefinition | undefined> {
+  const res = await executeQuery<AgentRow>(
+    `SELECT id, name, description, endpoint, accepts_file, file_upload,
+            output_types, default_output_type, async
+     FROM ai_service_agents
+     WHERE id = $1 AND is_active = TRUE`,
+    [id],
+  );
+  return res.rows[0] ? rowToDefinition(res.rows[0]) : undefined;
 }
 
-export function getPublicAgents(): PublicAgent[] {
-  return readRegistry().agents.map((a) => ({
+export async function getPublicAgents(): Promise<PublicAgent[]> {
+  const agents = await getAllAgents();
+  return agents.map((a) => ({
     id: a.id,
     name: a.name,
     description: a.description,
@@ -168,21 +153,20 @@ export function getPublicAgents(): PublicAgent[] {
   }));
 }
 
-export function getAgentToken(agent: AgentDefinition): string | undefined {
+export async function getAgentToken(
+  agent: AgentDefinition,
+): Promise<string | undefined> {
+  // 1. Environment override (backward compatibility)
   const fromEnv = process.env[agent.tokenEnv];
   if (fromEnv) return fromEnv;
-  if (tokenCache[agent.tokenEnv]) return tokenCache[agent.tokenEnv];
-  const fromFile = parseTokenFile()[agent.tokenEnv];
-  return fromFile;
-}
 
-/** Convert a user-supplied agent id to a safe tokenEnv variable name. */
-export function tokenEnvNameFor(agentId: string): string {
-  const safe = agentId
-    .toUpperCase()
-    .replace(/[^A-Z0-9]+/g, '_')
-    .replace(/^_+|_+$/g, '');
-  return `AI_AGENT_TOKEN_${safe || 'CUSTOM'}`;
+  // 2. Database
+  const res = await executeQuery<{ encrypted_token: string }>(
+    `SELECT encrypted_token FROM ai_service_agent_tokens WHERE agent_id = $1`,
+    [agent.id],
+  );
+  if (!res.rows[0]?.encrypted_token) return undefined;
+  return decryptValue(res.rows[0].encrypted_token);
 }
 
 export interface AddAgentInput {
@@ -198,10 +182,12 @@ export interface AddAgentInput {
   async?: boolean;
 }
 
-export function addAgent(input: AddAgentInput): AgentDefinition {
-  const reg = readRegistry();
-
-  if (reg.agents.some((a) => a.id === input.id)) {
+export async function addAgent(input: AddAgentInput): Promise<AgentDefinition> {
+  const existing = await executeQuery<{ count: string }>(
+    `SELECT COUNT(*) as count FROM ai_service_agents WHERE id = $1`,
+    [input.id],
+  );
+  if (parseInt(existing.rows[0].count, 10) > 0) {
     throw new Error(`Agent with id "${input.id}" already exists`);
   }
 
@@ -222,49 +208,44 @@ export function addAgent(input: AddAgentInput): AgentDefinition {
     def.async = true;
   }
 
-  reg.agents.push(def);
-  writeRegistry(reg);
+  const row = defToRow(def);
 
-  const tokens = parseTokenFile();
-  tokens[def.tokenEnv] = input.token;
-  writeTokenFile(tokens);
-  tokenCache[def.tokenEnv] = input.token;
+  await withTransaction(async (client) => {
+    await client.query(
+      `INSERT INTO ai_service_agents
+         (id, name, description, endpoint, accepts_file, file_upload,
+          output_types, default_output_type, async)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)`,
+      [
+        row.id,
+        row.name,
+        row.description,
+        row.endpoint,
+        row.accepts_file,
+        row.file_upload,
+        row.output_types,
+        row.default_output_type,
+        row.async,
+      ],
+    );
+
+    await client.query(
+      `INSERT INTO ai_service_agent_tokens (agent_id, encrypted_token)
+       VALUES ($1, $2)`,
+      [def.id, encryptValue(input.token)],
+    );
+  });
 
   return def;
 }
 
-export function removeAgent(id: string): boolean {
-  const reg = readRegistry();
-  const idx = reg.agents.findIndex((a) => a.id === id);
-  if (idx === -1) return false;
-
-  const removed = reg.agents.splice(idx, 1)[0];
-  writeRegistry(reg);
-
-  const tokens = parseTokenFile();
-  if (tokens[removed.tokenEnv] !== undefined) {
-    delete tokens[removed.tokenEnv];
-    writeTokenFile(tokens);
-  }
-  delete tokenCache[removed.tokenEnv];
-
-  // Also strip this agent from every mapping that references it.
-  const m = readMappings();
-  let changed = false;
-  for (const [key, ids] of Object.entries(m.byServiceName)) {
-    const filtered = ids.filter((x) => x !== id);
-    if (filtered.length !== ids.length) {
-      changed = true;
-      if (filtered.length === 0) delete m.byServiceName[key];
-      else m.byServiceName[key] = filtered;
-    }
-  }
-  if (changed) writeMappings(m);
-
-  return true;
+export async function removeAgent(id: string): Promise<boolean> {
+  const res = await executeQuery(
+    `DELETE FROM ai_service_agents WHERE id = $1`,
+    [id],
+  );
+  return (res.rowCount ?? 0) > 0;
 }
-
-// ---------- Edit ----------
 
 export interface UpdateAgentInput {
   name?: string;
@@ -274,17 +255,18 @@ export interface UpdateAgentInput {
   fileUpload?: FileUploadConfig | null;
   outputTypes?: string[];
   defaultOutputType?: string;
-  /** Optional — when provided, replace the bearer token in .env.agents. */
+  /** Optional — when provided, replace the bearer token in the DB. */
   token?: string;
   async?: boolean;
 }
 
-export function updateAgent(id: string, patch: UpdateAgentInput): AgentDefinition {
-  const reg = readRegistry();
-  const idx = reg.agents.findIndex((a) => a.id === id);
-  if (idx === -1) throw new Error(`Agent with id "${id}" not found`);
+export async function updateAgent(
+  id: string,
+  patch: UpdateAgentInput,
+): Promise<AgentDefinition> {
+  const existing = await getAgentById(id);
+  if (!existing) throw new Error(`Agent with id "${id}" not found`);
 
-  const existing = reg.agents[idx];
   const next: AgentDefinition = {
     ...existing,
     ...(patch.name !== undefined ? { name: patch.name } : {}),
@@ -297,9 +279,6 @@ export function updateAgent(id: string, patch: UpdateAgentInput): AgentDefinitio
       : {}),
     ...(patch.async !== undefined ? { async: patch.async === true } : {}),
   };
-  if (next.async === false) {
-    delete next.async;
-  }
 
   // fileUpload handling: explicit null removes; undefined leaves unchanged; object replaces.
   if (patch.fileUpload === null) {
@@ -312,100 +291,98 @@ export function updateAgent(id: string, patch: UpdateAgentInput): AgentDefinitio
     delete next.fileUpload;
   }
 
-  reg.agents[idx] = next;
-  writeRegistry(reg);
+  const row = defToRow(next);
 
-  if (patch.token !== undefined && patch.token !== '') {
-    const tokens = parseTokenFile();
-    tokens[next.tokenEnv] = patch.token;
-    writeTokenFile(tokens);
-    tokenCache[next.tokenEnv] = patch.token;
-  }
+  await withTransaction(async (client) => {
+    await client.query(
+      `UPDATE ai_service_agents SET
+         name = $1,
+         description = $2,
+         endpoint = $3,
+         accepts_file = $4,
+         file_upload = $5,
+         output_types = $6,
+         default_output_type = $7,
+         async = $8,
+         updated_at = NOW()
+       WHERE id = $9`,
+      [
+        row.name,
+        row.description,
+        row.endpoint,
+        row.accepts_file,
+        row.file_upload,
+        row.output_types,
+        row.default_output_type,
+        row.async,
+        id,
+      ],
+    );
+
+    if (patch.token !== undefined && patch.token !== '') {
+      await client.query(
+        `INSERT INTO ai_service_agent_tokens (agent_id, encrypted_token)
+         VALUES ($1, $2)
+         ON CONFLICT (agent_id) DO UPDATE SET
+           encrypted_token = EXCLUDED.encrypted_token,
+           updated_at = NOW()`,
+        [id, encryptValue(patch.token)],
+      );
+    }
+  });
 
   return next;
 }
 
 // ---------- Service-Name <-> Agent mappings ----------
 
-interface MappingsFile {
-  $comment?: string;
-  // Service name -> list of agent ids allowed for any service request whose
-  // `service_name` matches. If a service name is NOT a key here, no agents
-  // are available for service requests under it. An empty array also means
-  // no agents are allowed.
-  byServiceName: Record<string, string[]>;
-}
-
-const MAPPINGS_PATH =
-  process.env.AI_AGENT_MAPPINGS_PATH ||
-  path.join(process.cwd(), 'runtime', 'ai-agent-mappings.json');
-
-const EMPTY_MAPPINGS: MappingsFile = {
-  $comment:
-    'Maps service names (service_master.service_name) to the list of agent ids allowed for them. Service requests whose service is not listed see no agents.',
-  byServiceName: {},
-};
-
-function readMappings(): MappingsFile {
-  try {
-    if (fs.existsSync(MAPPINGS_PATH)) {
-      const raw = fs.readFileSync(MAPPINGS_PATH, 'utf8');
-      const parsed = JSON.parse(raw);
-      if (parsed && typeof parsed === 'object') {
-        // New shape
-        if (parsed.byServiceName && typeof parsed.byServiceName === 'object') {
-          return parsed as MappingsFile;
-        }
-        // Legacy shape (bySR) — silently ignored; admin must remap by service
-        // name. Returning an empty map keeps the strict policy intact.
-        if (parsed.bySR && typeof parsed.bySR === 'object') {
-          return { ...EMPTY_MAPPINGS, byServiceName: {} };
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[ai-agents] Failed to read mappings, defaulting to empty:', err);
-  }
-  return { ...EMPTY_MAPPINGS, byServiceName: {} };
-}
-
-function writeMappings(m: MappingsFile): void {
-  const dir = path.dirname(MAPPINGS_PATH);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(MAPPINGS_PATH, JSON.stringify(m, null, 2) + '\n', 'utf8');
-}
-
 /** Returns the full mapping table (admin-only callers). */
-export function getAllMappings(): Record<string, string[]> {
-  return { ...readMappings().byServiceName };
+export async function getAllMappings(): Promise<Record<string, string[]>> {
+  const res = await executeQuery<{ service_name: string; agent_id: string }>(
+    `SELECT service_name, agent_id FROM ai_service_agent_mappings ORDER BY service_name`,
+    [],
+  );
+
+  const out: Record<string, string[]> = {};
+  for (const row of res.rows) {
+    if (!out[row.service_name]) out[row.service_name] = [];
+    out[row.service_name].push(row.agent_id);
+  }
+  return out;
 }
 
 /**
  * Returns the allowed agent ids for a service name (case-insensitive,
- * whitespace-trimmed). `null` is never returned now — missing keys yield an
- * empty array, enforcing the strict "must be explicitly mapped" policy.
+ * whitespace-trimmed). Missing keys yield an empty array, enforcing the
+ * strict "must be explicitly mapped" policy.
  */
-export function getAllowedAgentIdsForServiceName(serviceName: string): string[] {
-  const m = readMappings();
-  const want = serviceName.trim().toLowerCase();
-  for (const [key, ids] of Object.entries(m.byServiceName)) {
-    if (key.trim().toLowerCase() === want) return ids;
-  }
-  return [];
+export async function getAllowedAgentIdsForServiceName(
+  serviceName: string,
+): Promise<string[]> {
+  const res = await executeQuery<{ agent_id: string }>(
+    `SELECT agent_id
+     FROM ai_service_agent_mappings
+     WHERE LOWER(TRIM(service_name)) = LOWER(TRIM($1))`,
+    [serviceName],
+  );
+  return res.rows.map((r) => r.agent_id);
 }
 
 /**
  * Returns the public agent list filtered for a given service name. Strict
  * policy: only agents explicitly mapped to that service name are returned.
  */
-export function getPublicAgentsForServiceName(
+export async function getPublicAgentsForServiceName(
   serviceName: string | null | undefined,
-): PublicAgent[] {
+): Promise<PublicAgent[]> {
   if (!serviceName) return [];
-  const allowed = getAllowedAgentIdsForServiceName(serviceName);
+  const [agents, allowed] = await Promise.all([
+    getPublicAgents(),
+    getAllowedAgentIdsForServiceName(serviceName),
+  ]);
   if (allowed.length === 0) return [];
   const set = new Set(allowed);
-  return getPublicAgents().filter((a) => set.has(a.id));
+  return agents.filter((a) => set.has(a.id));
 }
 
 /**
@@ -413,18 +390,172 @@ export function getPublicAgentsForServiceName(
  * Pass an empty array to record "no agents allowed for this service".
  * Use `deleteMapping` to remove the entry entirely.
  */
-export function setMapping(serviceName: string, agentIds: string[]): void {
-  const m = readMappings();
-  const existingIds = new Set(readRegistry().agents.map((a) => a.id));
+export async function setMapping(
+  serviceName: string,
+  agentIds: string[],
+): Promise<void> {
+  const existingIds = new Set((await getAllAgents()).map((a) => a.id));
   const cleaned = Array.from(new Set(agentIds.filter((id) => existingIds.has(id))));
-  m.byServiceName[serviceName] = cleaned;
-  writeMappings(m);
+
+  await withTransaction(async (client) => {
+    await client.query(
+      `DELETE FROM ai_service_agent_mappings WHERE service_name = $1`,
+      [serviceName],
+    );
+    for (const agentId of cleaned) {
+      await client.query(
+        `INSERT INTO ai_service_agent_mappings (service_name, agent_id)
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [serviceName, agentId],
+      );
+    }
+  });
 }
 
-export function deleteMapping(serviceName: string): boolean {
-  const m = readMappings();
-  if (!Object.prototype.hasOwnProperty.call(m.byServiceName, serviceName)) return false;
-  delete m.byServiceName[serviceName];
-  writeMappings(m);
-  return true;
+export async function deleteMapping(serviceName: string): Promise<boolean> {
+  const res = await executeQuery(
+    `DELETE FROM ai_service_agent_mappings WHERE service_name = $1`,
+    [serviceName],
+  );
+  return (res.rowCount ?? 0) > 0;
+}
+
+// ---------- One-time migration from legacy files ----------
+
+interface LegacyRegistryFile {
+  agents: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    endpoint: string;
+    tokenEnv: string;
+    acceptsFile: boolean;
+    fileUpload?: FileUploadConfig;
+    outputTypes: string[];
+    defaultOutputType: string;
+    async?: boolean;
+  }>;
+}
+
+interface LegacyMappingsFile {
+  byServiceName?: Record<string, string[]>;
+}
+
+/**
+ * Migrate agents, tokens, and mappings from legacy JSON files into the DB.
+ * Idempotent — skips if ai_service_agents already has rows.
+ */
+export async function migrateAgentsFromFilesToDb(): Promise<{
+  agents: number;
+  mappings: number;
+}> {
+  const countRes = await executeQuery<{ count: string }>(
+    `SELECT COUNT(*) as count FROM ai_service_agents`,
+    [],
+  );
+  if (parseInt(countRes.rows[0].count, 10) > 0) {
+    return { agents: 0, mappings: 0 };
+  }
+
+  // Only attempt import if fs module can find legacy files
+  let fs: typeof import('fs') | undefined;
+  let path: typeof import('path') | undefined;
+  try {
+    fs = await import('fs');
+    path = await import('path');
+  } catch {
+    return { agents: 0, mappings: 0 };
+  }
+
+  const runtimeDir = path.join(process.cwd(), 'runtime');
+  const registryPath = process.env.AI_AGENT_REGISTRY_PATH || path.join(runtimeDir, 'ai-agents.json');
+  const tokensPath = process.env.AI_AGENT_TOKENS_PATH || path.join(runtimeDir, '.env.agents');
+  const mappingsPath = process.env.AI_AGENT_MAPPINGS_PATH || path.join(runtimeDir, 'ai-agent-mappings.json');
+
+  let registry: LegacyRegistryFile = { agents: [] };
+  try {
+    if (fs.existsSync(registryPath)) {
+      const raw = fs.readFileSync(registryPath, 'utf8');
+      const parsed = JSON.parse(raw) as LegacyRegistryFile;
+      if (parsed && Array.isArray(parsed.agents)) registry = parsed;
+    }
+  } catch {
+    /* ignore unreadable registry */
+  }
+
+  let tokenMap: Record<string, string> = {};
+  try {
+    if (fs.existsSync(tokensPath)) {
+      const raw = fs.readFileSync(tokensPath, 'utf8');
+      for (const line of raw.split(/\r?\n/)) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq <= 0) continue;
+        const key = trimmed.slice(0, eq).trim();
+        let value = trimmed.slice(eq + 1).trim();
+        if (
+          (value.startsWith('"') && value.endsWith('"')) ||
+          (value.startsWith("'") && value.endsWith("'"))
+        ) {
+          value = value.slice(1, -1);
+        }
+        tokenMap[key] = value;
+      }
+    }
+  } catch {
+    /* ignore unreadable tokens */
+  }
+
+  let mappings: LegacyMappingsFile = {};
+  try {
+    if (fs.existsSync(mappingsPath)) {
+      const raw = fs.readFileSync(mappingsPath, 'utf8');
+      const parsed = JSON.parse(raw) as LegacyMappingsFile;
+      if (parsed && typeof parsed.byServiceName === 'object') mappings = parsed;
+    }
+  } catch {
+    /* ignore unreadable mappings */
+  }
+
+  let agentCount = 0;
+  for (const a of registry.agents) {
+    try {
+      const token = tokenMap[a.tokenEnv] || '';
+      await addAgent({
+        id: a.id,
+        name: a.name,
+        description: a.description,
+        endpoint: a.endpoint,
+        acceptsFile: a.acceptsFile,
+        fileUpload: a.fileUpload,
+        outputTypes: a.outputTypes,
+        defaultOutputType: a.defaultOutputType,
+        token,
+        async: a.async,
+      });
+      agentCount++;
+    } catch (err) {
+      console.error(`[migrateAgentsFromFilesToDb] Failed to migrate agent "${a.id}":`, err);
+    }
+  }
+
+  let mappingCount = 0;
+  if (mappings.byServiceName) {
+    for (const [serviceName, agentIds] of Object.entries(mappings.byServiceName)) {
+      if (!Array.isArray(agentIds) || agentIds.length === 0) continue;
+      try {
+        await setMapping(serviceName, agentIds);
+        mappingCount++;
+      } catch (err) {
+        console.error(
+          `[migrateAgentsFromFilesToDb] Failed to migrate mapping for "${serviceName}":`,
+          err,
+        );
+      }
+    }
+  }
+
+  return { agents: agentCount, mappings: mappingCount };
 }
