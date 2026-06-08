@@ -113,6 +113,7 @@ const EMPTY_FORM: FormState = {
 interface MappingRow {
   serviceName: string
   agentIds: string[]
+  entityId?: string
 }
 
 // ---------- Spec-JSON import helpers ----------
@@ -384,6 +385,11 @@ export default function AiAgentsPanel() {
   // Known service names (for the mapping dropdown)
   const [serviceNames, setServiceNames] = useState<string[]>([])
 
+  // Entity → services lookup for filtered dropdowns
+  const [entities, setEntities] = useState<{ id: string; name: string }[]>([])
+  const [servicesByEntity, setServicesByEntity] = useState<Record<string, string[]>>({})
+  const [serviceToEntity, setServiceToEntity] = useState<Record<string, string>>({})
+
   const loadAgents = useCallback(async () => {
     setLoading(true)
     setLoadError(null)
@@ -440,12 +446,49 @@ export default function AiAgentsPanel() {
             ),
           ).sort((a, b) => a.localeCompare(b))
           setServiceNames(names)
+
+          // Build entity list and entity→services map
+          const entityMap = new Map<string, string>()
+          const svcByEntity: Record<string, Set<string>> = {}
+          const svcToEntity: Record<string, string> = {}
+          rows.forEach((r: { entity_id?: unknown; entity_name?: unknown; service_name?: unknown }) => {
+            const eid = typeof r.entity_id === 'string' ? r.entity_id : ''
+            const ename = typeof r.entity_name === 'string' ? r.entity_name : ''
+            const sname = typeof r.service_name === 'string' ? r.service_name.trim() : ''
+            if (!eid || !ename || !sname) return
+            entityMap.set(eid, ename)
+            if (!svcByEntity[eid]) svcByEntity[eid] = new Set()
+            svcByEntity[eid].add(sname)
+            svcToEntity[sname] = eid
+          })
+          const entityList = Array.from(entityMap.entries())
+            .map(([id, name]) => ({ id, name }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+          setEntities(entityList)
+          setServicesByEntity(
+            Object.fromEntries(
+              Object.entries(svcByEntity).map(([k, v]) => [k, Array.from(v).sort((a, b) => a.localeCompare(b))]),
+            ),
+          )
+          setServiceToEntity(svcToEntity)
         }
       } catch {
         // non-fatal — admin can still type names manually via fallback
       }
     })()
   }, [loadAgents, loadMappings])
+
+  // After services/entities load, backfill entityId on mapping rows where possible
+  useEffect(() => {
+    if (Object.keys(serviceToEntity).length === 0) return
+    setMappingRows((prev) =>
+      prev.map((row) => {
+        if (row.entityId) return row
+        const eid = serviceToEntity[row.serviceName]
+        return eid ? { ...row, entityId: eid } : row
+      }),
+    )
+  }, [serviceToEntity])
 
   const startEdit = (agent: RegisteredAgent) => {
     setEditingId(agent.id)
@@ -1265,7 +1308,7 @@ export default function AiAgentsPanel() {
             </button>
             <button
               type="button"
-              onClick={() => setMappingRows((prev) => [{ serviceName: '', agentIds: [] }, ...prev])}
+              onClick={() => setMappingRows((prev) => [{ serviceName: '', agentIds: [], entityId: '' }, ...prev])}
               className="inline-flex items-center gap-1.5 rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
             >
               <FiPlus className="h-4 w-4" />
@@ -1293,6 +1336,9 @@ export default function AiAgentsPanel() {
             <table className="min-w-full divide-y divide-gray-200 text-sm">
               <thead className="sticky top-0 z-10 bg-gray-50">
                 <tr>
+                  <th className="w-56 px-3 py-2 text-left font-semibold text-gray-700">
+                    Entity Name
+                  </th>
                   <th className="w-72 px-3 py-2 text-left font-semibold text-gray-700">
                     Service Name
                   </th>
@@ -1303,61 +1349,88 @@ export default function AiAgentsPanel() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {mappingRows.map((row, idx) => (
-                  <tr key={idx} className="align-top hover:bg-gray-50">
-                    <td className="px-3 py-2">
-                      {serviceNames.length > 0 ? (
+                {mappingRows.map((row, idx) => {
+                  const availableServices = row.entityId ? (servicesByEntity[row.entityId] || []) : []
+                  const hasServices = availableServices.length > 0 || serviceNames.length > 0
+                  return (
+                    <tr key={idx} className="align-top hover:bg-gray-50">
+                      <td className="px-3 py-2">
                         <select
-                          value={
-                            row.serviceName && serviceNames.includes(row.serviceName)
-                              ? row.serviceName
-                              : row.serviceName
-                                ? '__custom__'
-                                : ''
-                          }
+                          value={row.entityId || ''}
                           onChange={(e) => {
                             const v = e.target.value
                             setMappingRows((prev) =>
                               prev.map((r, i) =>
                                 i === idx
-                                  ? {
-                                      ...r,
-                                      serviceName: v === '__custom__' ? r.serviceName : v,
-                                    }
+                                  ? { ...r, entityId: v, serviceName: '' }
                                   : r,
                               ),
                             )
                           }}
                           className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                         >
-                          <option value="">— Select a service —</option>
-                          {serviceNames.map((name) => (
-                            <option key={name} value={name}>
-                              {name}
+                          <option value="">— Select an entity —</option>
+                          {entities.map((e) => (
+                            <option key={e.id} value={e.id}>
+                              {e.name}
                             </option>
                           ))}
-                          {row.serviceName && !serviceNames.includes(row.serviceName) && (
-                            <option value="__custom__">{row.serviceName} (custom)</option>
-                          )}
                         </select>
-                      ) : (
-                        <input
-                          type="text"
-                          value={row.serviceName}
-                          onChange={(e) => {
-                            const v = e.target.value
-                            setMappingRows((prev) =>
-                              prev.map((r, i) => (i === idx ? { ...r, serviceName: v } : r)),
-                            )
-                          }}
-                          placeholder="e.g. EA Portal Support Request"
-                          className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                        />
-                      )}
-                      <div className="mt-0.5 text-[11px] text-gray-500">
-                        {row.agentIds.length} agent{row.agentIds.length === 1 ? '' : 's'} selected
-                      </div>
-                    </td>
+                      </td>
+                      <td className="px-3 py-2">
+                        {hasServices ? (
+                          <select
+                            value={
+                              row.serviceName && (availableServices.includes(row.serviceName) || serviceNames.includes(row.serviceName))
+                                ? row.serviceName
+                                : row.serviceName
+                                  ? '__custom__'
+                                  : ''
+                            }
+                            onChange={(e) => {
+                              const v = e.target.value
+                              setMappingRows((prev) =>
+                                prev.map((r, i) =>
+                                  i === idx
+                                    ? {
+                                        ...r,
+                                        serviceName: v === '__custom__' ? r.serviceName : v,
+                                      }
+                                    : r,
+                                ),
+                              )
+                            }}
+                            disabled={!row.entityId}
+                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-gray-100 disabled:text-gray-400"
+                          >
+                            <option value="">{row.entityId ? '— Select a service —' : '— Select entity first —'}</option>
+                            {(row.entityId ? availableServices : serviceNames).map((name) => (
+                              <option key={name} value={name}>
+                                {name}
+                              </option>
+                            ))}
+                            {row.serviceName && !availableServices.includes(row.serviceName) && !serviceNames.includes(row.serviceName) && (
+                              <option value="__custom__">{row.serviceName} (custom)</option>
+                            )}
+                          </select>
+                        ) : (
+                          <input
+                            type="text"
+                            value={row.serviceName}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              setMappingRows((prev) =>
+                                prev.map((r, i) => (i === idx ? { ...r, serviceName: v } : r)),
+                              )
+                            }}
+                            placeholder="e.g. EA Portal Support Request"
+                            className="w-full rounded-md border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                          />
+                        )}
+                        <div className="mt-0.5 text-[11px] text-gray-500">
+                          {row.agentIds.length} agent{row.agentIds.length === 1 ? '' : 's'} selected
+                        </div>
+                      </td>
                     <td className="px-3 py-2">
                       {agents.length === 0 ? (
                         <span className="text-xs text-gray-500">No agents registered yet.</span>
@@ -1411,7 +1484,7 @@ export default function AiAgentsPanel() {
                       </button>
                     </td>
                   </tr>
-                ))}
+                )})}
               </tbody>
             </table>
           </div>
